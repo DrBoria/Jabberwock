@@ -179,6 +179,7 @@ export const globalSettingsSchema = z.object({
 	execaShellPath: z.string().optional(),
 
 	diagnosticsEnabled: z.boolean().optional(),
+	devtool: z.boolean().optional(),
 
 	rateLimitSeconds: z.number().optional(),
 	experiments: experimentsSchema.optional(),
@@ -233,6 +234,11 @@ export const globalSettingsSchema = z.object({
 	 * Tools in this list will be excluded from prompt generation and rejected at execution time.
 	 */
 	disabledTools: z.array(toolNamesSchema).optional(),
+	/**
+	 * Prefix for diagnostic link (LocatorJS) clicks.
+	 * Default: "code" (opens via code:// protocol)
+	 */
+	locatorTarget: z.string().optional(),
 })
 
 export type GlobalSettings = z.infer<typeof globalSettingsSchema>

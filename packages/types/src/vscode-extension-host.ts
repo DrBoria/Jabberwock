@@ -22,6 +22,7 @@ import type { ModelRecord, RouterModels } from "./model.ts"
 import type { OpenAiCodexRateLimitInfo } from "./providers/openai-codex-rate-limits.ts"
 import type { SkillMetadata } from "./skills.ts"
 import type { WorktreeIncludeStatus } from "./worktree.ts"
+import type { DiagnosticSnapshot } from "./diagnostics.ts"
 
 /**
  * ExtensionMessage
@@ -105,9 +106,11 @@ export interface ExtensionMessage {
 		| "folderSelected"
 		| "skills"
 		| "fileContent"
+		| "diagnostics"
 	text?: string
 	/** For fileContent: { path, content, error? } */
 	fileContent?: { path: string; content: string | null; error?: string }
+	diagnostics?: any // eslint-disable-line @typescript-eslint/no-explicit-any
 	payload?: any // eslint-disable-line @typescript-eslint/no-explicit-any
 	checkpointWarning?: {
 		type: "WAIT_TIMEOUT" | "INIT_TIMEOUT"
@@ -309,6 +312,7 @@ export type ExtensionState = Pick<
 	| "requestDelaySeconds"
 	| "showWorktreesInHomeScreen"
 	| "disabledTools"
+	| "locatorTarget"
 > & {
 	lockApiConfigAcrossModes?: boolean
 	version: string
@@ -385,6 +389,8 @@ export type ExtensionState = Pick<
 	 * (captured during async getStateToPostToWebview) from overwriting newer messages.
 	 */
 	clineMessagesSeq?: number
+	diagnostics?: DiagnosticSnapshot
+	devtoolEnabled: boolean
 }
 
 export interface Command {
@@ -579,6 +585,12 @@ export interface WebviewMessage {
 		| "createWorktreeInclude"
 		| "checkoutBranch"
 		| "browseForWorktreePath"
+		| "clearDiagnostics"
+		| "devtoolStatus"
+		| "LOCATOR_OPEN_FILE"
+		// DevTools messages
+		| "webviewLog"
+		| "mstPatch"
 		// Skills messages
 		| "requestSkills"
 		| "createSkill"
@@ -586,6 +598,7 @@ export interface WebviewMessage {
 		| "moveSkill"
 		| "updateSkillModes"
 		| "openSkillFile"
+		| "locatorTarget"
 	text?: string
 	taskId?: string
 	editedMessageContent?: string
@@ -698,6 +711,7 @@ export interface WebviewMessage {
 	worktreeForce?: boolean
 	worktreeNewWindow?: boolean
 	worktreeIncludeContent?: string
+	locatorPayload?: { filePath: string; line: number; column: number }
 }
 
 export interface RequestOpenAiCodexRateLimitsMessage {

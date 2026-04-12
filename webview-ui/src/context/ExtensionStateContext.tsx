@@ -147,6 +147,8 @@ export interface ExtensionStateContextType extends ExtensionState {
 	setIncludeCurrentCost: (value: boolean) => void
 	showWorktreesInHomeScreen: boolean
 	setShowWorktreesInHomeScreen: (value: boolean) => void
+	locatorTarget?: string
+	setLocatorTarget: (value: string) => void
 	skills?: SkillMetadata[]
 }
 
@@ -250,6 +252,7 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 		autoCondenseContext: true,
 		autoCondenseContextPercent: 100,
 		profileThresholds: {},
+		locatorTarget: "code",
 		codebaseIndexConfig: {
 			codebaseIndexEnabled: true,
 			codebaseIndexQdrantUrl: "http://localhost:6333",
@@ -267,6 +270,7 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 		includeCurrentTime: true,
 		includeCurrentCost: true,
 		lockApiConfigAcrossModes: false,
+		devtoolEnabled: false,
 	})
 
 	const [didHydrateState, setDidHydrateState] = useState(false)
@@ -339,6 +343,10 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 					// Update includeCurrentCost if present in state message
 					if ((newState as any).includeCurrentCost !== undefined) {
 						setIncludeCurrentCost((newState as any).includeCurrentCost)
+					}
+					// Update locatorTarget if present in state message
+					if ((newState as any).locatorTarget !== undefined) {
+						setState((prev) => ({ ...prev, locatorTarget: (newState as any).locatorTarget }))
 					}
 					// Handle marketplace data if present in state message
 					if (newState.marketplaceItems !== undefined) {
@@ -465,6 +473,15 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 								prevState.currentTaskItem?.id === item.id ? item : prevState.currentTaskItem,
 						}
 					})
+					break
+				}
+				case "diagnostics": {
+					if (message.diagnostics) {
+						setState((prevState) => ({
+							...prevState,
+							diagnostics: message.diagnostics,
+						}))
+					}
 					break
 				}
 			}
@@ -620,9 +637,23 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 		setIncludeCurrentCost,
 		skills,
 		showWorktreesInHomeScreen: state.showWorktreesInHomeScreen ?? true,
-		setShowWorktreesInHomeScreen: (value) =>
+		setShowWorktreesInHomeScreen: (value: boolean) =>
 			setState((prevState) => ({ ...prevState, showWorktreesInHomeScreen: value })),
+		locatorTarget: state.locatorTarget ?? "code",
+		setLocatorTarget: (value) => setState((prevState) => ({ ...prevState, locatorTarget: value })),
 	}
+
+	// DevTools: expose state accessor on window for agent inspection
+	useEffect(() => {
+		if (state.devtoolEnabled) {
+			;(window as unknown as Record<string, unknown>).__JABBERWOCK_GET_STATE__ = () => ({ ...state })
+		} else {
+			delete (window as unknown as Record<string, unknown>).__JABBERWOCK_GET_STATE__
+		}
+		return () => {
+			delete (window as unknown as Record<string, unknown>).__JABBERWOCK_GET_STATE__
+		}
+	}, [state, state.devtoolEnabled])
 
 	return <ExtensionStateContext.Provider value={contextValue}>{children}</ExtensionStateContext.Provider>
 }

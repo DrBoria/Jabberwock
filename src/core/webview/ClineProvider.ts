@@ -8,6 +8,7 @@ import delay from "delay"
 import axios from "axios"
 import pWaitFor from "p-wait-for"
 import * as vscode from "vscode"
+import debounce from "lodash.debounce"
 
 import {
 	type TaskProviderLike,
@@ -94,6 +95,9 @@ import { ContextProxy } from "../config/ContextProxy"
 import { ProviderSettingsManager } from "../config/ProviderSettingsManager"
 import { CustomModesManager } from "../config/CustomModesManager"
 import { Task } from "../task/Task"
+import { ChatStore } from "../state/ChatTreeStore"
+import { onSnapshot, onPatch, applySnapshot } from "mobx-state-tree"
+import { diagnosticsManager } from "../devtools/DiagnosticsManager"
 
 import { webviewMessageHandler } from "./webviewMessageHandler"
 import type { ClineMessage, TodoItem } from "@jabberwock/types"
@@ -151,6 +155,7 @@ export class ClineProvider
 
 	private recentTasksCache?: string[]
 	public readonly taskHistoryStore: TaskHistoryStore
+	private devtoolEnabled = false
 	private taskHistoryStoreInitialized = false
 	private globalStateWriteThroughTimer: ReturnType<typeof setTimeout> | null = null
 	private static readonly GLOBAL_STATE_WRITE_THROUGH_DEBOUNCE_MS = 5000 // 5 seconds
@@ -173,6 +178,8 @@ export class ClineProvider
 	public readonly providerSettingsManager: ProviderSettingsManager
 	public readonly customModesManager: CustomModesManager
 
+	public chatStore = ChatStore.create({ nodes: {} })
+
 	constructor(
 		readonly context: vscode.ExtensionContext,
 		private readonly outputChannel: vscode.OutputChannel,
@@ -182,6 +189,24 @@ export class ClineProvider
 	) {
 		super()
 		this.currentWorkspacePath = getWorkspacePath()
+
+		const savedChatTree = this.context.workspaceState.get("jabberwock_chat_tree")
+		if (savedChatTree) {
+			try {
+				applySnapshot(this.chatStore, savedChatTree)
+			} catch (e) {
+				console.error("Failed to restore chat tree snapshot", e)
+			}
+		}
+
+		onSnapshot(this.chatStore, (snapshot) => {
+			this.context.workspaceState.update("jabberwock_chat_tree", snapshot)
+		})
+
+		// Feed incremental MST changes into DiagnosticsManager for real-time tracking
+		onPatch(this.chatStore, (patch) => {
+			diagnosticsManager.recordMstPatch(patch)
+		})
 
 		ClineProvider.activeInstances.add(this)
 
@@ -199,6 +224,23 @@ export class ClineProvider
 		this.initializeTaskHistoryStore().catch((error) => {
 			this.log(`Failed to initialize TaskHistoryStore: ${error}`)
 		})
+
+		// Initialize diagnostic log file so agents can read it from disk
+		import("../devtools/DiagnosticsManager").then(({ diagnosticsManager }) => {
+			const logPath = path.join(this.contextProxy.globalStorageUri.fsPath, "jabberwock.diagnostics.log")
+			diagnosticsManager.setLogFilePath(logPath)
+		})
+
+		this.devtoolEnabled = vscode.workspace.getConfiguration(Package.name).get<boolean>("devtool") ?? false
+		if (this.devtoolEnabled) {
+			import("../devtools/JabberwockMcpServer").then(({ startJabberwockMcpServer }) => {
+				startJabberwockMcpServer(this)
+					.then(() => {
+						this.postStateToWebview()
+					})
+					.catch(this.log.bind(this))
+			})
+		}
 
 		// Start configuration loading (which might trigger indexing) in the background.
 		// Don't await, allowing activation to continue immediately.
@@ -947,6 +989,23 @@ export class ClineProvider
 			if (e && e.affectsConfiguration("workbench.colorTheme")) {
 				// Sends latest theme name to webview
 				await this.postMessageToWebview({ type: "theme", text: JSON.stringify(await getTheme()) })
+			}
+			if (e && e.affectsConfiguration(`${Package.name}.devtool`)) {
+				this.devtoolEnabled = vscode.workspace.getConfiguration(Package.name).get<boolean>("devtool") ?? false
+				const { startJabberwockMcpServer, stopJabberwockMcpServer } = await import(
+					"../devtools/JabberwockMcpServer"
+				)
+				if (this.devtoolEnabled) {
+					startJabberwockMcpServer(this)
+						.then(() => {
+							this.postStateToWebview()
+						})
+						.catch(this.log.bind(this))
+				} else {
+					stopJabberwockMcpServer()
+					this.postStateToWebview()
+				}
+				await this.postStateToWebview()
 			}
 		})
 		this.webviewDisposables.push(configDisposable)
@@ -1980,6 +2039,17 @@ export class ClineProvider
 		}
 	}
 
+	async postDiagnosticsToWebview() {
+		this.postMessageToWebview({
+			type: "state",
+			state: await this.getStateToPostToWebview(),
+		})
+	}
+
+	postDiagnosticsToWebviewThrottled = debounce(() => {
+		void this.postDiagnosticsToWebview()
+	}, 1000)
+
 	/**
 	 * Like postStateToWebview but intentionally omits taskHistory.
 	 *
@@ -2209,6 +2279,7 @@ export class ClineProvider
 			openRouterImageApiKey,
 			openRouterImageGenerationSelectedModel,
 			lockApiConfigAcrossModes,
+			locatorTarget,
 		} = await this.getState()
 
 		let cloudOrganizations: CloudOrganizationMembership[] = []
@@ -2277,6 +2348,7 @@ export class ClineProvider
 			writeDelayMs: writeDelayMs ?? DEFAULT_WRITE_DELAY_MS,
 			terminalShellIntegrationTimeout: terminalShellIntegrationTimeout ?? Terminal.defaultShellIntegrationTimeout,
 			terminalShellIntegrationDisabled: terminalShellIntegrationDisabled ?? true,
+			devtoolEnabled: this.devtoolEnabled,
 			terminalCommandDelay: terminalCommandDelay ?? 0,
 			terminalPowershellCounter: terminalPowershellCounter ?? false,
 			terminalZshClearEolMark: terminalZshClearEolMark ?? true,
@@ -2355,6 +2427,7 @@ export class ClineProvider
 			imageGenerationProvider,
 			openRouterImageApiKey,
 			openRouterImageGenerationSelectedModel,
+			locatorTarget,
 			openAiCodexIsAuthenticated: await (async () => {
 				try {
 					const { openAiCodexOAuthManager } = await import("../../integrations/openai-codex/oauth")
@@ -2364,6 +2437,7 @@ export class ClineProvider
 				}
 			})(),
 			debug: vscode.workspace.getConfiguration(Package.name).get<boolean>("debug", false),
+			diagnostics: diagnosticsManager.getSnapshot(),
 		}
 	}
 
@@ -2574,7 +2648,8 @@ export class ClineProvider
 			taskSyncEnabled,
 			imageGenerationProvider: stateValues.imageGenerationProvider,
 			openRouterImageApiKey: stateValues.openRouterImageApiKey,
-			openRouterImageGenerationSelectedModel: stateValues.openRouterImageGenerationSelectedModel,
+			devtoolEnabled: vscode.workspace.getConfiguration(Package.name).get<boolean>("devtool", false),
+			locatorTarget: stateValues.locatorTarget ?? "vscode",
 		}
 	}
 
@@ -2729,6 +2804,7 @@ export class ClineProvider
 	public log(message: string) {
 		this.outputChannel.appendLine(message)
 		console.log(message)
+		diagnosticsManager.log(message, message.toLowerCase().includes("error") ? "error" : "info")
 	}
 
 	// getters
