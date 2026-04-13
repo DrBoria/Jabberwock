@@ -12,15 +12,19 @@ export const TaskNode = types
 	.model("TaskNode", {
 		id: types.identifier,
 		title: types.string,
-		mode: types.maybe(types.string), // Track the agent role for this node
+		mode: types.maybe(types.string),
 		status: types.optional(types.enumeration(["pending", "in_progress", "completed", "failed"]), "pending"),
 		messages: types.array(Message),
+		uiMessages: types.optional(types.frozen<any[]>(), []), // Store serialized ClineMessage objects
 		children: types.array(types.string),
 		parentId: types.maybe(types.string),
 	})
 	.actions((self) => ({
 		addMessage(msg: { id: string; role: string; content: any; ts?: number }) {
 			self.messages.push(msg)
+		},
+		syncUiMessages(uiMessages: any[]) {
+			self.uiMessages = uiMessages
 		},
 		updateStatus(status: "pending" | "in_progress" | "completed" | "failed") {
 			self.status = status
@@ -30,6 +34,9 @@ export const TaskNode = types
 		},
 		addChild(childId: string) {
 			self.children.push(childId)
+		},
+		replaceMessages(newMessages: { id: string; role: string; content: any; ts?: number }[]) {
+			self.messages.replace(newMessages as any)
 		},
 	}))
 

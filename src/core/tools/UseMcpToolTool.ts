@@ -311,7 +311,19 @@ export class UseMcpToolTool extends BaseTool<"use_mcp_tool"> {
 			toolName,
 		})
 
-		const toolResult = await task.providerRef.deref()?.getMcpHub()?.callTool(serverName, toolName, parsedArguments)
+		// Core Phase 1: Inject _meta context into MCP payload
+		// Avoids LLM context bloat/hallucinations by algorthmically providing execution details
+		const activeAgentRole = await task.getTaskMode()
+		const argsWithMeta = {
+			...(parsedArguments || {}),
+			_meta: {
+				workspacePath: task.workspacePath,
+				activeAgentRole,
+				taskId: task.taskId,
+			},
+		}
+
+		const toolResult = await task.providerRef.deref()?.getMcpHub()?.callTool(serverName, toolName, argsWithMeta)
 
 		let toolResultPretty = "(No response)"
 		let images: string[] = []

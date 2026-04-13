@@ -96,7 +96,7 @@ import { ProviderSettingsManager } from "../config/ProviderSettingsManager"
 import { CustomModesManager } from "../config/CustomModesManager"
 import { Task } from "../task/Task"
 import { ChatStore } from "../state/ChatTreeStore"
-import { onSnapshot, onPatch, applySnapshot } from "mobx-state-tree"
+import { onSnapshot, onPatch, applySnapshot, getSnapshot } from "mobx-state-tree"
 import { diagnosticsManager } from "../devtools/DiagnosticsManager"
 
 import { webviewMessageHandler } from "./webviewMessageHandler"
@@ -183,7 +183,7 @@ export class ClineProvider
 	constructor(
 		readonly context: vscode.ExtensionContext,
 		private readonly outputChannel: vscode.OutputChannel,
-		private readonly renderContext: "sidebar" | "editor" = "sidebar",
+		public readonly renderContext: "sidebar" | "editor" = "sidebar",
 		public readonly contextProxy: ContextProxy,
 		mdmService?: MdmService,
 	) {
@@ -2032,6 +2032,11 @@ export class ClineProvider
 		this.clineMessagesSeq++
 		state.clineMessagesSeq = this.clineMessagesSeq
 		this.postMessageToWebview({ type: "state", state })
+
+		this.postMessageToWebview({
+			type: "chatTreeSnapshot",
+			snapshot: getSnapshot(this.chatStore),
+		})
 
 		// Check MDM compliance and send user to account tab if not compliant
 		// Only redirect if there's an actual MDM policy requiring authentication

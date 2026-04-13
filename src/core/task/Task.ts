@@ -1072,6 +1072,21 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 
 	async overwriteApiConversationHistory(newHistory: ApiMessage[]) {
 		this.apiConversationHistory = newHistory
+
+		const providerInstance = this.providerRef.deref()
+		if (providerInstance && providerInstance.chatStore) {
+			const node = providerInstance.chatStore.nodes.get(this.taskId)
+			if (node) {
+				const mstMessages = newHistory.map((msg) => ({
+					id: msg.id || crypto.randomUUID(),
+					role: msg.role,
+					content: msg, // Full object as frozen for backwards compatibility
+					ts: msg.ts || Date.now(),
+				}))
+				node.replaceMessages(mstMessages)
+			}
+		}
+
 		await this.saveApiConversationHistory()
 	}
 
@@ -1260,6 +1275,16 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 				taskId: this.taskId,
 				globalStoragePath: this.globalStoragePath,
 			})
+
+			// Phase 4: Sync UI messages to MST
+			const providerInstance = this.providerRef.deref()
+			if (providerInstance && providerInstance.chatStore) {
+				const node = providerInstance.chatStore.nodes.get(this.taskId)
+				if (node) {
+					// We freeze/clone because MobX needs isolated models from raw JS objects
+					node.syncUiMessages(structuredClone(this.clineMessages))
+				}
+			}
 
 			if (this._taskApiConfigName === undefined) {
 				await this.taskApiConfigReady

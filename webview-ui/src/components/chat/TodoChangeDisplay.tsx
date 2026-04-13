@@ -12,6 +12,7 @@ interface TodoItem {
 interface TodoChangeDisplayProps {
 	previousTodos: TodoItem[]
 	newTodos: TodoItem[]
+	isNested?: boolean
 }
 
 function getTodoIcon(status: TodoStatus | null) {
@@ -25,7 +26,7 @@ function getTodoIcon(status: TodoStatus | null) {
 	}
 }
 
-export function TodoChangeDisplay({ previousTodos, newTodos }: TodoChangeDisplayProps) {
+export function TodoChangeDisplay({ previousTodos, newTodos, isNested: _isNested }: TodoChangeDisplayProps) {
 	const isInitialState = previousTodos.length === 0
 
 	// Determine which todos to display

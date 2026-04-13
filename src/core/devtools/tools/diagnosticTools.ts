@@ -129,4 +129,42 @@ export function registerDiagnosticTools(mcpServer: McpServer, provider: ClinePro
 			}
 		},
 	)
+
+	mcpServer.tool("get_extension_info", {}, async () => {
+		try {
+			const { Package } = await import("../../../shared/package")
+			const { getSnapshot } = await import("mobx-state-tree")
+
+			return {
+				content: [
+					{
+						type: "text" as const,
+						text: JSON.stringify(
+							{
+								name: Package.name,
+								version: Package.version,
+								sha: Package.sha,
+								renderContext: provider.renderContext,
+								stackSize: provider.getTaskStackSize(),
+								activeNodeId: provider.chatStore.activeNodeId,
+								nodesCount: Object.keys(getSnapshot(provider.chatStore).nodes || {}).length,
+							},
+							null,
+							2,
+						),
+					},
+				],
+			}
+		} catch (error) {
+			return {
+				content: [
+					{
+						type: "text" as const,
+						text: `Error fetching extension info: ${error instanceof Error ? error.message : String(error)}`,
+					},
+				],
+				isError: true,
+			}
+		}
+	})
 }

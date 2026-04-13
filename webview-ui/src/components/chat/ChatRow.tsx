@@ -128,6 +128,8 @@ interface ChatRowProps {
 	isFollowUpAutoApprovalPaused?: boolean
 	editable?: boolean
 	hasCheckpoint?: boolean
+	isNested?: boolean
+	history?: ClineMessage[]
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
@@ -181,6 +183,8 @@ export const ChatRowContent = ({
 	onBatchFileResponse,
 	isFollowUpAnswered,
 	isFollowUpAutoApprovalPaused,
+	isNested,
+	history,
 }: ChatRowContentProps) => {
 	const { t: originalT, i18n } = useTranslation()
 
@@ -194,6 +198,8 @@ export const ChatRowContent = ({
 		clineMessages,
 		currentTaskItem,
 	} = useExtensionState()
+
+	const effectiveHistory = history || clineMessages
 
 	const modeName = useMemo(() => {
 		if (!message.mode) return undefined
@@ -595,9 +601,9 @@ export const ChatRowContent = ({
 			case "updateTodoList" as any: {
 				const todos = (tool as any).todos || []
 				// Get previous todos from the latest todos in the task context
-				const previousTodos = getPreviousTodos(clineMessages, message.ts)
+				const previousTodos = getPreviousTodos(effectiveHistory, message.ts)
 
-				return <TodoChangeDisplay previousTodos={previousTodos} newTodos={todos} />
+				return <TodoChangeDisplay previousTodos={previousTodos} newTodos={todos} isNested={isNested} />
 			}
 			case "readFile":
 				// Check if this is a batch file permission request

@@ -107,7 +107,10 @@ export interface ExtensionMessage {
 		| "skills"
 		| "fileContent"
 		| "diagnostics"
+		| "chatTreeSnapshot"
+		| "chatTreePatch"
 	text?: string
+	snapshot?: any // eslint-disable-line @typescript-eslint/no-explicit-any
 	/** For fileContent: { path, content, error? } */
 	fileContent?: { path: string; content: string | null; error?: string }
 	diagnostics?: any // eslint-disable-line @typescript-eslint/no-explicit-any
