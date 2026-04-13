@@ -9,7 +9,7 @@
  * - Legacy format: { files: [{ path: string, lineRanges?: [...] }] }
  */
 import path from "path"
-import * as fs from "fs/promises"
+import { virtualWorkspace } from "../fs/VirtualWorkspace"
 import { isBinaryFile } from "isbinaryfile"
 
 import type { ReadFileParams, ReadFileMode, ReadFileToolParams, FileEntry, LineRange } from "@jabberwock/types"
@@ -182,7 +182,7 @@ export class ReadFileTool extends BaseTool<"read_file"> {
 
 				try {
 					// Check if path is a directory
-					const stats = await fs.stat(fullPath)
+					const stats = await virtualWorkspace.stat(fullPath)
 					if (stats.isDirectory()) {
 						const errorMsg = `Cannot read '${relPath}' because it is a directory. Use list_files tool instead.`
 						updateFileResult(relPath, {
@@ -214,8 +214,7 @@ export class ReadFileTool extends BaseTool<"read_file"> {
 					// Read text file content with lossy UTF-8 conversion
 					// Reading as Buffer first allows graceful handling of non-UTF8 bytes
 					// (they become U+FFFD replacement characters instead of throwing)
-					const buffer = await fs.readFile(fullPath)
-					const fileContent = buffer.toString("utf-8")
+					const fileContent = await virtualWorkspace.readFile(fullPath)
 					const result = this.processTextFile(fileContent, entry)
 
 					await task.fileContextTracker.trackFileContext(relPath, "read_tool" as RecordSource)
@@ -726,7 +725,7 @@ export class ReadFileTool extends BaseTool<"read_file"> {
 
 			try {
 				// Check if the path is a directory
-				const stats = await fs.stat(fullPath)
+				const stats = await virtualWorkspace.stat(fullPath)
 				if (stats.isDirectory()) {
 					const errorMsg = `Cannot read '${relPath}' because it is a directory.`
 					results.push(`File: ${relPath}\nError: ${errorMsg}`)
@@ -767,7 +766,7 @@ export class ReadFileTool extends BaseTool<"read_file"> {
 				}
 
 				// Read text file
-				const rawContent = await fs.readFile(fullPath, "utf8")
+				const rawContent = await virtualWorkspace.readFile(fullPath)
 
 				// Handle line ranges if specified
 				let content: string

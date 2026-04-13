@@ -1,4 +1,4 @@
-import fs from "fs/promises"
+import { virtualWorkspace } from "../core/fs/VirtualWorkspace"
 import * as path from "path"
 
 /**
@@ -19,12 +19,14 @@ export async function createDirectoriesForFile(filePath: string): Promise<string
 	// Traverse up the directory tree and collect missing directories
 	while (!(await fileExistsAtPath(currentPath))) {
 		dirsToCreate.push(currentPath)
-		currentPath = path.dirname(currentPath)
+		const parentPath = path.dirname(currentPath)
+		if (parentPath === currentPath) break // Safety break at root
+		currentPath = parentPath
 	}
 
 	// Create directories from the topmost missing one down to the target directory
 	for (let i = dirsToCreate.length - 1; i >= 0; i--) {
-		await fs.mkdir(dirsToCreate[i])
+		await virtualWorkspace.mkdir(dirsToCreate[i])
 		newDirectories.push(dirsToCreate[i])
 	}
 
@@ -34,12 +36,12 @@ export async function createDirectoriesForFile(filePath: string): Promise<string
 /**
  * Helper function to check if a path exists.
  *
- * @param path - The path to check.
+ * @param filePath - The path to check.
  * @returns A promise that resolves to true if the path exists, false otherwise.
  */
 export async function fileExistsAtPath(filePath: string): Promise<boolean> {
 	try {
-		await fs.access(filePath)
+		await virtualWorkspace.stat(filePath)
 		return true
 	} catch {
 		return false

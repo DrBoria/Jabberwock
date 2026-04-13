@@ -500,6 +500,15 @@ export class NativeToolCallParser {
 				}
 				break
 
+			case "analyze_image":
+				if (partialArgs.prompt !== undefined || partialArgs.path !== undefined) {
+					nativeArgs = {
+						prompt: partialArgs.prompt,
+						path: partialArgs.path,
+					}
+				}
+				break
+
 			case "generate_image":
 				if (partialArgs.prompt !== undefined || partialArgs.path !== undefined) {
 					nativeArgs = {
@@ -836,6 +845,15 @@ export class NativeToolCallParser {
 					}
 					break
 
+				case "analyze_image":
+					if (args.path !== undefined) {
+						nativeArgs = {
+							prompt: args.prompt,
+							path: args.path,
+						} as any // TS bypass matching rules
+					}
+					break
+
 				case "generate_image":
 					if (args.prompt !== undefined && args.path !== undefined) {
 						nativeArgs = {
@@ -845,7 +863,6 @@ export class NativeToolCallParser {
 						} as NativeArgsFor<TName>
 					}
 					break
-
 				case "run_slash_command":
 					if (args.command !== undefined) {
 						nativeArgs = {

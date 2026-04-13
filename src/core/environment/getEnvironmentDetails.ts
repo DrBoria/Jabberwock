@@ -205,7 +205,6 @@ export async function getEnvironmentDetails(cline: Task, includeFileDetails: boo
 
 	// Add current mode and any mode-specific warnings.
 	const {
-		mode,
 		customModes,
 		customModePrompts,
 		experiments = {} as Record<ExperimentId, boolean>,
@@ -213,7 +212,7 @@ export async function getEnvironmentDetails(cline: Task, includeFileDetails: boo
 		language,
 	} = state ?? {}
 
-	const currentMode = mode ?? defaultModeSlug
+	const currentMode = cline.taskMode || defaultModeSlug
 
 	const modeDetails = await getFullModeDetails(currentMode, customModes, customModePrompts, {
 		cwd: cline.cwd,

@@ -229,6 +229,7 @@ export class ClineProvider
 		import("../devtools/DiagnosticsManager").then(({ diagnosticsManager }) => {
 			const logPath = path.join(this.contextProxy.globalStorageUri.fsPath, "jabberwock.diagnostics.log")
 			diagnosticsManager.setLogFilePath(logPath)
+			diagnosticsManager.registerConsoleInterceptor()
 		})
 
 		this.devtoolEnabled = vscode.workspace.getConfiguration(Package.name).get<boolean>("devtool") ?? false
@@ -3012,8 +3013,32 @@ export class ClineProvider
 			}
 		}
 
-		const { apiConfiguration, organizationAllowList, enableCheckpoints, checkpointTimeout, experiments } =
-			await this.getState()
+		const { mode: optionsMode, ...otherOptions } = options
+
+		const {
+			apiConfiguration: baseApiConfiguration,
+			organizationAllowList,
+			enableCheckpoints,
+			checkpointTimeout,
+			experiments,
+		} = await this.getState()
+
+		let apiConfiguration = baseApiConfiguration
+		if (optionsMode) {
+			try {
+				const configId = await this.providerSettingsManager.getModeConfigId(optionsMode)
+				if (configId) {
+					const profile = await this.providerSettingsManager.getProfile({ id: configId })
+					if (profile) {
+						const { name, id, ...settings } = profile
+						apiConfiguration = settings as any
+					}
+				}
+			} catch (error) {
+				console.error(`Failed to load api config for mode ${optionsMode}:`, error)
+				// Fallback to baseApiConfiguration
+			}
+		}
 
 		// Single-open-task invariant: always enforce for user-initiated top-level tasks
 		if (!parentTask) {
@@ -3042,10 +3067,11 @@ export class ClineProvider
 			taskNumber: this.clineStack.length + 1,
 			onCreated: this.taskCreationCallback,
 			initialTodos: options.initialTodos,
+			mode: optionsMode,
 			// Ensure this task is present in clineStack before startTask() emits
 			// its initial state update, so state.currentTaskId is available ASAP.
 			startTask: false,
-			...options,
+			...otherOptions,
 		})
 
 		await this.addClineToStack(task)

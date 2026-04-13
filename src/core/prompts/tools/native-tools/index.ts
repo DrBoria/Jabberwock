@@ -1,8 +1,10 @@
 import type OpenAI from "openai"
+import analyzeImage from "./analyze_image"
 import accessMcpResource from "./access_mcp_resource"
 import { apply_diff } from "./apply_diff"
 import applyPatch from "./apply_patch"
 import askFollowupQuestion from "./ask_followup_question"
+import delegateTask from "./delegate_task"
 import attemptCompletion from "./attempt_completion"
 import codebaseSearch from "./codebase_search"
 import editTool from "./edit"
@@ -46,10 +48,12 @@ export function getNativeTools(options: NativeToolsOptions = {}): OpenAI.Chat.Ch
 	}
 
 	return [
+		analyzeImage as OpenAI.Chat.ChatCompletionTool,
 		accessMcpResource,
 		apply_diff,
 		applyPatch,
 		askFollowupQuestion,
+		delegateTask,
 		attemptCompletion,
 		codebaseSearch,
 		executeCommand,

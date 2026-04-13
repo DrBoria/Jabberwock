@@ -1,6 +1,6 @@
 import * as vscode from "vscode"
 import * as path from "path"
-import * as fs from "fs/promises"
+import { virtualWorkspace } from "../../core/fs/VirtualWorkspace"
 import * as diff from "diff"
 import stripBom from "strip-bom"
 import delay from "delay"
@@ -67,7 +67,7 @@ export class DiffViewProvider {
 		this.preDiagnostics = vscode.languages.getDiagnostics()
 
 		if (fileExists) {
-			this.originalContent = await fs.readFile(absolutePath, "utf-8")
+			this.originalContent = await virtualWorkspace.readFile(absolutePath)
 		} else {
 			this.originalContent = ""
 		}
@@ -78,7 +78,7 @@ export class DiffViewProvider {
 
 		// Make sure the file exists before we open it.
 		if (!fileExists) {
-			await fs.writeFile(absolutePath, "")
+			await virtualWorkspace.writeFile(absolutePath, "")
 		}
 
 		// If the file was already open, close it (must happen after showing the
@@ -209,7 +209,12 @@ export class DiffViewProvider {
 		const updatedDocument = this.activeDiffEditor.document
 		const editedContent = updatedDocument.getText()
 
+		// Save document to VFS instead of disk
+		await virtualWorkspace.writeFile(absolutePath, editedContent)
+
 		if (updatedDocument.isDirty) {
+			// This might still trigger a VSCode disk write if not intercepted,
+			// but at least our VFS is the source of truth for Jabberwock.
 			await updatedDocument.save()
 		}
 
@@ -377,11 +382,11 @@ export class DiffViewProvider {
 			}
 
 			await this.closeAllDiffViews()
-			await fs.unlink(absolutePath)
+			await virtualWorkspace.unlink(absolutePath)
 
 			// Remove only the directories we created, in reverse order.
 			for (let i = this.createdDirs.length - 1; i >= 0; i--) {
-				await fs.rmdir(this.createdDirs[i])
+				await virtualWorkspace.rmdir(this.createdDirs[i])
 			}
 		} else {
 			// Revert document.
@@ -657,7 +662,7 @@ export class DiffViewProvider {
 
 		// Write the content directly to the file
 		await createDirectoriesForFile(absolutePath)
-		await fs.writeFile(absolutePath, content, "utf-8")
+		await virtualWorkspace.writeFile(absolutePath, content)
 
 		// Open the document to ensure diagnostics are loaded
 		// When openFile is false (PREVENT_FOCUS_DISRUPTION enabled), we only open in memory

@@ -79,6 +79,8 @@ export const toolParamNames = [
 	"include_header",
 	"max_lines",
 	"is_async", // Jabberwock: async orchestration
+	"task_id", // Jabberwock: orchestration delegation
+	"target_role", // Jabberwock: orchestration delegation
 	// read_file legacy format parameter (backward compatibility)
 	"files",
 	"line_ranges",
@@ -105,12 +107,14 @@ export type NativeToolArgs = {
 	apply_patch: { patch: string }
 	list_files: { path: string; recursive?: boolean }
 	new_task: { mode: string; message: string; todos?: string; is_async?: boolean }
+	delegate_task: { task_id: string; target_role: string; message: string; is_async?: boolean }
 	ask_followup_question: {
 		question: string
 		follow_up: Array<{ text: string; mode?: string }>
 	}
 	codebase_search: { query: string; path?: string }
 	generate_image: GenerateImageParams
+	analyze_image: { path: string; prompt?: string }
 	run_slash_command: { command: string; args?: string }
 	skill: { skill: string; args?: string }
 	search_files: { path: string; regex: string; file_pattern?: string | null }
@@ -287,11 +291,13 @@ export const TOOL_DISPLAY_NAMES: Record<ToolName, string> = {
 	attempt_completion: "complete tasks",
 	switch_mode: "switch modes",
 	new_task: "create new task",
+	delegate_task: "delegate task to specialized agent",
 	codebase_search: "codebase search",
 	update_todo_list: "update todo list",
 	run_slash_command: "run slash command",
 	skill: "load skill",
 	generate_image: "generate images",
+	analyze_image: "analyze images via vision model",
 	custom_tool: "use custom tools",
 } as const
 
@@ -301,7 +307,7 @@ export const TOOL_GROUPS: Record<ToolGroup, ToolGroupConfig> = {
 		tools: ["read_file", "search_files", "list_files", "codebase_search"],
 	},
 	edit: {
-		tools: ["apply_diff", "write_to_file", "generate_image"],
+		tools: ["apply_diff", "write_to_file", "generate_image", "analyze_image"],
 		customTools: ["edit", "search_replace", "edit_file", "apply_patch"],
 	},
 	command: {
@@ -321,8 +327,7 @@ export const ALWAYS_AVAILABLE_TOOLS: ToolName[] = [
 	"ask_followup_question",
 	"attempt_completion",
 	"await_batch_completion",
-	"switch_mode",
-	"new_task",
+	"delegate_task",
 	"update_todo_list",
 	"run_slash_command",
 	"skill",

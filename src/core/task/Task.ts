@@ -319,7 +319,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 	private askResponse?: ClineAskResponse
 	private askResponseText?: string
 	private askResponseImages?: string[]
-	private askShownAt?: number // Jabberwock: Interruption Engineering
+	public askShownAt?: number // Jabberwock: Interruption Engineering
 	public lastMessageTs?: number
 	private autoApprovalTimeoutRef?: NodeJS.Timeout
 
@@ -2741,7 +2741,12 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			}
 
 			diagnosticsManager.setCurrentAction(t("diagnostics:actions.environmentDetails"))
+			const envStartTime = Date.now()
+			console.log(`[DEBUG: TaskLoop#${this.taskId}] Phase: Environment Details Start`)
 			const environmentDetails = await getEnvironmentDetails(this, currentIncludeFileDetails)
+			console.log(
+				`[DEBUG: TaskLoop#${this.taskId}] Phase: Environment Details Complete (${Date.now() - envStartTime}ms)`,
+			)
 
 			// Remove any existing environment_details blocks before adding fresh ones.
 			// This prevents duplicate environment details when resuming tasks,
@@ -2910,6 +2915,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 				this.providerRef.deref()?.postDiagnosticsToWebviewThrottled()
 
 				const apiStartTime = Date.now()
+				console.log(`[DEBUG: TaskLoop#${this.taskId}] Phase: API Request Start (Model: ${cachedModelId})`)
 				const stream = this.attemptApiRequest(currentItem.retryAttempt ?? 0, { skipProviderRateLimit: true })
 				let assistantMessage = ""
 				let reasoningMessage = ""
@@ -2919,9 +2925,11 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 				try {
 					const iterator = stream[Symbol.asyncIterator]()
 
-					// Helper to race iterator.next() with abort signal
-					const nextChunkWithAbort = async () => {
+					// Helper to race iterator.next() with abort signal and timeout
+					const nextChunkWithAbort = async (isFirstChunk: boolean = false) => {
 						const nextPromise = iterator.next()
+
+						const promises: Promise<any>[] = [nextPromise]
 
 						// If we have an abort controller, race it with the next chunk
 						if (this.currentRequestAbortController) {
@@ -2935,17 +2943,27 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 									})
 								}
 							})
-							return await Promise.race([nextPromise, abortPromise])
+							promises.push(abortPromise)
 						}
 
-						// No abort controller, just return the next chunk normally
-						return await nextPromise
+						// For the first chunk, add a timeout to prevent indefinite hangs (e.g. Ollama/OpenRouter issues)
+						if (isFirstChunk) {
+							const FIRST_CHUNK_TIMEOUT_MS = 300_000 // 5 minutes (local models can be slow to load)
+							const timeoutPromise = new Promise<never>((_, reject) => {
+								setTimeout(() => {
+									reject(new Error(t("common:errors.model_no_response")))
+								}, FIRST_CHUNK_TIMEOUT_MS)
+							})
+							promises.push(timeoutPromise)
+						}
+
+						return await Promise.race(promises)
 					}
 
-					let item = await nextChunkWithAbort()
+					let item = await nextChunkWithAbort(true)
 					while (!item.done) {
 						const chunk = item.value
-						item = await nextChunkWithAbort()
+						item = await nextChunkWithAbort(false)
 						if (!chunk) {
 							// Sometimes chunk is undefined, no idea that can cause
 							// it, but this workaround seems to fix it.
@@ -3194,13 +3212,23 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 						"success",
 					)
 
-					// Create a copy of current token values to avoid race conditions
 					const currentTokens = {
 						input: inputTokens,
 						output: outputTokens,
 						cacheWrite: cacheWriteTokens,
 						cacheRead: cacheReadTokens,
 						total: totalCost,
+					}
+
+					if (
+						this.isWaitingForFirstChunk &&
+						!assistantMessage &&
+						!reasoningMessage &&
+						!this.assistantMessageContent.length
+					) {
+						if (!this.abort) {
+							throw new Error(t("common:errors.model_no_response"))
+						}
 					}
 
 					const drainStreamInBackgroundToFindAllUsage = async (apiReqIndex: number) => {
@@ -3692,7 +3720,12 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 					// If there is content to update then it will complete and
 					// update `this.userMessageContentReady` to true, which we
 					// `pWaitFor` before making the next request.
-					presentAssistantMessage(this)
+					if (this.assistantMessageContent.length > 0) {
+						console.log(
+							`[DEBUG: TaskLoop#${this.taskId}] Phase: Tool Execution Start (Blocks: ${this.assistantMessageContent.length})`,
+						)
+						presentAssistantMessage(this)
+					}
 				}
 
 				if (hasTextContent || hasToolUses) {
@@ -3712,7 +3745,24 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 					// 	this.userMessageContentReady = true
 					// }
 
-					await pWaitFor(() => this.userMessageContentReady)
+					const waitStartTime = Date.now()
+					await pWaitFor(() => this.userMessageContentReady || this.abort, {
+						interval: 100,
+						timeout: 60_000, // 60s safety timeout to prevent permanent hangs
+					}).catch((err) => {
+						if (!this.abort) {
+							console.error(
+								`[Task#${this.taskId}] pWaitFor(userMessageContentReady) timed out after ${Date.now() - waitStartTime}ms. ` +
+									`Current Index: ${this.currentStreamingContentIndex}, ` +
+									`Blocks: ${this.assistantMessageContent.length}, ` +
+									`Locked: ${this.presentAssistantMessageLocked}, ` +
+									`didAlreadyUseTool: ${this.didAlreadyUseTool}`,
+							)
+							// Force continuation as a fallback
+							this.userMessageContentReady = true
+						}
+					})
+					console.log(`[Task#${this.taskId}] pWaitFor(userMessageContentReady) unblocked.`)
 
 					// If the model did not tool use, then we need to tell it to
 					// either use a tool or attempt_completion.
@@ -3899,7 +3949,6 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 		const state = await this.providerRef.deref()?.getState()
 
 		const {
-			mode,
 			customModes,
 			customModePrompts,
 			customInstructions,
@@ -3911,7 +3960,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 		} = state ?? {}
 
 		// DEBUG: Log what mode and custom modes are resolved for system prompt building
-		const resolvedModeConfig = customModes?.find((m: any) => m.slug === (mode ?? defaultModeSlug))
+		const resolvedModeConfig = customModes?.find((m: any) => m.slug === (this.taskMode || defaultModeSlug))
 
 		return await (async () => {
 			const provider = this.providerRef.deref()
@@ -3928,7 +3977,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 				false,
 				mcpHub,
 				this.diffStrategy,
-				mode ?? defaultModeSlug,
+				this.taskMode || defaultModeSlug,
 				customModePrompts,
 				customModes,
 				customInstructions,
@@ -4129,11 +4178,12 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			apiConfiguration,
 			autoApprovalEnabled,
 			requestDelaySeconds,
-			mode,
 			autoCondenseContext = true,
 			autoCondenseContextPercent = 100,
 			profileThresholds = {},
 		} = state ?? {}
+
+		const currentMode = this.taskMode || defaultModeSlug
 
 		// Get condensing configuration for automatic triggers.
 		const customCondensingPrompt = state?.customSupportPrompts?.CONDENSE
@@ -4208,7 +4258,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 					const toolsResult = await buildNativeToolsArrayWithRestrictions({
 						provider,
 						cwd: this.cwd,
-						mode,
+						mode: currentMode,
 						customModes: state?.customModes,
 						experiments: state?.experiments,
 						apiConfiguration,
@@ -4222,7 +4272,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 
 			// Build metadata with tools and taskId for the condensing API call
 			const contextMgmtMetadata: ApiHandlerCreateMessageMetadata = {
-				mode,
+				mode: currentMode,
 				taskId: this.taskId,
 				...(contextMgmtTools.length > 0
 					? {
@@ -4393,7 +4443,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			const toolsResult = await buildNativeToolsArrayWithRestrictions({
 				provider,
 				cwd: this.cwd,
-				mode,
+				mode: currentMode,
 				customModes: state?.customModes,
 				experiments: state?.experiments,
 				apiConfiguration,
@@ -4408,7 +4458,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 		const shouldIncludeTools = allTools.length > 0
 
 		const metadata: ApiHandlerCreateMessageMetadata = {
-			mode: mode,
+			mode: currentMode,
 			taskId: this.taskId,
 			suppressPreviousResponseId: this.skipPrevResponseIdOnce,
 			...(shouldIncludeTools
@@ -4488,23 +4538,33 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			this.currentRequestAbortController = undefined
 		})
 
+		const abortPromise = new Promise<never>((_, reject) => {
+			if (abortSignal.aborted) {
+				reject(new Error("Request cancelled by user"))
+			} else {
+				abortSignal.addEventListener("abort", () => {
+					reject(new Error("Request cancelled by user"))
+				})
+			}
+		})
+
 		try {
 			// Awaiting first chunk to see if it will throw an error.
 			this.isWaitingForFirstChunk = true
 
 			// Race between the first chunk and the abort signal
 			const firstChunkPromise = iterator.next()
-			const abortPromise = new Promise<never>((_, reject) => {
-				if (abortSignal.aborted) {
-					reject(new Error("Request cancelled by user"))
-				} else {
-					abortSignal.addEventListener("abort", () => {
-						reject(new Error("Request cancelled by user"))
-					})
-				}
+
+			let timeoutTimer: NodeJS.Timeout | undefined
+			const timeoutPromise = new Promise<never>((_, reject) => {
+				timeoutTimer = setTimeout(
+					() => reject(new Error("Request timed out after 300 seconds (waiting for local model TTFB)")),
+					300000,
+				)
 			})
 
-			const firstChunk = await Promise.race([firstChunkPromise, abortPromise])
+			const firstChunk = await Promise.race([firstChunkPromise, abortPromise, timeoutPromise])
+			if (timeoutTimer) clearTimeout(timeoutTimer)
 			yield firstChunk.value
 			this.isWaitingForFirstChunk = false
 		} catch (error) {
@@ -4565,14 +4625,25 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 		}
 
 		// No error, so we can continue to yield all remaining chunks.
-		// (Needs to be placed outside of try/catch since it we want caller to
-		// handle errors not with api_req_failed as that is reserved for first
-		// chunk failures only.)
-		// This delegates to another generator or iterable object. In this case,
-		// it's saying "yield all remaining values from this iterator". This
-		// effectively passes along all subsequent chunks from the original
-		// stream.
-		yield* iterator
+		// We implement a 120-second inactivity timeout per chunk to prevent infinite hangs mid-stream.
+		while (true) {
+			let timeoutTimer: NodeJS.Timeout | undefined
+			const timeoutPromise = new Promise<never>((_, reject) => {
+				timeoutTimer = setTimeout(
+					() => reject(new Error("Request timed out after 120 seconds of inactivity")),
+					120000,
+				)
+			})
+
+			const nextChunkPromise = iterator.next()
+			const chunk = await Promise.race([nextChunkPromise, abortPromise, timeoutPromise])
+			if (timeoutTimer) clearTimeout(timeoutTimer)
+
+			if (chunk.done) {
+				break
+			}
+			yield chunk.value
+		}
 	}
 
 	// Shared exponential backoff for retries (first-chunk and mid-stream)

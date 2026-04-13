@@ -1,6 +1,6 @@
 import path from "path"
 import delay from "delay"
-import fs from "fs/promises"
+import { virtualWorkspace } from "../fs/VirtualWorkspace"
 
 import { type ClineSayTool, DEFAULT_WRITE_DELAY_MS } from "@jabberwock/types"
 
@@ -112,7 +112,7 @@ export class WriteToFileTool extends BaseTool<"write_to_file"> {
 				task.diffViewProvider.editType = fileExists ? "modify" : "create"
 				if (fileExists) {
 					const absolutePath = path.resolve(task.cwd, relPath)
-					task.diffViewProvider.originalContent = await fs.readFile(absolutePath, "utf-8")
+					task.diffViewProvider.originalContent = await virtualWorkspace.readFile(absolutePath)
 				} else {
 					task.diffViewProvider.originalContent = ""
 				}

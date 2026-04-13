@@ -1,6 +1,6 @@
 import os from "os"
 import * as path from "path"
-import * as fs from "fs"
+import { virtualWorkspace } from "../../core/fs/VirtualWorkspace"
 import * as childProcess from "child_process"
 import * as vscode from "vscode"
 import ignore from "ignore"
@@ -83,7 +83,7 @@ async function getFirstLevelDirectories(dirPath: string, ignoreInstance: ReturnT
 	const directories: string[] = []
 
 	try {
-		const entries = await fs.promises.readdir(absolutePath, { withFileTypes: true })
+		const entries = await virtualWorkspace.readdir(absolutePath, { withFileTypes: true })
 
 		for (const entry of entries) {
 			if (entry.isDirectory() && !entry.isSymbolicLink()) {
@@ -337,7 +337,7 @@ async function createIgnoreInstance(dirPath: string): Promise<ReturnType<typeof 
 	// Add patterns from all .gitignore files
 	for (const gitignoreFile of gitignoreFiles) {
 		try {
-			const content = await fs.promises.readFile(gitignoreFile, "utf8")
+			const content = await virtualWorkspace.readFile(gitignoreFile)
 			ignoreInstance.add(content)
 		} catch (err) {
 			// Continue if we can't read a .gitignore file
@@ -363,7 +363,7 @@ async function findGitignoreFiles(startPath: string): Promise<string[]> {
 		const gitignorePath = path.join(currentPath, ".gitignore")
 
 		try {
-			await fs.promises.access(gitignorePath)
+			await virtualWorkspace.access(gitignorePath)
 			gitignoreFiles.push(gitignorePath)
 		} catch {
 			// .gitignore doesn't exist at this level, continue
@@ -416,7 +416,7 @@ async function listFilteredDirectories(
 
 		try {
 			// List all entries in the current directory
-			const entries = await fs.promises.readdir(currentPath, { withFileTypes: true })
+			const entries = await virtualWorkspace.readdir(currentPath, { withFileTypes: true })
 
 			// Filter for directories only, excluding symbolic links to prevent circular traversal
 			for (const entry of entries) {

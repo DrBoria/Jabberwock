@@ -439,6 +439,15 @@ export class UseMcpToolTool extends BaseTool<"use_mcp_tool"> {
 								console.log("[DEBUG: TodoRewrite] Updated pending tool_result in userMessageContent")
 							}
 
+							// Step 6: Truncate current execution queue and history to avoid running orphaned tools
+							// from the old turn. This also triggers userMessageContentReady = true in presentAssistantMessage.
+							if (task.assistantMessageContent.length > task.currentStreamingContentIndex + 1) {
+								console.log(
+									`[DEBUG: TodoRewrite] Truncating execution queue from ${task.assistantMessageContent.length} to ${task.currentStreamingContentIndex + 1}`,
+								)
+								task.assistantMessageContent.length = task.currentStreamingContentIndex + 1
+							}
+
 							console.log(
 								"[DEBUG: TodoRewrite] History rewrite complete. Agent will only see approved tasks.",
 							)

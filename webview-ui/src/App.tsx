@@ -231,21 +231,6 @@ const App = () => {
 	return (
 		<>
 			<LocatorBridge />
-			<div
-				style={{
-					position: "absolute",
-					top: 0,
-					left: 0,
-					zIndex: 9999,
-					fontSize: "10px",
-					padding: "2px 4px",
-					background: "red",
-					color: "white",
-					pointerEvents: "none",
-					opacity: 0.8,
-				}}>
-				DEBUG: LOCATOR ACTIVE
-			</div>
 			{showWelcome ? (
 				<WelcomeView />
 			) : (

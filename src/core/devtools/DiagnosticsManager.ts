@@ -9,6 +9,7 @@ import {
 import os from "os"
 import fs from "fs"
 import path from "path"
+import util from "util"
 
 /**
  * Manages diagnostic collection for task execution.
@@ -33,6 +34,7 @@ export class DiagnosticsManager {
 	private logBuffer: string[] = []
 	private flushTimeout?: NodeJS.Timeout
 	private readonly FLUSH_INTERVAL_MS = 500
+	private isIntercepting = false
 
 	constructor() {
 		this.startResourceMonitoring()
@@ -43,6 +45,50 @@ export class DiagnosticsManager {
 		// Ensure directory exists
 		const dir = path.dirname(filePath)
 		fs.mkdirSync(dir, { recursive: true })
+	}
+
+	/**
+	 * Intercepts global console methods to capture extension host logs.
+	 */
+	public registerConsoleInterceptor() {
+		if (this.isIntercepting) return
+		this.isIntercepting = true
+
+		const originalLog = console.log
+		console.log = (...args) => {
+			const message = util.format(...args)
+			this.logs.push({ timestamp: Date.now(), message: `[CONSOLE] ${message}`, level: "info" })
+			if (this.logs.length > this.MAX_LOGS) this.logs.shift()
+			this.appendToFile(`[CONSOLE] ${message}`, "info")
+			originalLog.apply(console, args)
+		}
+
+		const originalWarn = console.warn
+		console.warn = (...args) => {
+			const message = util.format(...args)
+			this.logs.push({ timestamp: Date.now(), message: `[CONSOLE] ${message}`, level: "warn" })
+			if (this.logs.length > this.MAX_LOGS) this.logs.shift()
+			this.appendToFile(`[CONSOLE] ${message}`, "warn")
+			originalWarn.apply(console, args)
+		}
+
+		const originalError = console.error
+		console.error = (...args) => {
+			const message = util.format(...args)
+			this.logs.push({ timestamp: Date.now(), message: `[CONSOLE] ${message}`, level: "error" })
+			if (this.logs.length > this.MAX_LOGS) this.logs.shift()
+			this.appendToFile(`[CONSOLE] ${message}`, "error")
+			originalError.apply(console, args)
+		}
+
+		const originalDebug = console.debug
+		console.debug = (...args) => {
+			const message = util.format(...args)
+			this.logs.push({ timestamp: Date.now(), message: `[CONSOLE] ${message}`, level: "debug" })
+			if (this.logs.length > this.MAX_LOGS) this.logs.shift()
+			this.appendToFile(`[CONSOLE] ${message}`, "debug")
+			originalDebug.apply(console, args)
+		}
 	}
 
 	/**

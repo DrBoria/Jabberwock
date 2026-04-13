@@ -1,4 +1,4 @@
-import fs from "fs/promises"
+import { virtualWorkspace } from "../fs/VirtualWorkspace"
 import path from "path"
 
 import { type ClineSayTool, DEFAULT_WRITE_DELAY_MS } from "@jabberwock/types"
@@ -231,7 +231,7 @@ export class EditFileTool extends BaseTool<"edit_file"> {
 			// Read file or determine if creating new
 			if (fileExists) {
 				try {
-					currentContent = await fs.readFile(absolutePath, "utf8")
+					currentContent = await virtualWorkspace.readFile(absolutePath)
 					originalEol = detectLineEnding(currentContent)
 					// Normalize line endings to LF for matching
 					currentContentLF = normalizeToLF(currentContent)

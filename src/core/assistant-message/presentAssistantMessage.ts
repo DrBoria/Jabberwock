@@ -29,6 +29,7 @@ import { accessMcpResourceTool } from "../tools/accessMcpResourceTool"
 import { askFollowupQuestionTool } from "../tools/AskFollowupQuestionTool"
 import { switchModeTool } from "../tools/SwitchModeTool"
 import { attemptCompletionTool, AttemptCompletionCallbacks } from "../tools/AttemptCompletionTool"
+import { delegateTaskTool } from "../tools/DelegateTaskTool"
 import { awaitBatchCompletionTool } from "../tools/AwaitBatchCompletionTool"
 import { newTaskTool } from "../tools/NewTaskTool"
 import { updateTodoListTool } from "../tools/UpdateTodoListTool"
@@ -381,10 +382,17 @@ export async function presentAssistantMessage(cline: Task) {
 						const modeName = getModeBySlug(mode, customModes)?.name ?? mode
 						return `[${block.name} in ${modeName} mode: '${message}']`
 					}
+					case "delegate_task": {
+						const task_id = block.params.task_id ?? "(no id)"
+						const target_role = block.params.target_role ?? "(no role)"
+						const message = block.params.message ?? "(no message)"
+						return `[${block.name} task "${task_id}" to ${target_role}: '${message}']`
+					}
 					case "run_slash_command":
 						return `[${block.name} for '${block.params.command}'${block.params.args ? ` with args: ${block.params.args}` : ""}]`
 					case "skill":
 						return `[${block.name} for '${block.params.skill}'${block.params.args ? ` with args: ${block.params.args}` : ""}]`
+					case "analyze_image":
 					case "generate_image":
 						return `[${block.name} for '${block.params.path}']`
 					default:
@@ -701,6 +709,7 @@ export async function presentAssistantMessage(cline: Task) {
 				"apply_patch",
 				"execute_command",
 				"generate_image",
+				"analyze_image",
 			]
 			if (mode === "orchestrator" && mutatingTools.includes(block.name)) {
 				const provider = cline.providerRef.deref()
@@ -875,6 +884,14 @@ Please execute this tool and confirm once done.`
 						toolCallId: block.id,
 					})
 					break
+				case "delegate_task":
+					await checkpointSaveAndMark(cline)
+					await delegateTaskTool.handle(cline, block as ToolUse<"delegate_task">, {
+						askApproval,
+						handleError,
+						pushToolResult,
+					})
+					break
 				case "attempt_completion": {
 					const completionCallbacks: AttemptCompletionCallbacks = {
 						askApproval,
@@ -899,6 +916,15 @@ Please execute this tool and confirm once done.`
 					break
 				case "skill":
 					await skillTool.handle(cline, block as ToolUse<"skill">, {
+						askApproval,
+						handleError,
+						pushToolResult,
+					})
+					break
+				case "analyze_image":
+					const analyzeImageTool = (await import("../tools/AnalyzeImageTool")).analyzeImageTool
+					await checkpointSaveAndMark(cline)
+					await analyzeImageTool.handle(cline, block as ToolUse<"analyze_image">, {
 						askApproval,
 						handleError,
 						pushToolResult,
