@@ -9,8 +9,8 @@ import {
 	AlertDialogFooter,
 	AlertDialogHeader,
 	AlertDialogTitle,
-	Button,
-} from "@/components/ui"
+} from "../ui/alert-dialog"
+import { Button } from "../ui/button"
 import { vscode } from "@/utils/vscode"
 import { AlertDialogProps } from "@radix-ui/react-alert-dialog"
 

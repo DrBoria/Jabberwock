@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react"
 import { ClipboardCopy, Timer } from "lucide-react"
 
-import { Button, StandardTooltip } from "@/components/ui"
+import { Button } from "../ui/button"
+import { StandardTooltip } from "../ui/standard-tooltip"
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { useExtensionState } from "@src/context/ExtensionStateContext"

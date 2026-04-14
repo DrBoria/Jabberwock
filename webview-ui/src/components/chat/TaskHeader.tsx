@@ -17,6 +17,7 @@ import { StandardTooltip, Button, Table, TableBody, TableRow, TableCell, Circula
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { useSelectedModel } from "@/components/ui/hooks/useSelectedModel"
 import { vscode } from "@src/utils/vscode"
+import { useChatTree } from "@src/context/ChatTreeContext"
 
 import Thumbnails from "../common/Thumbnails"
 
@@ -61,6 +62,8 @@ const TaskHeader = ({
 }: TaskHeaderProps) => {
 	const { t } = useTranslation()
 	const { apiConfiguration, currentTaskItem, clineMessages } = useExtensionState()
+	const { nodes } = useChatTree()
+	const store = useChatTree()
 	const { id: modelId, info: model } = useSelectedModel(apiConfiguration)
 	const [isTaskExpanded, setIsTaskExpanded] = useState(false)
 	const [showLongRunningTaskMessage, setShowLongRunningTaskMessage] = useState(false)
@@ -467,48 +470,49 @@ const TaskHeader = ({
 				{hasTodos && <TodoListDisplay todos={todos ?? (task as any)?.tool?.todos ?? []} />}
 
 				{/* Active Subagents List (Navigation Downwards) */}
-				{currentTaskItem?.childTasks && currentTaskItem.childTasks.length > 0 && (
-					<div className="mt-3 pt-2 border-t border-vscode-sideBar-border flex flex-col gap-1.5 overflow-hidden">
-						<span className="text-[10px] font-bold uppercase tracking-widest opacity-50 px-1">
-							{t("chat:task.activeSubagents")}
-						</span>
-						<div className="flex flex-col gap-1 max-h-32 overflow-y-auto scrollable pr-1">
-							{currentTaskItem.childTasks.map((child: any) => (
-								<div
-									key={child.id}
-									onClick={(e) => {
-										e.stopPropagation()
-										store.navigateToNode(child.id)
-										vscode.postMessage({ type: "showTaskWithId", text: child.id })
-									}}
-									className="flex items-center justify-between p-2 rounded-lg bg-vscode-sideBarSectionHeader-background hover:bg-vscode-toolbar-hoverBackground cursor-pointer transition-colors group/child">
-									<div className="flex items-center gap-2 min-w-0">
-										<div className="p-1 bg-vscode-badge-background rounded group-hover/child:bg-vscode-focusBorder group-hover/child:text-white transition-colors">
-											<Bot size={12} />
-										</div>
-										<div className="flex flex-col min-w-0">
-											<span className="text-[11px] font-semibold truncate leading-tight italic opacity-90">
-												{child.mode || "Agent"}
-											</span>
-											<span className="text-[10px] truncate opacity-60 leading-tight">
-												{child.title || "Working..."}
-											</span>
-										</div>
-									</div>
+				{nodes.get(currentTaskItem?.id || "")?.childTasks &&
+					nodes.get(currentTaskItem?.id || "")!.childTasks!.length > 0 && (
+						<div className="mt-3 pt-2 border-t border-vscode-sideBar-border flex flex-col gap-1.5 overflow-hidden">
+							<span className="text-[10px] font-bold uppercase tracking-widest opacity-50 px-1">
+								{t("chat:task.activeSubagents")}
+							</span>
+							<div className="flex flex-col gap-1 max-h-32 overflow-y-auto scrollable pr-1">
+								{nodes.get(currentTaskItem?.id || "")!.childTasks!.map((child: any) => (
 									<div
-										className={cn(
-											"text-[9px] px-1.5 py-0.5 rounded-full border border-current opacity-60",
-											child.status === "in_progress" && "text-vscode-charts-yellow",
-											child.status === "completed" && "text-vscode-charts-green",
-											child.status === "failed" && "text-vscode-charts-red",
-										)}>
-										{child.status}
+										key={child.id}
+										onClick={(e) => {
+											e.stopPropagation()
+											store.navigateToNode(child.id)
+											vscode.postMessage({ type: "showTaskWithId", text: child.id })
+										}}
+										className="flex items-center justify-between p-2 rounded-lg bg-vscode-sideBarSectionHeader-background hover:bg-vscode-toolbar-hoverBackground cursor-pointer transition-colors group/child">
+										<div className="flex items-center gap-2 min-w-0">
+											<div className="p-1 bg-vscode-badge-background rounded group-hover/child:bg-vscode-focusBorder group-hover/child:text-white transition-colors">
+												<Bot size={12} />
+											</div>
+											<div className="flex flex-col min-w-0">
+												<span className="text-[11px] font-semibold truncate leading-tight italic opacity-90">
+													{child.mode || "Agent"}
+												</span>
+												<span className="text-[10px] truncate opacity-60 leading-tight">
+													{child.title || "Working..."}
+												</span>
+											</div>
+										</div>
+										<div
+											className={cn(
+												"text-[9px] px-1.5 py-0.5 rounded-full border border-current opacity-60",
+												child.status === "in_progress" && "text-vscode-charts-yellow",
+												child.status === "completed" && "text-vscode-charts-green",
+												child.status === "failed" && "text-vscode-charts-red",
+											)}>
+											{child.status}
+										</div>
 									</div>
-								</div>
-							))}
+								))}
+							</div>
 						</div>
-					</div>
-				)}
+					)}
 			</div>
 			<CloudUpsellDialog open={isOpen} onOpenChange={closeUpsell} onConnect={handleConnect} />
 		</div>

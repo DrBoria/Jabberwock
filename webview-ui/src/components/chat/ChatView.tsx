@@ -33,7 +33,8 @@ import { useChatTree } from "@src/context/ChatTreeContext"
 import { useSelectedModel } from "@src/components/ui/hooks/useSelectedModel"
 import JabberwockHero from "@src/components/welcome/JabberwockHero"
 import JabberwockTips from "@src/components/welcome/JabberwockTips"
-import { StandardTooltip, Button } from "@src/components/ui"
+import { StandardTooltip } from "@src/components/ui/standard-tooltip"
+import { Button } from "@src/components/ui/button"
 import { CloudUpsellDialog } from "@src/components/cloud/CloudUpsellDialog"
 
 import TelemetryBanner from "../common/TelemetryBanner"
@@ -58,6 +59,7 @@ import { Cloud, Activity, ChevronUp, Bot } from "lucide-react"
 import { useChatDragAndDrop } from "../../features/context-drag-drop/useChatDragAndDrop"
 import { ChatDropZoneOverlay } from "../../features/context-drag-drop/ChatDropZoneOverlay"
 import { ChatTreeViewer } from "./ChatTreeViewer"
+import { cn } from "@src/lib/utils"
 
 export interface ChatViewProps {
 	isHidden: boolean
@@ -104,10 +106,9 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 		cwd,
 		diagnostics,
 		devtoolEnabled,
-		_renderContext,
 	} = useExtensionState()
 
-	const { nodes, activeHierarchy } = useChatTree()
+	const { nodes, activeHierarchy, isNavigating } = useChatTree()
 
 	// Show a WarningRow when the user sends a message with a retired provider.
 	const [showRetiredProviderWarning, setShowRetiredProviderWarning] = useState(false)
@@ -121,26 +122,26 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 	// Phase 3: Transition to ChatTreeStore source of truth
 	// We prefer the messages from the tree node matching currentTaskItem.id
 	const store = useChatTree()
+	const messagesRef = useRef(clineMessages)
 	const treeMessages = useMemo(() => {
 		if (currentTaskItem?.id) {
 			const node = nodes.get(currentTaskItem.id)
 			if (node && node.uiMessages && node.uiMessages.length > 0) {
-				return node.uiMessages
+				return node.uiMessages as any[]
 			}
 		}
 
 		// If we are currently navigating or the store is catching up,
 		// we return a fallback or the last known good messages to prevent flashing.
-		if (store.isNavigating && messagesRef.current.length > 0) {
+		if (isNavigating && messagesRef.current && messagesRef.current.length > 0) {
 			return messagesRef.current
 		}
 
-		return clineMessages
-	}, [currentTaskItem?.id, nodes, clineMessages, store.isNavigating])
+		return clineMessages || []
+	}, [currentTaskItem?.id, nodes, clineMessages, isNavigating])
 
 	const messages = treeMessages
-	const messagesRef = useRef(messages)
-
+	// Update messagesRef when messages change
 	useEffect(() => {
 		messagesRef.current = messages
 	}, [messages])
@@ -1414,7 +1415,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 				const isManualClick = !!event
 				if (isManualClick || alwaysAllowModeSwitch) {
 					// Switch mode without waiting
-					store.navigateToNode(suggestion.id) // Pre-emptive state switch
+					store.navigateToNode(suggestion.id || "") // Pre-emptive state switch
 					vscode.postMessage({ type: "showTaskWithId", text: suggestion.id })
 				}
 			}
@@ -1433,14 +1434,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 				setInputValue(preservedInput)
 			}
 		},
-		[
-			handleSendMessage,
-			setInputValue,
-			alwaysAllowModeSwitch,
-			clineAsk,
-			markFollowUpAsAnswered,
-			store,
-		],
+		[handleSendMessage, setInputValue, alwaysAllowModeSwitch, clineAsk, markFollowUpAsAnswered, store],
 	)
 
 	const handleBatchFileResponse = useCallback((response: { [key: string]: boolean }) => {
@@ -1696,7 +1690,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 			{!task && showWorktreesInHomeScreen && <WorktreeSelector />}
 
 			{/* Parent Context Overlay for Subtasks */}
-			{currentTaskItem?.parentId && (
+			{currentTaskItem?.parentTaskId && (
 				<div className="mx-3 mt-2 px-3 py-2 bg-vscode-sideBarSectionHeader-background border border-vscode-editorGroup-border rounded-lg shadow-sm flex items-center justify-between animate-fade-in relative z-[100]">
 					<div className="flex items-center gap-2 overflow-hidden">
 						<div className="p-1 bg-vscode-badge-background rounded">
@@ -1706,13 +1700,15 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 							Parent:
 						</span>
 						<span className="text-[11px] truncate opacity-90">
-							{nodes.get(currentTaskItem.parentId)?.title || "Orchestrator Task"}
+							{nodes?.get?.(currentTaskItem.parentTaskId || "")?.title || "Orchestrator Task"}
 						</span>
 					</div>
 					<Button
 						variant="ghost"
-						size="xs"
-						onClick={() => vscode.postMessage({ type: "showTaskWithId", text: currentTaskItem.parentId })}
+						size="sm"
+						onClick={() =>
+							vscode.postMessage({ type: "showTaskWithId", text: currentTaskItem.parentTaskId })
+						}
 						className="h-6 px-2 text-[10px] hover:bg-vscode-toolbar-hoverBackground">
 						Switch to Parent
 					</Button>
@@ -1933,6 +1929,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 	)
 }
 
-const ChatView = forwardRef(observer(ChatViewComponent))
+const ChatView = observer(forwardRef(ChatViewComponent))
 
 export default ChatView

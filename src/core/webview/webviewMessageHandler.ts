@@ -555,6 +555,19 @@ export const webviewMessageHandler = async (
 				diagnosticsManager.log(message.text || "")
 			}
 			break
+		case "domResponse":
+			if (message.requestId && message.text) {
+				provider.resolveDomRequest(message.requestId, message.text)
+			}
+			break
+		case "webviewError":
+			if (message.text) {
+				const { diagnosticsManager } = await import("../devtools/DiagnosticsManager")
+				diagnosticsManager.log(`[WEBVIEW_ERROR] ${message.text}`, "error")
+				vscode.window.showErrorMessage(`Webview Error: ${message.text}`)
+			}
+			break
+
 		case "mstPatch":
 			{
 				const { diagnosticsManager } = await import("../devtools/DiagnosticsManager")

@@ -10,7 +10,7 @@ import { Package } from "@shared/package"
 
 import { vscode } from "@/utils/vscode"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui"
+import { Button } from "../ui/button"
 
 import { SectionHeader } from "./SectionHeader"
 import { Section } from "./Section"

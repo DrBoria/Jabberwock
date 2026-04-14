@@ -56,7 +56,8 @@ import { Package } from "../../shared/package"
 import { findLast } from "../../shared/array"
 import { supportPrompt } from "../../shared/support-prompt"
 import { GlobalFileNames } from "../../shared/globalFileNames"
-import { Mode, defaultModeSlug, getModeBySlug } from "../../shared/modes"
+import { getAllModes, getModeBySlug, modes, defaultModeSlug, type Mode } from "../../shared/modes"
+import { getAllModesWithPrompts, getFullModeDetails } from "../../shared/modes-extension"
 import { experimentDefault } from "../../shared/experiments"
 import { formatLanguage } from "../../shared/language"
 import { WebviewMessage } from "../../shared/WebviewMessage"
@@ -171,6 +172,7 @@ export class ClineProvider
 	 * Used by the frontend to reject stale state that arrives out-of-order.
 	 */
 	private clineMessagesSeq = 0
+	private pendingDomRequests = new Map<string, (dom: string) => void>()
 
 	public isViewLaunched = false
 	public settingsImportedAt?: number
@@ -801,6 +803,33 @@ export class ClineProvider
 		}
 
 		return false
+	}
+
+	public async getWebviewDom(): Promise<string> {
+		return new Promise((resolve, reject) => {
+			const requestId = Math.random().toString(36).substring(7)
+			this.pendingDomRequests.set(requestId, resolve)
+
+			this.postMessageToWebview({
+				type: "getDom",
+				requestId,
+			})
+
+			setTimeout(() => {
+				if (this.pendingDomRequests.has(requestId)) {
+					this.pendingDomRequests.delete(requestId)
+					reject(new Error("Timeout requesting webview DOM"))
+				}
+			}, 5000)
+		})
+	}
+
+	public resolveDomRequest(requestId: string, dom: string) {
+		const resolve = this.pendingDomRequests.get(requestId)
+		if (resolve) {
+			resolve(dom)
+			this.pendingDomRequests.delete(requestId)
+		}
 	}
 
 	public static async handleCodeAction(

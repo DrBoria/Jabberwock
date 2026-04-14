@@ -4,10 +4,10 @@ import type { DisplayHistoryItem } from "./types"
 
 import { vscode } from "@/utils/vscode"
 import { cn } from "@/lib/utils"
-import { Checkbox } from "@/components/ui/checkbox"
+import { Checkbox } from "../ui/checkbox"
 
 import TaskItemFooter from "./TaskItemFooter"
-import { StandardTooltip } from "../ui"
+import { StandardTooltip } from "../ui/standard-tooltip"
 
 interface TaskItemProps {
 	item: DisplayHistoryItem

@@ -53,17 +53,9 @@ import {
 	OPENROUTER_DEFAULT_PROVIDER_NAME,
 } from "@src/components/ui/hooks/useOpenRouterModelProviders"
 import { filterProviders, filterModels } from "./utils/organizationFilters"
-import {
-	Select,
-	SelectTrigger,
-	SelectValue,
-	SelectContent,
-	SelectItem,
-	SearchableSelect,
-	Collapsible,
-	CollapsibleTrigger,
-	CollapsibleContent,
-} from "@src/components/ui"
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../ui/select"
+import { SearchableSelect } from "../ui/searchable-select"
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "../ui/collapsible"
 
 import {
 	Anthropic,

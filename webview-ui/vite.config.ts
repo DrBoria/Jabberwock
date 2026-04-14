@@ -93,7 +93,7 @@ export default defineConfig(({ mode }) => {
 							dataAttribute: "path",
 						},
 					],
-					["babel-plugin-react-compiler", { target: "18" }],
+					// ["babel-plugin-react-compiler", { target: "18" }],
 				],
 			},
 		}),
@@ -198,10 +198,9 @@ export default defineConfig(({ mode }) => {
 		optimizeDeps: {
 			include: [
 				"mermaid",
-				"dagre", // Explicitly include dagre for pre-bundling
-				// Add other known large mermaid dependencies if identified
+				// dagre is bundled with mermaid and shouldn't be included separately if not a direct dep
 			],
-			exclude: ["@vscode/codicons", "vscode-oniguruma", "shiki"],
+			exclude: ["vscode", "@vscode/codicons", "vscode-oniguruma", "shiki"],
 		},
 		assetsInclude: ["**/*.wasm", "**/*.wav"],
 	}

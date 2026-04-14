@@ -14,7 +14,10 @@ import { useAutoApprovalState } from "@/hooks/useAutoApprovalState"
 
 import { useJabberwockPortal } from "@/components/ui/hooks/useJabberwockPortal"
 
-import { Popover, PopoverContent, PopoverTrigger, StandardTooltip, ToggleSwitch, Button } from "@/components/ui"
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover"
+import { StandardTooltip } from "../ui/standard-tooltip"
+import { ToggleSwitch } from "../ui/toggle-switch"
+import { Button } from "../ui/button"
 
 import { AutoApproveSetting, autoApproveSettingsConfig } from "../settings/AutoApproveToggle"
 

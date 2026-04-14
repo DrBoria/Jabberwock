@@ -3,10 +3,11 @@ import { Fzf } from "fzf"
 
 import { cn } from "@/lib/utils"
 import { useJabberwockPortal } from "@/components/ui/hooks/useJabberwockPortal"
-import { Popover, PopoverContent, PopoverTrigger, StandardTooltip } from "@/components/ui"
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover"
+import { StandardTooltip } from "../ui/standard-tooltip"
 import { useAppTranslation } from "@/i18n/TranslationContext"
 import { vscode } from "@/utils/vscode"
-import { Button } from "@/components/ui"
+import { Button } from "../ui/button"
 
 import { IconButton } from "./IconButton"
 

@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils"
 import { Tab, TabContent } from "../common/Tab"
 import { Button } from "@/components/ui/button"
 import { OrganizationSwitcher } from "./OrganizationSwitcher"
-import { StandardTooltip } from "../ui"
+import { StandardTooltip } from "../ui/standard-tooltip"
 
 // Define the production URL constant locally to avoid importing from cloud package in tests
 const PRODUCTION_JABBERWOCK_CODE_API_URL = "https://app.jabberwock.com"

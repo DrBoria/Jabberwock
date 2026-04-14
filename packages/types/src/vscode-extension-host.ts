@@ -109,6 +109,8 @@ export interface ExtensionMessage {
 		| "diagnostics"
 		| "chatTreeSnapshot"
 		| "chatTreePatch"
+		| "getDom"
+
 	text?: string
 	snapshot?: any // eslint-disable-line @typescript-eslint/no-explicit-any
 	/** For fileContent: { path, content, error? } */
@@ -602,6 +604,8 @@ export interface WebviewMessage {
 		| "updateSkillModes"
 		| "openSkillFile"
 		| "locatorTarget"
+		| "domResponse"
+		| "webviewError"
 	text?: string
 	taskId?: string
 	editedMessageContent?: string

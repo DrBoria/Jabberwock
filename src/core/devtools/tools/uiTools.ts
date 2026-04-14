@@ -136,4 +136,21 @@ export function registerUiTools(mcpServer: McpServer, provider: ClineProvider) {
 			}
 		}
 	})
+
+	mcpServer.tool("get_dom", {}, async () => {
+		try {
+			const dom = await provider.getWebviewDom()
+			return { content: [{ type: "text", text: dom }] }
+		} catch (error) {
+			return {
+				content: [
+					{
+						type: "text",
+						text: `Error getting DOM: ${error instanceof Error ? error.message : String(error)}`,
+					},
+				],
+				isError: true,
+			}
+		}
+	})
 }

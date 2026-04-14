@@ -6,7 +6,7 @@ import fs from "fs"
 
 export function registerDiagnosticTools(mcpServer: McpServer, provider: ClineProvider) {
 	mcpServer.tool(
-		"read_diagnostics",
+		"get_logs",
 		{
 			lines: z.number().optional().describe("Number of recent lines to read. Default is 100."),
 		},

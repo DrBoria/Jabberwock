@@ -3,7 +3,7 @@ import { Search, X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { useAppTranslation } from "@/i18n/TranslationContext"
-import { Input } from "@/components/ui"
+import { Input } from "../ui/input"
 
 export interface SettingsSearchInputProps {
 	value: string

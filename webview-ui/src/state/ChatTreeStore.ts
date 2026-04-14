@@ -31,14 +31,15 @@ export const TaskNode = types
 			let d = 0
 			let current = self.parentId
 			const nodes = (self as any).$treenode.parent.nodes
-			while (current && nodes.has(current)) {
+			while (current && nodes && nodes.has && nodes.has(current)) {
 				d++
-				current = nodes.get(current).parentId
+				current = nodes.get(current)?.parentId
 			}
 			return d
 		},
 		get childTasks() {
 			const nodes = (self as any).$treenode.parent.nodes
+			if (!nodes || !nodes.get) return []
 			return self.children.map((id) => nodes.get(id)).filter(Boolean)
 		},
 	}))
@@ -67,10 +68,11 @@ export const ChatStore = types
 		get activeHierarchy() {
 			if (!self.activeNodeId) return []
 			const path: any[] = []
-			let current = self.activeNodeId
-			while (current) {
-				path.unshift(current)
-				current = current.parentId ? self.nodes.get(current.parentId) : undefined
+			// MST resolves references automatically, so currentNode is a TaskNode
+			let currentNode: any = self.activeNodeId
+			while (currentNode) {
+				path.unshift(currentNode)
+				currentNode = currentNode.parentId ? self.nodes.get(currentNode.parentId) : undefined
 			}
 			return path
 		},

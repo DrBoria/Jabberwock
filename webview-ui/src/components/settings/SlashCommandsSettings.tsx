@@ -15,9 +15,9 @@ import {
 	AlertDialogFooter,
 	AlertDialogHeader,
 	AlertDialogTitle,
-	Button,
-	StandardTooltip,
-} from "@/components/ui"
+} from "../ui/alert-dialog"
+import { Button } from "../ui/button"
+import { StandardTooltip } from "../ui/standard-tooltip"
 import { vscode } from "@/utils/vscode"
 import { buildDocLink } from "@/utils/docLinks"
 

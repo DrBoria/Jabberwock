@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useEffect } from "react"
-import { useLocalObservable } from "mobx-react-lite"
 import { chatTreeStore, ChatStore } from "../state/ChatTreeStore"
 import { Instance } from "mobx-state-tree"
 
@@ -8,7 +7,7 @@ type ChatTreeStoreType = Instance<typeof ChatStore>
 export const ChatTreeContext = createContext<ChatTreeStoreType | undefined>(undefined)
 
 export const ChatTreeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-	const store = useLocalObservable(() => chatTreeStore)
+	const store = chatTreeStore
 
 	// In the future we will hook `window.addEventListener("message")` here
 	// specifically for `chatTreeSnapshot` events to apply the snapshot to the store.

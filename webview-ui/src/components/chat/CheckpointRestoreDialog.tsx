@@ -9,7 +9,7 @@ import {
 	AlertDialogFooter,
 	AlertDialogHeader,
 	AlertDialogTitle,
-} from "@src/components/ui"
+} from "../ui/alert-dialog"
 
 interface CheckpointRestoreDialogProps {
 	open: boolean

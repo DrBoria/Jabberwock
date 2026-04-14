@@ -171,6 +171,17 @@ const App = () => {
 			if (message.type === "acceptInput") {
 				chatViewRef.current?.acceptInput()
 			}
+
+			if (message.type === "getDom") {
+				if (message.requestId) {
+					const dom = document.documentElement.outerHTML
+					vscode.postMessage({
+						type: "domResponse",
+						requestId: message.requestId,
+						text: dom,
+					})
+				}
+			}
 		},
 		[switchTab],
 	)
@@ -222,6 +233,20 @@ const App = () => {
 			telemetryClient.capture(TelemetryEventName.MARKETPLACE_TAB_VIEWED)
 		}
 	}, [tab])
+
+	// Diagnostic logging
+	console.debug("[App] Rendering App...", {
+		useExtensionState: typeof useExtensionState,
+		ChatView: typeof ChatView,
+		HistoryView: typeof HistoryView,
+		SettingsView: typeof SettingsView,
+		WelcomeView: typeof WelcomeView,
+		CloudView: typeof CloudView,
+		McpIframeRenderer: typeof McpIframeRenderer,
+		MemoizedCheckpointRestoreDialog: typeof MemoizedCheckpointRestoreDialog,
+		MemoizedDeleteMessageDialog: typeof MemoizedDeleteMessageDialog,
+		MemoizedEditMessageDialog: typeof MemoizedEditMessageDialog,
+	})
 
 	if (!didHydrateState) {
 		return null
@@ -364,20 +389,33 @@ const App = () => {
 
 const queryClient = new QueryClient()
 
-const AppWithProviders = () => (
-	<ErrorBoundary>
-		<ChatTreeProvider>
-			<ExtensionStateContextProvider>
-				<TranslationProvider>
-					<QueryClientProvider client={queryClient}>
-						<TooltipProvider delayDuration={STANDARD_TOOLTIP_DELAY}>
-							<App />
-						</TooltipProvider>
-					</QueryClientProvider>
-				</TranslationProvider>
-			</ExtensionStateContextProvider>
-		</ChatTreeProvider>
-	</ErrorBoundary>
-)
+const AppWithProviders = () => {
+	// Diagnostic logging to identify the component that is not a function
+	console.debug("[AppWithProviders] Rendering providers...", {
+		QueryClientProvider: typeof QueryClientProvider,
+		TooltipProvider: typeof TooltipProvider,
+		ExtensionStateContextProvider: typeof ExtensionStateContextProvider,
+		ChatTreeProvider: typeof ChatTreeProvider,
+		TranslationProvider: typeof TranslationProvider,
+		ErrorBoundary: typeof ErrorBoundary,
+		App: typeof App,
+	})
+
+	return (
+		<ErrorBoundary>
+			<ChatTreeProvider>
+				<ExtensionStateContextProvider>
+					<TranslationProvider>
+						<QueryClientProvider client={queryClient}>
+							<TooltipProvider delayDuration={STANDARD_TOOLTIP_DELAY}>
+								{typeof App === "function" ? <App /> : <div>App is not a function!</div>}
+							</TooltipProvider>
+						</QueryClientProvider>
+					</TranslationProvider>
+				</ExtensionStateContextProvider>
+			</ChatTreeProvider>
+		</ErrorBoundary>
+	)
+}
 
 export default AppWithProviders

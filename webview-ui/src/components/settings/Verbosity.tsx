@@ -1,7 +1,7 @@
 import { type ProviderSettings, type ModelInfo, type VerbosityLevel, verbosityLevels } from "@jabberwock/types"
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@src/components/ui"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
 
 interface VerbosityProps {
 	apiConfiguration: ProviderSettings

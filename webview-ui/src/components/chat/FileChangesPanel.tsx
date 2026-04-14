@@ -5,7 +5,7 @@ import { createTwoFilesPatch } from "diff"
 
 import type { ClineMessage, ExtensionMessage } from "@jabberwock/types"
 
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible"
 import { cn } from "@/lib/utils"
 import { vscode } from "@src/utils/vscode"
 
