@@ -241,7 +241,7 @@ export async function getEnvironmentDetails(cline: Task, includeFileDetails: boo
 			if (maxFiles === 0) {
 				details += "(Workspace files context disabled. Use list_files to explore if needed.)"
 			} else {
-				const [files, didHitLimit] = await listFiles(cline.cwd, true, maxFiles)
+				const [files, didHitLimit] = await listFiles(cline.cwd, true, maxFiles, cline.virtualWorkspace)
 				const { showJabberwockIgnoredFiles = false } = state ?? {}
 
 				const result = formatResponse.formatFilesList(

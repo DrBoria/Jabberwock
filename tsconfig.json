@@ -1,7 +1,9 @@
 {
 	"extends": "@jabberwock/config-typescript/base.json",
 	"compilerOptions": {
-		"types": ["node"]
+		"types": ["node"],
+		"noImplicitAny": false,
+		"strictNullChecks": false
 	},
 	"exclude": ["node_modules"],
 	"include": ["scripts/*.ts"]

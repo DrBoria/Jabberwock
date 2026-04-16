@@ -3,6 +3,7 @@ import { useSize } from "react-use"
 import { useTranslation, Trans } from "react-i18next"
 import deepEqual from "fast-deep-equal"
 import { VSCodeBadge } from "@vscode/webview-ui-toolkit/react"
+import removeMd from "remove-markdown"
 
 import type {
 	ClineMessage,
@@ -199,7 +200,58 @@ export const ChatRowContent = ({
 		currentTaskItem,
 	} = useExtensionState()
 
-	const effectiveHistory = history || clineMessages
+	const effectiveHistory = useMemo(() => history || clineMessages, [history, clineMessages])
+
+	const isRedundantDelegation = useMemo(() => {
+		if (!isNested || !message.text) return false
+		// Hide parent's "Delegated TODO..." message if we're in a nested view
+		// because the child task itself is the "execution" of that delegation.
+		return message.text.includes("Delegated TODO item") && message.say === "tool"
+	}, [isNested, message.text, message.say])
+
+	const isAgentSaidSummary = useMemo(() => {
+		if (!isNested || !message.text || message.partial) return false
+		// Only treat as summary if it's very short (less than 100 chars)
+		// and matches the "Agent said: ..." pattern.
+		// If it has more content, it's likely a full message we want to see.
+		const agentSaidPattern = /^\w+(\s+\w+)?\s+said:?/i
+		return agentSaidPattern.test(message.text) && message.text.length < 100
+	}, [isNested, message.text, message.partial])
+
+	const isRedundantTodo = useMemo(() => {
+		if (message.type !== "ask" || message.ask !== "tool" || !message.text) return false
+		try {
+			const tool = JSON.parse(message.text)
+			if (tool.tool !== "updateTodoList") return false
+
+			// Find if there's a later (newer) updateTodoList message in effectiveHistory
+			// OR if this is a subtask and the parent already has a newer state.
+			const myIndex = effectiveHistory.findIndex((m) => m.ts === message.ts)
+			if (myIndex === -1) return false
+
+			// Check for newer todo updates in the same history
+			const hasNewer = effectiveHistory.slice(myIndex + 1).some((m) => {
+				if (m.type === "ask" && m.ask === "tool") {
+					try {
+						const t = JSON.parse(m.text || "{}")
+						return t.tool === "updateTodoList"
+					} catch {
+						return false
+					}
+				}
+				return false
+			})
+
+			if (hasNewer) return true
+
+			// If this is the latest in history, but we are a nested view,
+			// it might still be redundant if the parent shows it in the header.
+			// However, for now, showing the latest one in the history is good for context.
+			return false
+		} catch {
+			return false
+		}
+	}, [message, effectiveHistory])
 
 	const modeName = useMemo(() => {
 		if (!message.mode) return undefined
@@ -468,6 +520,72 @@ export const ChatRowContent = ({
 		return null
 	}, [message.type, message.ask, message.partial, message.text])
 
+	if (message.role === "user") {
+		return (
+			<div className="group">
+				<div style={headerStyle}>
+					<User className="w-4 shrink-0" aria-label="User icon" />
+					<span style={{ fontWeight: "bold" }}>{t("chat:feedback.youSaid")}</span>
+				</div>
+				<div className="pl-6 text-sm">
+					<Markdown markdown={message.text || ""} />
+					{message.images && message.images.length > 0 && (
+						<Thumbnails images={message.images} style={{ marginTop: "8px" }} />
+					)}
+				</div>
+			</div>
+		)
+	}
+
+	if (message.role === "assistant") {
+		return (
+			<div className="group">
+				<div style={headerStyle}>
+					<MessageCircle className="w-4 shrink-0" aria-label="Speech bubble icon" />
+					<span style={{ fontWeight: "bold" }}>
+						{modeName
+							? t("chat:text.jabberwockSaid").replace("Jabberwock", modeName)
+							: t("chat:text.jabberwockSaid")}
+					</span>
+					<div style={{ flexGrow: 1 }} />
+					{message.text && <OpenMarkdownPreviewButton markdown={message.text} />}
+				</div>
+				<div className="pl-6 space-y-2 mt-1">
+					{Array.isArray(message.content) && message.content.length > 0 ? (
+						message.content.map((block: any, idx: number) => {
+							if (block.type === "reasoning") {
+								return (
+									<ReasoningBlock
+										key={`reasoning-${idx}`}
+										content={block.text || ""}
+										ts={message.ts}
+										isStreaming={isStreaming}
+										isLast={isLast}
+									/>
+								)
+							}
+							if (block.type === "text") {
+								return (
+									<Markdown key={`text-${idx}`} markdown={block.text || ""} partial={block.partial} />
+								)
+							}
+							return null
+						})
+					) : (
+						<Markdown markdown={message.text || ""} partial={message.partial} />
+					)}
+					{message.images && message.images.length > 0 && (
+						<div style={{ marginTop: "10px" }}>
+							{message.images.map((image, index) => (
+								<ImageBlock key={index} imageData={image} />
+							))}
+						</div>
+					)}
+				</div>
+			</div>
+		)
+	}
+
 	if (tool) {
 		const toolIcon = (name: string) => (
 			<span
@@ -599,6 +717,7 @@ export const ChatRowContent = ({
 				)
 			}
 			case "updateTodoList" as any: {
+				if (isRedundantTodo) return null
 				const todos = (tool as any).todos || []
 				// Get previous todos from the latest todos in the task context
 				const previousTodos = getPreviousTodos(effectiveHistory, message.ts)
@@ -1072,8 +1191,6 @@ export const ChatRowContent = ({
 						)}
 					</>
 				)
-			default:
-				return null
 		}
 	}
 
@@ -1250,6 +1367,39 @@ export const ChatRowContent = ({
 				case "api_req_finished":
 					return null // we should never see this message type
 				case "text":
+					if (isRedundantDelegation) return null
+
+					if (isAgentSaidSummary) {
+						return (
+							<div className="group opacity-60 hover:opacity-100 transition-opacity">
+								<div
+									style={{ ...headerStyle, marginBottom: "4px" }}
+									className="cursor-pointer"
+									onClick={handleToggleExpand}>
+									<MessageCircle className="w-3 shrink-0" />
+									<span className="text-[10px] font-bold uppercase tracking-tight">
+										{modeName || "Agent"} summary
+									</span>
+									{!isExpanded && (
+										<span className="text-[10px] ml-2 italic truncate">
+											{(() => {
+												const clean = removeMd(message.text || "")
+													.replace(/\s+/g, " ")
+													.trim()
+												return clean.length > 100 ? `${clean.substring(0, 100)}...` : clean
+											})()}
+										</span>
+									)}
+								</div>
+								{isExpanded && (
+									<div className="pl-4 border-l border-vscode-editorGroup-border ml-1.5">
+										<Markdown markdown={message.text} partial={message.partial} />
+									</div>
+								)}
+							</div>
+						)
+					}
+
 					return (
 						<div className="group">
 							<div style={headerStyle}>

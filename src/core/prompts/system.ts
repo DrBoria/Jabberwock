@@ -38,6 +38,8 @@ export function getPromptComponent(
 	return component
 }
 
+import { agentStore } from "../state/AgentStore"
+
 async function generatePrompt(
 	context: vscode.ExtensionContext,
 	cwd: string,
@@ -61,9 +63,21 @@ async function generatePrompt(
 		throw new Error("Extension context is required for generating system prompt")
 	}
 
+	// 1. Try to get role from static mode configurations first (.jabberwockmodes or built-in)
+	const modeSelection = getModeSelection(mode, promptComponent, customModeConfigs)
+	let roleDefinition = modeSelection.roleDefinition
+	let baseInstructions = modeSelection.baseInstructions
+
+	// 2. If AgentStore has a more specific profile (Phase 2), let it override OR provide additional info
+	const agentProfile = agentStore.agents.get(mode)
+	if (agentProfile && !roleDefinition) {
+		// Only take role from AgentStore if we don't have a static definition from the mode selection
+		roleDefinition = agentProfile.systemPrompt
+		baseInstructions = ""
+	}
+
 	// Get the full mode config to ensure we have the role definition (used for groups, etc.)
 	const modeConfig = getModeBySlug(mode, customModeConfigs) || modes.find((m) => m.slug === mode) || modes[0]
-	const { roleDefinition, baseInstructions } = getModeSelection(mode, promptComponent, customModeConfigs)
 
 	const hasMcpGroup = modeConfig.groups.some((groupEntry) => getGroupName(groupEntry) === "mcp")
 	const hasMcpServers = mcpHub && mcpHub.getServers().length > 0

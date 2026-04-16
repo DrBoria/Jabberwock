@@ -135,6 +135,15 @@ export class AttemptCompletionTool extends BaseTool<"attempt_completion"> {
 			const { response, text, images } = await task.ask("completion_result", "", false)
 
 			if (response === "yesButtonClicked") {
+				try {
+					await task.commitChanges()
+				} catch (error) {
+					const commitErrorMsg = `Failed to commit changes to disk: ${error instanceof Error ? error.message : String(error)}`
+					await task.say("error", commitErrorMsg)
+					// Push error to tool result so agent can try to handle it (e.g. fix permissions)
+					pushToolResult(formatResponse.toolError(commitErrorMsg))
+					return
+				}
 				this.emitTaskCompleted(task)
 				return
 			}

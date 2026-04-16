@@ -14,7 +14,7 @@ export function resolveVerbosity(argv = process.argv, env = process.env) {
 		onConsoleLog: (_log: string, type: string) => {
 			// When verbose, show everything
 			// When silent, allow errors/warnings and drop info/log/warn noise
-			if (!silent || type === "stderr") return
+			if (!silent || type === "stderr") return undefined
 
 			return false // Drop info/log/warn noise
 		},

@@ -39,10 +39,12 @@ import { generateImageTool } from "../tools/GenerateImageTool"
 import { applyDiffTool as applyDiffToolClass } from "../tools/ApplyDiffTool"
 import { isValidToolName, validateToolUse } from "../tools/validateToolUse"
 import { codebaseSearchTool } from "../tools/CodebaseSearchTool"
+import { thinkTool } from "../tools/ThinkTool"
 
 import { formatResponse } from "../prompts/responses"
 import { sanitizeToolUseId } from "../../utils/tool-id"
 import { diagnosticsManager } from "../devtools/DiagnosticsManager"
+import { agentStore } from "../state/AgentStore"
 
 /**
  * Processes and presents assistant message content to the user interface.
@@ -88,6 +90,7 @@ export async function presentAssistantMessage(cline: Task) {
 	}
 
 	let block: any
+	let result: any
 	try {
 		// Performance optimization: Use shallow copy instead of deep clone.
 		// The block is used read-only throughout this function - we never mutate its properties.
@@ -738,19 +741,31 @@ Please execute this tool and confirm once done.`
 			}
 			if (!block.partial && block.name) {
 				diagnosticsManager.setCurrentAction(t("diagnostics:actions.executingTool", { tool: block.name }))
+
+				// Phase 2: RBAC (Tool Permission Check)
+				const toolName = block.name as string
+				const modeSlug = mode ?? defaultModeSlug
+				if (agentStore.agents.has(modeSlug)) {
+					const agent = agentStore.agents.get(modeSlug)
+					if (agent && !agent.canUseTool(toolName)) {
+						const errorMessage = `Tool '${toolName}' is not allowed for your current role (${modeSlug}).`
+						pushToolResult(formatResponse.toolError(errorMessage))
+						break
+					}
+				}
 			}
 
 			switch (block.name) {
 				case "write_to_file":
 					await checkpointSaveAndMark(cline)
-					await writeToFileTool.handle(cline, block as ToolUse<"write_to_file">, {
+					await writeToFileTool.handle(cline, block as any, {
 						askApproval,
 						handleError,
 						pushToolResult,
 					})
 					break
 				case "update_todo_list":
-					await updateTodoListTool.handle(cline, block as ToolUse<"update_todo_list">, {
+					await updateTodoListTool.handle(cline, block as any, {
 						askApproval,
 						handleError,
 						pushToolResult,
@@ -758,7 +773,7 @@ Please execute this tool and confirm once done.`
 					break
 				case "apply_diff":
 					await checkpointSaveAndMark(cline)
-					await applyDiffToolClass.handle(cline, block as ToolUse<"apply_diff">, {
+					await applyDiffToolClass.handle(cline, block as any, {
 						askApproval,
 						handleError,
 						pushToolResult,
@@ -767,7 +782,7 @@ Please execute this tool and confirm once done.`
 				case "edit":
 				case "search_and_replace":
 					await checkpointSaveAndMark(cline)
-					await editTool.handle(cline, block as ToolUse<"edit">, {
+					await editTool.handle(cline, block as any, {
 						askApproval,
 						handleError,
 						pushToolResult,
@@ -775,7 +790,7 @@ Please execute this tool and confirm once done.`
 					break
 				case "search_replace":
 					await checkpointSaveAndMark(cline)
-					await searchReplaceTool.handle(cline, block as ToolUse<"search_replace">, {
+					await searchReplaceTool.handle(cline, block as any, {
 						askApproval,
 						handleError,
 						pushToolResult,
@@ -783,7 +798,7 @@ Please execute this tool and confirm once done.`
 					break
 				case "edit_file":
 					await checkpointSaveAndMark(cline)
-					await editFileTool.handle(cline, block as ToolUse<"edit_file">, {
+					await editFileTool.handle(cline, block as any, {
 						askApproval,
 						handleError,
 						pushToolResult,
@@ -791,7 +806,7 @@ Please execute this tool and confirm once done.`
 					break
 				case "apply_patch":
 					await checkpointSaveAndMark(cline)
-					await applyPatchTool.handle(cline, block as ToolUse<"apply_patch">, {
+					await applyPatchTool.handle(cline, block as any, {
 						askApproval,
 						handleError,
 						pushToolResult,
@@ -799,77 +814,77 @@ Please execute this tool and confirm once done.`
 					break
 				case "read_file":
 					// Type assertion is safe here because we're in the "read_file" case
-					await readFileTool.handle(cline, block as ToolUse<"read_file">, {
+					await readFileTool.handle(cline, block as any, {
 						askApproval,
 						handleError,
 						pushToolResult,
 					})
 					break
 				case "list_files":
-					await listFilesTool.handle(cline, block as ToolUse<"list_files">, {
+					result = await listFilesTool.handle(cline, block as any, {
 						askApproval,
 						handleError,
 						pushToolResult,
 					})
 					break
 				case "codebase_search":
-					await codebaseSearchTool.handle(cline, block as ToolUse<"codebase_search">, {
+					await codebaseSearchTool.handle(cline, block as any, {
 						askApproval,
 						handleError,
 						pushToolResult,
 					})
 					break
 				case "search_files":
-					await searchFilesTool.handle(cline, block as ToolUse<"search_files">, {
+					await searchFilesTool.handle(cline, block as any, {
 						askApproval,
 						handleError,
 						pushToolResult,
 					})
 					break
 				case "execute_command":
-					await executeCommandTool.handle(cline, block as ToolUse<"execute_command">, {
+					await executeCommandTool.handle(cline, block as any, {
 						askApproval,
 						handleError,
 						pushToolResult,
 					})
 					break
 				case "read_command_output":
-					await readCommandOutputTool.handle(cline, block as ToolUse<"read_command_output">, {
+					result = await readCommandOutputTool.handle(cline, block as any, {
 						askApproval,
 						handleError,
 						pushToolResult,
 					})
 					break
 				case "use_mcp_tool":
-					await useMcpToolTool.handle(cline, block as ToolUse<"use_mcp_tool">, {
+					result = await useMcpToolTool.handle(cline, block as any, {
 						askApproval,
 						handleError,
 						pushToolResult,
 					})
 					break
 				case "access_mcp_resource":
-					await accessMcpResourceTool.handle(cline, block as ToolUse<"access_mcp_resource">, {
+					result = await accessMcpResourceTool.handle(cline, block as any, {
 						askApproval,
 						handleError,
 						pushToolResult,
 					})
 					break
 				case "ask_followup_question":
-					await askFollowupQuestionTool.handle(cline, block as ToolUse<"ask_followup_question">, {
+					result = await askFollowupQuestionTool.handle(cline, block as any, {
 						askApproval,
 						handleError,
 						pushToolResult,
 					})
 					break
 				case "switch_mode":
-					await switchModeTool.handle(cline, block as ToolUse<"switch_mode">, {
+					result = await switchModeTool.handle(cline, block as any, {
 						askApproval,
 						handleError,
 						pushToolResult,
 					})
 					break
 				case "await_batch_completion":
-					await awaitBatchCompletionTool.handle(cline, block as ToolUse<"await_batch_completion">, {
+					result = await awaitBatchCompletionTool.handle(cline, block as any, {
 						askApproval,
 						handleError,
 						pushToolResult,
@@ -877,7 +892,7 @@ Please execute this tool and confirm once done.`
 					break
 				case "new_task":
 					await checkpointSaveAndMark(cline)
-					await newTaskTool.handle(cline, block as ToolUse<"new_task">, {
+					result = await newTaskTool.handle(cline, block as any, {
 						askApproval,
 						handleError,
 						pushToolResult,
@@ -886,7 +901,7 @@ Please execute this tool and confirm once done.`
 					break
 				case "delegate_task":
 					await checkpointSaveAndMark(cline)
-					await delegateTaskTool.handle(cline, block as ToolUse<"delegate_task">, {
+					result = await delegateTaskTool.handle(cline, block as any, {
 						askApproval,
 						handleError,
 						pushToolResult,
@@ -900,22 +915,25 @@ Please execute this tool and confirm once done.`
 						askFinishSubTaskApproval,
 						toolDescription,
 					}
-					await attemptCompletionTool.handle(
-						cline,
-						block as ToolUse<"attempt_completion">,
-						completionCallbacks,
-					)
+					result = await attemptCompletionTool.handle(cline, block as any, completionCallbacks)
 					break
 				}
+				case "think_tool":
+					result = await thinkTool.handle(cline, block as any, {
+						askApproval,
+						handleError,
+						pushToolResult,
+					})
+					break
 				case "run_slash_command":
-					await runSlashCommandTool.handle(cline, block as ToolUse<"run_slash_command">, {
+					result = await runSlashCommandTool.handle(cline, block as any, {
 						askApproval,
 						handleError,
 						pushToolResult,
 					})
 					break
 				case "skill":
-					await skillTool.handle(cline, block as ToolUse<"skill">, {
+					result = await skillTool.handle(cline, block as any, {
 						askApproval,
 						handleError,
 						pushToolResult,
@@ -924,7 +942,7 @@ Please execute this tool and confirm once done.`
 				case "analyze_image":
 					const analyzeImageTool = (await import("../tools/AnalyzeImageTool")).analyzeImageTool
 					await checkpointSaveAndMark(cline)
-					await analyzeImageTool.handle(cline, block as ToolUse<"analyze_image">, {
+					result = await analyzeImageTool.handle(cline, block as any, {
 						askApproval,
 						handleError,
 						pushToolResult,
@@ -932,7 +950,7 @@ Please execute this tool and confirm once done.`
 					break
 				case "generate_image":
 					await checkpointSaveAndMark(cline)
-					await generateImageTool.handle(cline, block as ToolUse<"generate_image">, {
+					result = await generateImageTool.handle(cline, block as any, {
 						askApproval,
 						handleError,
 						pushToolResult,
@@ -968,22 +986,27 @@ Please execute this tool and confirm once done.`
 								}
 							}
 
-							const result = await customTool.execute(customToolArgs, {
+							const executionResult = await customTool.execute(customToolArgs, {
 								mode: mode ?? defaultModeSlug,
 								task: cline,
 							})
 
 							console.log(
-								`${customTool.name}.execute(): ${JSON.stringify(customToolArgs)} -> ${JSON.stringify(result)}`,
+								`${customTool.name}.execute(): ${JSON.stringify(customToolArgs)} -> ${JSON.stringify(executionResult)}`,
 							)
 
-							pushToolResult(result)
+							pushToolResult(executionResult)
 							cline.consecutiveMistakeCount = 0
-						} catch (executionError: any) {
+							result = executionResult
+						} catch (executionError: unknown) {
+							const msg =
+								executionError instanceof Error ? executionError.message : String(executionError)
 							cline.consecutiveMistakeCount++
-							// Record custom tool error with static name
-							cline.recordToolError("custom_tool", executionError.message)
-							await handleError(`executing custom tool "${block.name}"`, executionError)
+							cline.recordToolError("custom_tool", msg)
+							await handleError(
+								`executing custom tool "${block.name}"`,
+								executionError instanceof Error ? executionError : new Error(msg),
+							)
 						}
 
 						break
@@ -1004,6 +1027,14 @@ Please execute this tool and confirm once done.`
 					})
 					break
 				}
+			}
+
+			if (result?.isDelegated) {
+				console.log(
+					`[presentAssistantMessage] Tool ${block.name} triggered delegation. Aborting orchestration loop.`,
+				)
+				cline.abort = true
+				break
 			}
 
 			break

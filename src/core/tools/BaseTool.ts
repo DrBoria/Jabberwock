@@ -1,6 +1,7 @@
 import type { ToolName } from "@jabberwock/types"
 
 import { Task } from "../task/Task"
+import { diagnosticsManager } from "../devtools/DiagnosticsManager"
 import type { ToolUse, HandleError, PushToolResult, AskApproval, NativeToolArgs } from "../../shared/tools"
 
 /**
@@ -47,7 +48,7 @@ export abstract class BaseTool<TName extends ToolName> {
 	 * @param task - Task instance with state and API access
 	 * @param callbacks - Tool execution callbacks (approval, error handling, results)
 	 */
-	abstract execute(params: ToolParams<TName>, task: Task, callbacks: ToolCallbacks): Promise<void>
+	abstract execute(params, task, callbacks)
 
 	/**
 	 * Handle partial (streaming) tool messages.
@@ -110,7 +111,7 @@ export abstract class BaseTool<TName extends ToolName> {
 	 * @param block - ToolUse block from assistant message
 	 * @param callbacks - Tool execution callbacks
 	 */
-	async handle(task: Task, block: ToolUse<TName>, callbacks: ToolCallbacks): Promise<void> {
+	async handle(task, block, callbacks) {
 		// Handle partial messages
 		if (block.partial) {
 			try {
@@ -157,6 +158,19 @@ export abstract class BaseTool<TName extends ToolName> {
 		}
 
 		// Execute with typed parameters
-		await this.execute(params, task, callbacks)
+		const toolTraceId = diagnosticsManager.recordToolStart(task.taskId, this.name, params)
+		try {
+			const result = await this.execute(params, task, callbacks)
+			diagnosticsManager.recordToolEnd(toolTraceId, "success")
+			return result
+		} catch (error) {
+			diagnosticsManager.recordToolEnd(
+				toolTraceId,
+				"failure",
+				undefined,
+				error instanceof Error ? error.message : String(error),
+			)
+			throw error // Re-throw to allow normal error handling
+		}
 	}
 }

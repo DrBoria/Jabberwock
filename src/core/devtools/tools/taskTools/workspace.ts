@@ -15,9 +15,35 @@ export const registerWorkspaceTools = (mcpServer: McpServer, provider: ClineProv
 		},
 		async ({ prompt, mode }) => {
 			try {
+				// 1. Clear current view to ensure focus on the new task
 				await provider.postMessageToWebview({ type: "invoke", invoke: "newChat" })
-				await provider.createTask(prompt, undefined, undefined, { mode })
-				return { content: [{ type: "text", text: `Successfully started new task with prompt: "${prompt}"` }] }
+
+				// 2. Create and start new task
+				const task = await provider.createTask(prompt, undefined, undefined, { mode })
+
+				// 3. Instruct webview to focus on the new task ID and switch to chat tab
+				await provider.postMessageToWebview({
+					type: "action",
+					action: "switchTab",
+					tab: "chat",
+				})
+
+				await provider.postMessageToWebview({
+					type: "state",
+					state: {
+						currentTaskId: task.taskId,
+						clineMessages: task.clineMessages,
+					},
+				} as any)
+
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Successfully started new task with prompt: "${prompt}" (ID: ${task.taskId})`,
+						},
+					],
+				}
 			} catch (error) {
 				return {
 					content: [
@@ -86,6 +112,15 @@ export const registerWorkspaceTools = (mcpServer: McpServer, provider: ClineProv
 				],
 				isError: true,
 			}
+		}
+	})
+
+	mcpServer.tool("get_workspace_state", {}, async () => {
+		try {
+			const state = await provider.getState()
+			return { content: [{ type: "text", text: JSON.stringify(state, null, 2) }] }
+		} catch (error) {
+			return { content: [{ type: "text", text: `Error: ${error}` }], isError: true }
 		}
 	})
 }

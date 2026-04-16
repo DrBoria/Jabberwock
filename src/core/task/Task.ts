@@ -102,6 +102,7 @@ import { restoreTodoListForTask } from "../tools/UpdateTodoListTool"
 import { FileContextTracker } from "../context-tracking/FileContextTracker"
 import { JabberwockIgnoreController } from "../ignore/JabberwockIgnoreController"
 import { JabberwockProtectedController } from "../protect/JabberwockProtectedController"
+import { VirtualWorkspace } from "../fs/VirtualWorkspace"
 import { type AssistantMessageContent, presentAssistantMessage } from "../assistant-message"
 import { NativeToolCallParser } from "../assistant-message/NativeToolCallParser"
 import { manageContext, willManageContext } from "../context-management"
@@ -181,6 +182,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 	readonly parentTask: Task | undefined = undefined
 	readonly taskNumber: number
 	readonly workspacePath: string
+	readonly virtualWorkspace: VirtualWorkspace
 
 	/**
 	 * The mode associated with this task. Persisted across sessions
@@ -225,6 +227,18 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 	 * @see {@link waitForModeInitialization} - Public method to await this promise
 	 */
 	private taskModeReady: Promise<void>
+
+	/**
+	 * Monotonic timestamp generator to prevent React key collisions in the webview.
+	 * Ensures every message issued by this task has a unique timestamp.
+	 */
+	private lastUsedTs: number = 0
+	public generateUniqueTs(): number {
+		const now = Date.now()
+		const ts = Math.max(now, this.lastUsedTs + 1)
+		this.lastUsedTs = ts
+		return ts
+	}
 
 	/**
 	 * The API configuration name (provider profile) associated with this task.
@@ -272,6 +286,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 	providerRef: WeakRef<ClineProvider>
 	private readonly globalStoragePath: string
 	abort: boolean = false
+	turnResetPending: boolean = false
 	currentRequestAbortController?: AbortController
 	skipPrevResponseIdOnce: boolean = false
 
@@ -482,6 +497,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 
 		this.instanceId = crypto.randomUUID().slice(0, 8)
 		this.taskNumber = -1
+		this.virtualWorkspace = new VirtualWorkspace()
 
 		this.jabberwockIgnoreController = new JabberwockIgnoreController(this.cwd)
 		this.jabberwockProtectedController = new JabberwockProtectedController(this.cwd)
@@ -603,6 +619,14 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 		}
 	}
 
+	async commitChanges(): Promise<void> {
+		await this.virtualWorkspace.commitToDisk(this.cwd)
+	}
+
+	async rollbackChanges(): Promise<void> {
+		this.virtualWorkspace.rollback()
+	}
+
 	/**
 	 * Initialize the task mode from the provider state.
 	 * This method handles async initialization with proper error handling.
@@ -709,6 +733,14 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 		}
 
 		provider.on(JabberwockEventName.ProviderProfileChanged, this.providerProfileChangeListener)
+	}
+
+	/**
+	 * Public setter for the current task mode.
+	 * Used by the provider when switching modes.
+	 */
+	public setTaskMode(mode: string) {
+		this._taskMode = mode
 	}
 
 	/**
@@ -897,8 +929,8 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			getResponseId?: () => string | undefined
 			getEncryptedContent?: () => { encrypted_content: string; id?: string } | undefined
 			getThoughtSignature?: () => string | undefined
-			getSummary?: () => any[] | undefined
-			getReasoningDetails?: () => any[] | undefined
+			getSummary?: () => unknown[] | undefined
+			getReasoningDetails?: () => unknown[] | undefined
 		}
 
 		if (message.role === "assistant") {
@@ -920,10 +952,12 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			const isAnthropicProtocol = apiProtocol === "anthropic"
 
 			// Start from the original assistant message
+			// We cast to any to allow dynamic property assignment (ts, id, reasoning_details)
+			// without violating strict SDK types during construction.
 			const messageWithTs: any = {
 				...message,
 				...(responseId ? { id: responseId } : {}),
-				ts: Date.now(),
+				ts: this.generateUniqueTs(),
 			}
 
 			// Store reasoning_details array if present (for models like Gemini 3)
@@ -938,7 +972,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 				// This format passes through anthropic-filter.ts and is properly round-tripped
 				// for interleaved thinking with tool use (required by Anthropic API)
 				const thinkingBlock = {
-					type: "thinking",
+					type: "thinking" as const,
 					thinking: reasoning,
 					signature: thoughtSignature,
 				}
@@ -956,9 +990,9 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			} else if (reasoning && !reasoningDetails) {
 				// Other providers (non-Anthropic): Store as generic reasoning block
 				const reasoningBlock = {
-					type: "reasoning",
+					type: "reasoning" as const,
 					text: reasoning,
-					summary: reasoningSummary ?? ([] as any[]),
+					summary: reasoningSummary ?? undefined,
 				}
 
 				if (typeof messageWithTs.content === "string") {
@@ -974,8 +1008,8 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			} else if (reasoningData?.encrypted_content) {
 				// OpenAI Native encrypted reasoning
 				const reasoningBlock = {
-					type: "reasoning",
-					summary: [] as any[],
+					type: "reasoning" as const,
+					summary: undefined,
 					encrypted_content: reasoningData.encrypted_content,
 					...(reasoningData.id ? { id: reasoningData.id } : {}),
 				}
@@ -997,7 +1031,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			// Note: For Anthropic extended thinking, the signature is already included in the thinking block above.
 			if (thoughtSignature && !isAnthropicProtocol) {
 				const thoughtSignatureBlock = {
-					type: "thoughtSignature",
+					type: "thoughtSignature" as const,
 					thoughtSignature,
 				}
 
@@ -1044,7 +1078,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			}
 
 			const validatedMessage = validateAndFixToolResultIds(messageToAdd, historyForValidation)
-			const messageWithTs = { ...validatedMessage, ts: Date.now() }
+			const messageWithTs = { ...validatedMessage, ts: this.generateUniqueTs() }
 			this.apiConversationHistory.push(messageWithTs)
 		}
 
@@ -1058,7 +1092,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 					id: lastMsg.id || crypto.randomUUID(),
 					role: lastMsg.role,
 					content: lastMsg,
-					ts: lastMsg.ts || Date.now(),
+					ts: lastMsg.ts || this.generateUniqueTs(),
 				})
 			}
 		}
@@ -1070,24 +1104,77 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 	// For API requests, consecutive same-role messages are merged via mergeConsecutiveApiMessages()
 	// so rewind/edit behavior can still reference original message boundaries.
 
-	async overwriteApiConversationHistory(newHistory: ApiMessage[]) {
+	async overwriteApiConversationHistory(newHistory: ApiMessage[], syncToUi = true) {
 		this.apiConversationHistory = newHistory
+
+		// Clear pending tool results/content to avoid merging old state into next turn
+		this.userMessageContent = []
+		this.assistantMessageContent = []
+
+		if (!syncToUi) {
+			console.log("[Task#overwriteApiConversationHistory] Skipping UI sync as requested.")
+			return
+		}
+
+		// Sync UI messages (clineMessages) to avoid duplication and React key collisions
+		this.clineMessages = newHistory.map((msg) => {
+			const ts = msg.ts || this.generateUniqueTs()
+			const role = msg.role
+			const type = role === "assistant" ? "say" : "say" // Defaults to say for rewrite
+
+			let text = ""
+			if (typeof msg.content === "string") {
+				text = msg.content
+			} else if (Array.isArray(msg.content)) {
+				text = msg.content
+					.map((block) => {
+						if (block.type === "text") return block.text
+						if (block.type === "tool_use") return `[Tool Use: ${block.name}]`
+						return ""
+					})
+					.join("\n")
+			}
+
+			return {
+				ts,
+				type,
+				say: type === "say" ? "text" : undefined,
+				text: text.trim(),
+				role,
+			} as ClineMessage
+		})
+
+		// Clear pending tool results/content to avoid merging old state into next turn
+		this.userMessageContent = []
+		this.assistantMessageContent = []
+		this.currentStreamingContentIndex = 0
+		this.presentAssistantMessageLocked = false
+		this.presentAssistantMessageHasPendingUpdates = false
+		this.streamingToolCallIndices.clear()
+		NativeToolCallParser.clearAllStreamingToolCalls()
 
 		const providerInstance = this.providerRef.deref()
 		if (providerInstance && providerInstance.chatStore) {
 			const node = providerInstance.chatStore.nodes.get(this.taskId)
 			if (node) {
-				const mstMessages = newHistory.map((msg) => ({
+				const mstMessages = newHistory.map((msg, idx) => ({
 					id: msg.id || crypto.randomUUID(),
 					role: msg.role,
-					content: msg, // Full object as frozen for backwards compatibility
-					ts: msg.ts || Date.now(),
+					content: msg,
+					ts: msg.ts || this.clineMessages[idx].ts,
 				}))
 				node.replaceMessages(mstMessages)
+				// Also sync UI messages to MST
+				node.syncUiMessages(structuredClone(this.clineMessages))
 			}
 		}
 
+		// Signal to the main loop (recursivelyMakeClineRequests) that the context has
+		// shifted and the current turn must be aborted.
+		this.turnResetPending = true
+
 		await this.saveApiConversationHistory()
+		await this.saveClineMessages()
 	}
 
 	/**
@@ -1152,7 +1239,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 		const lastEffective = effectiveHistoryForValidation[effectiveHistoryForValidation.length - 1]
 		const historyForValidation = lastEffective?.role === "assistant" ? effectiveHistoryForValidation : []
 		const validatedMessage = validateAndFixToolResultIds(userMessage, historyForValidation)
-		const userMessageWithTs = { ...validatedMessage, ts: Date.now() }
+		const userMessageWithTs = { ...validatedMessage, ts: this.generateUniqueTs() }
 		this.apiConversationHistory.push(userMessageWithTs as ApiMessage)
 
 		const saved = await this.saveApiConversationHistory()
@@ -1375,7 +1462,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 				} else {
 					// This is a new partial message, so add it with partial
 					// state.
-					askTs = Date.now()
+					askTs = this.generateUniqueTs()
 					this.lastMessageTs = askTs
 					await this.addToClineMessages({
 						mode: this.taskMode,
@@ -1421,7 +1508,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 					this.askResponse = undefined
 					this.askResponseText = undefined
 					this.askResponseImages = undefined
-					askTs = Date.now()
+					askTs = this.generateUniqueTs()
 					this.lastMessageTs = askTs
 					await this.addToClineMessages({
 						mode: this.taskMode,
@@ -1438,7 +1525,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			this.askResponse = undefined
 			this.askResponseText = undefined
 			this.askResponseImages = undefined
-			askTs = Date.now()
+			askTs = this.generateUniqueTs()
 			this.lastMessageTs = askTs
 			await this.addToClineMessages({ mode: this.taskMode, ts: askTs, type: "ask", ask: type, text, isProtected })
 		}
@@ -1664,7 +1751,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 	}
 
 	public supersedePendingAsk(): void {
-		this.lastMessageTs = Date.now()
+		this.lastMessageTs = this.generateUniqueTs()
 	}
 
 	/**
@@ -1882,7 +1969,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 					this.updateClineMessage(lastMessage)
 				} else {
 					// This is a new partial message, so add it with partial state.
-					const sayTs = Date.now()
+					const sayTs = this.generateUniqueTs()
 
 					if (!options.isNonInteractive) {
 						this.lastMessageTs = sayTs
@@ -1922,7 +2009,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 					this.updateClineMessage(lastMessage)
 				} else {
 					// This is a new and complete message, so add it like normal.
-					const sayTs = Date.now()
+					const sayTs = this.generateUniqueTs()
 
 					if (!options.isNonInteractive) {
 						this.lastMessageTs = sayTs
@@ -1942,7 +2029,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			}
 		} else {
 			// This is a new non-partial message, so add it like normal.
-			const sayTs = Date.now()
+			const sayTs = this.generateUniqueTs()
 
 			// A "non-interactive" message is a message is one that the user
 			// does not need to respond to. We don't want these message types
@@ -2045,7 +2132,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 		if (mcpHub.listenerCount("interactiveUiRequested") === 0) {
 			mcpHub.on(
 				"interactiveUiRequested",
-				async (args: { uri: string; resolve: (data: any) => void; reject: (err: any) => void }) => {
+				async (args: { uri: string; resolve: (data: unknown) => void; reject: (err: Error) => void }) => {
 					const { uri, resolve, reject } = args
 					// Pause LLM execution and show interactive UI in Webview
 					console.log("[Jabberwock] Handling interactiveUiRequested for URI:", uri)
@@ -2411,6 +2498,12 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 		this.emitFinalTokenUsageUpdate()
 
 		this.emit(JabberwockEventName.TaskAborted)
+		// Mark all messages as not partial on abort so UI doesn't get stuck in streaming state
+		for (const message of this.clineMessages) {
+			if (message.partial) {
+				message.partial = false
+			}
+		}
 
 		try {
 			this.dispose() // Call the centralized dispose method
@@ -2523,12 +2616,16 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			throw new Error("Provider not available")
 		}
 
-		const child = await (provider as any).delegateParentAndOpenChild({
+		const child = await provider.delegateParentAndOpenChild({
 			parentTaskId: this.taskId,
 			message,
 			initialTodos,
 			mode,
 		})
+
+		if (child && child.taskId) {
+			diagnosticsManager.recordTaskStart(child.taskId, "subtask", message, this.taskId)
+		}
 		return child
 	}
 
@@ -2582,6 +2679,15 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			const lastUserMsg = this.apiConversationHistory[lastUserMsgIndex]
 			if (Array.isArray(lastUserMsg.content)) {
 				// Remove any existing environment_details blocks before adding fresh ones
+				const environmentDetailsBlock = (lastUserMsg?.content as any[])?.find((block) => {
+					if (block.type === "text" && typeof block.text === "string") {
+						const isEnvironmentDetailsBlock =
+							block.text.trim().startsWith("<environment_details>") &&
+							block.text.trim().endsWith("</environment_details>")
+						return isEnvironmentDetailsBlock
+					}
+					return false
+				})
 				const contentWithoutEnvDetails = lastUserMsg.content.filter(
 					(block: Anthropic.Messages.ContentBlockParam) => {
 						if (block.type === "text" && typeof block.text === "string") {
@@ -2609,6 +2715,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 	// Task Loop
 
 	private async initiateTaskLoop(userContent: Anthropic.Messages.ContentBlockParam[]): Promise<void> {
+		this.turnResetPending = false
 		// Kicks off the checkpoints initialization process in the background.
 		getCheckpointService(this)
 
@@ -2616,6 +2723,11 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 		let includeFileDetails = true
 
 		this.emit(JabberwockEventName.TaskStarted)
+		diagnosticsManager.recordTaskStart(
+			this.taskId,
+			"primary",
+			userContent.map((c) => ("text" in c ? c.text : "[Media]")).join("\n"),
+		)
 
 		while (!this.abort) {
 			const didEndLoop = await this.recursivelyMakeClineRequests(nextUserContent, includeFileDetails)
@@ -2640,6 +2752,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 				nextUserContent = [{ type: "text", text: formatResponse.noToolsUsed() }]
 			}
 		}
+		diagnosticsManager.recordTaskEnd(this.taskId, this.abort ? "aborted" : "completed")
 	}
 
 	public async recursivelyMakeClineRequests(
@@ -2660,9 +2773,9 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			const currentUserContent = currentItem.userContent
 			const currentIncludeFileDetails = currentItem.includeFileDetails
 
-			if (this.abort) {
+			if (this.abort || this.turnResetPending) {
 				throw new Error(
-					`[Jabberwock#recursivelyMakeRooRequests] task ${this.taskId}.${this.instanceId} aborted`,
+					`[Jabberwock#recursivelyMakeClineRequests] task ${this.taskId}.${this.instanceId} aborted or resetPending`,
 				)
 			}
 
@@ -2947,6 +3060,20 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 				let pendingGroundingSources: GroundingSource[] = []
 				this.isStreaming = true
 
+				// Phase 1: Initialize assistant message in MST for real-time observability
+				const providerInstance = this.providerRef.deref()
+				if (providerInstance && providerInstance.chatStore) {
+					const node = providerInstance.chatStore.nodes.get(this.taskId)
+					if (node) {
+						node.addApiMessage({
+							id: this.instanceId + "_assistant",
+							role: "assistant",
+							content: [],
+							ts: this.generateUniqueTs(),
+						})
+					}
+				}
+
 				try {
 					const iterator = stream[Symbol.asyncIterator]()
 
@@ -3010,6 +3137,21 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 									)
 								}
 								await this.say("reasoning", formattedReasoning, undefined, true)
+
+								// Phase 1: Sync reasoning to MST real-time
+								const provider = this.providerRef.deref()
+								if (provider && provider.chatStore) {
+									const node = provider.chatStore.nodes.get(this.taskId)
+									if (node) {
+										node.updateApiMessage(this.instanceId + "_assistant", {
+											role: "assistant",
+											content: [
+												{ type: "reasoning", text: reasoningMessage },
+												...this.assistantMessageContent,
+											],
+										})
+									}
+								}
 								break
 							}
 							case "usage":
@@ -3066,7 +3208,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 										this.streamingToolCallIndices.set(event.id, toolUseIndex)
 
 										// Create initial partial tool use
-										const partialToolUse: ToolUse = {
+										const partialToolUse: any = {
 											type: "tool_use",
 											name: event.name as ToolName,
 											params: {},
@@ -3074,7 +3216,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 										}
 
 										// Store the ID for native protocol
-										;(partialToolUse as any).id = event.id
+										;(partialToolUse as { id: string }).id = event.id
 
 										// Add to content and present
 										this.assistantMessageContent.push(partialToolUse)
@@ -3092,7 +3234,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 											const toolUseIndex = this.streamingToolCallIndices.get(event.id)
 											if (toolUseIndex !== undefined) {
 												// Store the ID for native protocol
-												;(partialToolUse as any).id = event.id
+												;(partialToolUse as { id: string }).id = event.id
 
 												// Update the existing tool use with new partial data
 												this.assistantMessageContent[toolUseIndex] = partialToolUse
@@ -3110,7 +3252,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 
 										if (finalToolUse) {
 											// Store the tool call ID
-											;(finalToolUse as any).id = event.id
+											;(finalToolUse as { id: string }).id = event.id
 
 											// Get the index and replace partial with final
 											if (toolUseIndex !== undefined) {
@@ -3133,7 +3275,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 											if (existingToolUse && existingToolUse.type === "tool_use") {
 												existingToolUse.partial = false
 												// Ensure it has the ID for native protocol
-												;(existingToolUse as any).id = event.id
+												;(existingToolUse as { id: string }).id = event.id
 											}
 
 											// Clean up tracking
@@ -3184,18 +3326,35 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 
 								// Native tool calling: text chunks are plain text.
 								// Create or update a text content block directly
-								const lastBlock = this.assistantMessageContent[this.assistantMessageContent.length - 1]
+								const lastBlock = this.assistantMessageContent[
+									this.assistantMessageContent.length - 1
+								] as any
 								if (lastBlock?.type === "text" && lastBlock.partial) {
-									lastBlock.content = assistantMessage
+									lastBlock.text = assistantMessage
 								} else {
 									this.assistantMessageContent.push({
 										type: "text",
-										content: assistantMessage,
+										text: assistantMessage,
 										partial: true,
-									})
+									} as any)
 									this.userMessageContentReady = false
 								}
 								presentAssistantMessage(this)
+
+								// Phase 1: Sync assistant text to MST real-time
+								const provider = this.providerRef.deref()
+								if (provider && provider.chatStore) {
+									const node = provider.chatStore.nodes.get(this.taskId)
+									if (node) {
+										node.updateApiMessage(this.instanceId + "_assistant", {
+											role: "assistant",
+											content: (reasoningMessage
+												? [{ type: "reasoning", text: reasoningMessage } as any]
+												: []
+											).concat(this.assistantMessageContent),
+										})
+									}
+								}
 								break
 							}
 						}

@@ -1,4 +1,5 @@
 import * as vscode from "vscode"
+import { VirtualWorkspace } from "../../core/fs/VirtualWorkspace"
 import * as path from "path"
 
 import { listFiles } from "../../services/glob/list-files"
@@ -15,6 +16,7 @@ class WorkspaceTracker {
 	private updateTimer: NodeJS.Timeout | null = null
 	private prevWorkSpacePath: string | undefined
 	private resetTimer: NodeJS.Timeout | null = null
+	private virtualWorkspace = new VirtualWorkspace()
 
 	get cwd() {
 		return this.providerRef?.deref()?.cwd ?? getWorkspacePath()
@@ -30,7 +32,7 @@ class WorkspaceTracker {
 			return
 		}
 		const tempCwd = this.cwd
-		const [files, _] = await listFiles(tempCwd, true, MAX_INITIAL_FILES)
+		const [files, _] = await listFiles(tempCwd, true, MAX_INITIAL_FILES, this.virtualWorkspace)
 		if (this.prevWorkSpacePath !== tempCwd) {
 			return
 		}

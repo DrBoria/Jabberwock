@@ -15,6 +15,7 @@ export const todoItemSchema = z.object({
 	content: z.string(),
 	status: todoStatusSchema,
 	assignedTo: z.string().optional(),
+	taskId: z.string().optional(),
 })
 
 export type TodoItem = z.infer<typeof todoItemSchema>

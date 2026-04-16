@@ -18,6 +18,7 @@ import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { useSelectedModel } from "@/components/ui/hooks/useSelectedModel"
 import { vscode } from "@src/utils/vscode"
 import { useChatTree } from "@src/context/ChatTreeContext"
+import { useWindowManager } from "@src/context/WindowManagerContext"
 
 import Thumbnails from "../common/Thumbnails"
 
@@ -42,6 +43,7 @@ export interface TaskHeaderProps {
 	buttonsDisabled: boolean
 	handleCondenseContext: (taskId: string) => void
 	todos?: any[]
+	nodeTitle?: string
 }
 
 const TaskHeader = ({
@@ -59,12 +61,13 @@ const TaskHeader = ({
 	buttonsDisabled,
 	handleCondenseContext,
 	todos,
+	nodeTitle,
 }: TaskHeaderProps) => {
 	const { t } = useTranslation()
 	const { apiConfiguration, currentTaskItem, clineMessages } = useExtensionState()
 	const { nodes } = useChatTree()
-	const store = useChatTree()
 	const { id: modelId, info: model } = useSelectedModel(apiConfiguration)
+	const { pushWindow, popWindow, activeWindows } = useWindowManager()
 	const [isTaskExpanded, setIsTaskExpanded] = useState(false)
 	const [showLongRunningTaskMessage, setShowLongRunningTaskMessage] = useState(false)
 	const { isOpen, openUpsell, closeUpsell, handleConnect } = useCloudUpsell({
@@ -128,7 +131,9 @@ const TaskHeader = ({
 	const isSubtask = !!parentTaskId
 
 	const handleBackToParent = () => {
-		if (parentTaskId) {
+		if (activeWindows.length > 1) {
+			popWindow()
+		} else if (parentTaskId) {
 			vscode.postMessage({ type: "showTaskWithId", text: parentTaskId })
 		}
 	}
@@ -197,7 +202,11 @@ const TaskHeader = ({
 							{isTaskExpanded && <span className="font-bold">{t("chat:task.title")}</span>}
 							{!isTaskExpanded && (
 								<div className="flex items-center gap-2 whitespace-nowrap overflow-hidden text-ellipsis">
-									<Mention text={task.text} />
+									{nodeTitle ? (
+										<span className="font-semibold truncate">{nodeTitle}</span>
+									) : (
+										<Mention text={task.text} />
+									)}
 								</div>
 							)}
 						</div>
@@ -467,7 +476,12 @@ const TaskHeader = ({
 					</>
 				)}
 				{/* Todo list - always shown at bottom when todos exist */}
-				{hasTodos && <TodoListDisplay todos={todos ?? (task as any)?.tool?.todos ?? []} />}
+				{hasTodos && (
+					<TodoListDisplay
+						todos={todos ?? (task as any)?.tool?.todos ?? []}
+						onTodoClick={(taskId) => pushWindow("chat", { targetNodeId: taskId })}
+					/>
+				)}
 
 				{/* Active Subagents List (Navigation Downwards) */}
 				{nodes.get(currentTaskItem?.id || "")?.childTasks &&
@@ -482,8 +496,7 @@ const TaskHeader = ({
 										key={child.id}
 										onClick={(e) => {
 											e.stopPropagation()
-											store.navigateToNode(child.id)
-											vscode.postMessage({ type: "showTaskWithId", text: child.id })
+											pushWindow("chat", { targetNodeId: child.id })
 										}}
 										className="flex items-center justify-between p-2 rounded-lg bg-vscode-sideBarSectionHeader-background hover:bg-vscode-toolbar-hoverBackground cursor-pointer transition-colors group/child">
 										<div className="flex items-center gap-2 min-w-0">

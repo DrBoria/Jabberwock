@@ -53,6 +53,6 @@ export interface DiagnosticSnapshot {
 	logs: DiagnosticLog[]
 	metrics: PerformanceMetric[]
 	resources: ResourceSnapshot[]
-	mstPatches: MstPatch[]
+	mstPatches?: MstPatch[]
 	currentAction?: string
 }

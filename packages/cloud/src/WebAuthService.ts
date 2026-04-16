@@ -399,7 +399,7 @@ export class WebAuthService extends EventEmitter<AuthServiceEvents> implements A
 			return this.sessionToken
 		}
 
-		return
+		return undefined
 	}
 
 	/**
@@ -710,7 +710,17 @@ export class WebAuthService extends EventEmitter<AuthServiceEvents> implements A
 		})
 
 		if (response.ok) {
-			return clerkOrganizationMembershipsSchema.parse(await response.json()).response
+			return (clerkOrganizationMembershipsSchema.parse(await response.json()).response || []).map(
+				(membership) => ({
+					...membership,
+					id: membership.id,
+					organization: {
+						...membership.organization,
+						id: membership.organization.id,
+						name: membership.organization.name ?? "",
+					},
+				}),
+			) as CloudOrganizationMembership[]
 		}
 
 		const errorMessage = `Failed to get organization memberships: ${response.status} ${response.statusText}`

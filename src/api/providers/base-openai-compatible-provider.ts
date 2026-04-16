@@ -73,7 +73,7 @@ export abstract class BaseOpenAiCompatibleProvider<ModelName extends string>
 		metadata?: ApiHandlerCreateMessageMetadata,
 		requestOptions?: OpenAI.RequestOptions,
 	) {
-		const { id: model, info } = this.getModel()
+		const { id: model, info } = this.getModel(metadata?.modelId)
 
 		// Centralized cap: clamp to 20% of the context window (unless provider-specific exceptions apply)
 		const max_tokens =
@@ -190,7 +190,7 @@ export abstract class BaseOpenAiCompatibleProvider<ModelName extends string>
 		}
 
 		if (lastUsage) {
-			yield this.processUsageMetrics(lastUsage, this.getModel().info)
+			yield this.processUsageMetrics(lastUsage, this.getModel(metadata?.modelId).info)
 		}
 
 		// Process any remaining content
@@ -249,10 +249,11 @@ export abstract class BaseOpenAiCompatibleProvider<ModelName extends string>
 		}
 	}
 
-	override getModel() {
+	override getModel(modelIdOverride?: string) {
 		const id =
-			this.options.apiModelId && this.options.apiModelId in this.providerModels
-				? (this.options.apiModelId as ModelName)
+			(modelIdOverride || this.options.apiModelId) &&
+			(modelIdOverride || this.options.apiModelId)! in this.providerModels
+				? ((modelIdOverride || this.options.apiModelId) as ModelName)
 				: this.defaultProviderModelId
 
 		return { id, info: this.providerModels[id] }

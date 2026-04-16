@@ -92,7 +92,10 @@ const getCommandsMap = ({ context, outputChannel, provider }: RegisterCommandOpt
 
 		TelemetryService.instance.captureTitleButtonClicked("plus")
 
-		await visibleProvider.removeClineFromStack()
+		// Only clear task stack if there are active tasks to prevent memory leaks
+		if (visibleProvider.getTaskStackSize() > 0) {
+			await visibleProvider.clearTaskStack()
+		}
 		await visibleProvider.refreshWorkspace()
 		await visibleProvider.postMessageToWebview({ type: "action", action: "chatButtonClicked" })
 		// Send focusInput action immediately after chatButtonClicked

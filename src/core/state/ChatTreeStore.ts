@@ -1,10 +1,15 @@
 import { types } from "mobx-state-tree"
-import { virtualWorkspace } from "../fs/VirtualWorkspace"
 
 export const Message = types.model("Message", {
 	id: types.identifier,
-	role: types.string,
-	content: types.frozen(), // Use frozen to support complex Anthropic content blocks
+	role: types.optional(types.string, "cline"), // "user", "assistant", or default to "cline"
+	content: types.frozen(), // For Anthropic-style multi-block content
+	type: types.maybe(types.string), // cline: "say" or "ask"
+	say: types.maybe(types.string), // cline: "text", "error", etc.
+	ask: types.maybe(types.string), // cline: "tool", "followup", etc.
+	text: types.maybe(types.string), // main text content
+	partial: types.maybe(types.boolean),
+	images: types.optional(types.array(types.string), []),
 	ts: types.optional(types.number, () => Date.now()),
 })
 
@@ -18,6 +23,7 @@ export const TaskNode = types
 		uiMessages: types.optional(types.frozen<any[]>(), []), // Store serialized ClineMessage objects
 		children: types.array(types.string),
 		parentId: types.maybe(types.string),
+		rootId: types.maybe(types.string),
 	})
 	.actions((self) => ({
 		addMessage(msg: { id: string; role: string; content: any; ts?: number }) {
@@ -37,6 +43,25 @@ export const TaskNode = types
 		},
 		replaceMessages(newMessages: { id: string; role: string; content: any; ts?: number }[]) {
 			self.messages.replace(newMessages as any)
+		},
+		addApiMessage(msg: {
+			id: string
+			role?: string
+			content?: any
+			text?: string
+			partial?: boolean
+			ts?: number
+		}) {
+			self.messages.push(msg as any)
+		},
+		updateApiMessage(id: string, update: { role?: string; content?: any; text?: string; partial?: boolean }) {
+			const msg = self.messages.find((m) => m.id === id)
+			if (msg) {
+				if (update.role) msg.role = update.role
+				if (update.content) msg.content = update.content
+				if (update.text !== undefined) msg.text = update.text
+				if (update.partial !== undefined) msg.partial = update.partial
+			}
 		},
 	}))
 
@@ -79,9 +104,9 @@ export const ChatStore = types
 			if (node) {
 				node.status = newStatus
 				if (newStatus === "failed") {
-					virtualWorkspace.rollback()
+					// Rollback should be handled by the task/workspace owner
 				} else if (newStatus === "completed") {
-					void virtualWorkspace.commitToDisk()
+					// Commit should be handled by the task/workspace owner
 				}
 			}
 		},

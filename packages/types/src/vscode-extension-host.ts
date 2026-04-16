@@ -131,7 +131,13 @@ export interface ExtensionMessage {
 		| "focusInput"
 		| "switchTab"
 		| "toggleAutoApprove"
-	invoke?: "newChat" | "sendMessage" | "primaryButtonClick" | "secondaryButtonClick" | "setChatBoxMessage"
+	invoke?:
+		| "newChat"
+		| "sendMessage"
+		| "primaryButtonClick"
+		| "secondaryButtonClick"
+		| "setChatBoxMessage"
+		| "approveTodoPlan"
 	/**
 	 * Partial state updates are allowed to reduce message size (e.g. omit large fields like taskHistory).
 	 * The webview is responsible for merging.
@@ -248,6 +254,8 @@ export interface ExtensionMessage {
 	copyProgressItemName?: string
 	// folderSelected
 	path?: string
+	/** Indicates if the message originated from MCP to prevent infinite loops */
+	fromMCP?: boolean
 }
 
 export interface OpenAiCodexRateLimitsMessage {
@@ -719,6 +727,8 @@ export interface WebviewMessage {
 	worktreeNewWindow?: boolean
 	worktreeIncludeContent?: string
 	locatorPayload?: { filePath: string; line: number; column: number }
+	/** Indicates if the message originated from MCP to prevent infinite loops */
+	fromMCP?: boolean
 }
 
 export interface RequestOpenAiCodexRateLimitsMessage {

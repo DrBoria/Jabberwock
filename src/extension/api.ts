@@ -9,6 +9,7 @@ import pWaitFor from "p-wait-for"
 import {
 	type JabberwockAPI,
 	type JabberwockSettings,
+	type JabberwockAPIEvents,
 	type JabberwockEvents,
 	type ProviderSettings,
 	type ProviderSettingsEntry,
@@ -29,7 +30,7 @@ import { openClineInNewTab } from "../activate/registerCommands"
 import { getCommands } from "../services/command/commands"
 import { getModels } from "../api/providers/fetchers/modelCache"
 
-export class API extends EventEmitter<JabberwockEvents> implements JabberwockAPI {
+export class API extends EventEmitter<JabberwockAPIEvents> implements JabberwockAPI {
 	private readonly outputChannel: vscode.OutputChannel
 	private readonly sidebarProvider: ClineProvider
 	private readonly context: vscode.ExtensionContext
@@ -78,12 +79,14 @@ export class API extends EventEmitter<JabberwockEvents> implements JabberwockAPI
 				}
 
 				switch (command.commandName) {
-					case TaskCommandName.StartNewTask:
+					case TaskCommandName.StartNewTask: {
 						this.log(
 							`[API] StartNewTask -> ${command.data.text}, ${JSON.stringify(command.data.configuration)}`,
 						)
-						await this.startNewTask(command.data)
+						const { configuration, text, images, newTab } = command.data
+						await this.startNewTask({ configuration, text, images, newTab })
 						break
+					}
 					case TaskCommandName.CancelTask:
 						this.log(`[API] CancelTask`)
 						await this.cancelCurrentTask()
@@ -165,13 +168,10 @@ export class API extends EventEmitter<JabberwockEvents> implements JabberwockAPI
 		}
 	}
 
-	public override emit<K extends keyof JabberwockEvents>(
-		eventName: K,
-		...args: K extends keyof JabberwockEvents ? JabberwockEvents[K] : never
-	) {
+	public override emit<K extends keyof JabberwockAPIEvents>(eventName: K, ...args: JabberwockAPIEvents[K]) {
 		const data = { eventName: eventName as JabberwockEventName, payload: args } as TaskEvent
 		this.ipc?.broadcast({ type: IpcMessageType.TaskEvent, origin: IpcOrigin.Server, data })
-		return super.emit(eventName, ...args)
+		return Reflect.apply(EventEmitter.prototype.emit, this, [eventName, ...args]) as boolean
 	}
 
 	public async startNewTask({

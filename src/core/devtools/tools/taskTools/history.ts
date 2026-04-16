@@ -196,4 +196,16 @@ export const registerHistoryTools = (mcpServer: McpServer, provider: ClineProvid
 			}
 		},
 	)
+
+	// Backward compatibility alias for get_task_history
+	mcpServer.tool(
+		"get_task_history",
+		{
+			count: z.number().optional().describe("Number of recent messages to return. Default is 20."),
+		},
+		async ({ count = 20 }) => {
+			const result = await (mcpServer as any).callTool("get_api_history", { count })
+			return result
+		},
+	)
 }

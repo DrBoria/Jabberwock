@@ -1,6 +1,6 @@
 import os from "os"
 import * as path from "path"
-import { virtualWorkspace } from "../../core/fs/VirtualWorkspace"
+import { VirtualWorkspace, virtualWorkspace } from "../../core/fs/VirtualWorkspace"
 import * as childProcess from "child_process"
 import * as vscode from "vscode"
 import ignore from "ignore"
@@ -28,9 +28,15 @@ interface ScanContext {
  * @param dirPath - Directory path to list files from
  * @param recursive - Whether to recursively list files in subdirectories
  * @param limit - Maximum number of files to return
+ * @param vfs - VirtualWorkspace instance (optional, defaults to global)
  * @returns Tuple of [file paths array, whether the limit was reached]
  */
-export async function listFiles(dirPath: string, recursive: boolean, limit: number): Promise<[string[], boolean]> {
+export async function listFiles(
+	dirPath: string,
+	recursive: boolean,
+	limit: number = 1000,
+	vfs: VirtualWorkspace = virtualWorkspace,
+): Promise<[string[], boolean]> {
 	// Early return for limit of 0 - no need to scan anything
 	if (limit === 0) {
 		return [[], false]
@@ -49,26 +55,26 @@ export async function listFiles(dirPath: string, recursive: boolean, limit: numb
 	if (!recursive) {
 		// For non-recursive, use the existing approach
 		const files = await listFilesWithRipgrep(rgPath, dirPath, false, limit)
-		const ignoreInstance = await createIgnoreInstance(dirPath)
+		const ignoreInstance = await createIgnoreInstance(vfs, dirPath)
 		// Calculate remaining limit for directories
 		const remainingLimit = Math.max(0, limit - files.length)
-		const directories = await listFilteredDirectories(dirPath, false, ignoreInstance, remainingLimit)
+		const directories = await listFilteredDirectories(vfs, dirPath, false, ignoreInstance, remainingLimit)
 		return formatAndCombineResults(files, directories, limit)
 	}
 
 	// For recursive mode, use the original approach but ensure first-level directories are included
 	const files = await listFilesWithRipgrep(rgPath, dirPath, true, limit)
-	const ignoreInstance = await createIgnoreInstance(dirPath)
+	const ignoreInstance = await createIgnoreInstance(vfs, dirPath)
 	// Calculate remaining limit for directories
 	const remainingLimit = Math.max(0, limit - files.length)
-	const directories = await listFilteredDirectories(dirPath, true, ignoreInstance, remainingLimit)
+	const directories = await listFilteredDirectories(vfs, dirPath, true, ignoreInstance, remainingLimit)
 
 	// Combine and check if we hit the limits
 	const [results, limitReached] = formatAndCombineResults(files, directories, limit)
 
 	// If we hit the limit, ensure all first-level directories are included
 	if (limitReached) {
-		const firstLevelDirs = await getFirstLevelDirectories(dirPath, ignoreInstance)
+		const firstLevelDirs = await getFirstLevelDirectories(vfs, dirPath, ignoreInstance)
 		return ensureFirstLevelDirectoriesIncluded(results, firstLevelDirs, limit)
 	}
 
@@ -78,12 +84,16 @@ export async function listFiles(dirPath: string, recursive: boolean, limit: numb
 /**
  * Get only the first-level directories in a path
  */
-async function getFirstLevelDirectories(dirPath: string, ignoreInstance: ReturnType<typeof ignore>): Promise<string[]> {
+async function getFirstLevelDirectories(
+	vfs: VirtualWorkspace,
+	dirPath: string,
+	ignoreInstance: ReturnType<typeof ignore>,
+): Promise<string[]> {
 	const absolutePath = path.resolve(dirPath)
 	const directories: string[] = []
 
 	try {
-		const entries = await virtualWorkspace.readdir(absolutePath, { withFileTypes: true })
+		const entries = await vfs.readdir(absolutePath, { withFileTypes: true })
 
 		for (const entry of entries) {
 			if (entry.isDirectory() && !entry.isSymbolicLink()) {
@@ -327,17 +337,17 @@ function buildNonRecursiveArgs(): string[] {
  * Create an ignore instance that handles .gitignore files properly
  * This replaces the custom gitignore parsing with the proper ignore library
  */
-async function createIgnoreInstance(dirPath: string): Promise<ReturnType<typeof ignore>> {
+async function createIgnoreInstance(vfs: VirtualWorkspace, dirPath: string): Promise<ReturnType<typeof ignore>> {
 	const ignoreInstance = ignore()
 	const absolutePath = path.resolve(dirPath)
 
 	// Find all .gitignore files from the target directory up to the root
-	const gitignoreFiles = await findGitignoreFiles(absolutePath)
+	const gitignoreFiles = await findGitignoreFiles(vfs, absolutePath)
 
 	// Add patterns from all .gitignore files
 	for (const gitignoreFile of gitignoreFiles) {
 		try {
-			const content = await virtualWorkspace.readFile(gitignoreFile)
+			const content = await vfs.readFile(gitignoreFile)
 			ignoreInstance.add(content)
 		} catch (err) {
 			// Continue if we can't read a .gitignore file
@@ -354,7 +364,7 @@ async function createIgnoreInstance(dirPath: string): Promise<ReturnType<typeof 
 /**
  * Find all .gitignore files from the given directory up to the workspace root
  */
-async function findGitignoreFiles(startPath: string): Promise<string[]> {
+async function findGitignoreFiles(vfs: VirtualWorkspace, startPath: string): Promise<string[]> {
 	const gitignoreFiles: string[] = []
 	let currentPath = startPath
 
@@ -363,7 +373,7 @@ async function findGitignoreFiles(startPath: string): Promise<string[]> {
 		const gitignorePath = path.join(currentPath, ".gitignore")
 
 		try {
-			await virtualWorkspace.access(gitignorePath)
+			await vfs.access(gitignorePath)
 			gitignoreFiles.push(gitignorePath)
 		} catch {
 			// .gitignore doesn't exist at this level, continue
@@ -385,6 +395,7 @@ async function findGitignoreFiles(startPath: string): Promise<string[]> {
  * List directories with appropriate filtering
  */
 async function listFilteredDirectories(
+	vfs: VirtualWorkspace,
 	dirPath: string,
 	recursive: boolean,
 	ignoreInstance: ReturnType<typeof ignore>,
@@ -416,7 +427,7 @@ async function listFilteredDirectories(
 
 		try {
 			// List all entries in the current directory
-			const entries = await virtualWorkspace.readdir(currentPath, { withFileTypes: true })
+			const entries = await vfs.readdir(currentPath, { withFileTypes: true })
 
 			// Filter for directories only, excluding symbolic links to prevent circular traversal
 			for (const entry of entries) {

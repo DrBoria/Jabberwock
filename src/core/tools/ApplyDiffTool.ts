@@ -1,5 +1,4 @@
 import path from "path"
-import fs from "fs/promises"
 
 import { type ClineSayTool, DEFAULT_WRITE_DELAY_MS } from "@jabberwock/types"
 import { TelemetryService } from "@jabberwock/telemetry"
@@ -56,7 +55,7 @@ export class ApplyDiffTool extends BaseTool<"apply_diff"> {
 			}
 
 			const absolutePath = path.resolve(task.cwd, relPath)
-			const fileExists = await fileExistsAtPath(absolutePath)
+			const fileExists = await fileExistsAtPath(absolutePath, task.virtualWorkspace)
 
 			if (!fileExists) {
 				task.consecutiveMistakeCount++
@@ -68,7 +67,7 @@ export class ApplyDiffTool extends BaseTool<"apply_diff"> {
 				return
 			}
 
-			const originalContent: string = await fs.readFile(absolutePath, "utf-8")
+			const originalContent: string = await task.virtualWorkspace.readFile(absolutePath, "utf-8")
 
 			// Apply the diff to the original content
 			const diffResult = (await task.diffStrategy?.applyDiff(
@@ -93,17 +92,17 @@ export class ApplyDiffTool extends BaseTool<"apply_diff"> {
 							continue
 						}
 
-						const errorDetails = failPart.details ? JSON.stringify(failPart.details, null, 2) : ""
+						const errorDetails = failPart["details"] ? JSON.stringify(failPart["details"], null, 2) : ""
 
 						formattedError = `<error_details>\n${
-							failPart.error
+							failPart["error"]
 						}${errorDetails ? `\n\nDetails:\n${errorDetails}` : ""}\n</error_details>`
 					}
 				} else {
-					const errorDetails = diffResult.details ? JSON.stringify(diffResult.details, null, 2) : ""
+					const errorDetails = diffResult["details"] ? JSON.stringify(diffResult["details"], null, 2) : ""
 
 					formattedError = `Unable to apply diff to file: ${absolutePath}\n\n<error_details>\n${
-						diffResult.error
+						diffResult["error"]
 					}${errorDetails ? `\n\nDetails:\n${errorDetails}` : ""}\n</error_details>`
 				}
 

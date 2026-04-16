@@ -276,8 +276,9 @@ describe("MdmService", () => {
 			const compliance = service.isCompliant()
 
 			expect(compliance.compliant).toBe(false)
-			if (!compliance.compliant) {
-				expect(compliance.reason).toContain("Your organization requires Jabberwock Cloud authentication")
+			if (compliance.compliant === false) {
+				const reason = (compliance as any).reason || ""
+				expect(reason).toContain("Your organization requires Jabberwock Cloud authentication")
 			}
 		})
 
@@ -298,10 +299,9 @@ describe("MdmService", () => {
 			const compliance = service.isCompliant()
 
 			expect(compliance.compliant).toBe(false)
-			if (!compliance.compliant) {
-				expect(compliance.reason).toContain(
-					"You must be authenticated with your organization's Jabberwock Cloud account",
-				)
+			if (compliance.compliant === false) {
+				const reason = (compliance as any).reason || ""
+				expect(reason).toContain("You must be authenticated with your organization's Jabberwock Cloud account")
 			}
 		})
 

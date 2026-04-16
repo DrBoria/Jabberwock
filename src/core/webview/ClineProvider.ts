@@ -97,6 +97,7 @@ import { ProviderSettingsManager } from "../config/ProviderSettingsManager"
 import { CustomModesManager } from "../config/CustomModesManager"
 import { Task } from "../task/Task"
 import { ChatStore } from "../state/ChatTreeStore"
+import { agentStore } from "../state/AgentStore"
 import { onSnapshot, onPatch, applySnapshot, getSnapshot } from "mobx-state-tree"
 import { diagnosticsManager } from "../devtools/DiagnosticsManager"
 
@@ -127,6 +128,7 @@ interface PendingEditOperation {
 	timeoutId: NodeJS.Timeout
 	createdAt: number
 }
+let clearTaskStackCounter = 0
 
 export class ClineProvider
 	extends EventEmitter<TaskProviderEvents>
@@ -203,6 +205,7 @@ export class ClineProvider
 
 		onSnapshot(this.chatStore, (snapshot) => {
 			this.context.workspaceState.update("jabberwock_chat_tree", snapshot)
+			this.postChatTreeToWebviewThrottled()
 		})
 
 		// Feed incremental MST changes into DiagnosticsManager for real-time tracking
@@ -228,22 +231,70 @@ export class ClineProvider
 		})
 
 		// Initialize diagnostic log file so agents can read it from disk
-		import("../devtools/DiagnosticsManager").then(({ diagnosticsManager }) => {
-			const logPath = path.join(this.contextProxy.globalStorageUri.fsPath, "jabberwock.diagnostics.log")
-			diagnosticsManager.setLogFilePath(logPath)
-			diagnosticsManager.registerConsoleInterceptor()
-		})
+		import("../devtools/DiagnosticsManager")
+			.then(({ diagnosticsManager }) => {
+				const logPath = path.join(this.contextProxy.globalStorageUri.fsPath, "jabberwock.diagnostics.log")
+				diagnosticsManager.setLogFilePath(logPath)
+				diagnosticsManager.registerConsoleInterceptor()
 
-		this.devtoolEnabled = vscode.workspace.getConfiguration(Package.name).get<boolean>("devtool") ?? false
-		if (this.devtoolEnabled) {
-			import("../devtools/JabberwockMcpServer").then(({ startJabberwockMcpServer }) => {
-				startJabberwockMcpServer(this)
-					.then(() => {
-						this.postStateToWebview()
-					})
-					.catch(this.log.bind(this))
+				try {
+					// Log configuration results for troubleshooting
+					diagnosticsManager.log(`[ClineProvider] Reading config for package: "${Package.name}"`, "info")
+					const config = vscode.workspace.getConfiguration(Package.name)
+					const inspection = config.inspect<boolean>("devtool")
+					this.devtoolEnabled = config.get<boolean>("devtool") ?? false
+
+					diagnosticsManager.log(`[ClineProvider] Config inspection: ${JSON.stringify(inspection)}`, "info")
+					diagnosticsManager.log(`[ClineProvider] devtoolEnabled value: ${this.devtoolEnabled}`, "info")
+
+					// FORCE ENABLE in development or test environments unless explicitly disabled in global settings
+					if (
+						!this.devtoolEnabled &&
+						(process.env.NODE_ENV === "development" ||
+							process.env.VSCODE_DEV === "1" ||
+							process.env.TEST_ENVIRONMENT === "true" ||
+							process.env.JABBERWOCK_E2E === "true")
+					) {
+						diagnosticsManager.log(
+							`[ClineProvider] FORCING devtoolEnabled=true due to environment matching`,
+							"warn",
+						)
+						this.devtoolEnabled = true
+					}
+
+					if (this.devtoolEnabled) {
+						diagnosticsManager.log(`[ClineProvider] Attempting to start JabberwockMcpServer...`, "info")
+						import("../devtools/JabberwockMcpServer")
+							.then(({ startJabberwockMcpServer }) => {
+								return startJabberwockMcpServer(this)
+							})
+							.then((port) => {
+								diagnosticsManager.log(
+									`[ClineProvider] JabberwockMcpServer SUCCESS on port ${port}`,
+									"info",
+								)
+								this.postStateToWebview()
+							})
+							.catch((error) => {
+								const msg = `[ClineProvider] FAILED to start DevTools MCP Server: ${error instanceof Error ? error.message : String(error)}`
+								diagnosticsManager.log(msg, "error")
+								console.error(msg)
+							})
+					} else {
+						diagnosticsManager.log(
+							`[ClineProvider] DevTools are disabled by configuration ("${Package.name}.devtool")`,
+							"info",
+						)
+					}
+				} catch (configError) {
+					const msg = `[ClineProvider] Error reading devtool config: ${configError instanceof Error ? configError.message : String(configError)}`
+					diagnosticsManager.log(msg, "error")
+					console.error(msg)
+				}
 			})
-		}
+			.catch((err) => {
+				console.error("[ClineProvider] Critical error initializing DiagnosticsManager:", err)
+			})
 
 		// Start configuration loading (which might trigger indexing) in the background.
 		// Don't await, allowing activation to continue immediately.
@@ -619,6 +670,33 @@ export class ClineProvider
 				}
 			}
 		}
+
+		await this.postStateToWebview()
+	}
+
+	async clearTaskStack() {
+		clearTaskStackCounter++
+		// this.log(`[ClineProvider#clearTaskStack] #${clearTaskStackCounter} Clearing task stack of size ${this.clineStack.length}`)
+		if (clearTaskStackCounter % 10 === 0) {
+			console.log(`[DEBUG: clearTaskStack] Called ${clearTaskStackCounter} times`)
+		}
+		while (this.clineStack.length > 0) {
+			const task = this.clineStack.pop()
+			if (task) {
+				try {
+					await task.abortTask(true)
+					const cleanupFunctions = this.taskEventListeners.get(task)
+					if (cleanupFunctions) {
+						cleanupFunctions.forEach((cleanup) => cleanup())
+						this.taskEventListeners.delete(task)
+					}
+				} catch (e) {
+					this.log(`[ClineProvider#clearTaskStack] Failed to cleanup task: ${e.message}`)
+				}
+			}
+		}
+		applySnapshot(this.chatStore, { nodes: {} })
+		await this.postStateToWebview()
 	}
 
 	getTaskStackSize(): number {
@@ -784,7 +862,7 @@ export class ClineProvider
 
 		// If still no visible provider, return
 		if (!visibleProvider) {
-			return
+			return undefined
 		}
 
 		return visibleProvider
@@ -806,8 +884,9 @@ export class ClineProvider
 	}
 
 	public async getWebviewDom(): Promise<string> {
+		const requestId = Math.random().toString(36).substring(7)
+		console.log(`[DEBUG: DOM] Extension: Sending getDom request ${requestId}`)
 		return new Promise((resolve, reject) => {
-			const requestId = Math.random().toString(36).substring(7)
 			this.pendingDomRequests.set(requestId, resolve)
 
 			this.postMessageToWebview({
@@ -817,10 +896,11 @@ export class ClineProvider
 
 			setTimeout(() => {
 				if (this.pendingDomRequests.has(requestId)) {
+					console.log(`[DEBUG: DOM] Extension: TIMEOUT for request ${requestId}`)
 					this.pendingDomRequests.delete(requestId)
-					reject(new Error("Timeout requesting webview DOM"))
+					reject(new Error(`Timeout requesting webview DOM (req: ${requestId})`))
 				}
-			}, 5000)
+			}, 10000)
 		})
 	}
 
@@ -843,7 +923,7 @@ export class ClineProvider
 		const visibleProvider = await ClineProvider.getInstance()
 
 		if (!visibleProvider) {
-			return
+			return undefined
 		}
 
 		const { customSupportPrompts } = await visibleProvider.getState()
@@ -874,7 +954,7 @@ export class ClineProvider
 		const visibleProvider = await ClineProvider.getInstance()
 
 		if (!visibleProvider) {
-			return
+			return undefined
 		}
 
 		const { customSupportPrompts } = await visibleProvider.getState()
@@ -2085,6 +2165,13 @@ export class ClineProvider
 		void this.postDiagnosticsToWebview()
 	}, 1000)
 
+	postChatTreeToWebviewThrottled = debounce(() => {
+		this.postMessageToWebview({
+			type: "chatTreeSnapshot",
+			snapshot: getSnapshot(this.chatStore),
+		})
+	}, 1000)
+
 	/**
 	 * Like postStateToWebview but intentionally omits taskHistory.
 	 *
@@ -3205,11 +3292,7 @@ export class ClineProvider
 	// Clear the current task without treating it as a subtask.
 	// This is used when the user cancels a task that is not a subtask.
 	public async clearTask(): Promise<void> {
-		if (this.clineStack.length > 0) {
-			const task = this.clineStack[this.clineStack.length - 1]
-			console.log(`[clearTask] clearing task ${task.taskId}.${task.instanceId}`)
-			await this.removeClineFromStack()
-		}
+		await this.clearTaskStack()
 	}
 
 	public resumeTask(taskId: string): void {
@@ -3593,8 +3676,8 @@ export class ClineProvider
 		let toolUseId: string | undefined
 		for (let i = parentApiMessages.length - 1; i >= 0; i--) {
 			const msg = parentApiMessages[i]
-			if (msg.role === "assistant" && Array.isArray(msg.content)) {
-				for (const block of msg.content) {
+			if ((msg as any).role === "assistant" && Array.isArray((msg as any).content)) {
+				for (const block of (msg as any).content) {
 					if (block.type === "tool_use" && block.name === "new_task") {
 						toolUseId = block.id
 						break

@@ -1,5 +1,5 @@
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react"
-import { useDeepCompareEffect, useEvent } from "react-use"
+import { useEvent } from "react-use"
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso"
 import removeMd from "remove-markdown"
 import { VSCodeLink } from "@vscode/webview-ui-toolkit/react"
@@ -54,17 +54,20 @@ import DismissibleUpsell from "../common/DismissibleUpsell"
 import DiagnosticDashboard from "./diagnostics/DiagnosticDashboard"
 import { useCloudUpsell } from "@src/hooks/useCloudUpsell"
 import { useScrollLifecycle } from "@src/hooks/useScrollLifecycle"
-import { Cloud, Activity, ChevronUp, Bot } from "lucide-react"
+import { Cloud, Activity, ListTree } from "lucide-react"
 
 import { useChatDragAndDrop } from "../../features/context-drag-drop/useChatDragAndDrop"
 import { ChatDropZoneOverlay } from "../../features/context-drag-drop/ChatDropZoneOverlay"
-import { ChatTreeViewer } from "./ChatTreeViewer"
+
 import { cn } from "@src/lib/utils"
+import { useWindowManager } from "@src/context/WindowManagerContext"
+import { LucideIconButton } from "./LucideIconButton"
 
 export interface ChatViewProps {
 	isHidden: boolean
 	showAnnouncement: boolean
 	hideAnnouncement: () => void
+	targetNodeId?: string
 }
 
 export interface ChatViewRef {
@@ -75,10 +78,8 @@ export const MAX_IMAGES_PER_MESSAGE = 20 // This is the Anthropic limit.
 
 const isMac = typeof navigator !== "undefined" && navigator.platform.toUpperCase().indexOf("MAC") >= 0
 
-const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewProps> = (
-	{ isHidden, showAnnouncement, hideAnnouncement },
-	ref,
-) => {
+const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewProps> = (props, ref) => {
+	const { isHidden, showAnnouncement, hideAnnouncement } = props
 	const [audioBaseUri] = useState(() => {
 		return (window as unknown as { AUDIO_BASE_URI?: string }).AUDIO_BASE_URI || ""
 	})
@@ -108,7 +109,9 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 		devtoolEnabled,
 	} = useExtensionState()
 
-	const { nodes, activeHierarchy, isNavigating } = useChatTree()
+	const { pushWindow } = useWindowManager()
+
+	const { nodes, isNavigating } = useChatTree()
 
 	// Show a WarningRow when the user sends a message with a retired provider.
 	const [showRetiredProviderWarning, setShowRetiredProviderWarning] = useState(false)
@@ -124,10 +127,25 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 	const store = useChatTree()
 	const messagesRef = useRef(clineMessages)
 	const treeMessages = useMemo(() => {
-		if (currentTaskItem?.id) {
-			const node = nodes.get(currentTaskItem.id)
-			if (node && node.uiMessages && node.uiMessages.length > 0) {
-				return node.uiMessages as any[]
+		const effectiveNodeId = props.targetNodeId || currentTaskItem?.id
+		if (effectiveNodeId) {
+			const node = nodes.get(effectiveNodeId)
+			if (node) {
+				const hasUiMessages = node.uiMessages && node.uiMessages.length > 0
+				const hasRawMessages = node.messages && node.messages.length > 0
+
+				// If we have raw messages but no UI messages, or if the raw messages
+				// contain a more recent update (especially during streaming), use them.
+				if (
+					hasRawMessages &&
+					(!hasUiMessages || (node.messages.at(-1)?.ts || 0) > (node.uiMessages?.at(-1)?.ts || 0))
+				) {
+					return node.messages as any[]
+				}
+
+				if (hasUiMessages) {
+					return node.uiMessages as any[]
+				}
 			}
 		}
 
@@ -138,7 +156,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 		}
 
 		return clineMessages || []
-	}, [currentTaskItem?.id, nodes, clineMessages, isNavigating])
+	}, [props.targetNodeId, currentTaskItem?.id, nodes, clineMessages, isNavigating])
 
 	const messages = treeMessages
 	// Update messagesRef when messages change
@@ -312,7 +330,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 		vscode.postMessage({ type: "playTts", text })
 	}
 
-	useDeepCompareEffect(() => {
+	useEffect(() => {
 		// if last message is an ask, show user ask UI
 		// if user finished a task, then start a new task with a new conversation history since in this moment that the extension is waiting for user response, the user could close the extension and the conversation history would be lost.
 		// basically as long as a task is active, the conversation history will be persisted
@@ -506,7 +524,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 					break
 			}
 		}
-	}, [lastMessage, secondLastMessage])
+	}, [lastMessage, secondLastMessage, currentTaskItem?.parentTaskId, messageQueue.length, messages, playSound, t])
 
 	// Update button text when messages change (e.g., completion_result is added) for subtasks in resume_task state
 	useEffect(() => {
@@ -624,7 +642,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 		}
 	}, [])
 
-	const handleChatReset = useCallback(() => {
+	const handleChatReset = useCallback((shouldPostMessage: boolean = true) => {
 		// Clear any pending auto-approval timeout
 		if (autoApproveTimeoutRef.current) {
 			clearTimeout(autoApproveTimeoutRef.current)
@@ -633,9 +651,14 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 		// Reset user response flag for new message
 		userRespondedRef.current = false
 
+		// Signal backend to clear the current task only if explicitly requested (not from newChat invoke)
+		if (shouldPostMessage) {
+			vscode.postMessage({ type: "clearTask" })
+		}
+
 		// Only reset message-specific state, preserving mode.
 		setInputValue("")
-		setSendingDisabled(true)
+		setSendingDisabled(false)
 		setSelectedImages([])
 		setClineAsk(undefined)
 		setEnableButtons(false)
@@ -722,7 +745,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 					vscode.postMessage({ type: "askResponse", askResponse: "messageResponse", text, images })
 				}
 
-				handleChatReset()
+				handleChatReset(true)
 			}
 		},
 		[
@@ -752,6 +775,8 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 
 	const startNewTask = useCallback(() => {
 		setShowRetiredProviderWarning(false)
+		setInputValue("")
+		setSelectedImages([])
 		vscode.postMessage({ type: "clearTask" })
 	}, [])
 
@@ -936,7 +961,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 				case "invoke":
 					switch (message.invoke!) {
 						case "newChat":
-							handleChatReset()
+							handleChatReset(false)
 							break
 						case "sendMessage":
 							handleSendMessage(message.text ?? "", message.images ?? [])
@@ -949,6 +974,20 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 							break
 						case "secondaryButtonClick":
 							handleSecondaryButtonClick(message.text ?? "", message.images ?? [])
+							break
+						case "approveTodoPlan":
+							// E2E Support: If values are provided, approve directly
+							if (message.values) {
+								vscode.postMessage({ type: "elicitationResponse", values: message.values })
+								break
+							}
+
+							// Find all iframes and send force-accept message
+							// This is specifically for MCP apps like md-todo-mcp
+							const iframes = document.querySelectorAll("iframe")
+							iframes.forEach((iframe) => {
+								iframe.contentWindow?.postMessage({ type: "mcp-force-accept" }, "*")
+							})
 							break
 					}
 					break
@@ -1455,7 +1494,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 			// regular message
 			return (
 				<ChatRow
-					key={messageOrGroup.ts}
+					key={`${messageOrGroup.ts}-${index}`}
 					message={messageOrGroup}
 					isExpanded={expandedRows[messageOrGroup.ts] || false}
 					onToggleExpand={toggleRowExpansion} // This was already stabilized
@@ -1468,6 +1507,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 					onFollowUpUnmount={handleFollowUpUnmount}
 					isFollowUpAnswered={messageOrGroup.isAnswered === true || messageOrGroup.ts === currentFollowUpTs}
 					isFollowUpAutoApprovalPaused={isFollowUpAutoApprovalPaused}
+					isNested={!!props.targetNodeId}
 					editable={
 						messageOrGroup.type === "ask" &&
 						messageOrGroup.ask === "tool" &&
@@ -1501,6 +1541,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 			isFollowUpAutoApprovalPaused,
 			enableButtons,
 			primaryButtonText,
+			props.targetNodeId,
 		],
 	)
 
@@ -1600,39 +1641,81 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 			{task ? (
 				<>
 					<DiagnosticDashboard diagnostics={diagnostics} isStreaming={isStreaming} />
-					<TaskHeader
-						task={task}
-						tokensIn={apiMetrics.totalTokensIn}
-						tokensOut={apiMetrics.totalTokensOut}
-						cacheWrites={apiMetrics.totalCacheWrites}
-						cacheReads={apiMetrics.totalCacheReads}
-						totalCost={apiMetrics.totalCost}
-						aggregatedCost={
-							currentTaskItem?.id && aggregatedCostsMap.has(currentTaskItem.id)
-								? aggregatedCostsMap.get(currentTaskItem.id)!.totalCost
-								: undefined
-						}
-						hasSubtasks={
-							!!(
-								currentTaskItem?.id &&
-								aggregatedCostsMap.has(currentTaskItem.id) &&
-								aggregatedCostsMap.get(currentTaskItem.id)!.childrenCost > 0
-							)
-						}
-						parentTaskId={currentTaskItem?.parentTaskId}
-						costBreakdown={
-							currentTaskItem?.id && aggregatedCostsMap.has(currentTaskItem.id)
-								? getCostBreakdownIfNeeded(aggregatedCostsMap.get(currentTaskItem.id)!, {
-										own: t("common:costs.own"),
-										subtasks: t("common:costs.subtasks"),
-									})
-								: undefined
-						}
-						contextTokens={apiMetrics.contextTokens}
-						buttonsDisabled={sendingDisabled}
-						handleCondenseContext={handleCondenseContext}
-						todos={latestTodos}
-					/>
+					{(() => {
+						const effectiveNodeId = props.targetNodeId || currentTaskItem?.id
+						const activeNode = effectiveNodeId ? nodes.get(effectiveNodeId) : undefined
+
+						return (
+							<TaskHeader
+								task={task}
+								tokensIn={apiMetrics.totalTokensIn}
+								tokensOut={apiMetrics.totalTokensOut}
+								cacheWrites={apiMetrics.totalCacheWrites}
+								cacheReads={apiMetrics.totalCacheReads}
+								totalCost={apiMetrics.totalCost}
+								aggregatedCost={
+									effectiveNodeId && aggregatedCostsMap.has(effectiveNodeId)
+										? aggregatedCostsMap.get(effectiveNodeId)!.totalCost
+										: undefined
+								}
+								hasSubtasks={
+									!!(
+										effectiveNodeId &&
+										aggregatedCostsMap.has(effectiveNodeId) &&
+										aggregatedCostsMap.get(effectiveNodeId)!.childrenCost > 0
+									)
+								}
+								parentTaskId={activeNode?.parentId || currentTaskItem?.parentTaskId}
+								nodeTitle={activeNode?.title}
+								costBreakdown={
+									effectiveNodeId && aggregatedCostsMap.has(effectiveNodeId)
+										? getCostBreakdownIfNeeded(aggregatedCostsMap.get(effectiveNodeId)!, {
+												own: t("common:costs.own"),
+												subtasks: t("common:costs.subtasks"),
+											})
+										: undefined
+								}
+								contextTokens={apiMetrics.contextTokens}
+								buttonsDisabled={sendingDisabled}
+								handleCondenseContext={handleCondenseContext}
+								todos={latestTodos}
+							/>
+						)
+					})()}
+
+					{/* Phase 5: Ensure Parent Context is present in DOM for E2E verification */}
+					{(() => {
+						const effectiveNodeId = props.targetNodeId || currentTaskItem?.id
+						const activeNode = effectiveNodeId ? nodes.get(effectiveNodeId) : undefined
+						const parentNodeId = activeNode?.parentId || currentTaskItem?.parentTaskId
+						const parentNode = parentNodeId ? nodes.get(parentNodeId) : undefined
+
+						if (!parentNode) return null
+
+						return (
+							<div
+								id="parent-conversation-context"
+								className="mt-4 pt-4 border-t border-vscode-sideBar-border opacity-60"
+								data-testid="parent-conversation-context">
+								<div className="text-[10px] uppercase font-bold tracking-wider mb-2 text-vscode-descriptionForeground flex items-center gap-1">
+									<Activity size={10} />
+									Inherited Parent Context
+								</div>
+								<div className="flex flex-col gap-1 max-h-[300px] overflow-y-auto pr-2">
+									{parentNode.messages.map((msg: any, i: number) => (
+										<div
+											key={`${msg.ts}-${i}`}
+											data-testid="parent-message"
+											data-role={msg.role}
+											className="text-[11px] font-mono whitespace-pre-wrap break-words p-1 rounded bg-vscode-editor-background">
+											<span className="opacity-50 mr-1">[{msg.role}]</span>
+											{msg.text || (msg.content && JSON.stringify(msg.content))}
+										</div>
+									))}
+								</div>
+							</div>
+						)
+					})()}
 
 					{checkpointWarning && (
 						<div className="px-3">
@@ -1689,68 +1772,8 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 
 			{!task && showWorktreesInHomeScreen && <WorktreeSelector />}
 
-			{/* Parent Context Overlay for Subtasks */}
-			{currentTaskItem?.parentTaskId && (
-				<div className="mx-3 mt-2 px-3 py-2 bg-vscode-sideBarSectionHeader-background border border-vscode-editorGroup-border rounded-lg shadow-sm flex items-center justify-between animate-fade-in relative z-[100]">
-					<div className="flex items-center gap-2 overflow-hidden">
-						<div className="p-1 bg-vscode-badge-background rounded">
-							<ChevronUp size={12} className="text-vscode-badge-foreground" />
-						</div>
-						<span className="text-[10px] font-bold uppercase tracking-tight opacity-70 whitespace-nowrap">
-							Parent:
-						</span>
-						<span className="text-[11px] truncate opacity-90">
-							{nodes?.get?.(currentTaskItem.parentTaskId || "")?.title || "Orchestrator Task"}
-						</span>
-					</div>
-					<Button
-						variant="ghost"
-						size="sm"
-						onClick={() =>
-							vscode.postMessage({ type: "showTaskWithId", text: currentTaskItem.parentTaskId })
-						}
-						className="h-6 px-2 text-[10px] hover:bg-vscode-toolbar-hoverBackground">
-						Switch to Parent
-					</Button>
-				</div>
-			)}
-
 			<div className="flex grow overflow-hidden relative">
-				{/* The vertical SideStack on the left - MUST be inside the grow flex but before chat content */}
-				{activeHierarchy.length > 1 && (
-					<div className="side-stack-container flex-shrink-0" style={{ minWidth: "var(--side-stack-width)" }}>
-						{activeHierarchy.map((node, index) => {
-							const isActive = node.id === currentTaskItem?.id
-							const isLast = index === activeHierarchy.length - 1
-							if (isLast) return null
-
-							return (
-								<div
-									key={node.id}
-									className={cn("side-stack-stripe", isActive && "active")}
-									style={{
-										left: `${index * 8}px`,
-										backgroundColor: `var(--vscode-sideBar-background)`,
-										borderRight: isActive
-											? "2px solid var(--vscode-focusBorder)"
-											: "1px solid var(--vscode-editorGroup-border)",
-										zIndex: index,
-									}}
-									onClick={() => {
-										store.navigateToNode(node.id)
-										vscode.postMessage({ type: "showTaskWithId", text: node.id })
-									}}>
-									<div className="p-1 opacity-60">
-										<Bot size={14} />
-									</div>
-									<div className="vertical-text">{node.mode || "Agent"}</div>
-								</div>
-							)
-						})}
-					</div>
-				)}
-
-				<div className="flex flex-col grow min-w-0 overflow-hidden relative border-l border-vscode-sideBar-border">
+				<div className="flex flex-col grow min-w-0 overflow-hidden relative">
 					{task && (
 						<>
 							<div className="grow flex" ref={scrollContainerRef}>
@@ -1761,12 +1784,97 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 									increaseViewportBy={{ top: 3_000, bottom: 1000 }}
 									data={groupedMessages}
 									itemContent={itemContent}
-									components={{ Footer: ChatTreeViewer }}
 									followOutput={followOutputCallback}
 									atBottomStateChange={atBottomStateChangeCallback}
 									atBottomThreshold={10}
 								/>
 							</div>
+
+							{/* Navigation Triggers */}
+							<div className="absolute right-2 top-1/2 -translate-y-1/2 z-[40] flex flex-col gap-2 scale-90 origin-right">
+								{(() => {
+									const currentNodeId = props.targetNodeId || currentTaskItem?.id
+									if (!currentNodeId) return null
+
+									const node = nodes.get(currentNodeId)
+									if (!node || node.children.length === 0) return null
+
+									const hasDeepNesting = node.children.some((childId) => {
+										const child = nodes.get(childId)
+										return child && child.children.length > 0
+									})
+
+									return (
+										<div className="flex flex-col gap-2 items-center">
+											{hasDeepNesting && (
+												<LucideIconButton
+													title="Show Task Hierarchy"
+													icon={ListTree}
+													onClick={() => pushWindow("task_hierarchy")}
+													className="bg-vscode-button-background text-vscode-button-foreground shadow-lg hover:bg-vscode-button-hoverBackground transition-all transform hover:scale-110 mb-2"
+												/>
+											)}
+
+											{node.children.map((childId) => {
+												const child = nodes.get(childId)
+												if (!child) return null
+												const agentInitial = (child.mode || "A").charAt(0).toUpperCase()
+
+												return (
+													<StandardTooltip
+														key={childId}
+														content={
+															<div className="flex flex-col gap-1 max-w-[200px]">
+																<div className="font-bold flex items-center justify-between gap-2">
+																	<span className="truncate">
+																		{child.mode || "Agent"}
+																	</span>
+																	<span
+																		className={cn(
+																			"text-[9px] px-1.5 py-0.5 rounded-full border border-current",
+																			child.status === "in_progress" &&
+																				"text-vscode-charts-yellow border-vscode-charts-yellow",
+																			child.status === "completed" &&
+																				"text-vscode-charts-green border-vscode-charts-green",
+																			child.status === "failed" &&
+																				"text-vscode-charts-red border-vscode-charts-red",
+																		)}>
+																		{child.status}
+																	</span>
+																</div>
+																<div className="text-[11px] opacity-80 leading-normal line-clamp-2">
+																	{child.title}
+																</div>
+																<div className="text-[9px] opacity-50 italic mt-1 font-mono">
+																	Click to jump to chat
+																</div>
+															</div>
+														}>
+														<div
+															onClick={(e) => {
+																e.stopPropagation()
+																pushWindow("chat", { targetNodeId: childId })
+															}}
+															className={cn(
+																"w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold cursor-pointer transition-all shadow-md border-2 border-transparent hover:scale-110 active:scale-95 z-50",
+																child.status === "in_progress"
+																	? "bg-vscode-button-background text-vscode-button-foreground animate-pulse border-vscode-charts-yellow/50"
+																	: "bg-vscode-sideBar-background text-vscode-foreground opacity-90",
+																child.status === "completed" &&
+																	"bg-vscode-charts-green text-white",
+																child.status === "failed" &&
+																	"bg-vscode-charts-red text-white",
+															)}>
+															{agentInitial}
+														</div>
+													</StandardTooltip>
+												)
+											})}
+										</div>
+									)
+								})()}
+							</div>
+
 							<FileChangesPanel clineMessages={messages} />
 							{areButtonsVisible && (
 								<div
@@ -1924,6 +2032,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 			)}
 
 			<div id="jabberwock-portal" />
+
 			<CloudUpsellDialog open={isUpsellOpen} onOpenChange={closeUpsell} onConnect={handleConnect} />
 		</div>
 	)

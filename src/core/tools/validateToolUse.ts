@@ -5,6 +5,7 @@ import { customToolRegistry } from "@jabberwock/core"
 import { type Mode, FileRestrictionError, getModeBySlug, getGroupName } from "../../shared/modes"
 import { EXPERIMENT_IDS } from "../../shared/experiments"
 import { TOOL_GROUPS, ALWAYS_AVAILABLE_TOOLS, TOOL_ALIASES } from "../../shared/tools"
+import { agentStore } from "../state/AgentStore"
 
 /**
  * Checks if a tool name is a valid, known tool.
@@ -59,6 +60,12 @@ export function validateToolUse(
 		)
 	) {
 		throw new Error(`Tool "${toolName}" is not allowed in ${mode} mode.`)
+	}
+
+	// Finally, check AgentStore specific permissions (Phase 2 Agent Profiles)
+	const agent = agentStore.agents.get((mode as any).slug || String(mode))
+	if (agent && !agent.canUseTool(toolName)) {
+		throw new Error(`Agent profile "${agent.name}" (${agent.role}) is not authorized to use tool "${toolName}".`)
 	}
 }
 
@@ -121,7 +128,7 @@ export function isToolAllowedForMode(
 	tool: string,
 	modeSlug: string,
 	customModes: ModeConfig[],
-	toolRequirements?: Record<string, boolean>,
+	toolRequirements?,
 	toolParams?: Record<string, any>, // All tool parameters
 	experiments?: Record<string, boolean>,
 	includedTools?: string[], // Opt-in tools explicitly included (e.g., from modelInfo)

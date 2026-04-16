@@ -619,43 +619,6 @@ input[cmdk-input]:focus {
 	box-shadow: 0 var(--stack-offset) var(--depth-shadow-size) rgba(0, 0, 0, 0.2);
 }
 
-/* Side Stack Vertical Tabs */
-.side-stack-container {
-	width: var(--side-stack-width);
-	background: var(--vscode-sideBar-background);
-	border-right: 1px solid var(--vscode-sideBar-border);
-	display: flex;
-	flex-direction: row;
-	position: relative;
-	overflow: visible;
-	z-index: 50;
-}
-
-.side-stack-stripe {
-	width: 32px;
-	height: 100%;
-	position: absolute;
-	top: 0;
-	cursor: pointer;
-	border-right: 1px solid var(--vscode-editorGroup-border);
-	transition: all 0.2s ease-in-out;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	padding-top: 12px;
-	filter: brightness(0.9);
-}
-
-.side-stack-stripe:hover {
-	filter: brightness(1.1);
-	width: 36px;
-}
-
-.side-stack-stripe.active {
-	filter: brightness(1);
-	border-right: 2px solid var(--vscode-focusBorder);
-}
-
 .vertical-text {
 	writing-mode: vertical-rl;
 	text-orientation: mixed;

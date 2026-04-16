@@ -1076,10 +1076,12 @@ export class McpHub extends EventEmitter {
 
 			// Mark tools as always allowed and enabled for prompt based on settings
 			const tools = (response?.tools || []).map((tool) => ({
-				...tool,
-				alwaysAllow: hasWildcard || alwaysAllowConfig.includes(tool.name),
-				enabledForPrompt: !disabledToolsList.includes(tool.name),
-			}))
+				name: tool.name ?? "",
+				description: tool.description ?? "",
+				inputSchema: tool.inputSchema ?? { type: "object", properties: {} },
+				alwaysAllow: hasWildcard || alwaysAllowConfig.includes(tool.name ?? ""),
+				enabledForPrompt: !disabledToolsList.includes(tool.name ?? ""),
+			})) as McpTool[]
 
 			return tools
 		} catch (error) {
@@ -1095,7 +1097,12 @@ export class McpHub extends EventEmitter {
 				return []
 			}
 			const response = await connection.client.request({ method: "resources/list" }, ListResourcesResultSchema)
-			return response?.resources || []
+			return (response?.resources?.map((r) => ({
+				uri: r.uri ?? "",
+				name: r.name ?? "",
+				description: r.description,
+				mimeType: r.mimeType,
+			})) || []) as McpResource[]
 		} catch (error) {
 			// console.error(`Failed to fetch resources for ${serverName}:`, error)
 			return []
@@ -1115,7 +1122,12 @@ export class McpHub extends EventEmitter {
 				{ method: "resources/templates/list" },
 				ListResourceTemplatesResultSchema,
 			)
-			return response?.resourceTemplates || []
+			return (response?.resourceTemplates?.map((t) => ({
+				uriTemplate: t.uriTemplate ?? "",
+				name: t.name ?? "",
+				description: t.description,
+				mimeType: t.mimeType,
+			})) || []) as McpResourceTemplate[]
 		} catch (error) {
 			// console.error(`Failed to fetch resource templates for ${serverName}:`, error)
 			return []
@@ -1767,7 +1779,7 @@ export class McpHub extends EventEmitter {
 		if (connection.server.disabled) {
 			throw new Error(`Server "${serverName}" is disabled`)
 		}
-		return await connection.client.request(
+		const response = await connection.client.request(
 			{
 				method: "resources/read",
 				params: {
@@ -1776,6 +1788,15 @@ export class McpHub extends EventEmitter {
 			},
 			ReadResourceResultSchema,
 		)
+
+		return {
+			contents: (response?.contents || []).map((c) => ({
+				uri: c.uri ?? uri,
+				mimeType: c.mimeType,
+				text: c.text,
+				blob: c.blob,
+			})),
+		} as McpResourceResponse
 	}
 
 	async callTool(
@@ -1818,7 +1839,7 @@ export class McpHub extends EventEmitter {
 		}
 		const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || ""
 
-		return await connection.client.request(
+		const response = await connection.client.request(
 			{
 				method: "tools/call",
 				params: {
@@ -1836,6 +1857,14 @@ export class McpHub extends EventEmitter {
 				timeout,
 			},
 		)
+
+		return {
+			...response,
+			content: (response.content || []).map((c) => ({
+				...c,
+				type: c.type as "text" | "image" | "audio" | "resource",
+			})),
+		} as McpToolCallResponse
 	}
 
 	/**

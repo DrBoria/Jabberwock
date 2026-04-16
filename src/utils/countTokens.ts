@@ -33,10 +33,10 @@ export async function countTokens(
 		const result = countTokensResultSchema.parse(data)
 
 		if (!result.success) {
-			throw new Error(result.error)
+			throw new Error(result["error"])
 		}
 
-		return result.count
+		return result["count"]
 	} catch (error) {
 		pool = null
 		console.error(error)

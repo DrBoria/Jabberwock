@@ -11,13 +11,13 @@ export class VirtualWorkspace {
 		this.overlayFs.use(fs as any)
 	}
 
-	async writeFile(path = "", content: string | Buffer | Uint8Array = "") {
+	async writeFile(path = "", content: string | Buffer | Uint8Array = "", _encoding?: string) {
 		return new Promise((resolve, reject) => {
 			this.vol.writeFile(path, content, (err) => (err ? reject(err) : resolve(true)))
 		})
 	}
 
-	async readFile(path = ""): Promise<string> {
+	async readFile(path = "", _encoding?: string): Promise<string> {
 		return new Promise((resolve, reject) => {
 			this.overlayFs.readFile(path, "utf8", (err, data) => (err ? reject(err) : resolve(data as string)))
 		})
@@ -35,7 +35,7 @@ export class VirtualWorkspace {
 		})
 	}
 
-	async mkdir(path = ""): Promise<boolean> {
+	async mkdir(path = "", _options?: any): Promise<boolean> {
 		return new Promise((resolve, reject) => {
 			this.vol.mkdir(path, { recursive: true }, (err) => (err ? reject(err) : resolve(true)))
 		})
@@ -71,11 +71,14 @@ export class VirtualWorkspace {
 		this.vol.reset()
 	}
 
-	async commitToDisk() {
+	async commitToDisk(basePath: string) {
 		const files = this.vol.toJSON()
-		const writePromises = Object.entries(files).map(([filePath, content]) => {
+		const writePromises = Object.entries(files).map(async ([filePath, content]) => {
 			if (content !== null) {
-				return fs.promises.writeFile(filePath, content)
+				const path = await import("path")
+				const targetPath = path.isAbsolute(filePath) ? filePath : path.join(basePath, filePath)
+				await fs.promises.mkdir(path.dirname(targetPath), { recursive: true })
+				return fs.promises.writeFile(targetPath, content as string)
 			}
 			return Promise.resolve()
 		})

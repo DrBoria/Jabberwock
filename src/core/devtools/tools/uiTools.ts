@@ -1,18 +1,15 @@
 import { z } from "zod"
-import { type McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
-import { type ClineProvider } from "../../webview/ClineProvider"
-import { type ClineAskResponse } from "../../../shared/WebviewMessage"
-import { type Mode } from "../../../shared/modes"
 
-export function registerUiTools(mcpServer: McpServer, provider: ClineProvider) {
+export function registerUiTools(mcpServer, provider) {
 	mcpServer.tool(
 		"interact_with_ui",
 		{
 			action: z
-				.enum(["continue", "cancel"])
-				.describe("Action to take: continue or cancel the current task generation"),
+				.enum(["continue", "cancel", "approve_todo"])
+				.describe("Action to take: continue, cancel, or approve_todo (executes the current interactive plan)"),
+			state: z.any().optional().describe("Optional state to pass to the UI (e.g. mutated todo plan)"),
 		},
-		async ({ action }) => {
+		async ({ action, state }) => {
 			try {
 				const currentTask = provider.getCurrentTask()
 				if (!currentTask) {
@@ -25,6 +22,9 @@ export function registerUiTools(mcpServer: McpServer, provider: ClineProvider) {
 				} else if (action === "cancel") {
 					await provider.postMessageToWebview({ type: "invoke", invoke: "secondaryButtonClick" })
 					return { content: [{ type: "text", text: "Successfully invoked secondary button (Cancel)." }] }
+				} else if (action === "approve_todo") {
+					await provider.postMessageToWebview({ type: "invoke", invoke: "approveTodoPlan", values: state })
+					return { content: [{ type: "text", text: "Successfully invoked Todo Plan approval." }] }
 				}
 
 				return { content: [{ type: "text", text: `Unknown action: ${action}` }], isError: true }
@@ -54,9 +54,8 @@ export function registerUiTools(mcpServer: McpServer, provider: ClineProvider) {
 					return { content: [{ type: "text", text: "Error: No active task to respond to" }], isError: true }
 				}
 
-				// Programmatic MCP calls should bypass the 500ms fast-click prevention guard
 				currentTask.askShownAt = undefined
-				currentTask.handleWebviewAskResponse(response as ClineAskResponse, text, undefined)
+				currentTask.handleWebviewAskResponse(response, text, undefined)
 				return {
 					content: [{ type: "text", text: `Successfully sent response "${response}" to current task.` }],
 				}
@@ -81,7 +80,7 @@ export function registerUiTools(mcpServer: McpServer, provider: ClineProvider) {
 		},
 		async ({ mode }) => {
 			try {
-				await provider.handleModeSwitch(mode as Mode)
+				await provider.handleModeSwitch(mode)
 				return { content: [{ type: "text", text: `Successfully switched to mode: ${mode}` }] }
 			} catch (error) {
 				return {
@@ -139,7 +138,13 @@ export function registerUiTools(mcpServer: McpServer, provider: ClineProvider) {
 
 	mcpServer.tool("get_dom", {}, async () => {
 		try {
-			const dom = await provider.getWebviewDom()
+			let dom = await provider.getWebviewDom()
+			// Strip styles, scripts, and VS Code CSS variable noise to get true semantic DOM size
+			dom = dom.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
+			dom = dom.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+			dom = dom.replace(/<svg\b[^<]*(?:(?!<\/svg>)<[^<]*)*<\/svg>/gi, "[SVG]")
+			dom = dom.replace(/\sstyle="[^"]*"/gi, "")
+
 			return { content: [{ type: "text", text: dom }] }
 		} catch (error) {
 			return {
@@ -151,6 +156,103 @@ export function registerUiTools(mcpServer: McpServer, provider: ClineProvider) {
 				],
 				isError: true,
 			}
+		}
+	})
+
+	mcpServer.tool(
+		"navigate_to_node",
+		{
+			nodeId: z
+				.string()
+				.describe("The ID of the task node to navigate to (empty string to return to active chat)"),
+		},
+		async ({ nodeId }) => {
+			try {
+				if (nodeId) {
+					// Navigate to a specific task by rehydrating it from history
+					const { historyItem } = await provider.getTaskWithId(nodeId)
+					if (!historyItem) {
+						return { content: [{ type: "text", text: `Task with ID ${nodeId} not found.` }], isError: true }
+					}
+					await provider.createTaskWithHistoryItem(historyItem)
+				}
+
+				// Ensure webview switches to chat tab and syncs state
+				await provider.postStateToWebview()
+				await provider.postMessageToWebview({ type: "action", action: "chatButtonClicked" })
+
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Successfully navigated to ${nodeId ? `node ${nodeId}` : "active chat"}`,
+						},
+					],
+				}
+			} catch (error) {
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Error navigating: ${error instanceof Error ? error.message : String(error)}`,
+						},
+					],
+					isError: true,
+				}
+			}
+		},
+	)
+
+	mcpServer.tool("navigate_to_history", {}, async () => {
+		try {
+			await provider.postMessageToWebview({ type: "action", action: "historyButtonClicked" })
+			return { content: [{ type: "text", text: "Successfully navigated to History page" }] }
+		} catch (error) {
+			return { content: [{ type: "text", text: `Error: ${error}` }], isError: true }
+		}
+	})
+
+	mcpServer.tool("navigate_to_settings", {}, async () => {
+		try {
+			await provider.postMessageToWebview({ type: "action", action: "settingsButtonClicked" })
+			return { content: [{ type: "text", text: "Successfully navigated to Settings page" }] }
+		} catch (error) {
+			return { content: [{ type: "text", text: `Error: ${error}` }], isError: true }
+		}
+	})
+
+	mcpServer.tool("navigate_to_marketplace", {}, async () => {
+		try {
+			await provider.postMessageToWebview({ type: "action", action: "marketplaceButtonClicked" })
+			return { content: [{ type: "text", text: "Successfully navigated to Marketplace page" }] }
+		} catch (error) {
+			return { content: [{ type: "text", text: `Error: ${error}` }], isError: true }
+		}
+	})
+
+	mcpServer.tool(
+		"switch_agent_mode",
+		{
+			mode: z.string().describe("The slug of the mode to switch to"),
+		},
+		async (args) => {
+			try {
+				await provider.handleModeSwitch(args.mode)
+				return { content: [{ type: "text", text: `Successfully switched to mode: ${args.mode}` }] }
+			} catch (error) {
+				return { content: [{ type: "text", text: `Error: ${error}` }], isError: true }
+			}
+		},
+	)
+
+	mcpServer.tool("get_available_agents", {}, async () => {
+		try {
+			const { customModes } = await provider.getState()
+			const { getAllModes } = await import("../../../shared/modes")
+			const modes = getAllModes(customModes)
+			return { content: [{ type: "text", text: JSON.stringify(modes, null, 2) }] }
+		} catch (error) {
+			return { content: [{ type: "text", text: `Error: ${error}` }], isError: true }
 		}
 	})
 }

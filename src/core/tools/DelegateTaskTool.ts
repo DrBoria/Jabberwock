@@ -14,7 +14,7 @@ interface DelegateTaskParams {
 export class DelegateTaskTool extends BaseTool<"delegate_task"> {
 	readonly name = "delegate_task" as const
 
-	async execute(params: DelegateTaskParams, task: Task, callbacks: ToolCallbacks): Promise<void> {
+	async execute(params, task, callbacks) {
 		const { task_id, target_role, message, is_async } = params
 		const { askApproval, handleError, pushToolResult } = callbacks
 
@@ -25,7 +25,23 @@ export class DelegateTaskTool extends BaseTool<"delegate_task"> {
 				task.consecutiveMistakeCount++
 				task.recordToolError("delegate_task")
 				pushToolResult(await task.sayAndCreateMissingParamError("delegate_task", missing))
-				return
+				return { isDelegated: false }
+			}
+
+			// Prevent redundant delegation of native tools
+			const extractedTool = this.extractToolName(message)
+			const provider = task.providerRef.deref()
+			let state = provider ? await provider.getState() : undefined
+			const currentAgent = state?.mode && provider ? (provider as any).getAgentProfile?.(state.mode) : undefined
+
+			if (extractedTool && currentAgent && currentAgent.canUseTool(extractedTool)) {
+				task.recordToolError("delegate_task")
+				pushToolResult(
+					formatResponse.toolError(
+						`Redundant delegation blocked: You already have permission to use the "${extractedTool}" tool natively. Please execute it directly instead of delegating to another agent.`,
+					),
+				)
+				return { isDelegated: false }
 			}
 
 			// Validate against TODO plan
@@ -40,7 +56,7 @@ export class DelegateTaskTool extends BaseTool<"delegate_task"> {
 						`Invalid task_id: "${task_id}". Please ensure you are using a task ID from the approved TODO plan.`,
 					),
 				)
-				return
+				return { isDelegated: false }
 			}
 
 			if (todoItem.assignedTo !== target_role) {
@@ -51,22 +67,21 @@ export class DelegateTaskTool extends BaseTool<"delegate_task"> {
 						`Authorization failed: Task "${task_id}" is assigned to "${todoItem.assignedTo}" in the approved plan, but you attempted to delegate it to "${target_role}". Deterministic routing requires strict adherence to the human-approved plan.`,
 					),
 				)
-				return
+				return { isDelegated: false }
 			}
 
 			// Phase 2: Execution logic (forked from NewTaskTool)
-			const provider = task.providerRef.deref()
 			if (!provider) {
 				pushToolResult(formatResponse.toolError("Provider reference lost"))
-				return
+				return { isDelegated: false }
 			}
 
-			const state = await provider.getState()
+			state = await provider.getState()
 			const targetMode = getModeBySlug(target_role, state?.customModes)
 
 			if (!targetMode) {
 				pushToolResult(formatResponse.toolError(`Invalid role: ${target_role}`))
-				return
+				return { isDelegated: false }
 			}
 
 			task.consecutiveMistakeCount = 0
@@ -82,38 +97,55 @@ export class DelegateTaskTool extends BaseTool<"delegate_task"> {
 			const didApprove = await askApproval("tool", toolMessage)
 
 			if (!didApprove) {
-				return
+				return { isDelegated: false }
 			}
 
-			// Un-escape hierarchical subtask markers if present
-			const unescapedMessage = message.replace(/\\\\@/g, "\\@")
+			const unescapedMessage = message.replace(/\\\\\\\\@/g, "\\@")
+
+			// 5) Enhance message with parent context
+			const contextHeader = `[PARENT CONTEXT] You are a subtask delegated from parent task ${task.taskId}.
+Relationship: This agent is executing one step of a broader plan.
+Parent Objective: ${task.metadata.task}
+
+Objective for this subtask:
+${unescapedMessage}`
 
 			if (is_async) {
-				const child = await (provider as any).startBackgroundTask({
+				const child = await provider.startBackgroundTask({
 					parentTaskId: task.taskId,
-					message: unescapedMessage,
+					message: contextHeader,
 					initialTodos: [], // Subtasks share the context but start fresh
 					mode: target_role,
 				})
 				pushToolResult(
 					`Started async background task ${child.taskId} for TODO item "${task_id}". You can await its completion later.`,
 				)
-				return
+				return { isDelegated: true }
 			}
 
-			const child = await (provider as any).delegateParentAndOpenChild({
+			const child = await provider.delegateParentAndOpenChild({
 				parentTaskId: task.taskId,
-				message: unescapedMessage,
+				message: contextHeader,
 				initialTodos: [],
 				mode: target_role,
 			})
 
 			pushToolResult(`Delegated TODO item "${task_id}" to child task ${child.taskId} (agent: ${target_role})`)
-			return
+			return { isDelegated: true }
 		} catch (error) {
 			await handleError("delegating task", error as Error)
-			return
+			return { isDelegated: false }
 		}
+	}
+
+	/**
+	 * Extracts a tool name from a delegation message if one is present.
+	 * This helps identify redundant delegations.
+	 */
+	private extractToolName(message: string): string | undefined {
+		// Match patterns like "execute_command tool", "use the read_file tool", etc.
+		const match = message.match(/['"]?(\w+)['"]?\s+tool/i)
+		return match ? match[1] : undefined
 	}
 
 	override async handlePartial(task: Task, block: ToolUse<"delegate_task">): Promise<void> {

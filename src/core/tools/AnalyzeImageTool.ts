@@ -1,5 +1,4 @@
 import path from "path"
-import { virtualWorkspace } from "../fs/VirtualWorkspace"
 import { formatResponse } from "../prompts/responses"
 import { fileExistsAtPath } from "../../utils/fs"
 import { getReadablePath } from "../../utils/path"
@@ -26,7 +25,7 @@ export class AnalyzeImageTool extends BaseTool<"analyze_image"> {
 			const fullPath = path.resolve(task.cwd, relPath)
 			let exists = false
 			try {
-				await virtualWorkspace.stat(fullPath)
+				await task.virtualWorkspace.stat(fullPath)
 				exists = true
 			} catch {}
 
@@ -54,7 +53,7 @@ export class AnalyzeImageTool extends BaseTool<"analyze_image"> {
 
 			if (!didApprove) return
 
-			const imageBuffer = await virtualWorkspace.readBuffer(fullPath)
+			const imageBuffer = await task.virtualWorkspace.readBuffer(fullPath)
 			const imageExtension = path.extname(fullPath).toLowerCase().replace(".", "")
 			const supportedFormats = ["png", "jpg", "jpeg", "gif", "webp"]
 

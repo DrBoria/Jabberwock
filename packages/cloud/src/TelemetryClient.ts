@@ -101,14 +101,14 @@ export class CloudTelemetryClient extends BaseTelemetryClient {
 
 	private async fetch(path: string, options: RequestInit, allowQueueing = true) {
 		if (!this.authService.isAuthenticated()) {
-			return
+			return undefined
 		}
 
 		const token = this.authService.getSessionToken()
 
 		if (!token) {
 			console.error(`[TelemetryClient#fetch] Unauthorized: No session token available.`)
-			return
+			return undefined
 		}
 
 		const url = `${getJabberwockApiUrl()}/api/${path}`

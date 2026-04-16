@@ -3,6 +3,7 @@ import * as path from "path"
 import * as readline from "readline"
 
 import * as vscode from "vscode"
+import { VirtualWorkspace } from "../../core/fs/VirtualWorkspace"
 
 import { JabberwockIgnoreController } from "../../core/ignore/JabberwockIgnoreController"
 import { fileExistsAtPath } from "../../utils/fs"
@@ -83,9 +84,10 @@ export function truncateLine(line: string, maxLength: number = MAX_LINE_LENGTH):
  * Get the path to the ripgrep binary within the VSCode installation
  */
 export async function getBinPath(vscodeAppRoot: string): Promise<string | undefined> {
+	const virtualWorkspace = new VirtualWorkspace()
 	const checkPath = async (pkgFolder: string) => {
 		const fullPath = path.join(vscodeAppRoot, pkgFolder, binName)
-		return (await fileExistsAtPath(fullPath)) ? fullPath : undefined
+		return (await fileExistsAtPath(fullPath, virtualWorkspace)) ? fullPath : undefined
 	}
 
 	return (

@@ -62,7 +62,8 @@ describe("Settings Migration", () => {
 		const mockRename = vitest.mocked(fs.rename).mockResolvedValue(undefined)
 
 		// Mock file existence checks - only return true for paths we want to exist
-		vitest.mocked(fileExistsAtPath).mockImplementation(async (path: string) => {
+		vitest.mocked(fileExistsAtPath).mockImplementation(async (arg1: any) => {
+			const path = typeof arg1 === "string" ? arg1 : ""
 			if (path === mockSettingsDir) return true
 			if (path === legacyClineCustomModesPath) return true
 			return false // All other paths don't exist, including destination files
@@ -83,7 +84,8 @@ describe("Settings Migration", () => {
 		const mockRename = vitest.mocked(fs.rename).mockResolvedValue(undefined)
 
 		// Ensure the other files don't interfere with this test
-		vitest.mocked(fileExistsAtPath).mockImplementation(async (path: string) => {
+		vitest.mocked(fileExistsAtPath).mockImplementation(async (arg1: any) => {
+			const path = typeof arg1 === "string" ? arg1 : ""
 			if (path === mockSettingsDir) return true
 			if (path === legacyMcpSettingsPath) return true
 			if (path === legacyClineCustomModesPath) return false // Ensure this file doesn't exist
@@ -106,7 +108,8 @@ describe("Settings Migration", () => {
 		const mockRename = vitest.mocked(fs.rename).mockResolvedValue(undefined)
 
 		// Mock file existence checks - both source and destination exist
-		vitest.mocked(fileExistsAtPath).mockImplementation(async (path: string) => {
+		vitest.mocked(fileExistsAtPath).mockImplementation(async (arg1: any) => {
+			const path = typeof arg1 === "string" ? arg1 : ""
 			if (path === mockSettingsDir) return true
 			if (path === legacyClineCustomModesPath) return true
 			if (path === legacyCustomModesJson) return true // Destination already exists
@@ -155,7 +158,8 @@ describe("Settings Migration", () => {
 		})
 
 		// Isolate this test by making sure only the specific JSON file exists
-		vitest.mocked(fileExistsAtPath).mockImplementation(async (path: string) => {
+		vitest.mocked(fileExistsAtPath).mockImplementation(async (arg1: any) => {
+			const path = typeof arg1 === "string" ? arg1 : ""
 			if (path === mockSettingsDir) return true
 			if (path === legacyCustomModesJson) return true
 			if (path === legacyClineCustomModesPath) return false
@@ -193,7 +197,8 @@ describe("Settings Migration", () => {
 		})
 
 		// Isolate this test
-		vitest.mocked(fileExistsAtPath).mockImplementation(async (path: string) => {
+		vitest.mocked(fileExistsAtPath).mockImplementation(async (arg1: any) => {
+			const path = typeof arg1 === "string" ? arg1 : ""
 			if (path === mockSettingsDir) return true
 			if (path === legacyCustomModesJson) return true
 			if (path === legacyClineCustomModesPath) return false
@@ -230,7 +235,8 @@ describe("Settings Migration", () => {
 		})
 
 		// Mock file existence checks - both source and yaml destination exist
-		vitest.mocked(fileExistsAtPath).mockImplementation(async (path: string) => {
+		vitest.mocked(fileExistsAtPath).mockImplementation(async (arg1: any) => {
+			const path = typeof arg1 === "string" ? arg1 : ""
 			if (path === mockSettingsDir) return true
 			if (path === legacyCustomModesJson) return true
 			if (path === newCustomModesYaml) return true // YAML already exists

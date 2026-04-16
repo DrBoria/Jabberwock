@@ -2,8 +2,14 @@ import { types, applySnapshot } from "mobx-state-tree"
 
 export const Message = types.model("Message", {
 	id: types.identifier,
-	role: types.string,
-	content: types.frozen(),
+	role: types.optional(types.string, "cline"), // "user", "assistant", or default to "cline"
+	content: types.frozen(), // For Anthropic-style multi-block content
+	type: types.maybe(types.string), // cline: "say" or "ask"
+	say: types.maybe(types.string), // cline: "text", "error", etc.
+	ask: types.maybe(types.string), // cline: "tool", "followup", etc.
+	text: types.maybe(types.string), // main text content or summary
+	partial: types.maybe(types.boolean),
+	images: types.optional(types.array(types.string), []),
 	ts: types.optional(types.number, () => Date.now()),
 })
 
@@ -17,6 +23,7 @@ export const TaskNode = types
 		uiMessages: types.optional(types.frozen<any[]>(), []),
 		children: types.array(types.string),
 		parentId: types.maybe(types.string),
+		rootId: types.maybe(types.string),
 	})
 	.actions((self) => ({
 		replaceMessages(newMessages: any[]) {
@@ -24,6 +31,15 @@ export const TaskNode = types
 		},
 		syncUiMessages(uiMessages: any[]) {
 			self.uiMessages = uiMessages
+		},
+		updateApiMessage(id: string, update: { role?: string; content?: any; text?: string; partial?: boolean }) {
+			const msg = self.messages.find((m) => m.id === id)
+			if (msg) {
+				if (update.role) msg.role = update.role
+				if (update.content) msg.content = update.content
+				if (update.text !== undefined) msg.text = update.text
+				if (update.partial !== undefined) msg.partial = update.partial
+			}
 		},
 	}))
 	.views((self) => ({

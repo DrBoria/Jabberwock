@@ -20,6 +20,7 @@ import searchReplace from "./search_replace"
 import edit_file from "./edit_file"
 import searchFiles from "./search_files"
 import switchMode from "./switch_mode"
+import thinkTool from "./think_tool"
 import writeToFile from "./write_to_file"
 
 export { getMcpServerTools } from "./mcp_server"
@@ -69,6 +70,7 @@ export function getNativeTools(options: NativeToolsOptions = {}): OpenAI.Chat.Ch
 		editTool,
 		searchFiles,
 		switchMode,
+		thinkTool,
 		writeToFile,
 	] satisfies OpenAI.Chat.ChatCompletionTool[]
 }
