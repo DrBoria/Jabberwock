@@ -8,6 +8,7 @@ import { LRUCache } from "lru-cache"
 import { Trans } from "react-i18next"
 
 import { observer } from "mobx-react-lite"
+import { isAlive, isStateTreeNode } from "mobx-state-tree"
 
 import { useDebounceEffect } from "@src/utils/useDebounceEffect"
 import { appendImages } from "@src/utils/imageUtils"
@@ -180,6 +181,10 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 			}
 			// Otherwise use the initial todos from state
 			return currentTaskTodos
+		}
+		// Safety check for dead MST objects
+		if (isStateTreeNode(messages) && !isAlive(messages)) {
+			return []
 		}
 		// Fall back to extracting from messages
 		return getLatestTodo(messages)
@@ -450,6 +455,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 							// Extension waiting for feedback, but we can just present a new task button.
 							// Only play celebration sound if there are no queued messages.
 							if (!isPartial && messageQueue.length === 0) {
+								// Sound context is already initialized in SoundContext.tsx
 								playSound("celebration")
 							}
 							setSendingDisabled(isPartial)
@@ -469,7 +475,9 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 							const isCompletedSubtask =
 								currentTaskItem?.parentTaskId &&
 								messages.some(
-									(msg) => msg.ask === "completion_result" || msg.say === "completion_result",
+									(msg) =>
+										(!isStateTreeNode(msg) || isAlive(msg)) &&
+										(msg.ask === "completion_result" || msg.say === "completion_result"),
 								)
 							if (isCompletedSubtask) {
 								setPrimaryButtonText(t("chat:startNewTask.title"))
@@ -1174,7 +1182,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 	useEffect(() => {
 		// This ensures the first message is not read, future user messages are
 		// labeled as `user_feedback`.
-		if (lastMessage && messages.length > 1) {
+		if (lastMessage && (!isStateTreeNode(lastMessage) || isAlive(lastMessage)) && messages.length > 1) {
 			if (
 				typeof lastMessage.text === "string" && // has text (must be string for startsWith)
 				(lastMessage.say === "text" || lastMessage.say === "completion_result") && // is a text message

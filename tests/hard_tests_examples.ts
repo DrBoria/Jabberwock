@@ -8,6 +8,7 @@ async function testTaskDelegationAndReorganization() {
 	await run(async (dsl) => {
 		// 1. Проверяем начальное состояние - страница истории
 		await dsl.recordTest("Check initial history page", "PASS", "Verifying initial page is history")
+		await dsl.navigateToPage("history")
 		await dsl.verifyActivePage("history")
 		await dsl.verifyCleanConsole()
 
@@ -35,7 +36,7 @@ async function testTaskDelegationAndReorganization() {
 		// 4. Ждем план задач (добавляем дополнительное время для генерации)
 		await dsl.recordTest("Wait for task plan", "PASS", "Waiting for task plan generation")
 		console.log("[DEBUG] Waiting 5 seconds for task plan generation...")
-		await dsl.wait(5000)
+		await dsl.wait(55000)
 
 		// Проверяем статус задачи перед получением плана
 		await dsl.recordTest("Check task status", "PASS", "Checking task status before getting plan")

@@ -187,6 +187,7 @@ export const ChatRowContent = ({
 	isNested,
 	history,
 }: ChatRowContentProps) => {
+	// ALL HOOKS MUST BE CALLED BEFORE ANY EARLY RETURN (Rules of Hooks)
 	const { t: originalT, i18n } = useTranslation()
 
 	const {
@@ -358,6 +359,7 @@ export const ChatRowContent = ({
 	const successColor = "var(--vscode-charts-green)"
 	const cancelledColor = "var(--vscode-descriptionForeground)"
 
+	// ALL REMAINING HOOKS MUST BE BEFORE EARLY RETURNS
 	const [icon, title] = useMemo(() => {
 		switch (type) {
 			case "error":
@@ -485,15 +487,7 @@ export const ChatRowContent = ({
 		customModes,
 	])
 
-	const headerStyle: React.CSSProperties = {
-		display: "flex",
-		alignItems: "center",
-		gap: "10px",
-		cursor: "default",
-		marginBottom: "10px",
-		wordBreak: "break-word",
-	}
-
+	// ALL REMAINING HOOKS MUST BE BEFORE EARLY RETURNS
 	const tool = useMemo(
 		() => (message.ask === "tool" ? safeJsonParse<ClineSayTool>(message.text) : null),
 		[message.ask, message.text],
@@ -520,7 +514,16 @@ export const ChatRowContent = ({
 		return null
 	}, [message.type, message.ask, message.partial, message.text])
 
-	if (message.role === "user") {
+	const headerStyle: React.CSSProperties = {
+		display: "flex",
+		alignItems: "center",
+		gap: "10px",
+		cursor: "default",
+		marginBottom: "10px",
+		wordBreak: "break-word",
+	}
+
+	if ((message as any).role === "user") {
 		return (
 			<div className="group">
 				<div style={headerStyle}>
@@ -537,7 +540,8 @@ export const ChatRowContent = ({
 		)
 	}
 
-	if (message.role === "assistant") {
+	if ((message as any).role === "assistant") {
+		const content = (message as any).content
 		return (
 			<div className="group">
 				<div style={headerStyle}>
@@ -551,8 +555,8 @@ export const ChatRowContent = ({
 					{message.text && <OpenMarkdownPreviewButton markdown={message.text} />}
 				</div>
 				<div className="pl-6 space-y-2 mt-1">
-					{Array.isArray(message.content) && message.content.length > 0 ? (
-						message.content.map((block: any, idx: number) => {
+					{Array.isArray(content) && content.length > 0 ? (
+						content.map((block: any, idx: number) => {
 							if (block.type === "reasoning") {
 								return (
 									<ReasoningBlock

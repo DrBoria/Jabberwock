@@ -7,6 +7,7 @@ import { ChevronUp, ChevronDown, HardDriveDownload, HardDriveUpload, FoldVertica
 import prettyBytes from "pretty-bytes"
 
 import type { ClineMessage } from "@jabberwock/types"
+import { isAlive, isStateTreeNode } from "mobx-state-tree"
 
 import { getModelMaxOutputTokens } from "@shared/api"
 import { findLastIndex } from "@shared/array"
@@ -63,6 +64,7 @@ const TaskHeader = ({
 	todos,
 	nodeTitle,
 }: TaskHeaderProps) => {
+	// ALL HOOKS MUST BE CALLED BEFORE ANY EARLY RETURN (Rules of Hooks)
 	const { t } = useTranslation()
 	const { apiConfiguration, currentTaskItem, clineMessages } = useExtensionState()
 	const { nodes } = useChatTree()
@@ -73,6 +75,9 @@ const TaskHeader = ({
 	const { isOpen, openUpsell, closeUpsell, handleConnect } = useCloudUpsell({
 		autoOpenOnAuth: false,
 	})
+
+	const textContainerRef = useRef<HTMLDivElement>(null)
+	const textRef = useRef<HTMLDivElement>(null)
 
 	// Check if the task is complete by looking at the last relevant message (skipping resume messages)
 	const isTaskComplete =
@@ -88,18 +93,6 @@ const TaskHeader = ({
 				})()
 			: false
 
-	useEffect(() => {
-		const timer = setTimeout(() => {
-			if (currentTaskItem && !isTaskComplete) {
-				setShowLongRunningTaskMessage(true)
-			}
-		}, 120_000) // Show upsell after 2 minutes
-
-		return () => clearTimeout(timer)
-	}, [currentTaskItem, isTaskComplete])
-
-	const textContainerRef = useRef<HTMLDivElement>(null)
-	const textRef = useRef<HTMLDivElement>(null)
 	const contextWindow = model?.contextWindow || 1
 
 	// Calculate maxTokens (reserved for output) once for reuse in percentage and tooltip
@@ -115,6 +108,21 @@ const TaskHeader = ({
 		[model, modelId, apiConfiguration],
 	)
 	const reservedForOutput = maxTokens || 0
+
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			if (currentTaskItem && !isTaskComplete) {
+				setShowLongRunningTaskMessage(true)
+			}
+		}, 120_000) // Show upsell after 2 minutes
+
+		return () => clearTimeout(timer)
+	}, [currentTaskItem, isTaskComplete])
+
+	// Safety check for dead MST objects (MUST be after all hooks)
+	if (isStateTreeNode(task) && !isAlive(task)) {
+		return null
+	}
 
 	const condenseButton = (
 		<LucideIconButton

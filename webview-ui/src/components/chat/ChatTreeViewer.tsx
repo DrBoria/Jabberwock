@@ -66,7 +66,7 @@ const ChatTreeNode = observer(({ node, depth, isRoot }: ChatTreeNodeProps) => {
 				<div className="flex items-center justify-between px-3 py-2.5 bg-[var(--vscode-sideBarSectionHeader-background)] border-b border-[var(--vscode-editorGroup-border)]">
 					<div
 						className="flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-toolbar-hoverBackground)] rounded p-1 transition-colors"
-						onClick={() => _pushWindow({ type: "chat", props: { targetNodeId: node.id } })}>
+						onClick={() => _pushWindow("chat", { targetNodeId: node.id })}>
 						<div className="p-1 bg-[var(--vscode-badge-background)] rounded-md">
 							<Bot size={14} className="text-[var(--vscode-badge-foreground)]" />
 						</div>

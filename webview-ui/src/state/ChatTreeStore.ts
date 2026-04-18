@@ -1,4 +1,4 @@
-import { types, applySnapshot } from "mobx-state-tree"
+import { types, applySnapshot, isAlive, isStateTreeNode } from "mobx-state-tree"
 
 export const Message = types.model("Message", {
 	id: types.identifier,
@@ -34,7 +34,7 @@ export const TaskNode = types
 		},
 		updateApiMessage(id: string, update: { role?: string; content?: any; text?: string; partial?: boolean }) {
 			const msg = self.messages.find((m) => m.id === id)
-			if (msg) {
+			if (msg && (!isStateTreeNode(msg) || isAlive(msg))) {
 				if (update.role) msg.role = update.role
 				if (update.content) msg.content = update.content
 				if (update.text !== undefined) msg.text = update.text

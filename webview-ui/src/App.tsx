@@ -249,7 +249,7 @@ const AppContent = () => {
 						const zIndex = 10 + index * 10
 
 						// Get a friendly name for the window layer
-						let windowName = aw.type
+						let windowName: string = aw.type
 						if (aw.type === "chat" && aw.props?.targetNodeId) {
 							const node = chatTreeStore.nodes.get(aw.props.targetNodeId)
 							if (node) {
@@ -355,7 +355,7 @@ const AppContent = () => {
 					})}
 
 					{interactiveAppUri && (
-						<WindowLayer id="App" zIndex={1000} isActive={true} isInStack={true}>
+						<WindowLayer id="App" zIndex={1000} isActive={true} isInStack={true} index={0}>
 							<McpIframeRenderer
 								resourceUri={interactiveAppUri}
 								agentsList={JSON.stringify(

@@ -95,10 +95,9 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 		}
 	}
 
-	const VirtuosoList = useMemo(
-		() => React.forwardRef((props: any, ref: any) => <div {...props} ref={ref} data-testid="virtuoso-item-list" />),
-		[],
-	)
+	const VirtuosoList = React.forwardRef<HTMLDivElement>((props, ref) => (
+		<div {...props} ref={ref} data-testid="virtuoso-item-list" />
+	)) as any
 
 	return (
 		<Tab data-testid="history-view">

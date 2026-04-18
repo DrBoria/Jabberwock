@@ -128,7 +128,7 @@ export function isToolAllowedForMode(
 	tool: string,
 	modeSlug: string,
 	customModes: ModeConfig[],
-	toolRequirements?,
+	toolRequirements?: Record<string, boolean> | false,
 	toolParams?: Record<string, any>, // All tool parameters
 	experiments?: Record<string, boolean>,
 	includedTools?: string[], // Opt-in tools explicitly included (e.g., from modelInfo)
