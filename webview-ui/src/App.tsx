@@ -11,6 +11,10 @@ import { vscode } from "./utils/vscode"
 import { telemetryClient } from "./utils/TelemetryClient"
 import { initializeSourceMaps, exposeSourceMapsForDebugging } from "./utils/sourceMapInitializer"
 import { ExtensionStateContextProvider, useExtensionState } from "./context/ExtensionStateContext"
+import { ChatTreeProvider } from "./context/ChatTreeContext"
+import { WindowManagerProvider, useWindowManager, WindowType } from "./context/WindowManagerContext"
+import { WindowLayer } from "./components/layout/WindowLayer"
+
 import ChatView, { ChatViewRef } from "./components/chat/ChatView"
 import HistoryView from "./components/history/HistoryView"
 import SettingsView, { SettingsViewRef } from "./components/settings/SettingsView"
@@ -26,8 +30,8 @@ import { STANDARD_TOOLTIP_DELAY } from "./components/ui/standard-tooltip"
 import { McpIframeRenderer } from "./features/mcp-apps/McpIframeRenderer"
 import { getAllModes } from "@shared/modes"
 import { LocatorBridge } from "./features/devtools/utils/LocatorBridge"
-
-type Tab = "settings" | "history" | "chat" | "marketplace" | "cloud"
+import { ChatTreeViewer } from "./components/chat/ChatTreeViewer"
+import { chatTreeStore } from "./state/ChatTreeStore"
 
 interface DeleteMessageDialogState {
 	isOpen: boolean
@@ -43,11 +47,11 @@ interface EditMessageDialogState {
 	images?: string[]
 }
 
-// Memoize dialog components to prevent unnecessary re-renders
 const MemoizedDeleteMessageDialog = React.memo(DeleteMessageDialog)
 const MemoizedEditMessageDialog = React.memo(EditMessageDialog)
 const MemoizedCheckpointRestoreDialog = React.memo(CheckpointRestoreDialog)
-const tabsByMessageAction: Partial<Record<NonNullable<ExtensionMessage["action"]>, Tab>> = {
+
+const tabsByMessageAction: Partial<Record<NonNullable<ExtensionMessage["action"]>, WindowType>> = {
 	chatButtonClicked: "chat",
 	settingsButtonClicked: "settings",
 	historyButtonClicked: "history",
@@ -55,7 +59,7 @@ const tabsByMessageAction: Partial<Record<NonNullable<ExtensionMessage["action"]
 	cloudButtonClicked: "cloud",
 }
 
-const App = () => {
+const AppContent = () => {
 	const {
 		didHydrateState,
 		showWelcome,
@@ -74,11 +78,11 @@ const App = () => {
 		customModes,
 	} = useExtensionState()
 
-	// Create a persistent state manager
+	const { pushWindow, activeWindows, switchToBaseWindow } = useWindowManager()
+
 	const marketplaceStateManager = useMemo(() => new MarketplaceViewStateManager(), [])
 
 	const [showAnnouncement, setShowAnnouncement] = useState(false)
-	const [tab, setTab] = useState<Tab>("chat")
 
 	const [deleteMessageDialogState, setDeleteMessageDialogState] = useState<DeleteMessageDialogState>({
 		isOpen: false,
@@ -98,53 +102,55 @@ const App = () => {
 	const chatViewRef = useRef<ChatViewRef>(null)
 
 	const switchTab = useCallback(
-		(newTab: Tab) => {
-			// Only check MDM compliance if mdmCompliant is explicitly false (meaning there's an MDM policy and user is non-compliant)
-			// If mdmCompliant is undefined or true, allow tab switching
+		(newTab: WindowType, props?: any) => {
+			console.log(`[App] switchTab requested: ${newTab}`, props)
 			if (mdmCompliant === false && newTab !== "cloud") {
-				// Notify the user that authentication is required by their organization
+				console.warn(`[App] switchTab BLOCKED by mdmCompliant === false`)
 				vscode.postMessage({ type: "showMdmAuthRequiredNotification" })
 				return
 			}
 
-			setCurrentSection(undefined)
-			setCurrentMarketplaceTab(undefined)
+			const doSwitch = () => {
+				console.log(`[App] Executing doSwitch to ${newTab}`)
+				if (newTab === "chat") {
+					switchToBaseWindow("chat")
+				} else {
+					pushWindow(newTab, props)
+				}
+			}
 
 			if (settingsRef.current?.checkUnsaveChanges) {
-				settingsRef.current.checkUnsaveChanges(() => setTab(newTab))
+				console.log(`[App] Checking unsaved changes before switch`)
+				settingsRef.current.checkUnsaveChanges(doSwitch)
 			} else {
-				setTab(newTab)
+				doSwitch()
 			}
 		},
-		[mdmCompliant],
+		[mdmCompliant, pushWindow, switchToBaseWindow],
 	)
-
-	const [currentSection, setCurrentSection] = useState<string | undefined>(undefined)
-	const [currentMarketplaceTab, setCurrentMarketplaceTab] = useState<string | undefined>(undefined)
 
 	const onMessage = useCallback(
 		(e: MessageEvent) => {
 			const message: ExtensionMessage = e.data
 
 			if (message.type === "action" && message.action) {
-				// Handle switchTab action with tab parameter
-				if (message.action === "switchTab" && message.tab) {
-					const targetTab = message.tab as Tab
-					switchTab(targetTab)
-					// Extract targetSection from values if provided
+				console.log(`[App] Received action message: ${message.action}`, message)
+				// Prevent infinite loops by ignoring switchTab messages that came from MCP
+				if (message.action === "switchTab" && message.tab && !message.fromMCP) {
+					const targetTab = message.tab as WindowType
 					const targetSection = message.values?.section as string | undefined
-					setCurrentSection(targetSection)
-					setCurrentMarketplaceTab(undefined)
+					const targetNodeId = message.values?.targetNodeId as string | undefined
+					switchTab(targetTab, { section: targetSection, targetNodeId })
+				} else if (message.action === "switchTab" && message.tab && message.fromMCP) {
+					// MCP-originated switchTab messages are already handled, do nothing
+					console.log("[App] Ignoring MCP-originated switchTab to prevent loop")
 				} else {
-					// Handle other actions using the mapping
 					const newTab = tabsByMessageAction[message.action]
-					const section = message.values?.section as string | undefined
-					const marketplaceTab = message.values?.marketplaceTab as string | undefined
-
+					console.log(`[App] Mapping action ${message.action} to tab ${newTab}`)
 					if (newTab) {
-						switchTab(newTab)
-						setCurrentSection(section)
-						setCurrentMarketplaceTab(marketplaceTab)
+						const section = message.values?.section as string | undefined
+						const marketplaceTab = message.values?.marketplaceTab as string | undefined
+						switchTab(newTab, { section, marketplaceTab })
 					}
 				}
 			}
@@ -170,6 +176,21 @@ const App = () => {
 			if (message.type === "acceptInput") {
 				chatViewRef.current?.acceptInput()
 			}
+
+			if (message.type === "getDom") {
+				if (message.requestId) {
+					console.log(`[DEBUG: DOM] Webview: Received getDom request ${message.requestId}`)
+					const dom = document.documentElement.outerHTML
+					console.log(
+						`[DEBUG: DOM] Webview: Sending domResponse for ${message.requestId} (size: ${dom.length})`,
+					)
+					vscode.postMessage({
+						type: "domResponse",
+						requestId: message.requestId,
+						text: dom,
+					})
+				}
+			}
 		},
 		[switchTab],
 	)
@@ -177,11 +198,11 @@ const App = () => {
 	useEvent("message", onMessage)
 
 	useEffect(() => {
-		if (shouldShowAnnouncement && tab === "chat") {
+		if (shouldShowAnnouncement) {
 			setShowAnnouncement(true)
 			vscode.postMessage({ type: "didShowAnnouncement" })
 		}
-	}, [shouldShowAnnouncement, tab])
+	}, [shouldShowAnnouncement])
 
 	useEffect(() => {
 		if (didHydrateState) {
@@ -189,120 +210,168 @@ const App = () => {
 		}
 	}, [telemetrySetting, telemetryKey, machineId, didHydrateState])
 
-	// Tell the extension that we are ready to receive messages.
 	useEffect(() => vscode.postMessage({ type: "webviewDidLaunch" }), [])
 
-	// Initialize source map support for better error reporting
 	useEffect(() => {
-		// Initialize source maps for better error reporting in production
 		initializeSourceMaps()
-
-		// Expose source map debugging utilities in production
 		if (process.env.NODE_ENV === "production") {
 			exposeSourceMapsForDebugging()
 		}
-
-		// Log initialization for debugging
-		console.debug("App initialized with source map support")
 	}, [])
 
-	// Focus the WebView when non-interactive content is clicked (only in editor/tab mode)
 	useAddNonInteractiveClickListener(
 		useCallback(() => {
-			// Only send focus request if we're in editor (tab) mode, not sidebar
 			if (renderContext === "editor") {
 				vscode.postMessage({ type: "focusPanelRequest" })
 			}
 		}, [renderContext]),
 	)
-	// Track marketplace tab views
+
 	useEffect(() => {
-		if (tab === "marketplace") {
+		if (activeWindows.some((w: any) => w.type === "marketplace")) {
 			telemetryClient.capture(TelemetryEventName.MARKETPLACE_TAB_VIEWED)
 		}
-	}, [tab])
+	}, [activeWindows])
 
 	if (!didHydrateState) {
 		return null
 	}
 
-	// Do not conditionally load ChatView, it's expensive and there's state we
-	// don't want to lose (user input, disableInput, askResponse promise, etc.)
 	return (
 		<>
 			<LocatorBridge />
-			<div
-				style={{
-					position: "absolute",
-					top: 0,
-					left: 0,
-					zIndex: 9999,
-					fontSize: "10px",
-					padding: "2px 4px",
-					background: "red",
-					color: "white",
-					pointerEvents: "none",
-					opacity: 0.8,
-				}}>
-				DEBUG: LOCATOR ACTIVE
-			</div>
 			{showWelcome ? (
 				<WelcomeView />
 			) : (
-				<>
-					{tab === "history" && <HistoryView onDone={() => switchTab("chat")} />}
-					{tab === "settings" && (
-						<SettingsView ref={settingsRef} onDone={() => setTab("chat")} targetSection={currentSection} />
-					)}
-					{tab === "marketplace" && (
-						<MarketplaceView
-							stateManager={marketplaceStateManager}
-							onDone={() => switchTab("chat")}
-							targetTab={currentMarketplaceTab as "mcp" | "mode" | undefined}
-						/>
-					)}
-					{tab === "cloud" && (
-						<CloudView
-							userInfo={cloudUserInfo}
-							isAuthenticated={cloudIsAuthenticated}
-							cloudApiUrl={cloudApiUrl}
-							organizations={cloudOrganizations}
-						/>
-					)}
-					<ChatView
-						ref={chatViewRef}
-						isHidden={tab !== "chat" || !!interactiveAppUri}
-						showAnnouncement={showAnnouncement}
-						hideAnnouncement={() => setShowAnnouncement(false)}
-					/>
+				<div style={{ position: "relative", width: "100%", height: "100vh", overflow: "hidden" }}>
+					{activeWindows.map((aw, index) => {
+						const isActive = index === activeWindows.length - 1
+						const zIndex = 10 + index * 10
+
+						// Get a friendly name for the window layer
+						let windowName: string = aw.type
+						if (aw.type === "chat" && aw.props?.targetNodeId) {
+							const node = chatTreeStore.nodes.get(aw.props.targetNodeId)
+							if (node) {
+								windowName = node.mode || "Agent"
+							}
+						}
+
+						switch (aw.type) {
+							case "chat":
+								return (
+									<WindowLayer
+										key={`chat-${aw.props?.targetNodeId || "root"}`}
+										id={windowName}
+										zIndex={zIndex}
+										isActive={isActive}
+										isInStack={true}
+										index={index}>
+										<ChatView
+											ref={chatViewRef}
+											isHidden={false}
+											showAnnouncement={showAnnouncement}
+											hideAnnouncement={() => setShowAnnouncement(false)}
+											targetNodeId={aw.props?.targetNodeId}
+										/>
+									</WindowLayer>
+								)
+							case "history":
+								return (
+									<WindowLayer
+										key="history"
+										id="History"
+										zIndex={zIndex}
+										isActive={isActive}
+										isInStack={true}
+										index={index}>
+										<HistoryView onDone={() => switchToBaseWindow("chat")} />
+									</WindowLayer>
+								)
+							case "settings":
+								return (
+									<WindowLayer
+										key="settings"
+										id="Settings"
+										zIndex={zIndex}
+										isActive={isActive}
+										isInStack={true}
+										index={index}>
+										<SettingsView
+											ref={settingsRef}
+											onDone={() => switchToBaseWindow("chat")}
+											targetSection={aw.props?.targetSection}
+										/>
+									</WindowLayer>
+								)
+							case "marketplace":
+								return (
+									<WindowLayer
+										key="marketplace"
+										id="Marketplace"
+										zIndex={zIndex}
+										isActive={isActive}
+										isInStack={true}
+										index={index}>
+										<MarketplaceView
+											stateManager={marketplaceStateManager}
+											onDone={() => switchToBaseWindow("chat")}
+											targetTab={aw.props?.marketplaceTab as "mcp" | "mode" | undefined}
+										/>
+									</WindowLayer>
+								)
+							case "cloud":
+								return (
+									<WindowLayer
+										key="cloud"
+										id="Cloud"
+										zIndex={zIndex}
+										isActive={isActive}
+										isInStack={true}
+										index={index}>
+										<CloudView
+											userInfo={cloudUserInfo}
+											isAuthenticated={cloudIsAuthenticated}
+											cloudApiUrl={cloudApiUrl}
+											organizations={cloudOrganizations}
+										/>
+									</WindowLayer>
+								)
+							case "task_hierarchy":
+								return (
+									<WindowLayer
+										key="task_hierarchy"
+										id="Hierarchy"
+										zIndex={zIndex}
+										isActive={isActive}
+										isInStack={true}
+										index={index}>
+										<ChatTreeViewer />
+									</WindowLayer>
+								)
+							default:
+								return null
+						}
+					})}
+
 					{interactiveAppUri && (
-						<div
-							style={{
-								padding: "20px",
-								display: "flex",
-								flexDirection: "column",
-								height: "100%",
-								width: "100%",
-								position: "absolute",
-								top: 0,
-								left: 0,
-								zIndex: 100,
-								backgroundColor: "var(--vscode-editor-background)",
-							}}>
+						<WindowLayer id="App" zIndex={1000} isActive={true} isInStack={true} index={0}>
 							<McpIframeRenderer
 								resourceUri={interactiveAppUri}
 								agentsList={JSON.stringify(
-									getAllModes(customModes)
-										.map((m) => ({ slug: m.slug, name: m.name }))
-										.filter(Boolean),
+									getAllModes(customModes).map((m) => ({
+										mode: m.slug,
+										name: m.name,
+									})),
 								)}
 								onResolve={(data) => {
 									vscode.postMessage({ type: "elicitationResponse", values: data })
 									setInteractiveAppUri(undefined)
 								}}
 							/>
-						</div>
+						</WindowLayer>
 					)}
+
 					{deleteMessageDialogState.hasCheckpoint ? (
 						<MemoizedCheckpointRestoreDialog
 							open={deleteMessageDialogState.isOpen}
@@ -370,7 +439,7 @@ const App = () => {
 							}}
 						/>
 					)}
-				</>
+				</div>
 			)}
 		</>
 	)
@@ -378,18 +447,24 @@ const App = () => {
 
 const queryClient = new QueryClient()
 
-const AppWithProviders = () => (
-	<ErrorBoundary>
-		<ExtensionStateContextProvider>
-			<TranslationProvider>
-				<QueryClientProvider client={queryClient}>
-					<TooltipProvider delayDuration={STANDARD_TOOLTIP_DELAY}>
-						<App />
-					</TooltipProvider>
-				</QueryClientProvider>
-			</TranslationProvider>
-		</ExtensionStateContextProvider>
-	</ErrorBoundary>
-)
+const AppWithProviders = () => {
+	return (
+		<ErrorBoundary>
+			<ChatTreeProvider>
+				<ExtensionStateContextProvider>
+					<TranslationProvider>
+						<QueryClientProvider client={queryClient}>
+							<TooltipProvider delayDuration={STANDARD_TOOLTIP_DELAY}>
+								<WindowManagerProvider>
+									<AppContent />
+								</WindowManagerProvider>
+							</TooltipProvider>
+						</QueryClientProvider>
+					</TranslationProvider>
+				</ExtensionStateContextProvider>
+			</ChatTreeProvider>
+		</ErrorBoundary>
+	)
+}
 
 export default AppWithProviders

@@ -9,7 +9,7 @@ import { useAppTranslation } from "@/i18n/TranslationContext"
 
 import { vscode } from "@/utils/vscode"
 
-import { Button } from "@/components/ui"
+import { Button } from "../ui/button"
 
 interface ToolParameter {
 	name: string

@@ -20,6 +20,8 @@ export interface SuggestionItem {
 	answer: string
 	/** Optional mode to switch to when selecting this suggestion */
 	mode?: string
+	/** Optional ID of the task/node to navigate to */
+	id?: string
 }
 
 /**
@@ -28,6 +30,7 @@ export interface SuggestionItem {
 export const suggestionItemSchema = z.object({
 	answer: z.string(),
 	mode: z.string().optional(),
+	id: z.string().optional(),
 })
 
 /**

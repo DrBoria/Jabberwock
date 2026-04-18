@@ -1,12 +1,12 @@
 import type { EventEmitter } from "events"
 import type { Socket } from "net"
 
-import type { JabberwockEvents } from "./events.ts"
+import { type JabberwockEvents } from "./events.ts"
 import type { JabberwockSettings } from "./global-settings.ts"
 import type { ProviderSettingsEntry, ProviderSettings } from "./provider-settings.ts"
 import type { IpcMessage, IpcServerEvents } from "./ipc.ts"
 
-export type JabberwockAPIEvents = JabberwockEvents
+export type JabberwockAPIEvents = Required<JabberwockEvents>
 
 export interface JabberwockAPI extends EventEmitter<JabberwockAPIEvents> {
 	/**

@@ -555,12 +555,32 @@ export const webviewMessageHandler = async (
 				diagnosticsManager.log(message.text || "")
 			}
 			break
-		case "mstPatch":
-			{
-				const { diagnosticsManager } = await import("../devtools/DiagnosticsManager")
-				diagnosticsManager.log(`[MST_PATCH] ${message.text || ""}`, "debug")
+		case "domResponse":
+			if (message.requestId && message.text) {
+				console.log(
+					`[DEBUG: DOM] Extension: Received domResponse for ${message.requestId} (size: ${message.text.length})`,
+				)
+				provider.resolveDomRequest(message.requestId, message.text)
+			} else {
+				console.log(
+					`[DEBUG: DOM] Extension: Received invalid domResponse (req: ${message.requestId}, hasText: ${!!message.text})`,
+				)
 			}
 			break
+		case "webviewError":
+			if (message.text) {
+				const { diagnosticsManager } = await import("../devtools/DiagnosticsManager")
+				diagnosticsManager.log(`[WEBVIEW_ERROR] ${message.text}`, "error")
+				vscode.window.showErrorMessage(`Webview Error: ${message.text}`)
+			}
+			break
+
+		// case "mstPatch":
+		// 	{
+		// 		const { diagnosticsManager } = await import("../devtools/DiagnosticsManager")
+		// 		diagnosticsManager.log(`[MST_PATCH] ${message.text || ""}`, "debug")
+		// 	}
+		// 	break
 		case "LOCATOR_OPEN_FILE":
 			if (message.locatorPayload) {
 				const { filePath, line, column } = message.locatorPayload
@@ -821,6 +841,7 @@ export const webviewMessageHandler = async (
 			// handled via metadata; parent resumption occurs through
 			// reopenParentFromDelegation, not via finishSubTask.
 			await provider.clearTask()
+			await provider.postMessageToWebview({ type: "invoke", invoke: "newChat" })
 			await provider.postStateToWebview()
 			break
 		case "didShowAnnouncement":
@@ -1337,7 +1358,12 @@ export const webviewMessageHandler = async (
 			const result = checkoutDiffPayloadSchema.safeParse(message.payload)
 
 			if (result.success) {
-				await provider.getCurrentTask()?.checkpointDiff(result.data)
+				await provider.getCurrentTask()?.checkpointDiff({
+					ts: result.data.ts,
+					mode: result.data.mode,
+					commitHash: result.data.commitHash || "",
+					previousCommitHash: result.data.previousCommitHash,
+				})
 			}
 
 			break
@@ -1354,7 +1380,11 @@ export const webviewMessageHandler = async (
 				}
 
 				try {
-					await provider.getCurrentTask()?.checkpointRestore(result.data)
+					await provider.getCurrentTask()?.checkpointRestore({
+						ts: result.data.ts || Date.now(),
+						mode: result.data.mode,
+						commitHash: result.data.commitHash,
+					})
 				} catch (error) {
 					vscode.window.showErrorMessage(t("common:errors.checkpoint_failed"))
 				}
@@ -1767,7 +1797,10 @@ export const webviewMessageHandler = async (
 						text: message.text,
 						apiConfiguration,
 						customSupportPrompts,
-						listApiConfigMeta,
+						listApiConfigMeta: (listApiConfigMeta || []).map((m) => ({
+							id: m.id || "default",
+							name: m.name,
+						})),
 						enhancementApiConfigId,
 						includeTaskHistoryInEnhance,
 						currentClineMessages: currentCline?.clineMessages,
@@ -3074,16 +3107,19 @@ export const webviewMessageHandler = async (
 
 		case "switchTab": {
 			if (message.tab) {
-				// Capture tab shown event for all switchTab messages (which are user-initiated).
-				if (TelemetryService.hasInstance()) {
+				// Only capture telemetry for user-initiated switchTab messages
+				// MCP-originated messages should not trigger telemetry to prevent infinite loops
+				if (TelemetryService.hasInstance() && !message.fromMCP) {
 					TelemetryService.instance.captureTabShown(message.tab)
 				}
 
+				// Forward the message to webview but mark it as fromMCP to prevent loops
 				await provider.postMessageToWebview({
 					type: "action",
 					action: "switchTab",
 					tab: message.tab,
 					values: message.values,
+					fromMCP: true, // Prevent webview from sending this back to extension host
 				})
 			}
 			break

@@ -6,16 +6,10 @@ import { Virtuoso } from "react-virtuoso"
 
 import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
 
-import {
-	Button,
-	Checkbox,
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-	StandardTooltip,
-} from "@/components/ui"
+import { Button } from "../ui/button"
+import { Checkbox } from "../ui/checkbox"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
+import { StandardTooltip } from "../ui/standard-tooltip"
 import { useAppTranslation } from "@/i18n/TranslationContext"
 
 import { Tab, TabContent, TabHeader } from "../common/Tab"
@@ -101,8 +95,12 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 		}
 	}
 
+	const VirtuosoList = React.forwardRef<HTMLDivElement>((props, ref) => (
+		<div {...props} ref={ref} data-testid="virtuoso-item-list" />
+	)) as any
+
 	return (
-		<Tab>
+		<Tab data-testid="history-view">
 			<TabHeader className="flex flex-col gap-2">
 				<div className="flex items-center justify-between gap-2">
 					<div className="flex items-center gap-2">
@@ -260,9 +258,7 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 						data-testid="virtuoso-container"
 						initialTopMostItemIndex={0}
 						components={{
-							List: React.forwardRef((props, ref) => (
-								<div {...props} ref={ref} data-testid="virtuoso-item-list" />
-							)),
+							List: VirtuosoList,
 						}}
 						itemContent={(_index, item) => (
 							<TaskItem
@@ -286,9 +282,7 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 						data-testid="virtuoso-container"
 						initialTopMostItemIndex={0}
 						components={{
-							List: React.forwardRef((props, ref) => (
-								<div {...props} ref={ref} data-testid="virtuoso-item-list" />
-							)),
+							List: VirtuosoList,
 						}}
 						itemContent={(_index, group) => (
 							<TaskGroupItem

@@ -11,8 +11,8 @@ import {
 	AlertDialogFooter,
 	AlertDialogHeader,
 	AlertDialogTitle,
-	Button,
-} from "@/components/ui"
+} from "../ui/alert-dialog"
+import { Button } from "../ui/button"
 import { useAppTranslation } from "@/i18n/TranslationContext"
 
 import { vscode } from "@/utils/vscode"

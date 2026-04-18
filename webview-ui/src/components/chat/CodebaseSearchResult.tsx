@@ -1,7 +1,7 @@
 import React from "react"
 import { useTranslation } from "react-i18next"
 import { vscode } from "@src/utils/vscode"
-import { StandardTooltip } from "@/components/ui"
+import { StandardTooltip } from "../ui/standard-tooltip"
 
 interface CodebaseSearchResultProps {
 	filePath: string

@@ -1,6 +1,5 @@
 import path from "path"
 import delay from "delay"
-import fs from "fs/promises"
 
 import { type ClineSayTool, DEFAULT_WRITE_DELAY_MS } from "@jabberwock/types"
 
@@ -63,14 +62,14 @@ export class WriteToFileTool extends BaseTool<"write_to_file"> {
 		if (task.diffViewProvider.editType !== undefined) {
 			fileExists = task.diffViewProvider.editType === "modify"
 		} else {
-			fileExists = await fileExistsAtPath(absolutePath)
+			fileExists = await fileExistsAtPath(task.virtualWorkspace, absolutePath)
 			task.diffViewProvider.editType = fileExists ? "modify" : "create"
 		}
 
 		// Create parent directories early for new files to prevent ENOENT errors
 		// in subsequent operations (e.g., diffViewProvider.open, fs.readFile)
 		if (!fileExists) {
-			await createDirectoriesForFile(absolutePath)
+			await createDirectoriesForFile(absolutePath, task.virtualWorkspace)
 		}
 
 		if (newContent.startsWith("```")) {
@@ -112,7 +111,7 @@ export class WriteToFileTool extends BaseTool<"write_to_file"> {
 				task.diffViewProvider.editType = fileExists ? "modify" : "create"
 				if (fileExists) {
 					const absolutePath = path.resolve(task.cwd, relPath)
-					task.diffViewProvider.originalContent = await fs.readFile(absolutePath, "utf-8")
+					task.diffViewProvider.originalContent = await task.virtualWorkspace.readFile(absolutePath)
 				} else {
 					task.diffViewProvider.originalContent = ""
 				}
@@ -220,14 +219,14 @@ export class WriteToFileTool extends BaseTool<"write_to_file"> {
 		if (task.diffViewProvider.editType !== undefined) {
 			fileExists = task.diffViewProvider.editType === "modify"
 		} else {
-			fileExists = await fileExistsAtPath(absolutePath)
+			fileExists = await fileExistsAtPath(task.virtualWorkspace, absolutePath)
 			task.diffViewProvider.editType = fileExists ? "modify" : "create"
 		}
 
 		// Create parent directories early for new files to prevent ENOENT errors
 		// in subsequent operations (e.g., diffViewProvider.open)
 		if (!fileExists) {
-			await createDirectoriesForFile(absolutePath)
+			await createDirectoriesForFile(absolutePath, task.virtualWorkspace)
 		}
 
 		const isWriteProtected = task.jabberwockProtectedController?.isWriteProtected(relPath!) || false

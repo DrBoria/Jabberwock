@@ -3,19 +3,17 @@ import { memo, useEffect, useRef, useState } from "react"
 import { useRemark } from "react-remark"
 
 import { cn } from "@/lib/utils"
-import { Collapsible, CollapsibleTrigger } from "@/components/ui"
+import { Collapsible, CollapsibleTrigger } from "../ui/collapsible"
 
 import { StyledMarkdown } from "./styles"
 
 export const ModelDescriptionMarkdown = memo(
 	({
 		markdown = "",
-		key,
 		isExpanded,
 		setIsExpanded,
 	}: {
 		markdown?: string
-		key: string
 		isExpanded: boolean
 		setIsExpanded: (isExpanded: boolean) => void
 	}) => {
@@ -36,7 +34,7 @@ export const ModelDescriptionMarkdown = memo(
 			<Collapsible open={isExpanded} onOpenChange={setIsExpanded} className="relative">
 				<div ref={textContainerRef} className={cn({ "line-clamp-4": !isExpanded })}>
 					<div ref={textRef}>
-						<StyledMarkdown key={key}>{content}</StyledMarkdown>
+						<StyledMarkdown>{content}</StyledMarkdown>
 					</div>
 				</div>
 				<CollapsibleTrigger asChild className={cn({ hidden: !isExpandable })}>

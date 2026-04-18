@@ -86,6 +86,11 @@ export interface ApiHandlerCreateMessageMetadata {
 	 * Only applies to providers that support function calling restrictions (e.g., Gemini).
 	 */
 	allowedFunctionNames?: string[]
+	/**
+	 * Optional model ID override for this specific request.
+	 * Used by ThinkTool to route reasoning tasks to specialized models.
+	 */
+	modelId?: string
 }
 
 export interface ApiHandler {

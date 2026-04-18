@@ -1,4 +1,3 @@
-import fs from "fs/promises"
 import path from "path"
 
 import { type ClineSayTool, DEFAULT_WRITE_DELAY_MS } from "@jabberwock/types"
@@ -88,7 +87,7 @@ export class ApplyPatchTool extends BaseTool<"apply_patch"> {
 			// Process each hunk
 			const readFile = async (filePath: string): Promise<string> => {
 				const absolutePath = path.resolve(task.cwd, filePath)
-				return await fs.readFile(absolutePath, "utf8")
+				return await task.virtualWorkspace.readFile(absolutePath, "utf8")
 			}
 
 			let changes: ApplyPatchFileChange[]
@@ -149,7 +148,7 @@ export class ApplyPatchTool extends BaseTool<"apply_patch"> {
 		const { askApproval, pushToolResult } = callbacks
 
 		// Check if file already exists
-		const fileExists = await fileExistsAtPath(absolutePath)
+		const fileExists = await fileExistsAtPath(task.virtualWorkspace, absolutePath)
 		if (fileExists) {
 			task.consecutiveMistakeCount++
 			task.recordToolError("apply_patch")
@@ -274,7 +273,7 @@ export class ApplyPatchTool extends BaseTool<"apply_patch"> {
 
 		// Delete the file
 		try {
-			await fs.unlink(absolutePath)
+			await task.virtualWorkspace.unlink(absolutePath)
 		} catch (error) {
 			const errorMessage = `Failed to delete file '${relPath}': ${error instanceof Error ? error.message : String(error)}`
 			await task.say("error", errorMessage)
@@ -420,16 +419,18 @@ export class ApplyPatchTool extends BaseTool<"apply_patch"> {
 			} else {
 				// Write to new path and delete old file
 				const parentDir = path.dirname(moveAbsolutePath)
-				await fs.mkdir(parentDir, { recursive: true })
-				await fs.writeFile(moveAbsolutePath, newContent, "utf8")
+				await task.virtualWorkspace.mkdir(parentDir, { recursive: true })
+				await task.virtualWorkspace.writeFile(moveAbsolutePath, newContent, "utf8")
 			}
 
 			// Delete the original file
 			try {
-				await fs.unlink(absolutePath)
+				await task.virtualWorkspace.unlink(absolutePath)
 			} catch (error) {
 				console.error(`Failed to delete original file after move: ${error}`)
 			}
+
+			await task.fileContextTracker.trackFileContext(change.movePath, "roo_edited" as RecordSource)
 
 			await task.fileContextTracker.trackFileContext(change.movePath, "roo_edited" as RecordSource)
 		} else {

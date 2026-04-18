@@ -42,11 +42,14 @@ export const toolNames = [
 	"switch_mode",
 	"new_task",
 	"codebase_search",
+	"delegate_task",
 	"update_todo_list",
 	"run_slash_command",
 	"skill",
 	"generate_image",
+	"analyze_image",
 	"custom_tool",
+	"think_tool",
 ] as const
 
 export const toolNamesSchema = z.enum(toolNames)

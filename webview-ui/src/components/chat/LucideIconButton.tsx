@@ -1,6 +1,7 @@
 import { forwardRef } from "react"
 import { cn } from "@src/lib/utils"
-import { Button, StandardTooltip } from "@src/components/ui"
+import { Button } from "@src/components/ui/button"
+import { StandardTooltip } from "@src/components/ui/standard-tooltip"
 import { Loader2, LucideIcon } from "lucide-react"
 
 interface LucideIconButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {

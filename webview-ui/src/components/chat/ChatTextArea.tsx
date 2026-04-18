@@ -22,7 +22,7 @@ import {
 } from "@src/utils/context-mentions"
 import { cn } from "@src/lib/utils"
 import { convertToMentionPath } from "@src/utils/path-mentions"
-import { StandardTooltip } from "@src/components/ui"
+import { StandardTooltip } from "../ui/standard-tooltip"
 
 import Thumbnails from "../common/Thumbnails"
 import { ModeSelector } from "./ModeSelector"

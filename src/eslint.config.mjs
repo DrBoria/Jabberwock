@@ -24,7 +24,7 @@ export default [
 		},
 	},
 	{
-		files: ["__mocks__/**/*.js"],
+		files: ["__mocks__/**/*.js", "**/*.cjs"],
 		rules: {
 			"no-undef": "off",
 		},

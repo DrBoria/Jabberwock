@@ -84,7 +84,7 @@ describe("Vercel AI Gateway Caching", () => {
 					cache_control: { type: "ephemeral" },
 				})
 
-				const imagePart = userMessage.content.find((part) => part.type === "image_url")
+				const imagePart = userMessage.content.find((part) => (part as { type: string }).type === "image_url")
 				expect(imagePart).toEqual({
 					type: "image_url",
 					image_url: { url: "data:image/png;base64,..." },
@@ -123,7 +123,7 @@ describe("Vercel AI Gateway Caching", () => {
 				const textPart = userMessage.content.find((part) => part.type === "text")
 				expect(textPart).toBeUndefined()
 
-				const imagePart = userMessage.content.find((part) => part.type === "image_url")
+				const imagePart = userMessage.content.find((part) => (part as { type: string }).type === "image_url")
 				expect(imagePart).toEqual({
 					type: "image_url",
 					image_url: { url: "data:image/png;base64,..." },

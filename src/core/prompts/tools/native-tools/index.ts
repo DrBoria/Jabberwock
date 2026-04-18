@@ -1,8 +1,10 @@
 import type OpenAI from "openai"
+import analyzeImage from "./analyze_image"
 import accessMcpResource from "./access_mcp_resource"
 import { apply_diff } from "./apply_diff"
 import applyPatch from "./apply_patch"
 import askFollowupQuestion from "./ask_followup_question"
+import delegateTask from "./delegate_task"
 import attemptCompletion from "./attempt_completion"
 import codebaseSearch from "./codebase_search"
 import editTool from "./edit"
@@ -18,6 +20,7 @@ import searchReplace from "./search_replace"
 import edit_file from "./edit_file"
 import searchFiles from "./search_files"
 import switchMode from "./switch_mode"
+import thinkTool from "./think_tool"
 import writeToFile from "./write_to_file"
 
 export { getMcpServerTools } from "./mcp_server"
@@ -46,10 +49,12 @@ export function getNativeTools(options: NativeToolsOptions = {}): OpenAI.Chat.Ch
 	}
 
 	return [
+		analyzeImage as OpenAI.Chat.ChatCompletionTool,
 		accessMcpResource,
 		apply_diff,
 		applyPatch,
 		askFollowupQuestion,
+		delegateTask,
 		attemptCompletion,
 		codebaseSearch,
 		executeCommand,
@@ -65,6 +70,7 @@ export function getNativeTools(options: NativeToolsOptions = {}): OpenAI.Chat.Ch
 		editTool,
 		searchFiles,
 		switchMode,
+		thinkTool,
 		writeToFile,
 	] satisfies OpenAI.Chat.ChatCompletionTool[]
 }

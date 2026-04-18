@@ -1,11 +1,12 @@
 import React, { Component } from "react"
 import { telemetryClient } from "@src/utils/TelemetryClient"
-import { withTranslation, WithTranslation } from "react-i18next"
 import { enhanceErrorWithSourceMaps } from "@src/utils/sourceMapUtils"
+import { vscode } from "@src/utils/vscode"
 
 type ErrorProps = {
 	children: React.ReactNode
-} & WithTranslation
+	t?: (key: string) => string
+}
 
 type ErrorState = {
 	error?: string
@@ -38,22 +39,45 @@ class ErrorBoundary extends Component<ErrorProps, ErrorState> {
 		const componentStack = errorInfo.componentStack || ""
 		const enhancedError = await enhanceErrorWithSourceMaps(error, componentStack)
 
+		const errorMessage = enhancedError.message
+		const stack = enhancedError.sourceMappedStack || enhancedError.stack
+		const fullComponentStack = enhancedError.sourceMappedComponentStack || componentStack
+
 		telemetryClient.capture("error_boundary_caught_error", {
-			error: enhancedError.message,
-			stack: enhancedError.sourceMappedStack || enhancedError.stack,
-			componentStack: enhancedError.sourceMappedComponentStack || componentStack,
+			error: errorMessage,
+			stack: stack,
+			componentStack: fullComponentStack,
 			timestamp: Date.now(),
 			errorType: enhancedError.name,
 		})
 
+		// Report error to extension
+		vscode.postMessage({
+			type: "webviewError",
+			text: `${errorMessage}\nStack: ${stack}\nComponent Stack: ${fullComponentStack}`,
+		})
+
 		this.setState({
-			error: enhancedError.sourceMappedStack || enhancedError.stack,
-			componentStack: enhancedError.sourceMappedComponentStack || componentStack,
+			error: stack,
+			componentStack: fullComponentStack,
 		})
 	}
 
 	render() {
-		const { t } = this.props
+		const t =
+			this.props.t ||
+			((key: string) => {
+				const fallbacks: Record<string, string> = {
+					"errorBoundary.title": "Something went wrong",
+					"errorBoundary.reportText": "Please help us improve by reporting this error on our",
+					"errorBoundary.githubText": "GitHub Issues page",
+					"errorBoundary.copyInstructions":
+						"Copy and paste the following error message to include it as part of your submission:",
+					"errorBoundary.errorStack": "Error Stack:",
+					"errorBoundary.componentStack": "Component Stack:",
+				}
+				return fallbacks[key] || key
+			})
 
 		if (!this.state.error) {
 			return this.props.children
@@ -93,4 +117,4 @@ class ErrorBoundary extends Component<ErrorProps, ErrorState> {
 	}
 }
 
-export default withTranslation("common")(ErrorBoundary)
+export default ErrorBoundary

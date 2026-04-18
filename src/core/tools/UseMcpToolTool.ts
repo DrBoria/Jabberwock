@@ -311,7 +311,19 @@ export class UseMcpToolTool extends BaseTool<"use_mcp_tool"> {
 			toolName,
 		})
 
-		const toolResult = await task.providerRef.deref()?.getMcpHub()?.callTool(serverName, toolName, parsedArguments)
+		// Core Phase 1: Inject _meta context into MCP payload
+		// Avoids LLM context bloat/hallucinations by algorthmically providing execution details
+		const activeAgentRole = await task.getTaskMode()
+		const argsWithMeta = {
+			...(parsedArguments || {}),
+			_meta: {
+				workspacePath: task.workspacePath,
+				activeAgentRole,
+				taskId: task.taskId,
+			},
+		}
+
+		const toolResult = await task.providerRef.deref()?.getMcpHub()?.callTool(serverName, toolName, argsWithMeta)
 
 		let toolResultPretty = "(No response)"
 		let images: string[] = []
@@ -334,116 +346,188 @@ export class UseMcpToolTool extends BaseTool<"use_mcp_tool"> {
 					toolResultPretty = text || "Interactive app completed successfully."
 					toolResult.content = [{ type: "text", text: toolResultPretty }]
 
-					// Full history rewrite for `manage_todo_plan`: erase all evidence of the original plan
-					// so the agent only sees the user-approved tasks and nothing else.
+					// Deterministic delegation: after manage_todo_plan approval, bypass LLM and
+					// programmatically create subtasks for each approved task.
 					if (serverName === "md-todo-mcp" && toolName === "manage_todo_plan" && typeof text === "string") {
 						try {
 							const newPlan = JSON.parse(text)
-							const approvedTasks = newPlan.initialTasks || newPlan.tasks || []
-							const history = task.apiConversationHistory
+							const approvedTasks = (newPlan.initialTasks || newPlan.tasks || []) as {
+								id: string
+								title: string
+								description?: string
+								assignedTo: string
+								isAsync?: boolean
+							}[]
 
 							console.log(
-								`[DEBUG: TodoRewrite] Starting full history rewrite. Current history length: ${history.length}`,
-							)
-							console.log(
-								`[DEBUG: TodoRewrite] Approved tasks (${approvedTasks.length}):`,
-								JSON.stringify(
-									approvedTasks.map(
-										(t: { title: string; assignedTo: string }) => `${t.assignedTo}: ${t.title}`,
-									),
-								),
+								`[DeterministicDelegation] Approved tasks count: ${approvedTasks.length}`,
+								approvedTasks.map((t) => `${t.id}:${t.assignedTo}:${t.title}`),
 							)
 
-							// Step 1: Extract environment_details from the first user message (workspace context)
-							let environmentDetailsBlock: { type: "text"; text: string } | undefined
-							const firstUserMsg = history.find((m) => m.role === "user")
-							if (firstUserMsg && Array.isArray(firstUserMsg.content)) {
-								const envBlock = firstUserMsg.content.find(
-									(b: { type: string; text?: string }) =>
-										b.type === "text" &&
-										typeof b.text === "string" &&
-										b.text.includes("<environment_details>"),
+							if (approvedTasks.length === 0) {
+								console.log(
+									"[DeterministicDelegation] All tasks deleted by user. Signaling plan cancellation.",
 								)
-								if (envBlock) {
-									environmentDetailsBlock = {
-										type: "text",
-										text: (envBlock as { text: string }).text,
-									}
-								}
-							}
+								toolResultPretty =
+									"Plan cancelled: the user removed all tasks during review. No tasks to execute. Use attempt_completion to inform the user."
+								toolResult.content = [{ type: "text", text: toolResultPretty }]
+								task.todoList = [] as any
+							} else {
+								task.todoList = approvedTasks.map((t) => ({
+									id: t.id,
+									content: `${t.title}${t.description ? ": " + t.description : ""}`,
+									status: "pending",
+									assignedTo: t.assignedTo,
+								}))
 
-							// Step 2: Find the assistant message with the manage_todo_plan tool call
-							let toolUseId = "ollama-tool-0"
-							for (let i = history.length - 1; i >= 0; i--) {
-								const msg = history[i]
-								if (msg.role === "assistant" && Array.isArray(msg.content)) {
-									const toolUseBlock = msg.content.find(
-										(b: { type: string; name?: string }) =>
-											b.type === "tool_use" && b.name === "mcp--md-todo-mcp--manage_todo_plan",
+								// Bypass LLM: programmatically create subtasks for each approved task
+								const provider = task.providerRef.deref()
+								if (!provider) {
+									console.error("[DeterministicDelegation] Provider reference lost, cannot delegate")
+								} else {
+									const delegationResults: string[] = []
+									let isDelegated = false
+
+									for (const todoTask of approvedTasks) {
+										// Wrap task in EXECUTION ONLY directive to prevent child re-planning
+										const delegationMessage = `[EXECUTION ONLY - DO NOT RE-PLAN]\nYou have been assigned this task from an approved master plan. Do NOT create a new TODO list or re-plan. Execute the following task immediately:\n\n${todoTask.title}${todoTask.description ? "\n\n" + todoTask.description : ""}`
+
+										console.log(
+											`[DeterministicDelegation] Delegating task ${todoTask.id} to ${todoTask.assignedTo}: ${todoTask.title}`,
+										)
+
+										try {
+											if (todoTask.isAsync) {
+												const child = await provider.startBackgroundTask({
+													parentTaskId: task.taskId,
+													message: delegationMessage,
+													initialTodos: [],
+													mode: todoTask.assignedTo,
+												})
+
+												// Store the created subtask's ID in the local todoList
+												const todoItem = task.todoList?.find((todo) => todo.id === todoTask.id)
+												if (todoItem) {
+													todoItem.taskId = child.taskId
+												}
+
+												delegationResults.push(
+													`✓ ${todoTask.id} → ${todoTask.assignedTo} (async, child: ${child.taskId})`,
+												)
+											} else {
+												const child = await provider.delegateParentAndOpenChild({
+													parentTaskId: task.taskId,
+													message: delegationMessage,
+													initialTodos: [],
+													mode: todoTask.assignedTo,
+												})
+
+												// Store the created subtask's ID in the local todoList
+												const todoItem = task.todoList?.find((todo) => todo.id === todoTask.id)
+												if (todoItem) {
+													todoItem.taskId = child.taskId
+												}
+
+												delegationResults.push(
+													`✓ ${todoTask.id} → ${todoTask.assignedTo} (sync, child: ${child.taskId})`,
+												)
+												// delegateParentAndOpenChild is blocking
+												console.log(
+													`[DeterministicDelegation] Sync delegation complete for ${todoTask.id}.`,
+												)
+												isDelegated = true
+												break
+											}
+										} catch (delegationError) {
+											const errMsg =
+												delegationError instanceof Error
+													? delegationError.message
+													: String(delegationError)
+											console.error(
+												`[DeterministicDelegation] Failed to delegate ${todoTask.id}: ${errMsg}`,
+											)
+											delegationResults.push(
+												`✗ ${todoTask.id} → ${todoTask.assignedTo} FAILED: ${errMsg}`,
+											)
+										}
+									}
+
+									const summary = delegationResults.join("\n")
+									toolResultPretty = `Plan approved. Deterministic delegation initiated:\n${summary}`
+									toolResult.content = [{ type: "text", text: toolResultPretty }]
+
+									// History Hack: Rewrite history to eliminate traces of the original mutation conversation
+									const firstUserMsgIndex = task.apiConversationHistory.findIndex(
+										(m) => m.role === "user",
 									)
-									if (toolUseBlock && (toolUseBlock as { id?: string }).id) {
-										toolUseId = (toolUseBlock as { id: string }).id
-										break
+									const firstUserMsg =
+										firstUserMsgIndex !== -1
+											? task.apiConversationHistory[firstUserMsgIndex]
+											: undefined
+
+									const toolUseBlock = task.assistantMessageContent.find(
+										(block) =>
+											block.type === "tool_use" &&
+											(block as any).name === "mcp--md-todo-mcp--manage_todo_plan",
+									)
+									const toolUseId = (toolUseBlock as any)?.id || "unknown-id"
+
+									const environmentDetailsBlock = (firstUserMsg?.content as unknown[])?.find(
+										(c) =>
+											(c as { type: string; text?: string }).type === "text" &&
+											(c as { type: string; text?: string }).text?.includes(
+												"<environment_details>",
+											),
+									)
+
+									const originalReasoning = task.assistantMessageContent
+										.slice(0, task.currentStreamingContentIndex)
+										.filter((block) => block.type === "text")
+										.map((block) => (block as any).text || "")
+										.join("\n\n")
+										.trim()
+
+									const synthesizedUserText = `${originalReasoning ? originalReasoning + "\n\n" : ""}I have updated my plan. Here are the approved tasks:\n${approvedTasks
+										.map((t) => `- [${t.assignedTo}] ${t.title}`)
+										.join("\n")}`
+
+									const userMsg = {
+										role: "user" as const,
+										content: [
+											{ type: "text" as const, text: synthesizedUserText },
+											...(environmentDetailsBlock ? [environmentDetailsBlock] : []),
+										],
+										ts: firstUserMsg
+											? (firstUserMsg as { ts?: number }).ts || Date.now()
+											: Date.now(),
+									}
+
+									const assistantMsg = {
+										role: "assistant" as const,
+										content: [
+											{
+												type: "tool_use" as const,
+												id: toolUseId,
+												name: "mcp--md-todo-mcp--manage_todo_plan",
+												input: { initialTasks: approvedTasks },
+											},
+										],
+										ts: Date.now(),
+									}
+
+									const cleanHistory = [userMsg, assistantMsg]
+									await task.overwriteApiConversationHistory(cleanHistory as any)
+									console.log(
+										"[HistoryRewrite] Successfully rebuilt clean history after plan approval.",
+									)
+
+									if (isDelegated) {
+										return { isDelegated: true } as any
 									}
 								}
 							}
-
-							// Step 3: Synthesize a user message that ONLY describes the approved tasks
-							const taskDescriptions = approvedTasks
-								.map(
-									(t: { assignedTo: string; title: string; description: string }) =>
-										`- [${t.assignedTo}] ${t.title}: ${t.description}`,
-								)
-								.join("\n")
-							const synthesizedUserText = `<user_message>\nExecute the following task plan:\n${taskDescriptions}\n</user_message>`
-
-							// Step 4: Build clean 2-message history (user + assistant tool_use only)
-							const userMsg = {
-								role: "user" as const,
-								content: [
-									{ type: "text" as const, text: synthesizedUserText },
-									...(environmentDetailsBlock ? [environmentDetailsBlock] : []),
-								],
-								ts: firstUserMsg ? (firstUserMsg as { ts?: number }).ts || Date.now() : Date.now(),
-							}
-
-							const assistantMsg = {
-								role: "assistant" as const,
-								content: [
-									{
-										type: "tool_use" as const,
-										id: toolUseId,
-										name: "mcp--md-todo-mcp--manage_todo_plan",
-										input: { initialTasks: approvedTasks },
-									},
-								],
-								ts: Date.now(),
-							}
-							// The tool_result will be added by the normal pushToolResult flow after this method returns
-							const cleanHistory = [userMsg, assistantMsg]
-							console.log(
-								`[DEBUG: TodoRewrite] Truncated history from ${history.length} to ${cleanHistory.length} messages`,
-							)
-							console.log(`[DEBUG: TodoRewrite] Synthesized user message: "${synthesizedUserText}"`)
-
-							await task.overwriteApiConversationHistory(cleanHistory as typeof history)
-
-							// Step 5: Also rewrite the pending userMessageContent to match
-							const pendingResult = task.userMessageContent.find(
-								(b) =>
-									b.type === "tool_result" &&
-									(b as { tool_use_id?: string }).tool_use_id === toolUseId,
-							)
-							if (pendingResult) {
-								;(pendingResult as { content: string }).content = JSON.stringify(newPlan)
-								console.log("[DEBUG: TodoRewrite] Updated pending tool_result in userMessageContent")
-							}
-
-							console.log(
-								"[DEBUG: TodoRewrite] History rewrite complete. Agent will only see approved tasks.",
-							)
 						} catch (e) {
-							console.error("[DEBUG: TodoRewrite] Failed to rewrite history", e)
+							console.error("[DeterministicDelegation] Failed to process approved plan", e)
 						}
 					}
 				}

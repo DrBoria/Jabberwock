@@ -1,7 +1,8 @@
 import { useCallback } from "react"
 
-import { useClipboard } from "@/components/ui/hooks"
-import { Button, StandardTooltip } from "@/components/ui"
+import { useClipboard } from "../ui/hooks/useClipboard"
+import { Button } from "../ui/button"
+import { StandardTooltip } from "../ui/standard-tooltip"
 import { useAppTranslation } from "@/i18n/TranslationContext"
 import { cn } from "@/lib/utils"
 

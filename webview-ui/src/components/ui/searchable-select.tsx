@@ -1,18 +1,9 @@
 import * as React from "react"
 import { Check, ChevronDown, X } from "lucide-react"
 import { cn } from "@/lib/utils"
-import {
-	Button,
-	Command,
-	CommandEmpty,
-	CommandGroup,
-	CommandInput,
-	CommandItem,
-	CommandList,
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from "@/components/ui"
+import { Button } from "./button"
+import { Popover, PopoverContent, PopoverTrigger } from "./popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "./command"
 import { useEscapeKey } from "@/hooks/useEscapeKey"
 
 export interface SearchableSelectOption {

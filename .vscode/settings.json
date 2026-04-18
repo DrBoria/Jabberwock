@@ -11,5 +11,6 @@
 	// Turn off tsc task auto detection since we have the necessary tasks as npm scripts
 	"typescript.tsc.autoDetect": "off",
 	"vitest.disableWorkspaceWarning": true,
-	"mdSearch.prettier": true
+	"mdSearch.prettier": true,
+	"jabberwock.devtool": true
 }

@@ -4,7 +4,7 @@ import { vscode } from "@/utils/vscode"
 import { cn } from "@/lib/utils"
 import type { SubtaskTreeNode } from "./types"
 import { countAllSubtasks } from "./types"
-import { StandardTooltip } from "../ui"
+import { StandardTooltip } from "../ui/standard-tooltip"
 import SubtaskCollapsibleRow from "./SubtaskCollapsibleRow"
 
 interface SubtaskRowProps {

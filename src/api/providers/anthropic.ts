@@ -59,7 +59,7 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 			maxTokens,
 			temperature,
 			reasoning: thinking,
-		} = this.getModel()
+		} = this.getModel(metadata?.modelId)
 
 		// Filter out non-Anthropic blocks (reasoning, thoughtSignature, etc.) before sending to the API
 		const sanitizedMessages = filterNonAnthropicBlocks(messages)
@@ -332,8 +332,8 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 		}
 	}
 
-	getModel() {
-		const modelId = this.options.apiModelId
+	getModel(modelIdOverride?: string) {
+		const modelId = modelIdOverride || this.options.apiModelId
 		let id = modelId && modelId in anthropicModels ? (modelId as AnthropicModelId) : anthropicDefaultModelId
 		let info: ModelInfo = anthropicModels[id]
 

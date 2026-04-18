@@ -234,7 +234,9 @@ export class NativeOllamaHandler extends BaseProvider implements SingleCompletio
 				chatOptions.num_ctx = this.options.ollamaNumCtx
 			}
 
-			// Create the actual API request promise
+			console.log(
+				`[NativeOllamaHandler] Starting stream for model "${modelId}" with ${ollamaMessages.length} messages and num_ctx=${chatOptions.num_ctx ?? "default"}`,
+			)
 			const stream = await client.chat({
 				model: modelId,
 				messages: ollamaMessages,
@@ -249,9 +251,14 @@ export class NativeOllamaHandler extends BaseProvider implements SingleCompletio
 			let toolCallIndex = 0
 			// Track tool call IDs for emitting end events
 			const toolCallIds: string[] = []
+			let chunkCount = 0
 
 			try {
 				for await (const chunk of stream) {
+					chunkCount++
+					if (chunkCount === 1) {
+						console.log(`[NativeOllamaHandler] SUCCESS: Received first chunk from "${modelId}"`)
+					}
 					if (typeof chunk.message.content === "string" && chunk.message.content.length > 0) {
 						// Process content through matcher for reasoning detection
 						for (const matcherChunk of matcher.update(chunk.message.content)) {

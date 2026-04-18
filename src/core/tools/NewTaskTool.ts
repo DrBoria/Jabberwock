@@ -21,7 +21,7 @@ interface NewTaskParams {
 export class NewTaskTool extends BaseTool<"new_task"> {
 	readonly name = "new_task" as const
 
-	async execute(params: NewTaskParams, task: Task, callbacks: ToolCallbacks): Promise<void> {
+	async execute(params, task, callbacks) {
 		const { mode, message, todos, is_async } = params
 		const { askApproval, handleError, pushToolResult } = callbacks
 
@@ -32,7 +32,7 @@ export class NewTaskTool extends BaseTool<"new_task"> {
 				task.recordToolError("new_task")
 				task.didToolFailInCurrentTurn = true
 				pushToolResult(await task.sayAndCreateMissingParamError("new_task", "mode"))
-				return
+				return { isDelegated: false }
 			}
 
 			if (!message) {
@@ -40,7 +40,7 @@ export class NewTaskTool extends BaseTool<"new_task"> {
 				task.recordToolError("new_task")
 				task.didToolFailInCurrentTurn = true
 				pushToolResult(await task.sayAndCreateMissingParamError("new_task", "message"))
-				return
+				return { isDelegated: false }
 			}
 
 			// Get the VSCode setting for requiring todos.
@@ -48,7 +48,7 @@ export class NewTaskTool extends BaseTool<"new_task"> {
 
 			if (!provider) {
 				pushToolResult(formatResponse.toolError("Provider reference lost"))
-				return
+				return { isDelegated: false }
 			}
 
 			const state = await provider.getState()
@@ -66,7 +66,7 @@ export class NewTaskTool extends BaseTool<"new_task"> {
 				task.recordToolError("new_task")
 				task.didToolFailInCurrentTurn = true
 				pushToolResult(await task.sayAndCreateMissingParamError("new_task", "todos"))
-				return
+				return { isDelegated: false }
 			}
 
 			// Parse todos if provided, otherwise use empty array
@@ -79,7 +79,7 @@ export class NewTaskTool extends BaseTool<"new_task"> {
 					task.recordToolError("new_task")
 					task.didToolFailInCurrentTurn = true
 					pushToolResult(formatResponse.toolError("Invalid todos format: must be a markdown checklist"))
-					return
+					return { isDelegated: false }
 				}
 			}
 
@@ -94,7 +94,7 @@ export class NewTaskTool extends BaseTool<"new_task"> {
 
 			if (!targetMode) {
 				pushToolResult(formatResponse.toolError(`Invalid mode: ${mode}`))
-				return
+				return { isDelegated: false }
 			}
 
 			const toolMessage = JSON.stringify({
@@ -115,13 +115,13 @@ export class NewTaskTool extends BaseTool<"new_task"> {
 			const didApprove = await askApproval("tool", toolMessage)
 
 			if (!didApprove) {
-				return
+				return { isDelegated: false }
 			}
 
 			if (is_async) {
 				// Jabberwock: Async Orchestration
 				// Start task in background and return ACK immediately
-				const child = await (provider as any).startBackgroundTask({
+				const child = await provider.startBackgroundTask({
 					parentTaskId: task.taskId,
 					message: unescapedMessage,
 					initialTodos: todoItems,
@@ -130,11 +130,11 @@ export class NewTaskTool extends BaseTool<"new_task"> {
 				pushToolResult(
 					`Started async background task ${child.taskId}. You can await its completion later using await_batch_completion.`,
 				)
-				return
+				return { isDelegated: true }
 			}
 
 			// Delegate parent and open child as sole active task
-			const child = await (provider as any).delegateParentAndOpenChild({
+			const child = await provider.delegateParentAndOpenChild({
 				parentTaskId: task.taskId,
 				message: unescapedMessage,
 				initialTodos: todoItems,
@@ -143,10 +143,10 @@ export class NewTaskTool extends BaseTool<"new_task"> {
 
 			// Reflect delegation in tool result (no pause/unpause, no wait)
 			pushToolResult(`Delegated to child task ${child.taskId}`)
-			return
+			return { isDelegated: true }
 		} catch (error) {
 			await handleError("creating new task", error)
-			return
+			return { isDelegated: false }
 		}
 	}
 

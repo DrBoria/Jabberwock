@@ -4,8 +4,10 @@ import { GitBranch, Check, ChevronDown, Plus } from "lucide-react"
 import type { Worktree, WorktreeListResponse } from "@jabberwock/types"
 
 import { cn } from "@/lib/utils"
-import { useJabberwockPortal } from "@/components/ui/hooks/useJabberwockPortal"
-import { Popover, PopoverContent, PopoverTrigger, StandardTooltip, Button } from "@/components/ui"
+import { useJabberwockPortal } from "../ui/hooks/useJabberwockPortal"
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover"
+import { StandardTooltip } from "../ui/standard-tooltip"
+import { Button } from "../ui/button"
 import { useAppTranslation } from "@/i18n/TranslationContext"
 import { vscode } from "@/utils/vscode"
 

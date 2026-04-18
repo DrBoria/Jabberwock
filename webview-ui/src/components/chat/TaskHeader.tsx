@@ -3,10 +3,11 @@ import { useTranslation } from "react-i18next"
 import { useCloudUpsell } from "@src/hooks/useCloudUpsell"
 import { CloudUpsellDialog } from "@src/components/cloud/CloudUpsellDialog"
 import DismissibleUpsell from "@src/components/common/DismissibleUpsell"
-import { ChevronUp, ChevronDown, HardDriveDownload, HardDriveUpload, FoldVertical, ArrowLeft } from "lucide-react"
+import { ChevronUp, ChevronDown, HardDriveDownload, HardDriveUpload, FoldVertical, ArrowLeft, Bot } from "lucide-react"
 import prettyBytes from "pretty-bytes"
 
 import type { ClineMessage } from "@jabberwock/types"
+import { isAlive, isStateTreeNode } from "mobx-state-tree"
 
 import { getModelMaxOutputTokens } from "@shared/api"
 import { findLastIndex } from "@shared/array"
@@ -17,6 +18,8 @@ import { StandardTooltip, Button, Table, TableBody, TableRow, TableCell, Circula
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { useSelectedModel } from "@/components/ui/hooks/useSelectedModel"
 import { vscode } from "@src/utils/vscode"
+import { useChatTree } from "@src/context/ChatTreeContext"
+import { useWindowManager } from "@src/context/WindowManagerContext"
 
 import Thumbnails from "../common/Thumbnails"
 
@@ -41,6 +44,7 @@ export interface TaskHeaderProps {
 	buttonsDisabled: boolean
 	handleCondenseContext: (taskId: string) => void
 	todos?: any[]
+	nodeTitle?: string
 }
 
 const TaskHeader = ({
@@ -58,15 +62,22 @@ const TaskHeader = ({
 	buttonsDisabled,
 	handleCondenseContext,
 	todos,
+	nodeTitle,
 }: TaskHeaderProps) => {
+	// ALL HOOKS MUST BE CALLED BEFORE ANY EARLY RETURN (Rules of Hooks)
 	const { t } = useTranslation()
 	const { apiConfiguration, currentTaskItem, clineMessages } = useExtensionState()
+	const { nodes } = useChatTree()
 	const { id: modelId, info: model } = useSelectedModel(apiConfiguration)
+	const { pushWindow, popWindow, activeWindows } = useWindowManager()
 	const [isTaskExpanded, setIsTaskExpanded] = useState(false)
 	const [showLongRunningTaskMessage, setShowLongRunningTaskMessage] = useState(false)
 	const { isOpen, openUpsell, closeUpsell, handleConnect } = useCloudUpsell({
 		autoOpenOnAuth: false,
 	})
+
+	const textContainerRef = useRef<HTMLDivElement>(null)
+	const textRef = useRef<HTMLDivElement>(null)
 
 	// Check if the task is complete by looking at the last relevant message (skipping resume messages)
 	const isTaskComplete =
@@ -82,18 +93,6 @@ const TaskHeader = ({
 				})()
 			: false
 
-	useEffect(() => {
-		const timer = setTimeout(() => {
-			if (currentTaskItem && !isTaskComplete) {
-				setShowLongRunningTaskMessage(true)
-			}
-		}, 120_000) // Show upsell after 2 minutes
-
-		return () => clearTimeout(timer)
-	}, [currentTaskItem, isTaskComplete])
-
-	const textContainerRef = useRef<HTMLDivElement>(null)
-	const textRef = useRef<HTMLDivElement>(null)
 	const contextWindow = model?.contextWindow || 1
 
 	// Calculate maxTokens (reserved for output) once for reuse in percentage and tooltip
@@ -110,6 +109,21 @@ const TaskHeader = ({
 	)
 	const reservedForOutput = maxTokens || 0
 
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			if (currentTaskItem && !isTaskComplete) {
+				setShowLongRunningTaskMessage(true)
+			}
+		}, 120_000) // Show upsell after 2 minutes
+
+		return () => clearTimeout(timer)
+	}, [currentTaskItem, isTaskComplete])
+
+	// Safety check for dead MST objects (MUST be after all hooks)
+	if (isStateTreeNode(task) && !isAlive(task)) {
+		return null
+	}
+
 	const condenseButton = (
 		<LucideIconButton
 			title={t("chat:task.condenseContext")}
@@ -125,7 +139,9 @@ const TaskHeader = ({
 	const isSubtask = !!parentTaskId
 
 	const handleBackToParent = () => {
-		if (parentTaskId) {
+		if (activeWindows.length > 1) {
+			popWindow()
+		} else if (parentTaskId) {
 			vscode.postMessage({ type: "showTaskWithId", text: parentTaskId })
 		}
 	}
@@ -135,10 +151,10 @@ const TaskHeader = ({
 			{isSubtask && (
 				<div className="mb-2" onClick={(e) => e.stopPropagation()}>
 					<Button
-						variant="ghost"
+						variant="link"
 						size="sm"
 						onClick={handleBackToParent}
-						className="flex items-center gap-1.5 text-xs text-vscode-descriptionForeground hover:text-vscode-foreground">
+						className="flex items-center gap-1.5 p-0 h-auto text-xs text-vscode-textLink-foreground hover:brightness-125 transition-all">
 						<ArrowLeft className="size-3" />
 						{t("chat:task.backToParentTask")}
 					</Button>
@@ -194,7 +210,11 @@ const TaskHeader = ({
 							{isTaskExpanded && <span className="font-bold">{t("chat:task.title")}</span>}
 							{!isTaskExpanded && (
 								<div className="flex items-center gap-2 whitespace-nowrap overflow-hidden text-ellipsis">
-									<Mention text={task.text} />
+									{nodeTitle ? (
+										<span className="font-semibold truncate">{nodeTitle}</span>
+									) : (
+										<Mention text={task.text} />
+									)}
 								</div>
 							)}
 						</div>
@@ -464,7 +484,56 @@ const TaskHeader = ({
 					</>
 				)}
 				{/* Todo list - always shown at bottom when todos exist */}
-				{hasTodos && <TodoListDisplay todos={todos ?? (task as any)?.tool?.todos ?? []} />}
+				{hasTodos && (
+					<TodoListDisplay
+						todos={todos ?? (task as any)?.tool?.todos ?? []}
+						onTodoClick={(taskId) => pushWindow("chat", { targetNodeId: taskId })}
+					/>
+				)}
+
+				{/* Active Subagents List (Navigation Downwards) */}
+				{nodes.get(currentTaskItem?.id || "")?.childTasks &&
+					nodes.get(currentTaskItem?.id || "")!.childTasks!.length > 0 && (
+						<div className="mt-3 pt-2 border-t border-vscode-sideBar-border flex flex-col gap-1.5 overflow-hidden">
+							<span className="text-[10px] font-bold uppercase tracking-widest opacity-50 px-1">
+								{t("chat:task.activeSubagents")}
+							</span>
+							<div className="flex flex-col gap-1 max-h-32 overflow-y-auto scrollable pr-1">
+								{nodes.get(currentTaskItem?.id || "")!.childTasks!.map((child: any) => (
+									<div
+										key={child.id}
+										onClick={(e) => {
+											e.stopPropagation()
+											pushWindow("chat", { targetNodeId: child.id })
+										}}
+										className="flex items-center justify-between p-2 rounded-lg bg-vscode-sideBarSectionHeader-background hover:bg-vscode-toolbar-hoverBackground cursor-pointer transition-colors group/child">
+										<div className="flex items-center gap-2 min-w-0">
+											<div className="p-1 bg-vscode-badge-background rounded group-hover/child:bg-vscode-focusBorder group-hover/child:text-white transition-colors">
+												<Bot size={12} />
+											</div>
+											<div className="flex flex-col min-w-0">
+												<span className="text-[11px] font-semibold truncate leading-tight italic opacity-90">
+													{child.mode || "Agent"}
+												</span>
+												<span className="text-[10px] truncate opacity-60 leading-tight">
+													{child.title || "Working..."}
+												</span>
+											</div>
+										</div>
+										<div
+											className={cn(
+												"text-[9px] px-1.5 py-0.5 rounded-full border border-current opacity-60",
+												child.status === "in_progress" && "text-vscode-charts-yellow",
+												child.status === "completed" && "text-vscode-charts-green",
+												child.status === "failed" && "text-vscode-charts-red",
+											)}>
+											{child.status}
+										</div>
+									</div>
+								))}
+							</div>
+						</div>
+					)}
 			</div>
 			<CloudUpsellDialog open={isOpen} onOpenChange={closeUpsell} onConnect={handleConnect} />
 		</div>

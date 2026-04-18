@@ -17,16 +17,11 @@ import {
 	AlertDialogFooter,
 	AlertDialogHeader,
 	AlertDialogTitle,
-	Button,
-	Checkbox,
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-	StandardTooltip,
-} from "@/components/ui"
+} from "../ui/alert-dialog"
+import { Button } from "../ui/button"
+import { Checkbox } from "../ui/checkbox"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog"
+import { StandardTooltip } from "../ui/standard-tooltip"
 import { vscode } from "@/utils/vscode"
 import { buildDocLink } from "@/utils/docLinks"
 

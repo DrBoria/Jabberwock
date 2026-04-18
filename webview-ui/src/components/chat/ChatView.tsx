@@ -1,11 +1,14 @@
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react"
-import { useDeepCompareEffect, useEvent } from "react-use"
+import { useEvent } from "react-use"
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso"
 import removeMd from "remove-markdown"
 import { VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 import useSound from "use-sound"
 import { LRUCache } from "lru-cache"
 import { Trans } from "react-i18next"
+
+import { observer } from "mobx-react-lite"
+import { isAlive, isStateTreeNode } from "mobx-state-tree"
 
 import { useDebounceEffect } from "@src/utils/useDebounceEffect"
 import { appendImages } from "@src/utils/imageUtils"
@@ -27,10 +30,12 @@ import { getLatestTodo } from "@shared/todo"
 import { vscode } from "@src/utils/vscode"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
+import { useChatTree } from "@src/context/ChatTreeContext"
 import { useSelectedModel } from "@src/components/ui/hooks/useSelectedModel"
 import JabberwockHero from "@src/components/welcome/JabberwockHero"
 import JabberwockTips from "@src/components/welcome/JabberwockTips"
-import { StandardTooltip, Button } from "@src/components/ui"
+import { StandardTooltip } from "@src/components/ui/standard-tooltip"
+import { Button } from "@src/components/ui/button"
 import { CloudUpsellDialog } from "@src/components/cloud/CloudUpsellDialog"
 
 import TelemetryBanner from "../common/TelemetryBanner"
@@ -50,15 +55,20 @@ import DismissibleUpsell from "../common/DismissibleUpsell"
 import DiagnosticDashboard from "./diagnostics/DiagnosticDashboard"
 import { useCloudUpsell } from "@src/hooks/useCloudUpsell"
 import { useScrollLifecycle } from "@src/hooks/useScrollLifecycle"
-import { Cloud, Activity } from "lucide-react"
+import { Cloud, Activity, ListTree } from "lucide-react"
 
 import { useChatDragAndDrop } from "../../features/context-drag-drop/useChatDragAndDrop"
 import { ChatDropZoneOverlay } from "../../features/context-drag-drop/ChatDropZoneOverlay"
+
+import { cn } from "@src/lib/utils"
+import { useWindowManager } from "@src/context/WindowManagerContext"
+import { LucideIconButton } from "./LucideIconButton"
 
 export interface ChatViewProps {
 	isHidden: boolean
 	showAnnouncement: boolean
 	hideAnnouncement: () => void
+	targetNodeId?: string
 }
 
 export interface ChatViewRef {
@@ -67,12 +77,10 @@ export interface ChatViewRef {
 
 export const MAX_IMAGES_PER_MESSAGE = 20 // This is the Anthropic limit.
 
-const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0
+const isMac = typeof navigator !== "undefined" && navigator.platform.toUpperCase().indexOf("MAC") >= 0
 
-const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewProps> = (
-	{ isHidden, showAnnouncement, hideAnnouncement },
-	ref,
-) => {
+const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewProps> = (props, ref) => {
+	const { isHidden, showAnnouncement, hideAnnouncement } = props
 	const [audioBaseUri] = useState(() => {
 		return (window as unknown as { AUDIO_BASE_URI?: string }).AUDIO_BASE_URI || ""
 	})
@@ -81,7 +89,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 	const modeShortcutText = `${isMac ? "⌘" : "Ctrl"} + . ${t("chat:forNextMode")}, ${isMac ? "⌘" : "Ctrl"} + Shift + . ${t("chat:forPreviousMode")}`
 
 	const {
-		clineMessages: messages,
 		currentTaskItem,
 		currentTaskTodos,
 		taskHistory,
@@ -95,12 +102,17 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 		soundEnabled,
 		soundVolume,
 		cloudIsAuthenticated,
+		clineMessages,
 		messageQueue = [],
 		showWorktreesInHomeScreen,
 		cwd,
 		diagnostics,
 		devtoolEnabled,
 	} = useExtensionState()
+
+	const { pushWindow } = useWindowManager()
+
+	const { nodes, isNavigating } = useChatTree()
 
 	// Show a WarningRow when the user sends a message with a retired provider.
 	const [showRetiredProviderWarning, setShowRetiredProviderWarning] = useState(false)
@@ -111,8 +123,44 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 		setShowRetiredProviderWarning(false)
 	}, [providerName])
 
-	const messagesRef = useRef(messages)
+	// Phase 3: Transition to ChatTreeStore source of truth
+	// We prefer the messages from the tree node matching currentTaskItem.id
+	const store = useChatTree()
+	const messagesRef = useRef(clineMessages)
+	const treeMessages = useMemo(() => {
+		const effectiveNodeId = props.targetNodeId || currentTaskItem?.id
+		if (effectiveNodeId) {
+			const node = nodes.get(effectiveNodeId)
+			if (node) {
+				const hasUiMessages = node.uiMessages && node.uiMessages.length > 0
+				const hasRawMessages = node.messages && node.messages.length > 0
 
+				// If we have raw messages but no UI messages, or if the raw messages
+				// contain a more recent update (especially during streaming), use them.
+				if (
+					hasRawMessages &&
+					(!hasUiMessages || (node.messages.at(-1)?.ts || 0) > (node.uiMessages?.at(-1)?.ts || 0))
+				) {
+					return node.messages as any[]
+				}
+
+				if (hasUiMessages) {
+					return node.uiMessages as any[]
+				}
+			}
+		}
+
+		// If we are currently navigating or the store is catching up,
+		// we return a fallback or the last known good messages to prevent flashing.
+		if (isNavigating && messagesRef.current && messagesRef.current.length > 0) {
+			return messagesRef.current
+		}
+
+		return clineMessages || []
+	}, [props.targetNodeId, currentTaskItem?.id, nodes, clineMessages, isNavigating])
+
+	const messages = treeMessages
+	// Update messagesRef when messages change
 	useEffect(() => {
 		messagesRef.current = messages
 	}, [messages])
@@ -133,6 +181,10 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 			}
 			// Otherwise use the initial todos from state
 			return currentTaskTodos
+		}
+		// Safety check for dead MST objects
+		if (isStateTreeNode(messages) && !isAlive(messages)) {
+			return []
 		}
 		// Fall back to extracting from messages
 		return getLatestTodo(messages)
@@ -283,7 +335,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 		vscode.postMessage({ type: "playTts", text })
 	}
 
-	useDeepCompareEffect(() => {
+	useEffect(() => {
 		// if last message is an ask, show user ask UI
 		// if user finished a task, then start a new task with a new conversation history since in this moment that the extension is waiting for user response, the user could close the extension and the conversation history would be lost.
 		// basically as long as a task is active, the conversation history will be persisted
@@ -403,6 +455,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 							// Extension waiting for feedback, but we can just present a new task button.
 							// Only play celebration sound if there are no queued messages.
 							if (!isPartial && messageQueue.length === 0) {
+								// Sound context is already initialized in SoundContext.tsx
 								playSound("celebration")
 							}
 							setSendingDisabled(isPartial)
@@ -422,7 +475,9 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 							const isCompletedSubtask =
 								currentTaskItem?.parentTaskId &&
 								messages.some(
-									(msg) => msg.ask === "completion_result" || msg.say === "completion_result",
+									(msg) =>
+										(!isStateTreeNode(msg) || isAlive(msg)) &&
+										(msg.ask === "completion_result" || msg.say === "completion_result"),
 								)
 							if (isCompletedSubtask) {
 								setPrimaryButtonText(t("chat:startNewTask.title"))
@@ -477,7 +532,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 					break
 			}
 		}
-	}, [lastMessage, secondLastMessage])
+	}, [lastMessage, secondLastMessage, currentTaskItem?.parentTaskId, messageQueue.length, messages, playSound, t])
 
 	// Update button text when messages change (e.g., completion_result is added) for subtasks in resume_task state
 	useEffect(() => {
@@ -595,7 +650,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 		}
 	}, [])
 
-	const handleChatReset = useCallback(() => {
+	const handleChatReset = useCallback((shouldPostMessage: boolean = true) => {
 		// Clear any pending auto-approval timeout
 		if (autoApproveTimeoutRef.current) {
 			clearTimeout(autoApproveTimeoutRef.current)
@@ -604,9 +659,14 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 		// Reset user response flag for new message
 		userRespondedRef.current = false
 
+		// Signal backend to clear the current task only if explicitly requested (not from newChat invoke)
+		if (shouldPostMessage) {
+			vscode.postMessage({ type: "clearTask" })
+		}
+
 		// Only reset message-specific state, preserving mode.
 		setInputValue("")
-		setSendingDisabled(true)
+		setSendingDisabled(false)
 		setSelectedImages([])
 		setClineAsk(undefined)
 		setEnableButtons(false)
@@ -693,7 +753,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 					vscode.postMessage({ type: "askResponse", askResponse: "messageResponse", text, images })
 				}
 
-				handleChatReset()
+				handleChatReset(true)
 			}
 		},
 		[
@@ -723,6 +783,8 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 
 	const startNewTask = useCallback(() => {
 		setShowRetiredProviderWarning(false)
+		setInputValue("")
+		setSelectedImages([])
 		vscode.postMessage({ type: "clearTask" })
 	}, [])
 
@@ -907,7 +969,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 				case "invoke":
 					switch (message.invoke!) {
 						case "newChat":
-							handleChatReset()
+							handleChatReset(false)
 							break
 						case "sendMessage":
 							handleSendMessage(message.text ?? "", message.images ?? [])
@@ -920,6 +982,20 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 							break
 						case "secondaryButtonClick":
 							handleSecondaryButtonClick(message.text ?? "", message.images ?? [])
+							break
+						case "approveTodoPlan":
+							// E2E Support: If values are provided, approve directly
+							if (message.values) {
+								vscode.postMessage({ type: "elicitationResponse", values: message.values })
+								break
+							}
+
+							// Find all iframes and send force-accept message
+							// This is specifically for MCP apps like md-todo-mcp
+							const iframes = document.querySelectorAll("iframe")
+							iframes.forEach((iframe) => {
+								iframe.contentWindow?.postMessage({ type: "mcp-force-accept" }, "*")
+							})
 							break
 					}
 					break
@@ -1106,7 +1182,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 	useEffect(() => {
 		// This ensures the first message is not read, future user messages are
 		// labeled as `user_feedback`.
-		if (lastMessage && messages.length > 1) {
+		if (lastMessage && (!isStateTreeNode(lastMessage) || isAlive(lastMessage)) && messages.length > 1) {
 			if (
 				typeof lastMessage.text === "string" && // has text (must be string for startsWith)
 				(lastMessage.say === "text" || lastMessage.say === "completion_result") && // is a text message
@@ -1386,7 +1462,8 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 				const isManualClick = !!event
 				if (isManualClick || alwaysAllowModeSwitch) {
 					// Switch mode without waiting
-					switchToMode(suggestion.mode)
+					store.navigateToNode(suggestion.id || "") // Pre-emptive state switch
+					vscode.postMessage({ type: "showTaskWithId", text: suggestion.id })
 				}
 			}
 
@@ -1404,7 +1481,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 				setInputValue(preservedInput)
 			}
 		},
-		[handleSendMessage, setInputValue, switchToMode, alwaysAllowModeSwitch, clineAsk, markFollowUpAsAnswered],
+		[handleSendMessage, setInputValue, alwaysAllowModeSwitch, clineAsk, markFollowUpAsAnswered, store],
 	)
 
 	const handleBatchFileResponse = useCallback((response: { [key: string]: boolean }) => {
@@ -1425,7 +1502,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 			// regular message
 			return (
 				<ChatRow
-					key={messageOrGroup.ts}
+					key={`${messageOrGroup.ts}-${index}`}
 					message={messageOrGroup}
 					isExpanded={expandedRows[messageOrGroup.ts] || false}
 					onToggleExpand={toggleRowExpansion} // This was already stabilized
@@ -1438,6 +1515,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 					onFollowUpUnmount={handleFollowUpUnmount}
 					isFollowUpAnswered={messageOrGroup.isAnswered === true || messageOrGroup.ts === currentFollowUpTs}
 					isFollowUpAutoApprovalPaused={isFollowUpAutoApprovalPaused}
+					isNested={!!props.targetNodeId}
 					editable={
 						messageOrGroup.type === "ask" &&
 						messageOrGroup.ask === "tool" &&
@@ -1471,6 +1549,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 			isFollowUpAutoApprovalPaused,
 			enableButtons,
 			primaryButtonText,
+			props.targetNodeId,
 		],
 	)
 
@@ -1570,39 +1649,81 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 			{task ? (
 				<>
 					<DiagnosticDashboard diagnostics={diagnostics} isStreaming={isStreaming} />
-					<TaskHeader
-						task={task}
-						tokensIn={apiMetrics.totalTokensIn}
-						tokensOut={apiMetrics.totalTokensOut}
-						cacheWrites={apiMetrics.totalCacheWrites}
-						cacheReads={apiMetrics.totalCacheReads}
-						totalCost={apiMetrics.totalCost}
-						aggregatedCost={
-							currentTaskItem?.id && aggregatedCostsMap.has(currentTaskItem.id)
-								? aggregatedCostsMap.get(currentTaskItem.id)!.totalCost
-								: undefined
-						}
-						hasSubtasks={
-							!!(
-								currentTaskItem?.id &&
-								aggregatedCostsMap.has(currentTaskItem.id) &&
-								aggregatedCostsMap.get(currentTaskItem.id)!.childrenCost > 0
-							)
-						}
-						parentTaskId={currentTaskItem?.parentTaskId}
-						costBreakdown={
-							currentTaskItem?.id && aggregatedCostsMap.has(currentTaskItem.id)
-								? getCostBreakdownIfNeeded(aggregatedCostsMap.get(currentTaskItem.id)!, {
-										own: t("common:costs.own"),
-										subtasks: t("common:costs.subtasks"),
-									})
-								: undefined
-						}
-						contextTokens={apiMetrics.contextTokens}
-						buttonsDisabled={sendingDisabled}
-						handleCondenseContext={handleCondenseContext}
-						todos={latestTodos}
-					/>
+					{(() => {
+						const effectiveNodeId = props.targetNodeId || currentTaskItem?.id
+						const activeNode = effectiveNodeId ? nodes.get(effectiveNodeId) : undefined
+
+						return (
+							<TaskHeader
+								task={task}
+								tokensIn={apiMetrics.totalTokensIn}
+								tokensOut={apiMetrics.totalTokensOut}
+								cacheWrites={apiMetrics.totalCacheWrites}
+								cacheReads={apiMetrics.totalCacheReads}
+								totalCost={apiMetrics.totalCost}
+								aggregatedCost={
+									effectiveNodeId && aggregatedCostsMap.has(effectiveNodeId)
+										? aggregatedCostsMap.get(effectiveNodeId)!.totalCost
+										: undefined
+								}
+								hasSubtasks={
+									!!(
+										effectiveNodeId &&
+										aggregatedCostsMap.has(effectiveNodeId) &&
+										aggregatedCostsMap.get(effectiveNodeId)!.childrenCost > 0
+									)
+								}
+								parentTaskId={activeNode?.parentId || currentTaskItem?.parentTaskId}
+								nodeTitle={activeNode?.title}
+								costBreakdown={
+									effectiveNodeId && aggregatedCostsMap.has(effectiveNodeId)
+										? getCostBreakdownIfNeeded(aggregatedCostsMap.get(effectiveNodeId)!, {
+												own: t("common:costs.own"),
+												subtasks: t("common:costs.subtasks"),
+											})
+										: undefined
+								}
+								contextTokens={apiMetrics.contextTokens}
+								buttonsDisabled={sendingDisabled}
+								handleCondenseContext={handleCondenseContext}
+								todos={latestTodos}
+							/>
+						)
+					})()}
+
+					{/* Phase 5: Ensure Parent Context is present in DOM for E2E verification */}
+					{(() => {
+						const effectiveNodeId = props.targetNodeId || currentTaskItem?.id
+						const activeNode = effectiveNodeId ? nodes.get(effectiveNodeId) : undefined
+						const parentNodeId = activeNode?.parentId || currentTaskItem?.parentTaskId
+						const parentNode = parentNodeId ? nodes.get(parentNodeId) : undefined
+
+						if (!parentNode) return null
+
+						return (
+							<div
+								id="parent-conversation-context"
+								className="mt-4 pt-4 border-t border-vscode-sideBar-border opacity-60"
+								data-testid="parent-conversation-context">
+								<div className="text-[10px] uppercase font-bold tracking-wider mb-2 text-vscode-descriptionForeground flex items-center gap-1">
+									<Activity size={10} />
+									Inherited Parent Context
+								</div>
+								<div className="flex flex-col gap-1 max-h-[300px] overflow-y-auto pr-2">
+									{parentNode.messages.map((msg: any, i: number) => (
+										<div
+											key={`${msg.ts}-${i}`}
+											data-testid="parent-message"
+											data-role={msg.role}
+											className="text-[11px] font-mono whitespace-pre-wrap break-words p-1 rounded bg-vscode-editor-background">
+											<span className="opacity-50 mr-1">[{msg.role}]</span>
+											{msg.text || (msg.content && JSON.stringify(msg.content))}
+										</div>
+									))}
+								</div>
+							</div>
+						)
+					})()}
 
 					{checkpointWarning && (
 						<div className="px-3">
@@ -1659,100 +1780,207 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 
 			{!task && showWorktreesInHomeScreen && <WorktreeSelector />}
 
-			{task && (
-				<>
-					<div className="grow flex" ref={scrollContainerRef}>
-						<Virtuoso
-							ref={virtuosoRef}
-							key={task.ts}
-							className="scrollable grow overflow-y-scroll mb-1"
-							increaseViewportBy={{ top: 3_000, bottom: 1000 }}
-							data={groupedMessages}
-							itemContent={itemContent}
-							followOutput={followOutputCallback}
-							atBottomStateChange={atBottomStateChangeCallback}
-							atBottomThreshold={10}
-						/>
-					</div>
-					<FileChangesPanel clineMessages={messages} />
-					{areButtonsVisible && (
-						<div
-							className={`flex h-9 items-center mb-1 px-[15px] ${
-								showScrollToBottom ? "opacity-100" : enableButtons ? "opacity-100" : "opacity-50"
-							}`}>
-							{showScrollToBottom ? (
-								<StandardTooltip content={t("chat:scrollToBottom")}>
-									<Button
-										variant="secondary"
-										className="flex-[2]"
-										onClick={handleScrollToBottomClick}>
-										<span className="codicon codicon-chevron-down"></span>
-									</Button>
-								</StandardTooltip>
-							) : (
-								<>
-									{primaryButtonText && (
-										<StandardTooltip
-											content={
-												primaryButtonText === t("chat:retry.title")
-													? t("chat:retry.tooltip")
-													: primaryButtonText === t("chat:save.title")
-														? t("chat:save.tooltip")
-														: primaryButtonText === t("chat:approve.title")
-															? t("chat:approve.tooltip")
-															: primaryButtonText === t("chat:runCommand.title")
-																? t("chat:runCommand.tooltip")
-																: primaryButtonText === t("chat:startNewTask.title")
-																	? t("chat:startNewTask.tooltip")
-																	: primaryButtonText === t("chat:resumeTask.title")
-																		? t("chat:resumeTask.tooltip")
-																		: primaryButtonText ===
-																			  t("chat:proceedAnyways.title")
-																			? t("chat:proceedAnyways.tooltip")
-																			: primaryButtonText ===
-																				  t("chat:proceedWhileRunning.title")
-																				? t("chat:proceedWhileRunning.tooltip")
-																				: undefined
-											}>
+			<div className="flex grow overflow-hidden relative">
+				<div className="flex flex-col grow min-w-0 overflow-hidden relative">
+					{task && (
+						<>
+							<div className="grow flex" ref={scrollContainerRef}>
+								<Virtuoso
+									ref={virtuosoRef}
+									key={task.ts}
+									className="scrollable grow overflow-y-scroll mb-1"
+									increaseViewportBy={{ top: 3_000, bottom: 1000 }}
+									data={groupedMessages}
+									itemContent={itemContent}
+									followOutput={followOutputCallback}
+									atBottomStateChange={atBottomStateChangeCallback}
+									atBottomThreshold={10}
+								/>
+							</div>
+
+							{/* Navigation Triggers */}
+							<div className="absolute right-2 top-1/2 -translate-y-1/2 z-[40] flex flex-col gap-2 scale-90 origin-right">
+								{(() => {
+									const currentNodeId = props.targetNodeId || currentTaskItem?.id
+									if (!currentNodeId) return null
+
+									const node = nodes.get(currentNodeId)
+									if (!node || node.children.length === 0) return null
+
+									const hasDeepNesting = node.children.some((childId) => {
+										const child = nodes.get(childId)
+										return child && child.children.length > 0
+									})
+
+									return (
+										<div className="flex flex-col gap-2 items-center">
+											{hasDeepNesting && (
+												<LucideIconButton
+													title="Show Task Hierarchy"
+													icon={ListTree}
+													onClick={() => pushWindow("task_hierarchy")}
+													className="bg-vscode-button-background text-vscode-button-foreground shadow-lg hover:bg-vscode-button-hoverBackground transition-all transform hover:scale-110 mb-2"
+												/>
+											)}
+
+											{node.children.map((childId) => {
+												const child = nodes.get(childId)
+												if (!child) return null
+												const agentInitial = (child.mode || "A").charAt(0).toUpperCase()
+
+												return (
+													<StandardTooltip
+														key={childId}
+														content={
+															<div className="flex flex-col gap-1 max-w-[200px]">
+																<div className="font-bold flex items-center justify-between gap-2">
+																	<span className="truncate">
+																		{child.mode || "Agent"}
+																	</span>
+																	<span
+																		className={cn(
+																			"text-[9px] px-1.5 py-0.5 rounded-full border border-current",
+																			child.status === "in_progress" &&
+																				"text-vscode-charts-yellow border-vscode-charts-yellow",
+																			child.status === "completed" &&
+																				"text-vscode-charts-green border-vscode-charts-green",
+																			child.status === "failed" &&
+																				"text-vscode-charts-red border-vscode-charts-red",
+																		)}>
+																		{child.status}
+																	</span>
+																</div>
+																<div className="text-[11px] opacity-80 leading-normal line-clamp-2">
+																	{child.title}
+																</div>
+																<div className="text-[9px] opacity-50 italic mt-1 font-mono">
+																	Click to jump to chat
+																</div>
+															</div>
+														}>
+														<div
+															onClick={(e) => {
+																e.stopPropagation()
+																pushWindow("chat", { targetNodeId: childId })
+															}}
+															className={cn(
+																"w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold cursor-pointer transition-all shadow-md border-2 border-transparent hover:scale-110 active:scale-95 z-50",
+																child.status === "in_progress"
+																	? "bg-vscode-button-background text-vscode-button-foreground animate-pulse border-vscode-charts-yellow/50"
+																	: "bg-vscode-sideBar-background text-vscode-foreground opacity-90",
+																child.status === "completed" &&
+																	"bg-vscode-charts-green text-white",
+																child.status === "failed" &&
+																	"bg-vscode-charts-red text-white",
+															)}>
+															{agentInitial}
+														</div>
+													</StandardTooltip>
+												)
+											})}
+										</div>
+									)
+								})()}
+							</div>
+
+							<FileChangesPanel clineMessages={messages} />
+							{areButtonsVisible && (
+								<div
+									className={`flex h-9 items-center mb-1 px-[15px] ${
+										showScrollToBottom
+											? "opacity-100"
+											: enableButtons
+												? "opacity-100"
+												: "opacity-50"
+									}`}>
+									{showScrollToBottom ? (
+										<StandardTooltip content={t("chat:scrollToBottom")}>
 											<Button
-												data-agent-action="continue-task"
-												variant="primary"
-												disabled={!enableButtons}
-												className={secondaryButtonText ? "flex-1 mr-[6px]" : "flex-[2] mr-0"}
-												onClick={() => handlePrimaryButtonClick(inputValue, selectedImages)}>
-												{primaryButtonText}
-											</Button>
-										</StandardTooltip>
-									)}
-									{secondaryButtonText && (
-										<StandardTooltip
-											content={
-												secondaryButtonText === t("chat:startNewTask.title")
-													? t("chat:startNewTask.tooltip")
-													: secondaryButtonText === t("chat:reject.title")
-														? t("chat:reject.tooltip")
-														: secondaryButtonText === t("chat:terminate.title")
-															? t("chat:terminate.tooltip")
-															: secondaryButtonText === t("chat:killCommand.title")
-																? t("chat:killCommand.tooltip")
-																: undefined
-											}>
-											<Button
-												data-agent-action="reject-task"
 												variant="secondary"
-												disabled={!enableButtons}
-												className="flex-1 ml-[6px]"
-												onClick={() => handleSecondaryButtonClick(inputValue, selectedImages)}>
-												{secondaryButtonText}
+												className="flex-[2]"
+												onClick={handleScrollToBottomClick}>
+												<span className="codicon codicon-chevron-down"></span>
 											</Button>
 										</StandardTooltip>
+									) : (
+										<>
+											{primaryButtonText && (
+												<StandardTooltip
+													content={
+														primaryButtonText === t("chat:retry.title")
+															? t("chat:retry.tooltip")
+															: primaryButtonText === t("chat:save.title")
+																? t("chat:save.tooltip")
+																: primaryButtonText === t("chat:approve.title")
+																	? t("chat:approve.tooltip")
+																	: primaryButtonText === t("chat:runCommand.title")
+																		? t("chat:runCommand.tooltip")
+																		: primaryButtonText ===
+																			  t("chat:startNewTask.title")
+																			? t("chat:startNewTask.tooltip")
+																			: primaryButtonText ===
+																				  t("chat:resumeTask.title")
+																				? t("chat:resumeTask.tooltip")
+																				: primaryButtonText ===
+																					  t("chat:proceedAnyways.title")
+																					? t("chat:proceedAnyways.tooltip")
+																					: primaryButtonText ===
+																						  t(
+																								"chat:proceedWhileRunning.title",
+																						  )
+																						? t(
+																								"chat:proceedWhileRunning.tooltip",
+																							)
+																						: undefined
+													}>
+													<Button
+														data-agent-action="continue-task"
+														variant="primary"
+														disabled={!enableButtons}
+														className={
+															secondaryButtonText ? "flex-1 mr-[6px]" : "flex-[2] mr-0"
+														}
+														onClick={() =>
+															handlePrimaryButtonClick(inputValue, selectedImages)
+														}>
+														{primaryButtonText}
+													</Button>
+												</StandardTooltip>
+											)}
+											{secondaryButtonText && (
+												<StandardTooltip
+													content={
+														secondaryButtonText === t("chat:startNewTask.title")
+															? t("chat:startNewTask.tooltip")
+															: secondaryButtonText === t("chat:reject.title")
+																? t("chat:reject.tooltip")
+																: secondaryButtonText === t("chat:terminate.title")
+																	? t("chat:terminate.tooltip")
+																	: secondaryButtonText ===
+																		  t("chat:killCommand.title")
+																		? t("chat:killCommand.tooltip")
+																		: undefined
+													}>
+													<Button
+														data-agent-action="reject-task"
+														variant="secondary"
+														disabled={!enableButtons}
+														className="flex-1 ml-[6px]"
+														onClick={() =>
+															handleSecondaryButtonClick(inputValue, selectedImages)
+														}>
+														{secondaryButtonText}
+													</Button>
+												</StandardTooltip>
+											)}
+										</>
 									)}
-								</>
+								</div>
 							)}
-						</div>
+						</>
 					)}
-				</>
-			)}
+				</div>
+			</div>
 
 			<QueuedMessages
 				queue={messageQueue}
@@ -1812,11 +2040,12 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 			)}
 
 			<div id="jabberwock-portal" />
+
 			<CloudUpsellDialog open={isUpsellOpen} onOpenChange={closeUpsell} onConnect={handleConnect} />
 		</div>
 	)
 }
 
-const ChatView = forwardRef(ChatViewComponent)
+const ChatView = observer(forwardRef(ChatViewComponent))
 
 export default ChatView

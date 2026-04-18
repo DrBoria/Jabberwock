@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next"
 
 import { formatLargeNumber } from "@/utils/format"
 import { calculateTokenDistribution } from "@/utils/model-utils"
-import { StandardTooltip } from "@/components/ui"
+import { StandardTooltip } from "../ui/standard-tooltip"
 
 interface ContextWindowProgressProps {
 	contextWindow: number

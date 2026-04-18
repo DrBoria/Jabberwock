@@ -8,7 +8,8 @@ import delay from "delay"
 import type { ExperimentId } from "@jabberwock/types"
 
 import { formatLanguage } from "../../shared/language"
-import { defaultModeSlug, getFullModeDetails } from "../../shared/modes"
+import { defaultModeSlug } from "../../shared/modes"
+import { getFullModeDetails } from "../../shared/modes-extension"
 import { getApiMetrics } from "../../shared/getApiMetrics"
 import { listFiles } from "../../services/glob/list-files"
 import { TerminalRegistry } from "../../integrations/terminal/TerminalRegistry"
@@ -205,7 +206,6 @@ export async function getEnvironmentDetails(cline: Task, includeFileDetails: boo
 
 	// Add current mode and any mode-specific warnings.
 	const {
-		mode,
 		customModes,
 		customModePrompts,
 		experiments = {} as Record<ExperimentId, boolean>,
@@ -213,7 +213,7 @@ export async function getEnvironmentDetails(cline: Task, includeFileDetails: boo
 		language,
 	} = state ?? {}
 
-	const currentMode = mode ?? defaultModeSlug
+	const currentMode = cline.taskMode || defaultModeSlug
 
 	const modeDetails = await getFullModeDetails(currentMode, customModes, customModePrompts, {
 		cwd: cline.cwd,
@@ -241,7 +241,7 @@ export async function getEnvironmentDetails(cline: Task, includeFileDetails: boo
 			if (maxFiles === 0) {
 				details += "(Workspace files context disabled. Use list_files to explore if needed.)"
 			} else {
-				const [files, didHitLimit] = await listFiles(cline.cwd, true, maxFiles)
+				const [files, didHitLimit] = await listFiles(cline.cwd, true, maxFiles, cline.virtualWorkspace)
 				const { showJabberwockIgnoredFiles = false } = state ?? {}
 
 				const result = formatResponse.formatFilesList(

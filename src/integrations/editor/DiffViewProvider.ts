@@ -1,6 +1,5 @@
 import * as vscode from "vscode"
 import * as path from "path"
-import * as fs from "fs/promises"
 import * as diff from "diff"
 import stripBom from "strip-bom"
 import delay from "delay"
@@ -66,19 +65,24 @@ export class DiffViewProvider {
 		// after editing to see if cline needs to fix anything.
 		this.preDiagnostics = vscode.languages.getDiagnostics()
 
+		const vfs = this.taskRef.deref()?.virtualWorkspace
+		if (!vfs) {
+			throw new Error("Task virtual workspace not available")
+		}
+
 		if (fileExists) {
-			this.originalContent = await fs.readFile(absolutePath, "utf-8")
+			this.originalContent = await vfs.readFile(absolutePath)
 		} else {
 			this.originalContent = ""
 		}
 
 		// For new files, create any necessary directories and keep track of new
 		// directories to delete if the user denies the operation.
-		this.createdDirs = await createDirectoriesForFile(absolutePath)
+		this.createdDirs = await createDirectoriesForFile(absolutePath, vfs)
 
 		// Make sure the file exists before we open it.
 		if (!fileExists) {
-			await fs.writeFile(absolutePath, "")
+			await vfs.writeFile(absolutePath, "")
 		}
 
 		// If the file was already open, close it (must happen after showing the
@@ -209,7 +213,17 @@ export class DiffViewProvider {
 		const updatedDocument = this.activeDiffEditor.document
 		const editedContent = updatedDocument.getText()
 
+		const vfs = this.taskRef.deref()?.virtualWorkspace
+		if (!vfs) {
+			throw new Error("Task virtual workspace not available")
+		}
+
+		// Save document to VFS instead of disk
+		await vfs.writeFile(absolutePath, editedContent)
+
 		if (updatedDocument.isDirty) {
+			// This might still trigger a VSCode disk write if not intercepted,
+			// but at least our VFS is the source of truth for Jabberwock.
 			await updatedDocument.save()
 		}
 
@@ -377,11 +391,15 @@ export class DiffViewProvider {
 			}
 
 			await this.closeAllDiffViews()
-			await fs.unlink(absolutePath)
 
-			// Remove only the directories we created, in reverse order.
-			for (let i = this.createdDirs.length - 1; i >= 0; i--) {
-				await fs.rmdir(this.createdDirs[i])
+			const vfs = this.taskRef.deref()?.virtualWorkspace
+			if (vfs) {
+				await vfs.unlink(absolutePath)
+
+				// Remove only the directories we created, in reverse order.
+				for (let i = this.createdDirs.length - 1; i >= 0; i--) {
+					await vfs.rmdir(this.createdDirs[i])
+				}
 			}
 		} else {
 			// Revert document.
@@ -652,12 +670,17 @@ export class DiffViewProvider {
 	}> {
 		const absolutePath = path.resolve(this.cwd, relPath)
 
+		const vfs = this.taskRef.deref()?.virtualWorkspace
+		if (!vfs) {
+			throw new Error("Task virtual workspace not available")
+		}
+
 		// Get diagnostics before editing the file
 		this.preDiagnostics = vscode.languages.getDiagnostics()
 
 		// Write the content directly to the file
-		await createDirectoriesForFile(absolutePath)
-		await fs.writeFile(absolutePath, content, "utf-8")
+		await createDirectoriesForFile(absolutePath, vfs)
+		await vfs.writeFile(absolutePath, content)
 
 		// Open the document to ensure diagnostics are loaded
 		// When openFile is false (PREVENT_FOCUS_DISRUPTION enabled), we only open in memory

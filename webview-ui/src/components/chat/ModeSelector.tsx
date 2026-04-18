@@ -12,7 +12,8 @@ import { cn } from "@/lib/utils"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { useAppTranslation } from "@/i18n/TranslationContext"
 import { useJabberwockPortal } from "@/components/ui/hooks/useJabberwockPortal"
-import { Popover, PopoverContent, PopoverTrigger, StandardTooltip } from "@/components/ui"
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover"
+import { StandardTooltip } from "../ui/standard-tooltip"
 
 import { IconButton } from "./IconButton"
 

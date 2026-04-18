@@ -5,7 +5,7 @@ import delay from "delay"
 import type { Mock } from "vitest"
 
 import { getEnvironmentDetails } from "../getEnvironmentDetails"
-import { getFullModeDetails } from "../../../shared/modes"
+import { getFullModeDetails } from "../../../shared/modes-extension"
 import { isToolAllowedForMode } from "../../tools/validateToolUse"
 import { getApiMetrics } from "../../../shared/getApiMetrics"
 import { listFiles } from "../../../services/glob/list-files"
@@ -43,6 +43,7 @@ vi.mock("execa", () => ({
 }))
 
 vi.mock("../../../shared/modes")
+vi.mock("../../../shared/modes-extension")
 vi.mock("../../../shared/getApiMetrics")
 vi.mock("../../../services/glob/list-files")
 vi.mock("../../../integrations/terminal/TerminalRegistry")

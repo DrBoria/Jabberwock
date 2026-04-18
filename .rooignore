@@ -1,1 +1,12 @@
 .env
+node_modules
+.turbo
+.vscode-test
+.husky
+.github
+.jabber
+.changeset
+bin
+releases
+webview-ui/node_modules
+webview-ui/.turbo

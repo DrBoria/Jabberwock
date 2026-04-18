@@ -55,7 +55,7 @@ vi.mock("../../core/config/ProviderSettingsManager", async (importOriginal) => {
 		__esModule: true,
 		// We need to mock the class constructor and its methods,
 		// but keep other exports (like schemas) as their original values.
-		...(originalModule || {}), // Spread original exports
+		...(typeof originalModule === "object" && originalModule !== null ? (originalModule as object) : {}), // Cast to object to satisfy TS2698
 		ProviderSettingsManager: vi.fn().mockImplementation(() => ({
 			// Mock the class
 			export: vi.fn().mockResolvedValue({

@@ -1,4 +1,5 @@
 import { listFiles } from "../../glob/list-files"
+import { VirtualWorkspace } from "../../../core/fs/VirtualWorkspace"
 import { Ignore } from "ignore"
 import { JabberwockIgnoreController } from "../../../core/ignore/JabberwockIgnoreController"
 import { stat } from "fs/promises"
@@ -32,6 +33,7 @@ import { sanitizeErrorMessage } from "../shared/validation-helpers"
 import { Package } from "../../../shared/package"
 
 export class DirectoryScanner implements IDirectoryScanner {
+	private readonly virtualWorkspace = new VirtualWorkspace()
 	private readonly batchSegmentThreshold: number
 
 	constructor(
@@ -78,7 +80,12 @@ export class DirectoryScanner implements IDirectoryScanner {
 		const scanWorkspace = getWorkspacePathForContext(directoryPath)
 
 		// Get all files recursively (handles .gitignore automatically)
-		const [allPaths, _] = await listFiles(directoryPath, true, MAX_LIST_FILES_LIMIT_CODE_INDEX)
+		const [allPaths, _] = await listFiles(
+			directoryPath,
+			true,
+			MAX_LIST_FILES_LIMIT_CODE_INDEX,
+			this.virtualWorkspace,
+		)
 
 		// Filter out directories (marked with trailing '/')
 		const filePaths = allPaths.filter((p) => !p.endsWith("/"))

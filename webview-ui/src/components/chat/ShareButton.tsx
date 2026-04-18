@@ -9,16 +9,9 @@ import { telemetryClient } from "@/utils/TelemetryClient"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { useCloudUpsell } from "@/hooks/useCloudUpsell"
 import { CloudUpsellDialog } from "@/components/cloud/CloudUpsellDialog"
-import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-	Command,
-	CommandList,
-	CommandItem,
-	CommandGroup,
-	StandardTooltip,
-} from "@/components/ui"
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover"
+import { Command, CommandList, CommandItem, CommandGroup } from "../ui/command"
+import { StandardTooltip } from "../ui/standard-tooltip"
 import { LucideIconButton } from "./LucideIconButton"
 
 interface ShareButtonProps {

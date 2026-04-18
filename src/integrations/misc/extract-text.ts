@@ -2,25 +2,26 @@ import * as path from "path"
 // @ts-ignore-next-line
 import pdf from "pdf-parse/lib/pdf-parse"
 import mammoth from "mammoth"
-import fs from "fs/promises"
+import { virtualWorkspace } from "../../core/fs/VirtualWorkspace"
 import { isBinaryFile } from "isbinaryfile"
 import { extractTextFromXLSX } from "./extract-text-from-xlsx"
 import { readWithSlice } from "./indentation-reader"
 import { DEFAULT_LINE_LIMIT } from "../../core/prompts/tools/native-tools/read_file"
 
 async function extractTextFromPDF(filePath: string): Promise<string> {
-	const dataBuffer = await fs.readFile(filePath)
+	const dataBuffer = await virtualWorkspace.readBuffer(filePath)
 	const data = await pdf(dataBuffer)
 	return addLineNumbers(data.text)
 }
 
 async function extractTextFromDOCX(filePath: string): Promise<string> {
-	const result = await mammoth.extractRawText({ path: filePath })
+	const dataBuffer = await virtualWorkspace.readBuffer(filePath)
+	const result = await mammoth.extractRawText({ arrayBuffer: dataBuffer })
 	return addLineNumbers(result.value)
 }
 
 async function extractTextFromIPYNB(filePath: string): Promise<string> {
-	const data = await fs.readFile(filePath, "utf8")
+	const data = await virtualWorkspace.readFile(filePath)
 	const notebook = JSON.parse(data)
 	let extractedText = ""
 
@@ -80,7 +81,7 @@ export async function extractTextFromFileWithMetadata(
 	limit: number = DEFAULT_LINE_LIMIT,
 ): Promise<ExtractTextResult> {
 	try {
-		await fs.access(filePath)
+		await virtualWorkspace.stat(filePath)
 	} catch (error) {
 		throw new Error(`File not found: ${filePath}`)
 	}
@@ -105,7 +106,7 @@ export async function extractTextFromFileWithMetadata(
 	const isBinary = await isBinaryFile(filePath).catch(() => false)
 
 	if (!isBinary) {
-		const rawContent = await fs.readFile(filePath, "utf8")
+		const rawContent = await virtualWorkspace.readFile(filePath)
 		const result = readWithSlice(rawContent, 0, limit)
 
 		return {

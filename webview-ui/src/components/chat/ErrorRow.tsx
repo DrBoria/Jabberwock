@@ -7,9 +7,9 @@ import { useCopyToClipboard } from "@src/utils/clipboard"
 import { vscode } from "@src/utils/vscode"
 import CodeBlock from "../common/CodeBlock"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@src/components/ui/dialog"
-import { Button } from "../ui"
+import { Button } from "../ui/button"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
-import { useSelectedModel } from "@src/components/ui/hooks/useSelectedModel"
+import { useSelectedModel } from "../ui/hooks/useSelectedModel"
 import { PROVIDERS } from "../settings/constants"
 
 /**

@@ -1,5 +1,6 @@
 import { vscode } from "@/utils/vscode"
-import { Button, StandardTooltip } from "@/components/ui"
+import { Button } from "../ui/button"
+import { StandardTooltip } from "../ui/standard-tooltip"
 import { useAppTranslation } from "@/i18n/TranslationContext"
 import { useCallback } from "react"
 

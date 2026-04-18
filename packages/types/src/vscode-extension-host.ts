@@ -107,7 +107,12 @@ export interface ExtensionMessage {
 		| "skills"
 		| "fileContent"
 		| "diagnostics"
+		| "chatTreeSnapshot"
+		| "chatTreePatch"
+		| "getDom"
+
 	text?: string
+	snapshot?: any // eslint-disable-line @typescript-eslint/no-explicit-any
 	/** For fileContent: { path, content, error? } */
 	fileContent?: { path: string; content: string | null; error?: string }
 	diagnostics?: any // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -126,7 +131,13 @@ export interface ExtensionMessage {
 		| "focusInput"
 		| "switchTab"
 		| "toggleAutoApprove"
-	invoke?: "newChat" | "sendMessage" | "primaryButtonClick" | "secondaryButtonClick" | "setChatBoxMessage"
+	invoke?:
+		| "newChat"
+		| "sendMessage"
+		| "primaryButtonClick"
+		| "secondaryButtonClick"
+		| "setChatBoxMessage"
+		| "approveTodoPlan"
 	/**
 	 * Partial state updates are allowed to reduce message size (e.g. omit large fields like taskHistory).
 	 * The webview is responsible for merging.
@@ -243,6 +254,8 @@ export interface ExtensionMessage {
 	copyProgressItemName?: string
 	// folderSelected
 	path?: string
+	/** Indicates if the message originated from MCP to prevent infinite loops */
+	fromMCP?: boolean
 }
 
 export interface OpenAiCodexRateLimitsMessage {
@@ -599,6 +612,8 @@ export interface WebviewMessage {
 		| "updateSkillModes"
 		| "openSkillFile"
 		| "locatorTarget"
+		| "domResponse"
+		| "webviewError"
 	text?: string
 	taskId?: string
 	editedMessageContent?: string
@@ -712,6 +727,8 @@ export interface WebviewMessage {
 	worktreeNewWindow?: boolean
 	worktreeIncludeContent?: string
 	locatorPayload?: { filePath: string; line: number; column: number }
+	/** Indicates if the message originated from MCP to prevent infinite loops */
+	fromMCP?: boolean
 }
 
 export interface RequestOpenAiCodexRateLimitsMessage {

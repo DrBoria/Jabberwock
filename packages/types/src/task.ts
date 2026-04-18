@@ -99,6 +99,8 @@ export interface CreateTaskOptions {
 	/** Whether to start the task loop immediately (default: true).
 	 *  When false, the caller must invoke `task.start()` manually. */
 	startTask?: boolean
+	/** Optional: slug of the mode to start the task in (e.g. 'orchestrator', 'coder') */
+	mode?: string
 }
 
 export enum TaskStatus {

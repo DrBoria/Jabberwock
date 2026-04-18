@@ -3,7 +3,7 @@ import { useEffect, useState } from "react"
 import { useAppTranslation } from "@/i18n/TranslationContext"
 import { useDebounce } from "react-use"
 
-import { Slider } from "@/components/ui"
+import { Slider } from "../ui/slider"
 
 interface TemperatureControlProps {
 	value: number | undefined | null

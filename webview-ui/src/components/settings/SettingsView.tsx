@@ -52,13 +52,10 @@ import {
 	AlertDialogAction,
 	AlertDialogHeader,
 	AlertDialogFooter,
-	Button,
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
-	StandardTooltip,
-} from "@src/components/ui"
+} from "../ui/alert-dialog"
+import { Button } from "../ui/button"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip"
+import { StandardTooltip } from "../ui/standard-tooltip"
 
 import { Tab, TabContent, TabHeader, TabList, TabTrigger } from "../common/Tab"
 import { SetCachedStateField, SetExperimentEnabled } from "./types"
@@ -643,7 +640,7 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>(({ onDone, t
 	)
 
 	return (
-		<Tab>
+		<Tab data-testid="settings-view">
 			<TabHeader className="flex justify-between items-center gap-2">
 				<div className="flex items-center gap-2 grow">
 					<StandardTooltip content={t("settings:header.doneButtonTooltip")}>

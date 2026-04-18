@@ -3,7 +3,7 @@
 	"displayName": "Jabberwock",
 	"description": "Multi-agent ecosystem powered by MCP Apps",
 	"publisher": "JabberwockInc",
-	"version": "3.51.1",
+	"version": "0.0.1",
 	"icon": "assets/icons/icon.png",
 	"galleryBanner": {
 		"color": "#617A91",

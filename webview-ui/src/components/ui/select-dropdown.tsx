@@ -6,8 +6,8 @@ import { useTranslation } from "react-i18next"
 
 import { cn } from "@/lib/utils"
 import { useJabberwockPortal } from "./hooks/useJabberwockPortal"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui"
-import { StandardTooltip } from "@/components/ui"
+import { Popover, PopoverContent, PopoverTrigger } from "./popover"
+import { StandardTooltip } from "./standard-tooltip"
 
 export enum DropdownOptionType {
 	ITEM = "item",

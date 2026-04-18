@@ -460,7 +460,11 @@ export class QdrantVectorStore implements IVectorStore {
 			const operationResult = await this.client.query(this.collectionName, searchRequest)
 			const filteredPoints = operationResult.points.filter((p) => this.isPayloadValid(p.payload))
 
-			return filteredPoints as VectorStoreSearchResult[]
+			return filteredPoints.map((p) => ({
+				id: p.id,
+				score: p.score,
+				payload: p.payload as any, // isPayloadValid already checked this, but need to satisfy compiler
+			})) as VectorStoreSearchResult[]
 		} catch (error) {
 			console.error("Failed to search points:", error)
 			throw error

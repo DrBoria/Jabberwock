@@ -35,7 +35,7 @@ export function changeLanguage(language: string): void {
  * @returns The translated string
  */
 export function t(key: string, options?: Record<string, any>): string {
-	return i18next.t(key, options)
+	return i18next.t(key, options) as string
 }
 
 export default i18next

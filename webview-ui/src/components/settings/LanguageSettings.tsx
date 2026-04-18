@@ -6,7 +6,7 @@ import type { Language } from "@jabberwock/types"
 import { LANGUAGES } from "@shared/language"
 
 import { cn } from "@src/lib/utils"
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@src/components/ui"
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
 
 import { SetCachedStateField } from "./types"
 import { SectionHeader } from "./SectionHeader"

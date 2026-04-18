@@ -3,7 +3,7 @@ import { useAppTranslation } from "@/i18n/TranslationContext"
 import { VSCodeCheckbox, VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 import { Trans } from "react-i18next"
 import { buildDocLink } from "@src/utils/docLinks"
-import { Slider } from "@/components/ui"
+import { Slider } from "../ui/slider"
 
 import { SetCachedStateField } from "./types"
 import { SectionHeader } from "./SectionHeader"

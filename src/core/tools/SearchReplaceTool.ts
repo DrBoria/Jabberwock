@@ -1,4 +1,3 @@
-import fs from "fs/promises"
 import path from "path"
 
 import { type ClineSayTool, DEFAULT_WRITE_DELAY_MS } from "@jabberwock/types"
@@ -82,7 +81,7 @@ export class SearchReplaceTool extends BaseTool<"search_replace"> {
 
 			const absolutePath = path.resolve(task.cwd, relPath)
 
-			const fileExists = await fileExistsAtPath(absolutePath)
+			const fileExists = await fileExistsAtPath(task.virtualWorkspace, absolutePath)
 			if (!fileExists) {
 				task.consecutiveMistakeCount++
 				task.recordToolError("search_replace")
@@ -94,7 +93,7 @@ export class SearchReplaceTool extends BaseTool<"search_replace"> {
 
 			let fileContent: string
 			try {
-				fileContent = await fs.readFile(absolutePath, "utf8")
+				fileContent = await task.virtualWorkspace.readFile(absolutePath, "utf8")
 				// Normalize line endings to LF for consistent matching
 				fileContent = fileContent.replace(/\r\n/g, "\n")
 			} catch (error) {
