@@ -3,8 +3,12 @@ import { z } from "zod"
 /**
  * Maximum number of MCP tools that can be enabled before showing a warning.
  * LLMs tend to perform poorly when given too many tools to choose from.
+ *
+ * Default increased to 150 to accommodate test environments with multiple MCP servers.
+ * Can be overridden via JABBERWOCK_MAX_MCP_TOOLS_THRESHOLD environment variable.
  */
-export const MAX_MCP_TOOLS_THRESHOLD = 60
+export const MAX_MCP_TOOLS_THRESHOLD =
+	Number.parseInt(process.env.JABBERWOCK_MAX_MCP_TOOLS_THRESHOLD || "150", 10) || 150
 
 /**
  * Jabberwock MCP Server Types

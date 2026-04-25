@@ -563,6 +563,10 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 		// Initialize todo list if provided
 		if (initialTodos && initialTodos.length > 0) {
 			this.todoList = initialTodos
+			// [TODO-LOG] Todo list initialized from constructor
+			const todoInitMsg = `[TODO-LOG] [Task] Todo list initialized (taskId: ${this.taskId}, count: ${initialTodos.length})`
+			console.log(todoInitMsg)
+			diagnosticsManager.log(todoInitMsg, "info")
 		}
 
 		// Initialize debounced token usage emit function
@@ -1528,6 +1532,11 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			askTs = this.generateUniqueTs()
 			this.lastMessageTs = askTs
 			await this.addToClineMessages({ mode: this.taskMode, ts: askTs, type: "ask", ask: type, text, isProtected })
+
+			// [TODO-LOG] Ask created — model is waiting for user response
+			const askLogMsg = `[TODO-LOG] [Task] Ask created (taskId: ${this.taskId}, type: ${type})`
+			console.log(askLogMsg)
+			diagnosticsManager.log(askLogMsg, "info")
 		}
 
 		let timeouts: NodeJS.Timeout[] = []
@@ -2846,6 +2855,10 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 				}),
 			)
 
+			// [TODO-LOG] Stream start — model is about to generate a response
+			const todoLogMsg = `[TODO-LOG] [Task] Stream start (taskId: ${this.taskId}, model: ${modelId})`
+			console.log(todoLogMsg)
+			diagnosticsManager.log(todoLogMsg, "info")
 			const provider = this.providerRef.deref()
 			const state = provider ? await provider.getState() : undefined
 
@@ -3581,6 +3594,11 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 						console.error("Background usage collection failed:", error)
 					})
 				} catch (error) {
+					// [TODO-LOG] Stream error — model generation failed
+					const streamErrorMsg = `[TODO-LOG] [Task] Stream error (taskId: ${this.taskId}, error: ${error?.message ?? "unknown"})`
+					console.log(streamErrorMsg)
+					diagnosticsManager.log(streamErrorMsg, "error")
+
 					// Abandoned happens when extension is no longer waiting for the
 					// Cline instance to finish aborting (error is thrown here when
 					// any function in the for loop throws due to this.abort).
@@ -3639,6 +3657,11 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 					this.isStreaming = false
 					// Clean up the abort controller when streaming completes
 					this.currentRequestAbortController = undefined
+
+					// [TODO-LOG] Stream stop — model finished generating
+					const streamStopMsg = `[TODO-LOG] [Task] Stream stop (taskId: ${this.taskId})`
+					console.log(streamStopMsg)
+					diagnosticsManager.log(streamStopMsg, "info")
 				}
 
 				// Need to call here in case the stream was aborted.
@@ -4685,21 +4708,24 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			}
 		}
 
-		console.log("\n\n=======================================================\n")
-		console.log(`[DEBUG: PROMPT] Final SYSTEM prompt sent to agent:\n\n${systemPrompt}`)
-		console.log("\n=======================================================\n")
-		console.log(
-			`[DEBUG: PROMPT] Final USER/ASSISTANT messages sent to agent:\n\n${JSON.stringify(cleanConversationHistoryForLogs, null, 2)}`,
-		)
-		console.log("\n=======================================================\n")
-		console.log(`[DEBUG: PROMPT] native tools (${nativeToolNames.length}): ${nativeToolNames.join(", ")}`)
-		console.log(`[DEBUG: PROMPT] MCP tools (${mcpToolNames.length}): ${mcpToolNames.join(", ")}`)
-		console.log(`[DEBUG: PROMPT] Tools JSON schema sent to agent:\n${JSON.stringify(allTools, null, 2)}`)
-
-		if (allowedFunctionNames) {
+		// Only log DEBUG: PROMPT when explicitly enabled via env var (avoids console noise)
+		if (process.env.DEBUG_PROMPT === "true") {
+			console.log("\n\n=======================================================\n")
+			console.log(`[DEBUG: PROMPT] Final SYSTEM prompt sent to agent:\n\n${systemPrompt}`)
+			console.log("\n=======================================================\n")
 			console.log(
-				`[DEBUG: PROMPT] allowedFunctionNames (${allowedFunctionNames.length}): ${allowedFunctionNames.join(", ")}`,
+				`[DEBUG: PROMPT] Final USER/ASSISTANT messages sent to agent:\n\n${JSON.stringify(cleanConversationHistoryForLogs, null, 2)}`,
 			)
+			console.log("\n=======================================================\n")
+			console.log(`[DEBUG: PROMPT] native tools (${nativeToolNames.length}): ${nativeToolNames.join(", ")}`)
+			console.log(`[DEBUG: PROMPT] MCP tools (${mcpToolNames.length}): ${mcpToolNames.join(", ")}`)
+			console.log(`[DEBUG: PROMPT] Tools JSON schema sent to agent:\n${JSON.stringify(allTools, null, 2)}`)
+
+			if (allowedFunctionNames) {
+				console.log(
+					`[DEBUG: PROMPT] allowedFunctionNames (${allowedFunctionNames.length}): ${allowedFunctionNames.join(", ")}`,
+				)
+			}
 		}
 
 		// Create an AbortController to allow cancelling the request mid-stream

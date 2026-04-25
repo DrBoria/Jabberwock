@@ -181,19 +181,31 @@ export const SkillsSettings: React.FC = () => {
 						<div className="flex items-center gap-1 px-0 ml-0 min-[400px]:ml-0 min-[400px]:mt-4 flex-shrink-0">
 							{/* Mode settings button (gear icon) */}
 							<StandardTooltip content={t("settings:skills.configureModes")}>
-								<Button variant="ghost" size="icon" onClick={() => handleOpenModeDialog(skill)}>
+								<Button
+									data-testid="button"
+									variant="ghost"
+									size="icon"
+									onClick={() => handleOpenModeDialog(skill)}>
 									<Settings className="size-4" />
 								</Button>
 							</StandardTooltip>
 
 							<StandardTooltip content={t("settings:skills.editSkill")}>
-								<Button variant="ghost" size="icon" onClick={() => handleEditClick(skill)}>
+								<Button
+									data-testid="button"
+									variant="ghost"
+									size="icon"
+									onClick={() => handleEditClick(skill)}>
 									<Edit />
 								</Button>
 							</StandardTooltip>
 
 							<StandardTooltip content={t("settings:skills.deleteSkill")}>
-								<Button variant="ghost" size="icon" onClick={() => handleDeleteClick(skill)}>
+								<Button
+									data-testid="button"
+									variant="ghost"
+									size="icon"
+									onClick={() => handleDeleteClick(skill)}>
 									<Trash2 className="text-destructive" />
 								</Button>
 							</StandardTooltip>
@@ -229,7 +241,11 @@ export const SkillsSettings: React.FC = () => {
 					</p>
 
 					{/* Add Skill button */}
-					<Button variant="secondary" className="py-1" onClick={() => setCreateDialogOpen(true)}>
+					<Button
+						data-testid="button"
+						variant="secondary"
+						className="py-1"
+						onClick={() => setCreateDialogOpen(true)}>
 						<Plus />
 						{t("settings:skills.addSkill")}
 					</Button>

@@ -212,6 +212,7 @@ export const SelectDropdown = React.memo(
 						align={align}
 						sideOffset={sideOffset}
 						container={portalContainer}
+						data-testid="dropdown-content"
 						className={cn("p-0 overflow-hidden", contentClassName)}>
 						<div className="flex flex-col w-full">
 							{/* Search input */}

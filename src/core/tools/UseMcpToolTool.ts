@@ -346,6 +346,16 @@ export class UseMcpToolTool extends BaseTool<"use_mcp_tool"> {
 					toolResultPretty = text || "Interactive app completed successfully."
 					toolResult.content = [{ type: "text", text: toolResultPretty }]
 
+					// [TODO-LOG] Track manage_todo_plan lifecycle for debugging
+					const todoLog = (msg: string, data?: Record<string, unknown>) => {
+						const logMsg = `[TODO-LOG] [UseMcpToolTool] ${msg}${data ? " " + JSON.stringify(data) : ""}`
+						console.log(logMsg)
+						try {
+							const { diagnosticsManager } = require("../../core/devtools/DiagnosticsManager")
+							diagnosticsManager.log(logMsg, "info")
+						} catch {}
+					}
+
 					// Deterministic delegation: after manage_todo_plan approval, bypass LLM and
 					// programmatically create subtasks for each approved task.
 					if (serverName === "md-todo-mcp" && toolName === "manage_todo_plan" && typeof text === "string") {
@@ -359,15 +369,13 @@ export class UseMcpToolTool extends BaseTool<"use_mcp_tool"> {
 								isAsync?: boolean
 							}[]
 
-							console.log(
-								`[DeterministicDelegation] Approved tasks count: ${approvedTasks.length}`,
-								approvedTasks.map((t) => `${t.id}:${t.assignedTo}:${t.title}`),
-							)
+							todoLog("manage_todo_plan result received", {
+								approvedCount: approvedTasks.length,
+								tasks: approvedTasks.map((t) => `${t.id}:${t.assignedTo}:${t.title}`),
+							})
 
 							if (approvedTasks.length === 0) {
-								console.log(
-									"[DeterministicDelegation] All tasks deleted by user. Signaling plan cancellation.",
-								)
+								todoLog("all tasks deleted by user — plan cancelled")
 								toolResultPretty =
 									"Plan cancelled: the user removed all tasks during review. No tasks to execute. Use attempt_completion to inform the user."
 								toolResult.content = [{ type: "text", text: toolResultPretty }]
@@ -390,11 +398,15 @@ export class UseMcpToolTool extends BaseTool<"use_mcp_tool"> {
 
 									for (const todoTask of approvedTasks) {
 										// Wrap task in EXECUTION ONLY directive to prevent child re-planning
-										const delegationMessage = `[EXECUTION ONLY - DO NOT RE-PLAN]\nYou have been assigned this task from an approved master plan. Do NOT create a new TODO list or re-plan. Execute the following task immediately:\n\n${todoTask.title}${todoTask.description ? "\n\n" + todoTask.description : ""}`
+										// CRITICAL: User has already reviewed and approved this exact plan via interactive UI
+										const delegationMessage = `[CRITICAL - USER APPROVED PLAN]\n\nYou are executing a task from a user-approved master plan. The user interactively reviewed and finalized this plan.\n\nYOUR INSTRUCTIONS:\n1. Execute ONLY the task described below\n2. DO NOT create additional tasks or subtasks\n3. DO NOT re-plan or modify the scope\n4. Complete this specific task and report back\n\nTASK TO EXECUTE:\n${todoTask.title}\n${todoTask.description ? `\nDESCRIPTION:\n${todoTask.description}` : ""}\n\nRemember: This is an execution-only assignment from an approved plan.`
 
-										console.log(
-											`[DeterministicDelegation] Delegating task ${todoTask.id} to ${todoTask.assignedTo}: ${todoTask.title}`,
-										)
+										todoLog("delegating task", {
+											taskId: todoTask.id,
+											assignedTo: todoTask.assignedTo,
+											title: todoTask.title,
+											isAsync: todoTask.isAsync,
+										})
 
 										try {
 											if (todoTask.isAsync) {
@@ -456,6 +468,11 @@ export class UseMcpToolTool extends BaseTool<"use_mcp_tool"> {
 									toolResultPretty = `Plan approved. Deterministic delegation initiated:\n${summary}`
 									toolResult.content = [{ type: "text", text: toolResultPretty }]
 
+									todoLog("delegation complete", {
+										results: delegationResults,
+										isDelegated,
+									})
+
 									// History Hack: Rewrite history to eliminate traces of the original mutation conversation
 									const firstUserMsgIndex = task.apiConversationHistory.findIndex(
 										(m) => m.role === "user",
@@ -480,16 +497,16 @@ export class UseMcpToolTool extends BaseTool<"use_mcp_tool"> {
 											),
 									)
 
-									const originalReasoning = task.assistantMessageContent
-										.slice(0, task.currentStreamingContentIndex)
-										.filter((block) => block.type === "text")
-										.map((block) => (block as any).text || "")
-										.join("\n\n")
-										.trim()
-
-									const synthesizedUserText = `${originalReasoning ? originalReasoning + "\n\n" : ""}I have updated my plan. Here are the approved tasks:\n${approvedTasks
-										.map((t) => `- [${t.assignedTo}] ${t.title}`)
-										.join("\n")}`
+									// CRITICAL: Do NOT include originalReasoning - it contains traces of deleted/modified tasks
+									// The agent must ONLY see the approved tasks as if they were always the plan
+									const synthesizedUserText = `I have reviewed and finalized the task execution plan. Execute these approved tasks in order:\n${approvedTasks
+										.map(
+											(t, idx) =>
+												`${idx + 1}. [${t.assignedTo}] ${t.title}${t.description ? `\n   Description: ${t.description}` : ""}`,
+										)
+										.join(
+											"\n",
+										)}\n\nIMPORTANT: Execute ONLY these tasks in the order shown. Do not attempt any other actions.`
 
 									const userMsg = {
 										role: "user" as const,

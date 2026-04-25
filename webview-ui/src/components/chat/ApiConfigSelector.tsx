@@ -168,6 +168,7 @@ export const ApiConfigSelector = ({
 				align="start"
 				sideOffset={4}
 				container={portalContainer}
+				data-testid="popover-content"
 				className="p-0 overflow-hidden w-[300px]">
 				<div className="flex flex-col w-full">
 					{/* Search input or info blurb */}

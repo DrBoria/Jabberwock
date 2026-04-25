@@ -81,6 +81,15 @@ export class AttemptCompletionTool extends BaseTool<"attempt_completion"> {
 
 			task.consecutiveMistakeCount = 0
 
+			// Check if task was aborted before attempting to say completion_result
+			if (task.abort) {
+				console.log(
+					`[AttemptCompletionTool] Task ${task.taskId} was aborted before completion_result could be displayed. Pushing abort result.`,
+				)
+				pushToolResult(formatResponse.toolResult("Task was aborted."))
+				return
+			}
+
 			await task.say("completion_result", result, undefined, false)
 
 			// Check for subtask using parentTaskId (metadata-driven delegation)

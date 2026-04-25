@@ -11,7 +11,7 @@ import { registerPromptTools } from "./tools/promptTools"
 import { diagnosticsManager } from "./DiagnosticsManager"
 
 let serverInstance: http.Server | undefined
-let sseTransport: SSEServerTransport | undefined
+const sseTransports: Map<string, SSEServerTransport> = new Map()
 let activeProvider: ClineProvider | undefined
 
 /**
@@ -95,21 +95,62 @@ export async function startJabberwockMcpServer(provider: ClineProvider, port: nu
 
 			if (pathname === "/sse") {
 				diagnosticsManager.log(`[Jabberwock DevTools] Incoming SSE connection request`, "info")
-				sseTransport = new SSEServerTransport("/messages", res)
-				mcpServer.connect(sseTransport).catch((err) => {
+				const transport = new SSEServerTransport("/messages", res)
+				const sessionId = transport.sessionId
+				sseTransports.set(sessionId, transport)
+				diagnosticsManager.log(
+					`[Jabberwock DevTools] SSE client connected, sessionId=${sessionId}, total transports=${sseTransports.size}`,
+					"info",
+				)
+
+				mcpServer.connect(transport).catch((err) => {
 					diagnosticsManager.log(`[Jabberwock DevTools] MCP connect error: ${err.message}`, "error")
+					sseTransports.delete(sessionId)
+				})
+
+				// When the SSE connection closes, clean up the transport
+				res.on("close", () => {
+					diagnosticsManager.log(
+						`[Jabberwock DevTools] SSE client disconnected, sessionId=${sessionId}`,
+						"info",
+					)
+					sseTransports.delete(sessionId)
 				})
 			} else if (pathname === "/messages" && req.method === "POST") {
-				if (sseTransport) {
-					sseTransport.handlePostMessage(req, res).catch((err) => {
+				const sessionId = parsedUrl.searchParams.get("sessionId")
+				if (sessionId && sseTransports.has(sessionId)) {
+					const transport = sseTransports.get(sessionId)!
+					transport.handlePostMessage(req, res).catch((err) => {
+						const isConnectionNotEstablished = err.message?.includes("SSE connection not established")
 						diagnosticsManager.log(
-							`[Jabberwock DevTools] SSE message handling error: ${err.message}`,
-							"error",
+							`[Jabberwock DevTools] SSE message handling error for sessionId=${sessionId}: ${err.message}`,
+							isConnectionNotEstablished ? "warn" : "error",
 						)
+						if (isConnectionNotEstablished) {
+							sseTransports.delete(sessionId)
+						}
 					})
+				} else if (sseTransports.size > 0) {
+					// Fallback: if no sessionId provided or not found, use the first available transport
+					// This handles the case where the client doesn't include sessionId in POST
+					const firstTransport = sseTransports.values().next().value
+					if (firstTransport) {
+						diagnosticsManager.log(
+							`[Jabberwock DevTools] POST /messages without valid sessionId=${sessionId}, routing to first available transport`,
+							"warn",
+						)
+						firstTransport.handlePostMessage(req, res).catch((err) => {
+							diagnosticsManager.log(
+								`[Jabberwock DevTools] SSE message handling error (fallback): ${err.message}`,
+								"error",
+							)
+						})
+					} else {
+						res.writeHead(503).end("SSE transport not initialized")
+					}
 				} else {
 					diagnosticsManager.log(
-						`[Jabberwock DevTools] Received POST /messages but SSE transport not ready`,
+						`[Jabberwock DevTools] Received POST /messages but no SSE transports available`,
 						"warn",
 					)
 					res.writeHead(503).end("SSE transport not initialized")
@@ -143,10 +184,16 @@ export async function startJabberwockMcpServer(provider: ClineProvider, port: nu
 }
 
 export function stopJabberwockMcpServer() {
-	if (sseTransport) {
-		sseTransport.close().catch(console.error)
-		sseTransport = undefined
+	for (const [sessionId, transport] of sseTransports.entries()) {
+		diagnosticsManager.log(`[Jabberwock DevTools] Closing SSE transport sessionId=${sessionId}`, "info")
+		transport.close().catch((err) => {
+			diagnosticsManager.log(
+				`[Jabberwock DevTools] Error closing transport ${sessionId}: ${err.message}`,
+				"error",
+			)
+		})
 	}
+	sseTransports.clear()
 	if (serverInstance) {
 		serverInstance.close()
 		serverInstance = undefined

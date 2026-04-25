@@ -12,7 +12,7 @@ export const registerHistoryTools = (mcpServer: McpServer, provider: ClineProvid
 			try {
 				const currentTask = provider.getCurrentTask()
 				if (!currentTask) {
-					return { content: [{ type: "text", text: "No active task" }], isError: true }
+					return { content: [{ type: "text", text: JSON.stringify({ hasTask: false, messages: [] }) }] }
 				}
 
 				const messages = currentTask.clineMessages.slice(-Math.abs(count))
@@ -49,7 +49,14 @@ export const registerHistoryTools = (mcpServer: McpServer, provider: ClineProvid
 			try {
 				const currentTask = provider.getCurrentTask()
 				if (!currentTask) {
-					return { content: [{ type: "text", text: "No active task" }], isError: true }
+					return {
+						content: [
+							{
+								type: "text",
+								text: JSON.stringify({ hasTask: false, totalMessages: 0, showing: 0, messages: [] }),
+							},
+						],
+					}
 				}
 
 				const history = currentTask.apiConversationHistory
@@ -129,7 +136,14 @@ export const registerHistoryTools = (mcpServer: McpServer, provider: ClineProvid
 			try {
 				const currentTask = provider.getCurrentTask()
 				if (!currentTask) {
-					return { content: [{ type: "text", text: "No active task" }], isError: true }
+					return {
+						content: [
+							{
+								type: "text",
+								text: JSON.stringify({ hasTask: false, totalMessages: 0, showing: 0, messages: [] }),
+							},
+						],
+					}
 				}
 
 				const history = currentTask.apiConversationHistory

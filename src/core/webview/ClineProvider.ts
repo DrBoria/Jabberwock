@@ -263,23 +263,101 @@ export class ClineProvider
 					}
 
 					if (this.devtoolEnabled) {
-						diagnosticsManager.log(`[ClineProvider] Attempting to start JabberwockMcpServer...`, "info")
-						import("../devtools/JabberwockMcpServer")
-							.then(({ startJabberwockMcpServer }) => {
-								return startJabberwockMcpServer(this)
-							})
-							.then((port) => {
-								diagnosticsManager.log(
-									`[ClineProvider] JabberwockMcpServer SUCCESS on port ${port}`,
-									"info",
-								)
-								this.postStateToWebview()
-							})
-							.catch((error) => {
-								const msg = `[ClineProvider] FAILED to start DevTools MCP Server: ${error instanceof Error ? error.message : String(error)}`
-								diagnosticsManager.log(msg, "error")
-								console.error(msg)
-							})
+						// Read actorRole from mcp_settings.json (jabberwock-devtools config)
+						// "target" = this instance starts the SSE server + registers internal MCP connection
+						// "controller" = this instance connects to another extension's SSE server via mcp_settings.json SSE client
+						const readActorRole = (): string => {
+							try {
+								// Try project root first (most common location for mcp_settings.json)
+								const projectRoot = path.join(this.contextProxy.extensionUri.fsPath, "..")
+								const settingsPath = path.join(projectRoot, "mcp_settings.json")
+								// Use require('fs') for sync read since fs import is from "fs/promises"
+								const nodeFs = require("fs") as typeof import("fs")
+								const content = nodeFs.readFileSync(settingsPath, "utf-8")
+								const parsed = JSON.parse(content)
+								const devtoolsConfig = parsed?.mcpServers?.["jabberwock-devtools"]
+								if (
+									devtoolsConfig?.actorRole === "controller" ||
+									devtoolsConfig?.actorRole === "target"
+								) {
+									return devtoolsConfig.actorRole
+								}
+							} catch {
+								// ignore — file not found or parse error, default to "target"
+							}
+							return "target"
+						}
+						const actorRole = readActorRole()
+
+						diagnosticsManager.log(
+							`[ClineProvider] DevTools actorRole from mcp_settings.json: "${actorRole}"`,
+							"info",
+						)
+
+						if (actorRole === "target") {
+							diagnosticsManager.log(`[ClineProvider] Attempting to start JabberwockMcpServer...`, "info")
+							import("../devtools/JabberwockMcpServer")
+								.then(({ startJabberwockMcpServer }) => {
+									return startJabberwockMcpServer(this)
+								})
+								.then(async (port) => {
+									diagnosticsManager.log(
+										`[ClineProvider] JabberwockMcpServer SUCCESS on port ${port}`,
+										"info",
+									)
+
+									// Register DevTools as an internal MCP connection in McpHub
+									// so agents can call DevTools tools via use_mcp_tool
+									if (this.mcpHub) {
+										try {
+											await this.mcpHub.registerInternalConnection(port)
+											diagnosticsManager.log(
+												`[ClineProvider] DevTools registered as internal MCP connection`,
+												"info",
+											)
+										} catch (regError) {
+											diagnosticsManager.log(
+												`[ClineProvider] Failed to register internal MCP connection: ${regError instanceof Error ? regError.message : String(regError)}`,
+												"error",
+											)
+										}
+									} else {
+										diagnosticsManager.log(
+											`[ClineProvider] McpHub not yet initialized, will retry registration in 5s`,
+											"warn",
+										)
+										// Retry after a short delay since McpHub initialization is also async
+										setTimeout(async () => {
+											if (this.mcpHub) {
+												try {
+													await this.mcpHub.registerInternalConnection(port)
+													diagnosticsManager.log(
+														`[ClineProvider] DevTools registered as internal MCP connection (delayed)`,
+														"info",
+													)
+												} catch (regError) {
+													diagnosticsManager.log(
+														`[ClineProvider] Delayed registration failed: ${regError instanceof Error ? regError.message : String(regError)}`,
+														"error",
+													)
+												}
+											}
+										}, 5000)
+									}
+
+									this.postStateToWebview()
+								})
+								.catch((error) => {
+									const msg = `[ClineProvider] FAILED to start DevTools MCP Server: ${error instanceof Error ? error.message : String(error)}`
+									diagnosticsManager.log(msg, "error")
+									console.error(msg)
+								})
+						} else {
+							diagnosticsManager.log(
+								`[ClineProvider] actorRole is "controller" — skipping SSE server start. DevTools tools will be available via SSE client in mcp_settings.json.`,
+								"info",
+							)
+						}
 					} else {
 						diagnosticsManager.log(
 							`[ClineProvider] DevTools are disabled by configuration ("${Package.name}.devtool")`,
@@ -3484,6 +3562,9 @@ export class ClineProvider
 			startTask: false,
 		})
 
+		// Add to parent's childTasks for in-memory hierarchy tracking
+		parent.childTasks.push(childTask)
+
 		// Do NOT add to clineStack. We just let it run.
 		childTask.start()
 
@@ -3609,10 +3690,13 @@ export class ClineProvider
 			)
 		}
 
-		// 6) Start the child task now that parent metadata is safely persisted.
+		// 6) Add to parent's childTasks for in-memory hierarchy tracking
+		parent.childTasks.push(child)
+
+		// 7) Start the child task now that parent metadata is safely persisted.
 		child.start()
 
-		// 7) Emit TaskDelegated (provider-level)
+		// 8) Emit TaskDelegated (provider-level)
 		try {
 			this.emit(JabberwockEventName.TaskDelegated, parentTaskId, child.taskId)
 		} catch {
@@ -3707,6 +3791,7 @@ export class ClineProvider
 			}
 
 			// If no existing tool_result found, create a NEW user message with the tool_result
+			// AND a continuation instruction to prevent the model from re-creating the plan
 			if (!alreadyHasToolResult) {
 				parentApiMessages.push({
 					role: "user",
@@ -3715,6 +3800,10 @@ export class ClineProvider
 							type: "tool_result" as const,
 							tool_use_id: toolUseId,
 							content: `Subtask ${childTaskId} completed.\n\nResult:\n${completionResultSummary}`,
+						},
+						{
+							type: "text" as const,
+							text: "The subtask above has completed. Continue with the next task in the already-approved plan. Do NOT call manage_todo_plan again — the plan is already approved and you must follow it exactly.",
 						},
 					],
 					ts,

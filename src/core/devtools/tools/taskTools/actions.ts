@@ -99,4 +99,45 @@ export const registerActionsTools = (mcpServer: McpServer, provider: ClineProvid
 			return { content: [{ type: "text", text: `Error: ${error}` }], isError: true }
 		}
 	})
+
+	mcpServer.tool(
+		"mark_task_async",
+		{
+			taskId: z.string().describe("The ID of the task to mark as async"),
+		},
+		async ({ taskId }) => {
+			try {
+				const currentTask = provider.getCurrentTask()
+				if (!currentTask) {
+					return {
+						content: [{ type: "text", text: JSON.stringify({ hasTask: false, error: "No active task" }) }],
+					}
+				}
+
+				// Find the task by ID in the hierarchy
+				const findTask = (task: any, id: string): any => {
+					if (task.taskId === id) return task
+					if (task.childTasks) {
+						for (const child of task.childTasks) {
+							const found = findTask(child, id)
+							if (found) return found
+						}
+					}
+					return null
+				}
+
+				const root = currentTask.rootTask || currentTask
+				const target = findTask(root, taskId)
+				if (!target) {
+					return { content: [{ type: "text", text: `Task ${taskId} not found` }], isError: true }
+				}
+
+				// Mark the task as async
+				target.isAsync = true
+				return { content: [{ type: "text", text: `Task ${taskId} marked as async` }] }
+			} catch (error) {
+				return { content: [{ type: "text", text: `Error: ${error}` }], isError: true }
+			}
+		},
+	)
 }

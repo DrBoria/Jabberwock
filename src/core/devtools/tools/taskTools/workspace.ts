@@ -79,7 +79,9 @@ export const registerWorkspaceTools = (mcpServer: McpServer, provider: ClineProv
 		try {
 			const currentTask = provider.getCurrentTask()
 			if (!currentTask) {
-				return { content: [{ type: "text", text: "No active task" }], isError: true }
+				return {
+					content: [{ type: "text", text: JSON.stringify({ hasTask: false, checkpoints: [], count: 0 }) }],
+				}
 			}
 
 			const checkpoints = currentTask.checkpointService?.getCheckpoints() || []

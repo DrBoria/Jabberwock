@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, waitFor } from "@/utils/test-utils"
+import { render, screen, fireEvent, waitFor } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
 import type { Command } from "@jabberwock/types"
@@ -35,7 +36,7 @@ vi.mock("@/utils/docLinks", () => ({
 // Mock UI components
 vi.mock("@/components/ui", () => ({
 	AlertDialog: ({ children, open }: any) => (
-		<div data-testid="alert-dialog" data-open={open}>
+		<div data-testid="alert-dialog" data-open={open ? "true" : "false"}>
 			{open && children}
 		</div>
 	),
@@ -59,15 +60,15 @@ vi.mock("@/components/ui", () => ({
 			onClick={onClick}
 			disabled={disabled}
 			className={className}
-			data-variant={variant}
-			data-size={size}
+			data-variant={variant || undefined}
+			data-size={size || undefined}
 			data-testid="button">
 			{children}
 		</button>
 	),
 	StandardTooltip: ({ children }: any) => <>{children}</>,
 	Dialog: ({ children, open, _onOpenChange }: any) => (
-		<div data-testid="dialog" data-open={open}>
+		<div data-testid="dialog" data-open={open ? "true" : "false"}>
 			{open && children}
 		</div>
 	),
@@ -258,28 +259,52 @@ describe("SlashCommandsSettings", () => {
 		expect(screen.getByTestId("create-command-dialog")).toHaveAttribute("data-open", "true")
 	})
 
-	it("opens delete confirmation dialog when delete button is clicked", () => {
+	it("opens delete confirmation dialog when delete button is clicked", async () => {
+		const user = userEvent.setup()
 		renderSlashCommandsSettings()
 
-		// Find the delete button for the global command (using the button with Trash2 icon)
-		const deleteButtons = screen.getAllByTestId("button").filter((btn) => btn.querySelector(".text-destructive"))
-		fireEvent.click(deleteButtons[0])
+		// Find all buttons and locate the delete button (has text-destructive class)
+		const allButtons = screen.getAllByTestId("button")
+		const deleteButton = allButtons.find((btn) => btn.querySelector('[class*="text-destructive"]'))
 
-		// Alert dialog should be open with delete confirmation
-		expect(screen.getByTestId("alert-dialog")).toHaveAttribute("data-open", "true")
+		expect(deleteButton).toBeDefined()
+
+		// Click the delete button using userEvent for more realistic interaction
+		await user.click(deleteButton!)
+
+		// Wait for alert dialog content to appear (which means the dialog is open)
+		await waitFor(
+			() => {
+				expect(screen.queryByTestId("alert-dialog-content")).toBeInTheDocument()
+			},
+			{ timeout: 2000 },
+		)
+
+		// Now check that the title is visible
 		expect(screen.getByText("settings:slashCommands.deleteDialog.title")).toBeInTheDocument()
 	})
 
 	it("deletes command when confirmation is clicked", async () => {
+		const user = userEvent.setup()
 		renderSlashCommandsSettings()
 
 		// Click delete button for global command
-		const deleteButtons = screen.getAllByTestId("button").filter((btn) => btn.querySelector(".text-destructive"))
-		fireEvent.click(deleteButtons[0])
+		const allButtons = screen.getAllByTestId("button")
+		const deleteButton = allButtons.find((btn) => btn.querySelector('[class*="text-destructive"]'))
+		expect(deleteButton).toBeDefined()
+		await user.click(deleteButton!)
+
+		// Wait for dialog to open
+		await waitFor(
+			() => {
+				expect(screen.queryByTestId("alert-dialog-content")).toBeInTheDocument()
+			},
+			{ timeout: 2000 },
+		)
 
 		// Click confirm delete
 		const confirmButton = screen.getByTestId("alert-dialog-action")
-		fireEvent.click(confirmButton)
+		await user.click(confirmButton)
 
 		await waitFor(() => {
 			expect(vscode.postMessage).toHaveBeenCalledWith({
@@ -290,16 +315,27 @@ describe("SlashCommandsSettings", () => {
 		})
 	})
 
-	it("cancels deletion when cancel is clicked", () => {
+	it("cancels deletion when cancel is clicked", async () => {
+		const user = userEvent.setup()
 		renderSlashCommandsSettings()
 
 		// Click delete button
-		const deleteButtons = screen.getAllByTestId("button").filter((btn) => btn.querySelector(".text-destructive"))
-		fireEvent.click(deleteButtons[0])
+		const allButtons = screen.getAllByTestId("button")
+		const deleteButton = allButtons.find((btn) => btn.querySelector('[class*="text-destructive"]'))
+		expect(deleteButton).toBeDefined()
+		await user.click(deleteButton!)
+
+		// Wait for dialog to open
+		await waitFor(
+			() => {
+				expect(screen.queryByTestId("alert-dialog-content")).toBeInTheDocument()
+			},
+			{ timeout: 2000 },
+		)
 
 		// Click cancel
 		const cancelButton = screen.getByTestId("alert-dialog-cancel")
-		fireEvent.click(cancelButton)
+		await user.click(cancelButton)
 
 		// Dialog should be closed and no delete message sent
 		expect(vscode.postMessage).not.toHaveBeenCalledWith(
@@ -315,14 +351,17 @@ describe("SlashCommandsSettings", () => {
 		// Clear mocks after initial mount
 		vi.clearAllMocks()
 
-		// Find edit buttons (icon size buttons without text-destructive, with lucide-square-pen icon)
+		// Find all buttons and filter for edit buttons (icon buttons with Edit icon, not delete or add)
 		const allButtons = screen.getAllByTestId("button")
-		const editButtons = allButtons.filter(
-			(btn) =>
-				btn.getAttribute("data-size") === "icon" &&
-				!btn.querySelector('[class*="text-destructive"]') &&
-				btn.querySelector('[class*="lucide-square-pen"]'),
-		)
+
+		// Edit buttons have the lucide-square-pen icon inside them
+		const editButtons = allButtons.filter((btn) => {
+			const hasEditIcon = btn.querySelector('[class*="lucide-square-pen"]') !== null
+			const isNotDelete = !btn.querySelector('[class*="text-destructive"]')
+			return hasEditIcon && isNotDelete
+		})
+
+		expect(editButtons.length).toBeGreaterThan(0)
 
 		// Click the first edit button
 		fireEvent.click(editButtons[0])
@@ -334,15 +373,26 @@ describe("SlashCommandsSettings", () => {
 	})
 
 	it("refreshes commands after deletion", async () => {
+		const user = userEvent.setup()
 		renderSlashCommandsSettings()
 
 		// Click delete button
-		const deleteButtons = screen.getAllByTestId("button").filter((btn) => btn.querySelector(".text-destructive"))
-		fireEvent.click(deleteButtons[0])
+		const allButtons = screen.getAllByTestId("button")
+		const deleteButton = allButtons.find((btn) => btn.querySelector('[class*="text-destructive"]'))
+		expect(deleteButton).toBeDefined()
+		await user.click(deleteButton!)
+
+		// Wait for dialog to open
+		await waitFor(
+			() => {
+				expect(screen.queryByTestId("alert-dialog-content")).toBeInTheDocument()
+			},
+			{ timeout: 2000 },
+		)
 
 		// Click confirm delete
 		const confirmButton = screen.getByTestId("alert-dialog-action")
-		fireEvent.click(confirmButton)
+		await user.click(confirmButton)
 
 		// Wait for refresh to be called after timeout
 		await waitFor(

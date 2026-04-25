@@ -1,4 +1,5 @@
 import * as fs from "fs/promises"
+import * as http from "http"
 import * as path from "path"
 
 import * as vscode from "vscode"
@@ -33,6 +34,8 @@ import { t } from "../../i18n"
 
 import { ClineProvider } from "../../core/webview/ClineProvider"
 
+import { diagnosticsManager } from "../../core/devtools/DiagnosticsManager"
+
 import { GlobalFileNames } from "../../shared/globalFileNames"
 
 import { fileExistsAtPath } from "../../utils/fs"
@@ -40,6 +43,104 @@ import { arePathsEqual, getWorkspacePath } from "../../utils/path"
 import { injectVariables } from "../../utils/config"
 import { safeWriteJson } from "../../utils/safeWriteJson"
 import { sanitizeMcpName, toolNamesMatch } from "../../utils/mcp-name"
+
+/**
+ * Internal MCP client transport that proxies tool calls to the DevTools MCP server
+ * via HTTP POST to the local SSE endpoint. This allows agents to use DevTools tools
+ * via `use_mcp_tool` without needing to configure an external MCP server.
+ */
+class InternalMcpClientTransport {
+	private serverUrl: string
+	sessionId: string
+	private abortController: AbortController | null = null
+
+	constructor(port: number) {
+		this.serverUrl = `http://127.0.0.1:${port}`
+		this.sessionId = `internal-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+	}
+
+	async start(): Promise<void> {
+		// Connect to the SSE stream to receive JSON-RPC responses from the DevTools server.
+		// The MCP SDK's SSEServerTransport sends responses back through the SSE stream,
+		// not through the POST /messages HTTP response. Without reading the SSE stream,
+		// the MCP Client would never receive responses and would time out.
+		this.abortController = new AbortController()
+		try {
+			const response = await fetch(`${this.serverUrl}/sse`, {
+				signal: this.abortController.signal,
+			})
+			if (!response.ok || !response.body) {
+				throw new Error(`SSE connection failed: ${response.status}`)
+			}
+
+			const reader = response.body.getReader()
+			const decoder = new TextDecoder()
+			let buffer = ""
+
+			// Read SSE stream in background and dispatch JSON-RPC messages to onmessage
+			this.readSseLoop(reader, decoder, buffer).catch((err) => {
+				if (err.name !== "AbortError") {
+					console.error(`[InternalMcpClientTransport] SSE read error:`, err)
+					this.onerror?.(err)
+				}
+			})
+		} catch (err) {
+			// SSE connection failed — log but don't throw, send() will still POST
+			console.warn(`[InternalMcpClientTransport] SSE connection failed:`, err)
+		}
+	}
+
+	private async readSseLoop(
+		reader: ReadableStreamDefaultReader<Uint8Array>,
+		decoder: TextDecoder,
+		buffer: string,
+	): Promise<void> {
+		while (true) {
+			const { done, value } = await reader.read()
+			if (done) break
+
+			buffer += decoder.decode(value, { stream: true })
+			const lines = buffer.split("\n")
+			buffer = lines.pop() || ""
+
+			let data = ""
+			for (const line of lines) {
+				if (line.startsWith("data: ")) {
+					data = line.slice(6).trim()
+				} else if (line === "" && data) {
+					try {
+						const msg = JSON.parse(data)
+						this.onmessage?.(msg)
+					} catch {
+						// Not JSON — skip
+					}
+					data = ""
+				}
+			}
+		}
+	}
+
+	async send(message: any): Promise<void> {
+		const url = `${this.serverUrl}/messages?sessionId=${this.sessionId}`
+		const response = await fetch(url, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(message),
+		})
+		if (!response.ok) {
+			throw new Error(`Internal MCP transport error: ${response.status} ${response.statusText}`)
+		}
+	}
+
+	async close(): Promise<void> {
+		this.abortController?.abort()
+		this.abortController = null
+	}
+
+	onclose?: () => void
+	onerror?: (error: Error) => void
+	onmessage?: (message: any) => void
+}
 
 // Discriminated union for connection states
 export type ConnectedMcpConnection = {
@@ -184,6 +285,91 @@ export class McpHub extends EventEmitter {
 	public registerClient(): void {
 		this.refCount++
 		// console.log(`McpHub: Client registered. Ref count: ${this.refCount}`)
+	}
+
+	/**
+	 * Registers the DevTools MCP server as an internal connection in McpHub.
+	 * This allows agents to call DevTools tools via `use_mcp_tool` without
+	 * needing to configure an external MCP server in mcp_settings.json.
+	 *
+	 * The internal connection uses an InternalMcpClientTransport that proxies
+	 * tool calls to the DevTools SSE server running on the specified port.
+	 *
+	 * @param port - The port the DevTools MCP server is listening on
+	 */
+	public async registerInternalConnection(port: number): Promise<void> {
+		const serverName = "jabberwock-devtools"
+
+		// Remove existing internal connection if any
+		this.connections = this.connections.filter(
+			(conn) => !(conn.server.name === serverName && conn.server.source === ("internal" as any)),
+		)
+
+		const transport = new InternalMcpClientTransport(port)
+		const client = new Client(
+			{
+				name: "Jabberwock",
+				version: this.providerRef.deref()?.context.extension?.packageJSON?.version ?? "1.0.0",
+			},
+			{
+				capabilities: {
+					tools: {},
+				},
+			},
+		)
+
+		// Connect the client to the internal transport
+		await client.connect(transport)
+
+		// Fetch the tool list from the DevTools server
+		let tools: McpTool[] = []
+		try {
+			const response = await client.request({ method: "tools/list" }, ListToolsResultSchema)
+			tools = (response?.tools || []).map((tool) => ({
+				name: tool.name ?? "",
+				description: tool.description ?? "",
+				inputSchema: tool.inputSchema ?? { type: "object", properties: {} },
+				alwaysAllow: true, // DevTools tools are always allowed for testing
+				enabledForPrompt: true,
+			})) as McpTool[]
+		} catch (error) {
+			console.error(`[McpHub] Failed to fetch tools from internal DevTools server:`, error)
+		}
+
+		// Register the sanitized name
+		const sanitizedName = sanitizeMcpName(serverName)
+		this.sanitizedNameRegistry.set(sanitizedName, serverName)
+
+		// Create the connection entry
+		const connection: ConnectedMcpConnection = {
+			type: "connected",
+			server: {
+				name: serverName,
+				config: JSON.stringify({
+					disabled: false,
+					timeout: 60,
+					alwaysAllow: tools.map((t) => t.name),
+					disabledTools: [],
+					isGloballyVisible: true,
+				}),
+				status: "connected",
+				disabled: false,
+				source: "internal" as any,
+				errorHistory: [],
+			},
+			client,
+			transport: transport as any,
+		}
+
+		this.connections.push(connection)
+
+		diagnosticsManager.log(
+			`[McpHub] Registered internal DevTools connection with ${tools.length} tools on port ${port}`,
+			"info",
+		)
+
+		// Notify webview of the new server
+		await this.notifyWebviewOfServerChanges()
 	}
 
 	/**
@@ -692,6 +878,20 @@ export class McpHub extends EventEmitter {
 			return
 		}
 
+		// Skip SSE client connection for jabberwock-devtools when actorRole is "target"
+		// The SSE server is started separately by ClineProvider, and the internal
+		// connection is registered via registerInternalConnection() after the server starts.
+		// If we try to connect as an SSE client here, it will timeout because the server
+		// hasn't started yet (both are initialized asynchronously in the constructor).
+		if (name === "jabberwock-devtools" && (config as any).actorRole === "target") {
+			console.log(
+				`[McpHub] Skipping SSE client connection for "${name}" (actorRole=target) — internal connection will be used instead`,
+			)
+			const connection = this.createPlaceholderConnection(name, config, source, undefined)
+			this.connections.push(connection)
+			return
+		}
+
 		// Set up file watchers for enabled servers
 		this.setupFileWatcher(name, config, source)
 
@@ -808,6 +1008,37 @@ export class McpHub extends EventEmitter {
 				if (stderrStream) {
 					stderrStream.on("data", async (data: Buffer) => {
 						const output = data.toString()
+
+						// ============================================================
+						// Logging Bus: Detect [TODO-LOG] prefixed messages from
+						// md-todo-mcp and forward them to DiagnosticsManager.
+						// This makes todo generation events visible in devtools.
+						// ============================================================
+						const TODO_LOG_PREFIX = "[TODO-LOG]"
+						if (output.includes(TODO_LOG_PREFIX)) {
+							// Extract the JSON payload after the prefix
+							const lines = output.split("\n")
+							for (const line of lines) {
+								const prefixIdx = line.indexOf(TODO_LOG_PREFIX)
+								if (prefixIdx !== -1) {
+									const jsonStr = line.slice(prefixIdx + TODO_LOG_PREFIX.length).trim()
+									try {
+										const logEntry = JSON.parse(jsonStr)
+										diagnosticsManager.log(
+											`[TODO-LOG:${logEntry.event}] ${JSON.stringify(logEntry.data)}`,
+											"info",
+										)
+									} catch {
+										// If JSON parsing fails, log as-is
+										diagnosticsManager.log(`[TODO-LOG] ${jsonStr}`, "info")
+									}
+								}
+							}
+							// Still log to console for visibility
+							console.log(`Server "${name}" todo-log:`, output)
+							return
+						}
+
 						// Check if output contains INFO level log
 						const isInfoLog = /INFO/i.test(output)
 
@@ -992,7 +1223,14 @@ export class McpHub extends EventEmitter {
 		)
 		if (projectConn) return projectConn
 
-		// If no project server is found, look for global servers
+		// If no project server is found, look for internal first, then global
+		// Internal connections (DevTools SSE server) take priority over global (SSE client from mcp_settings.json)
+		// to avoid deadlocks when both exist with the same server name
+		const internalConn = this.connections.find(
+			(conn) => conn.server.name === serverName && conn.server.source === ("internal" as any),
+		)
+		if (internalConn) return internalConn
+
 		return this.connections.find(
 			(conn) => conn.server.name === serverName && (conn.server.source === "global" || !conn.server.source),
 		)

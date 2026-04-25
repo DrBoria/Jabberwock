@@ -55,7 +55,10 @@ export const registerStatusTools = (mcpServer, provider) => {
 	mcpServer.tool("get_task_details", { taskId: z.string() }, async ({ taskId }) => {
 		try {
 			const root = provider.getCurrentTask()?.rootTask || provider.getCurrentTask()
-			if (!root) return { content: [{ type: "text", text: "No active task" }], isError: true }
+			if (!root)
+				return {
+					content: [{ type: "text", text: JSON.stringify({ hasTask: false, error: "No active task" }) }],
+				}
 			const target = findTaskById(root, taskId)
 			if (!target) return { content: [{ type: "text", text: `Task ${taskId} not found` }], isError: true }
 			return { content: [{ type: "text", text: JSON.stringify(getTaskSummary(target), null, 2) }] }

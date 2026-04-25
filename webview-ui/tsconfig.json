@@ -23,7 +23,9 @@
 		"paths": {
 			"@/*": ["./src/*"],
 			"@src/*": ["./src/*"],
-			"@shared/*": ["../src/shared/*"]
+			"@shared/*": ["../src/shared/*"],
+			"@jabberwock/types": ["../../packages/types/src/index.ts"],
+			"@jabberwock/core/browser": ["../../packages/core/src/browser.ts"]
 		}
 	},
 	"include": ["src", "../src/shared", "vitest.setup.ts"]

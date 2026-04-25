@@ -43,7 +43,7 @@ vi.mock("@shared/modes", () => ({
 // Mock UI components
 vi.mock("@/components/ui", () => ({
 	AlertDialog: ({ children, open }: any) => (
-		<div data-testid="alert-dialog" data-open={open}>
+		<div data-testid="alert-dialog" data-open={open ? "true" : "false"}>
 			{open && children}
 		</div>
 	),
@@ -67,15 +67,15 @@ vi.mock("@/components/ui", () => ({
 			onClick={onClick}
 			disabled={disabled}
 			className={className}
-			data-variant={variant}
-			data-size={size}
+			data-variant={variant || undefined}
+			data-size={size || undefined}
 			data-testid="button">
 			{children}
 		</button>
 	),
 	StandardTooltip: ({ children }: any) => <>{children}</>,
 	Dialog: ({ children, open, _onOpenChange }: any) => (
-		<div data-testid="mode-dialog" data-open={open}>
+		<div data-testid="mode-dialog" data-open={open ? "true" : "false"}>
 			{open && children}
 		</div>
 	),
@@ -318,26 +318,29 @@ describe("SkillsSettings", () => {
 		const deleteButtons = buttons.filter((btn) => btn.querySelector('[class*="text-destructive"]'))
 		fireEvent.click(deleteButtons[0])
 
+		expect(screen.getByTestId("alert-dialog")).toHaveAttribute("data-open", "true")
+
 		const cancelButton = screen.getByTestId("alert-dialog-cancel")
 		fireEvent.click(cancelButton)
 
-		expect(screen.getByTestId("alert-dialog")).toHaveAttribute("data-open", "false")
+		// After cancel, the dialog should be closed and not rendered (due to conditional rendering)
+		expect(screen.queryByTestId("alert-dialog")).not.toBeInTheDocument()
 	})
 
 	it("opens skill file when edit button is clicked", () => {
 		renderSkillsSettings()
 
-		// Find edit buttons (buttons without destructive class that are icon size)
+		// Find all buttons and filter for edit buttons (buttons with Edit icon, not delete or settings)
 		const buttons = screen.getAllByTestId("button")
-		// Filter to find edit buttons (the ones with Edit icon, not Add, Delete, or Settings/Gear)
-		// Edit button uses lucide-square-pen icon, Settings uses lucide-settings
-		const editButtons = buttons.filter(
-			(btn) =>
-				btn.getAttribute("data-size") === "icon" &&
-				!btn.querySelector('[class*="text-destructive"]') &&
-				!btn.querySelector('[class*="lucide-settings"]') &&
-				btn.querySelector('[class*="lucide-square-pen"]'),
-		)
+
+		// Edit buttons have the lucide-square-pen icon inside them
+		const editButtons = buttons.filter((btn) => {
+			const hasEditIcon = btn.querySelector('[class*="lucide-square-pen"]') !== null
+			const isNotDelete = !btn.querySelector('[class*="text-destructive"]')
+			return hasEditIcon && isNotDelete
+		})
+
+		expect(editButtons.length).toBeGreaterThan(0)
 		// Click the first edit button (for project-skill)
 		fireEvent.click(editButtons[0])
 
