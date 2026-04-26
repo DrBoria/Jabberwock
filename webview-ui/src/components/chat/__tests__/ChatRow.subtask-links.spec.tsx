@@ -60,14 +60,11 @@ function renderChatRow(message: any, currentTaskItem?: Partial<HistoryItem>, cli
 		<QueryClientProvider client={queryClient}>
 			<ChatRowContent
 				message={message}
-				isExpanded={false}
 				isLast={false}
 				isStreaming={false}
-				onToggleExpand={() => {}}
 				onSuggestionClick={() => {}}
 				onBatchFileResponse={() => {}}
 				onFollowUpUnmount={() => {}}
-				isFollowUpAnswered={false}
 			/>
 		</QueryClientProvider>,
 	)

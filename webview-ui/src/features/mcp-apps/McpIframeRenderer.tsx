@@ -4,11 +4,19 @@ interface Props {
 	resourceUri: string
 	agentsList: string
 	inputData?: string
-	onResolve: (data: Record<string, unknown>) => void
+	onResolve?: (data: Record<string, unknown>) => void
 	onCancel?: () => void
+	readOnly?: boolean
 }
 
-export const McpIframeRenderer: React.FC<Props> = ({ resourceUri, agentsList, inputData, onResolve, onCancel }) => {
+export const McpIframeRenderer: React.FC<Props> = ({
+	resourceUri,
+	agentsList,
+	inputData,
+	onResolve,
+	onCancel,
+	readOnly,
+}) => {
 	const iframeRef = useRef<HTMLIFrameElement>(null)
 	const [isLoaded, setIsLoaded] = useState(false)
 
@@ -23,13 +31,14 @@ export const McpIframeRenderer: React.FC<Props> = ({ resourceUri, agentsList, in
 						data: {
 							agents: agentsList,
 							input: inputData,
+							readOnly,
 						},
 					},
 					"*",
 				)
 			} else if (e.data?.type === "mcp-action") {
 				if (e.data?.action === "accept") {
-					onResolve(e.data.content)
+					onResolve?.(e.data.content)
 				} else if (e.data?.action === "cancel") {
 					if (onCancel) {
 						onCancel()
@@ -49,6 +58,7 @@ export const McpIframeRenderer: React.FC<Props> = ({ resourceUri, agentsList, in
 						data: {
 							agents: agentsList,
 							input: inputData,
+							readOnly,
 						},
 					},
 					"*",
@@ -57,7 +67,7 @@ export const McpIframeRenderer: React.FC<Props> = ({ resourceUri, agentsList, in
 		}
 
 		return () => window.removeEventListener("message", handleMessage)
-	}, [agentsList, inputData, onResolve, onCancel])
+	}, [agentsList, inputData, onResolve, onCancel, readOnly])
 
 	return (
 		<div style={{ position: "relative", width: "100%", minHeight: "400px" }}>

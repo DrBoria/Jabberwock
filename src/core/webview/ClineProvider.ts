@@ -651,12 +651,18 @@ export class ClineProvider
 		// Perform special setup provider specific tasks.
 		await this.performPreparationTasks(task)
 
-		// Ensure getState() resolves correctly.
-		const state = await this.getState()
-
-		if (!state || typeof state.mode !== "string") {
-			throw new Error(t("common:errors.retrieve_current_mode"))
-		}
+		// Fire state retrieval asynchronously so it doesn't block the
+		// task-creation hot path (e.g. MCP tool handlers).  The mode
+		// check below is still logged on failure but won't throw.
+		this.getState()
+			.then((state) => {
+				if (!state || typeof state.mode !== "string") {
+					console.error("[ClineProvider] Failed to retrieve mode state during addClineToStack")
+				}
+			})
+			.catch((err) => {
+				console.error("[ClineProvider] getState() failed during addClineToStack:", err)
+			})
 	}
 
 	async performPreparationTasks(cline: Task) {
@@ -749,7 +755,7 @@ export class ClineProvider
 			}
 		}
 
-		await this.postStateToWebview()
+		this.postStateToWebview().catch(() => {})
 	}
 
 	async clearTaskStack() {
@@ -1190,7 +1196,7 @@ export class ClineProvider
 						})
 						.catch(this.log.bind(this))
 				} else {
-					stopJabberwockMcpServer()
+					await stopJabberwockMcpServer()
 					this.postStateToWebview()
 				}
 				await this.postStateToWebview()
@@ -3214,13 +3220,27 @@ export class ClineProvider
 
 		const { mode: optionsMode, ...otherOptions } = options
 
+		// getState() can be slow due to CloudService network calls; add a
+		// safety timeout so task creation doesn't block the caller (e.g. MCP
+		// tool handlers) indefinitely when the network is down.
+		const state = await Promise.race([
+			this.getState(),
+			new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
+		])
+
 		const {
 			apiConfiguration: baseApiConfiguration,
 			organizationAllowList,
 			enableCheckpoints,
 			checkpointTimeout,
 			experiments,
-		} = await this.getState()
+		} = state ?? {
+			apiConfiguration: {} as any,
+			organizationAllowList: "allow-all" as any,
+			enableCheckpoints: true,
+			checkpointTimeout: 300,
+			experiments: {} as any,
+		}
 
 		let apiConfiguration = baseApiConfiguration
 		if (optionsMode) {

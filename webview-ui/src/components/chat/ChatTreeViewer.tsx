@@ -23,7 +23,6 @@ interface ChatTreeNodeProps {
 // Ensure ChatRow receives a stable object where possible, though ChatRow is heavy.
 const ChatTreeNode = observer(({ node, depth, isRoot }: ChatTreeNodeProps) => {
 	const [isOpen, setIsOpen] = useState(true)
-	const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({})
 	const store = useChatTree()
 	const { pushWindow: _pushWindow } = useWindowManager()
 
@@ -94,10 +93,8 @@ const ChatTreeNode = observer(({ node, depth, isRoot }: ChatTreeNodeProps) => {
 								key={msg.ts || idx}
 								message={msg}
 								history={messages}
-								isExpanded={expandedRows[msg.ts] || false}
 								isLast={idx === messages.length - 1}
 								isStreaming={false}
-								onToggleExpand={(ts) => setExpandedRows((prev) => ({ ...prev, [ts]: !prev[ts] }))}
 								onHeightChange={() => {}}
 								isNested={true}
 							/>

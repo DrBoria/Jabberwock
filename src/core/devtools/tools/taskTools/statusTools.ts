@@ -6,10 +6,24 @@ export const registerStatusTools = (mcpServer, provider) => {
 		try {
 			const currentTask = provider.getCurrentTask()
 			if (!currentTask) return { content: [{ type: "text", text: JSON.stringify({ hasTask: false }) }] }
+
+			const lastMessage = currentTask.clineMessages.at(-1)
+			// Flat summary — no nested todoList with descriptions, no message history
+			const status = {
+				hasTask: true,
+				taskId: currentTask.taskId,
+				mode: currentTask.taskMode,
+				isCompleted: currentTask.isCompleted,
+				isStreaming: currentTask.isStreaming,
+				messageCount: currentTask.clineMessages.length,
+				todoCount: currentTask.todoList?.length ?? 0,
+				lastMessageType: lastMessage?.type || null,
+				lastMessageAsk: lastMessage?.ask || null,
+				lastMessageSay: lastMessage?.say || null,
+				pendingAction: currentTask.idleAsk?.ask || currentTask.resumableAsk?.ask || null,
+			}
 			return {
-				content: [
-					{ type: "text", text: JSON.stringify({ hasTask: true, ...getTaskSummary(currentTask) }, null, 2) },
-				],
+				content: [{ type: "text", text: JSON.stringify(status) }],
 			}
 		} catch (error) {
 			return {

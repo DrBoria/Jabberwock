@@ -15,14 +15,19 @@ export const registerActionsTools = (mcpServer: McpServer, provider: ClineProvid
 					await provider.handleModeSwitch(mode as any)
 				}
 
-				// createTask returns the Task instance
-				const task = await provider.createTask(text, [], undefined)
+				// createTask is heavy — it creates a Task instance and starts the
+				// full task loop (API calls, streaming, etc.). Don't await it so
+				// the MCP tool returns immediately and the SSE client doesn't hit
+				// the 60 s timeout. The task will show up in the UI once it starts
+				// processing.
+				const taskPromise = provider.createTask(text, [], undefined, { mode })
 
-				// Synchronize webview state to trigger view switch (e.g. from history/welcome to chat)
-				await provider.postStateToWebview()
-
-				// Ensure webview switches to chat tab using standard action
-				await provider.postMessageToWebview({ type: "action", action: "chatButtonClicked" })
+				// Fire post-state and chat-button-clicked asynchronously.
+				// postStateToWebview() is heavy (cloud orgs, MCP servers, task
+				// history…) and doesn't need to block the MCP tool response.
+				taskPromise.then(async () => {
+					await provider.postMessageToWebview({ type: "action", action: "chatButtonClicked" }).catch(() => {})
+				})
 
 				return {
 					content: [
@@ -31,7 +36,7 @@ export const registerActionsTools = (mcpServer: McpServer, provider: ClineProvid
 							text: JSON.stringify(
 								{
 									message: `Successfully initiated task in ${mode || "default"} mode`,
-									taskId: task.taskId,
+									taskId: "pending",
 								},
 								null,
 								2,

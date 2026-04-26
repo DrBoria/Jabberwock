@@ -1,4 +1,4 @@
-import { defaultModeSlug } from "@shared/modes"
+// import { defaultModeSlug } from "@shared/modes"
 
 import { render, fireEvent, screen } from "@src/utils/test-utils"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
@@ -30,8 +30,23 @@ vi.mock("@src/utils/path-mentions", () => ({
 const mockPostMessage = vscode.postMessage as ReturnType<typeof vi.fn>
 const mockConvertToMentionPath = pathMentions.convertToMentionPath as ReturnType<typeof vi.fn>
 
+// Helper to set useChatUI mock return value
+const mockChatUI = (overrides: Record<string, unknown> = {}) => {
+	const { useChatUI } = require("@src/context/ChatUIContext") // eslint-disable-line @typescript-eslint/no-require-imports
+	;(useChatUI as ReturnType<typeof vi.fn>).mockReturnValue({
+		inputValue: "",
+		setInputValue: vi.fn(),
+		selectedImages: [],
+		setSelectedImages: vi.fn(),
+		appendSelectedImages: vi.fn(),
+		clearInput: vi.fn(),
+		...overrides,
+	})
+}
+
 // Mock ExtensionStateContext
 vi.mock("@src/context/ExtensionStateContext")
+vi.mock("@src/context/ChatUIContext")
 
 // Custom query function to get the enhance prompt button
 const getEnhancePromptButton = () => {
@@ -45,19 +60,11 @@ const getEnhancePromptButton = () => {
 
 describe("ChatTextArea", () => {
 	const defaultProps = {
-		inputValue: "",
-		setInputValue: vi.fn(),
 		onSend: vi.fn(),
-		sendingDisabled: false,
-		selectApiConfigDisabled: false,
 		onSelectImages: vi.fn(),
 		shouldDisableImages: false,
 		placeholderText: "Type a message...",
-		selectedImages: [],
-		setSelectedImages: vi.fn(),
 		onHeightChange: vi.fn(),
-		mode: defaultModeSlug,
-		setMode: vi.fn(),
 		modeShortcutText: "(⌘. for next mode)",
 	}
 
@@ -73,6 +80,8 @@ describe("ChatTextArea", () => {
 			taskHistory: [],
 			cwd: "/test/workspace",
 		})
+		// Default mock implementation for useChatUI
+		mockChatUI()
 	})
 
 	describe("enhance prompt button", () => {
@@ -83,7 +92,7 @@ describe("ChatTextArea", () => {
 				taskHistory: [],
 				cwd: "/test/workspace",
 			})
-			render(<ChatTextArea {...defaultProps} sendingDisabled={true} />)
+			render(<ChatTextArea {...defaultProps} />)
 			const enhanceButton = getEnhancePromptButton()
 			expect(enhanceButton).toHaveClass("cursor-pointer")
 		})
@@ -104,7 +113,7 @@ describe("ChatTextArea", () => {
 				cwd: "/test/workspace",
 			})
 
-			render(<ChatTextArea {...defaultProps} inputValue="Test prompt" />)
+			render(<ChatTextArea {...defaultProps} />)
 
 			const enhanceButton = getEnhancePromptButton()
 			fireEvent.click(enhanceButton)
@@ -126,7 +135,7 @@ describe("ChatTextArea", () => {
 				cwd: "/test/workspace",
 			})
 
-			render(<ChatTextArea {...defaultProps} inputValue="" />)
+			render(<ChatTextArea {...defaultProps} />)
 
 			// Clear any calls from component initialization (e.g., IndexingStatusBadge)
 			mockPostMessage.mockClear()
@@ -148,7 +157,7 @@ describe("ChatTextArea", () => {
 				cwd: "/test/workspace",
 			})
 
-			render(<ChatTextArea {...defaultProps} inputValue="Test prompt" />)
+			render(<ChatTextArea {...defaultProps} />)
 
 			const enhanceButton = getEnhancePromptButton()
 			fireEvent.click(enhanceButton)
@@ -185,6 +194,7 @@ describe("ChatTextArea", () => {
 	describe("enhanced prompt response", () => {
 		it("should update input value using native browser methods when receiving enhanced prompt", () => {
 			const setInputValue = vi.fn()
+			mockChatUI({ setInputValue })
 
 			// Mock document.execCommand
 			const mockExecCommand = vi.fn().mockReturnValue(true)
@@ -193,9 +203,7 @@ describe("ChatTextArea", () => {
 				writable: true,
 			})
 
-			const { container } = render(
-				<ChatTextArea {...defaultProps} setInputValue={setInputValue} inputValue="Original prompt" />,
-			)
+			const { container } = render(<ChatTextArea {...defaultProps} />)
 
 			const textarea = container.querySelector("textarea")!
 
@@ -223,6 +231,7 @@ describe("ChatTextArea", () => {
 
 		it("should fallback to setInputValue when execCommand is not available", () => {
 			const setInputValue = vi.fn()
+			mockChatUI({ setInputValue })
 
 			// Mock document.execCommand to be undefined (not available)
 			Object.defineProperty(document, "execCommand", {
@@ -230,7 +239,7 @@ describe("ChatTextArea", () => {
 				writable: true,
 			})
 
-			render(<ChatTextArea {...defaultProps} setInputValue={setInputValue} inputValue="Original prompt" />)
+			render(<ChatTextArea {...defaultProps} />)
 
 			// Simulate receiving enhanced prompt message
 			window.dispatchEvent(
@@ -248,8 +257,9 @@ describe("ChatTextArea", () => {
 
 		it("should not crash when textarea ref is not available", () => {
 			const setInputValue = vi.fn()
+			mockChatUI({ setInputValue })
 
-			render(<ChatTextArea {...defaultProps} setInputValue={setInputValue} />)
+			render(<ChatTextArea {...defaultProps} />)
 
 			// Simulate receiving enhanced prompt message when textarea ref might not be ready
 			expect(() => {
@@ -280,10 +290,8 @@ describe("ChatTextArea", () => {
 
 		it("should process multiple file paths separated by newlines", () => {
 			const setInputValue = vi.fn()
-
-			const { container } = render(
-				<ChatTextArea {...defaultProps} setInputValue={setInputValue} inputValue="Initial text" />,
-			)
+			mockChatUI({ setInputValue })
+			const { container } = render(<ChatTextArea {...defaultProps} />)
 
 			// Create a mock dataTransfer object with text data containing multiple file paths
 			const dataTransfer = {
@@ -309,10 +317,8 @@ describe("ChatTextArea", () => {
 
 		it("should filter out empty lines in the dragged text", () => {
 			const setInputValue = vi.fn()
-
-			const { container } = render(
-				<ChatTextArea {...defaultProps} setInputValue={setInputValue} inputValue="Initial text" />,
-			)
+			mockChatUI({ setInputValue })
+			const { container } = render(<ChatTextArea {...defaultProps} />)
 
 			// Create a mock dataTransfer object with text data containing empty lines
 			const dataTransfer = {
@@ -335,11 +341,10 @@ describe("ChatTextArea", () => {
 
 		it("should correctly update cursor position after adding multiple mentions", () => {
 			const setInputValue = vi.fn()
+			mockChatUI({ setInputValue })
 			const initialCursorPosition = 5
 
-			const { container } = render(
-				<ChatTextArea {...defaultProps} setInputValue={setInputValue} inputValue="Hello world" />,
-			)
+			const { container } = render(<ChatTextArea {...defaultProps} />)
 
 			// Set the cursor position manually
 			const textArea = container.querySelector("textarea")
@@ -366,8 +371,8 @@ describe("ChatTextArea", () => {
 
 		it("should handle very long file paths correctly", () => {
 			const setInputValue = vi.fn()
-
-			const { container } = render(<ChatTextArea {...defaultProps} setInputValue={setInputValue} inputValue="" />)
+			mockChatUI({ setInputValue })
+			const { container } = render(<ChatTextArea {...defaultProps} />)
 
 			// Create a very long file path
 			const longPath =
@@ -396,8 +401,8 @@ describe("ChatTextArea", () => {
 
 		it("should handle paths with special characters correctly", () => {
 			const setInputValue = vi.fn()
-
-			const { container } = render(<ChatTextArea {...defaultProps} setInputValue={setInputValue} inputValue="" />)
+			mockChatUI({ setInputValue })
+			const { container } = render(<ChatTextArea {...defaultProps} />)
 
 			// Create paths with special characters
 			const specialPath1 = "/Users/test/project/file with spaces.js"
@@ -432,8 +437,8 @@ describe("ChatTextArea", () => {
 
 		it("should handle paths outside the current working directory", () => {
 			const setInputValue = vi.fn()
-
-			const { container } = render(<ChatTextArea {...defaultProps} setInputValue={setInputValue} inputValue="" />)
+			mockChatUI({ setInputValue })
+			const { container } = render(<ChatTextArea {...defaultProps} />)
 
 			// Create paths outside the current working directory
 			const outsidePath = "/Users/other/project/file.js"
@@ -464,10 +469,8 @@ describe("ChatTextArea", () => {
 
 		it("should do nothing when dropped text is empty", () => {
 			const setInputValue = vi.fn()
-
-			const { container } = render(
-				<ChatTextArea {...defaultProps} setInputValue={setInputValue} inputValue="Initial text" />,
-			)
+			mockChatUI({ setInputValue })
+			const { container } = render(<ChatTextArea {...defaultProps} />)
 
 			// Create a mock dataTransfer object with empty text
 			const dataTransfer = {
@@ -510,9 +513,8 @@ describe("ChatTextArea", () => {
 
 			it("should navigate to previous prompt on arrow up when cursor is at beginning", () => {
 				const setInputValue = vi.fn()
-				const { container } = render(
-					<ChatTextArea {...defaultProps} setInputValue={setInputValue} inputValue="" />,
-				)
+				mockChatUI({ setInputValue })
+				const { container } = render(<ChatTextArea {...defaultProps} />)
 
 				const textarea = container.querySelector("textarea")!
 				// Ensure cursor is at the beginning
@@ -527,9 +529,8 @@ describe("ChatTextArea", () => {
 
 			it("should navigate through history with multiple arrow up presses", () => {
 				const setInputValue = vi.fn()
-				const { container } = render(
-					<ChatTextArea {...defaultProps} setInputValue={setInputValue} inputValue="" />,
-				)
+				mockChatUI({ setInputValue })
+				const { container } = render(<ChatTextArea {...defaultProps} />)
 
 				const textarea = container.querySelector("textarea")!
 
@@ -547,9 +548,8 @@ describe("ChatTextArea", () => {
 
 			it("should navigate forward with arrow down", () => {
 				const setInputValue = vi.fn()
-				const { container } = render(
-					<ChatTextArea {...defaultProps} setInputValue={setInputValue} inputValue="" />,
-				)
+				mockChatUI({ setInputValue })
+				const { container } = render(<ChatTextArea {...defaultProps} />)
 
 				const textarea = container.querySelector("textarea")!
 
@@ -565,9 +565,8 @@ describe("ChatTextArea", () => {
 
 			it("should preserve current input when starting navigation", () => {
 				const setInputValue = vi.fn()
-				const { container } = render(
-					<ChatTextArea {...defaultProps} setInputValue={setInputValue} inputValue="Current input" />,
-				)
+				mockChatUI({ setInputValue })
+				const { container } = render(<ChatTextArea {...defaultProps} />)
 
 				const textarea = container.querySelector("textarea")!
 
@@ -584,9 +583,8 @@ describe("ChatTextArea", () => {
 
 			it("should reset history navigation when user types", () => {
 				const setInputValue = vi.fn()
-				const { container } = render(
-					<ChatTextArea {...defaultProps} setInputValue={setInputValue} inputValue="" />,
-				)
+				mockChatUI({ setInputValue })
+				const { container } = render(<ChatTextArea {...defaultProps} />)
 
 				const textarea = container.querySelector("textarea")!
 
@@ -604,14 +602,8 @@ describe("ChatTextArea", () => {
 			it("should reset history navigation when sending message", () => {
 				const onSend = vi.fn()
 				const setInputValue = vi.fn()
-				const { container } = render(
-					<ChatTextArea
-						{...defaultProps}
-						onSend={onSend}
-						setInputValue={setInputValue}
-						inputValue="Test message"
-					/>,
-				)
+				mockChatUI({ setInputValue })
+				const { container } = render(<ChatTextArea {...defaultProps} onSend={onSend} />)
 
 				const textarea = container.querySelector("textarea")!
 
@@ -627,9 +619,8 @@ describe("ChatTextArea", () => {
 
 			it("should navigate history when cursor is at first line", () => {
 				const setInputValue = vi.fn()
-				const { container } = render(
-					<ChatTextArea {...defaultProps} setInputValue={setInputValue} inputValue="" />,
-				)
+				mockChatUI({ setInputValue })
+				const { container } = render(<ChatTextArea {...defaultProps} />)
 
 				const textarea = container.querySelector("textarea")!
 
@@ -661,9 +652,8 @@ describe("ChatTextArea", () => {
 				})
 
 				const setInputValue = vi.fn()
-				const { container } = render(
-					<ChatTextArea {...defaultProps} setInputValue={setInputValue} inputValue="" />,
-				)
+				mockChatUI({ setInputValue })
+				const { container } = render(<ChatTextArea {...defaultProps} />)
 
 				const textarea = container.querySelector("textarea")!
 
@@ -689,9 +679,8 @@ describe("ChatTextArea", () => {
 				})
 
 				const setInputValue = vi.fn()
-				const { container } = render(
-					<ChatTextArea {...defaultProps} setInputValue={setInputValue} inputValue="" />,
-				)
+				mockChatUI({ setInputValue })
+				const { container } = render(<ChatTextArea {...defaultProps} />)
 
 				const textarea = container.querySelector("textarea")!
 
@@ -720,9 +709,8 @@ describe("ChatTextArea", () => {
 				})
 
 				const setInputValue = vi.fn()
-				const { container } = render(
-					<ChatTextArea {...defaultProps} setInputValue={setInputValue} inputValue="" />,
-				)
+				mockChatUI({ setInputValue })
+				const { container } = render(<ChatTextArea {...defaultProps} />)
 
 				const textarea = container.querySelector("textarea")!
 
@@ -754,9 +742,8 @@ describe("ChatTextArea", () => {
 				})
 
 				const setInputValue = vi.fn()
-				const { container } = render(
-					<ChatTextArea {...defaultProps} setInputValue={setInputValue} inputValue="" />,
-				)
+				mockChatUI({ setInputValue })
+				const { container } = render(<ChatTextArea {...defaultProps} />)
 
 				const textarea = container.querySelector("textarea")!
 
@@ -771,9 +758,8 @@ describe("ChatTextArea", () => {
 
 			it("should reset navigation position when switching between history sources", () => {
 				const setInputValue = vi.fn()
-				const { rerender } = render(
-					<ChatTextArea {...defaultProps} setInputValue={setInputValue} inputValue="" />,
-				)
+				mockChatUI({ setInputValue })
+				const { rerender } = render(<ChatTextArea {...defaultProps} />)
 
 				// Start with task history
 				;(useExtensionState as ReturnType<typeof vi.fn>).mockReturnValue({
@@ -790,7 +776,7 @@ describe("ChatTextArea", () => {
 					cwd: "/test/workspace",
 				})
 
-				rerender(<ChatTextArea {...defaultProps} setInputValue={setInputValue} inputValue="" />)
+				rerender(<ChatTextArea {...defaultProps} />)
 
 				const textarea = document.querySelector("textarea")!
 
@@ -814,7 +800,7 @@ describe("ChatTextArea", () => {
 				})
 
 				setInputValue.mockClear()
-				rerender(<ChatTextArea {...defaultProps} setInputValue={setInputValue} inputValue="" />)
+				rerender(<ChatTextArea {...defaultProps} />)
 
 				// Should start from beginning of conversation history (newest first)
 				fireEvent.keyDown(textarea, { key: "ArrowUp" })
@@ -823,9 +809,8 @@ describe("ChatTextArea", () => {
 
 			it("should not navigate history with arrow up when cursor is not at beginning", () => {
 				const setInputValue = vi.fn()
-				const { container } = render(
-					<ChatTextArea {...defaultProps} setInputValue={setInputValue} inputValue="Some text here" />,
-				)
+				mockChatUI({ setInputValue })
+				const { container } = render(<ChatTextArea {...defaultProps} />)
 
 				const textarea = container.querySelector("textarea")!
 				// Set cursor to middle of text (not at beginning)
@@ -843,9 +828,8 @@ describe("ChatTextArea", () => {
 
 			it("should navigate history with arrow up when cursor is at beginning", () => {
 				const setInputValue = vi.fn()
-				const { container } = render(
-					<ChatTextArea {...defaultProps} setInputValue={setInputValue} inputValue="Some text here" />,
-				)
+				mockChatUI({ setInputValue })
+				const { container } = render(<ChatTextArea {...defaultProps} />)
 
 				const textarea = container.querySelector("textarea")!
 				// Set cursor to beginning of text
@@ -863,9 +847,8 @@ describe("ChatTextArea", () => {
 
 			it("should navigate history with Command+Up when cursor is at beginning", () => {
 				const setInputValue = vi.fn()
-				const { container } = render(
-					<ChatTextArea {...defaultProps} setInputValue={setInputValue} inputValue="Some text here" />,
-				)
+				mockChatUI({ setInputValue })
+				const { container } = render(<ChatTextArea {...defaultProps} />)
 
 				const textarea = container.querySelector("textarea")!
 				// Set cursor to beginning of text
@@ -883,9 +866,8 @@ describe("ChatTextArea", () => {
 
 			it("should not navigate history with Command+Up when cursor is not at beginning", () => {
 				const setInputValue = vi.fn()
-				const { container } = render(
-					<ChatTextArea {...defaultProps} setInputValue={setInputValue} inputValue="Some text here" />,
-				)
+				mockChatUI({ setInputValue })
+				const { container } = render(<ChatTextArea {...defaultProps} />)
 
 				const textarea = container.querySelector("textarea")!
 				// Set cursor to middle of text (not at beginning)
@@ -921,7 +903,7 @@ describe("ChatTextArea", () => {
 		})
 
 		it("should highlight valid slash commands", () => {
-			const { getByTestId } = render(<ChatTextArea {...defaultProps} inputValue="/setup the project" />)
+			const { getByTestId } = render(<ChatTextArea {...defaultProps} />)
 
 			const highlightLayer = getByTestId("highlight-layer")
 			expect(highlightLayer).toBeInTheDocument()
@@ -932,7 +914,7 @@ describe("ChatTextArea", () => {
 		})
 
 		it("should not highlight invalid slash commands", () => {
-			const { getByTestId } = render(<ChatTextArea {...defaultProps} inputValue="/invalid command" />)
+			const { getByTestId } = render(<ChatTextArea {...defaultProps} />)
 
 			const highlightLayer = getByTestId("highlight-layer")
 			expect(highlightLayer).toBeInTheDocument()
@@ -946,7 +928,7 @@ describe("ChatTextArea", () => {
 		})
 
 		it("should highlight only the command portion, not arguments", () => {
-			const { getByTestId } = render(<ChatTextArea {...defaultProps} inputValue="/deploy to production" />)
+			const { getByTestId } = render(<ChatTextArea {...defaultProps} />)
 
 			const highlightLayer = getByTestId("highlight-layer")
 			expect(highlightLayer).toBeInTheDocument()
@@ -961,7 +943,7 @@ describe("ChatTextArea", () => {
 		})
 
 		it("should handle commands with dashes and underscores", () => {
-			const { getByTestId } = render(<ChatTextArea {...defaultProps} inputValue="/test-command with args" />)
+			const { getByTestId } = render(<ChatTextArea {...defaultProps} />)
 
 			const highlightLayer = getByTestId("highlight-layer")
 			expect(highlightLayer).toBeInTheDocument()
@@ -973,7 +955,7 @@ describe("ChatTextArea", () => {
 		})
 
 		it("should be case-sensitive when matching commands", () => {
-			const { getByTestId } = render(<ChatTextArea {...defaultProps} inputValue="/Setup the project" />)
+			const { getByTestId } = render(<ChatTextArea {...defaultProps} />)
 
 			const highlightLayer = getByTestId("highlight-layer")
 			expect(highlightLayer).toBeInTheDocument()
@@ -986,7 +968,7 @@ describe("ChatTextArea", () => {
 		})
 
 		it("should highlight multiple valid commands in the same text", () => {
-			const { getByTestId } = render(<ChatTextArea {...defaultProps} inputValue="/setup first then /deploy" />)
+			const { getByTestId } = render(<ChatTextArea {...defaultProps} />)
 
 			const highlightLayer = getByTestId("highlight-layer")
 			expect(highlightLayer).toBeInTheDocument()
@@ -999,9 +981,7 @@ describe("ChatTextArea", () => {
 		})
 
 		it("should handle mixed valid and invalid commands", () => {
-			const { getByTestId } = render(
-				<ChatTextArea {...defaultProps} inputValue="/setup first then /invalid then /deploy" />,
-			)
+			const { getByTestId } = render(<ChatTextArea {...defaultProps} />)
 
 			const highlightLayer = getByTestId("highlight-layer")
 			expect(highlightLayer).toBeInTheDocument()
@@ -1028,7 +1008,7 @@ describe("ChatTextArea", () => {
 				commands: undefined,
 			})
 
-			const { getByTestId } = render(<ChatTextArea {...defaultProps} inputValue="/setup the project" />)
+			const { getByTestId } = render(<ChatTextArea {...defaultProps} />)
 
 			const highlightLayer = getByTestId("highlight-layer")
 			expect(highlightLayer).toBeInTheDocument()
@@ -1047,12 +1027,14 @@ describe("ChatTextArea", () => {
 			return screen.getByTestId("dropdown-trigger")
 		}
 		it("should be enabled independently of sendingDisabled", () => {
-			render(<ChatTextArea {...defaultProps} sendingDisabled={true} selectApiConfigDisabled={false} />)
+			mockChatUI({ sendingDisabled: true })
+			render(<ChatTextArea {...defaultProps} />)
 			const apiConfigDropdown = getApiConfigDropdown()
 			expect(apiConfigDropdown).not.toHaveAttribute("disabled")
 		})
 		it("should be disabled when selectApiConfigDisabled is true", () => {
-			render(<ChatTextArea {...defaultProps} sendingDisabled={true} selectApiConfigDisabled={true} />)
+			mockChatUI({ sendingDisabled: true })
+			render(<ChatTextArea {...defaultProps} />)
 			const apiConfigDropdown = getApiConfigDropdown()
 			expect(apiConfigDropdown).toHaveAttribute("disabled")
 		})
@@ -1126,13 +1108,11 @@ describe("ChatTextArea", () => {
 
 	describe("send button visibility", () => {
 		it("should show send button when there are images but no text", () => {
-			const { container } = render(
-				<ChatTextArea
-					{...defaultProps}
-					inputValue=""
-					selectedImages={["data:image/png;base64,test1", "data:image/png;base64,test2"]}
-				/>,
-			)
+			mockChatUI({
+				inputValue: "",
+				selectedImages: ["data:image/png;base64,test1", "data:image/png;base64,test2"],
+			})
+			const { container } = render(<ChatTextArea {...defaultProps} />)
 
 			// Find the send button by looking for the button with SendHorizontal icon
 			const buttons = container.querySelectorAll("button")
@@ -1150,7 +1130,8 @@ describe("ChatTextArea", () => {
 		})
 
 		it("should hide send button when there is no text and no images", () => {
-			const { container } = render(<ChatTextArea {...defaultProps} inputValue="" selectedImages={[]} />)
+			mockChatUI({ inputValue: "", selectedImages: [] })
+			const { container } = render(<ChatTextArea {...defaultProps} />)
 
 			// Find the send button by looking for the button with SendHorizontal icon
 			const buttons = container.querySelectorAll("button")
@@ -1168,7 +1149,8 @@ describe("ChatTextArea", () => {
 		})
 
 		it("should show send button when there is text but no images", () => {
-			const { container } = render(<ChatTextArea {...defaultProps} inputValue="Some text" selectedImages={[]} />)
+			mockChatUI({ inputValue: "Some text", selectedImages: [] })
+			const { container } = render(<ChatTextArea {...defaultProps} />)
 
 			// Find the send button by looking for the button with SendHorizontal icon
 			const buttons = container.querySelectorAll("button")
@@ -1184,13 +1166,8 @@ describe("ChatTextArea", () => {
 		})
 
 		it("should show send button when there is both text and images", () => {
-			const { container } = render(
-				<ChatTextArea
-					{...defaultProps}
-					inputValue="Some text"
-					selectedImages={["data:image/png;base64,test1"]}
-				/>,
-			)
+			mockChatUI({ inputValue: "Some text", selectedImages: ["data:image/png;base64,test1"] })
+			const { container } = render(<ChatTextArea {...defaultProps} />)
 
 			// Find the send button by looking for the button with SendHorizontal icon
 			const buttons = container.querySelectorAll("button")

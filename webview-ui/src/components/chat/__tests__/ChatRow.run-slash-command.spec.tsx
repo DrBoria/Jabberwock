@@ -32,27 +32,23 @@ vi.mock("@vscode/webview-ui-toolkit/react", () => ({
 
 const queryClient = new QueryClient()
 
-const renderChatRowWithProviders = (message: any, isExpanded = false) => {
+const renderChatRowWithProviders = (message: any) => {
 	return render(
 		<ExtensionStateContextProvider>
 			<QueryClientProvider client={queryClient}>
 				<ChatRowContent
 					message={message}
-					isExpanded={isExpanded}
 					isLast={false}
 					isStreaming={false}
-					onToggleExpand={mockOnToggleExpand}
 					onSuggestionClick={mockOnSuggestionClick}
 					onBatchFileResponse={mockOnBatchFileResponse}
 					onFollowUpUnmount={mockOnFollowUpUnmount}
-					isFollowUpAnswered={false}
 				/>
 			</QueryClientProvider>
 		</ExtensionStateContextProvider>,
 	)
 }
 
-const mockOnToggleExpand = vi.fn()
 const mockOnSuggestionClick = vi.fn()
 const mockOnBatchFileResponse = vi.fn()
 const mockOnFollowUpUnmount = vi.fn()
@@ -95,7 +91,7 @@ describe("ChatRow - runSlashCommand tool", () => {
 			partial: false,
 		}
 
-		const { getByText } = renderChatRowWithProviders(message, true) // Pass true to expand
+		const { getByText } = renderChatRowWithProviders(message)
 
 		expect(getByText("Jabberwock wants to run slash command:")).toBeInTheDocument()
 		expect(getByText("/test")).toBeInTheDocument()

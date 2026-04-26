@@ -424,6 +424,12 @@ export async function activate(context: vscode.ExtensionContext) {
 export async function deactivate() {
 	outputChannel.appendLine(`${Package.name} extension deactivated`)
 
+	// Stop our DevTools MCP server so it releases port 60060.
+	// Without this, zombie HTTP processes hold the port across hot-reloads.
+	import("./core/devtools/JabberwockMcpServer")
+		.then(({ stopJabberwockMcpServer }) => stopJabberwockMcpServer())
+		.catch((e) => outputChannel.appendLine(`Failed to stop DevTools MCP server: ${e.message}`))
+
 	if (cloudService && CloudService.hasInstance()) {
 		try {
 			if (authStateChangedHandler) {

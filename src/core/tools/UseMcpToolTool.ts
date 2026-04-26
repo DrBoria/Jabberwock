@@ -328,12 +328,20 @@ export class UseMcpToolTool extends BaseTool<"use_mcp_tool"> {
 		let toolResultPretty = "(No response)"
 		let images: string[] = []
 
+		// Track interactive app metadata for frontend rendering
+		let interactiveAppMeta: Record<string, unknown> | undefined
+
 		if (toolResult) {
 			if (toolResult._meta?.ui) {
 				// Interactive App: Elicitation handling
 				// Pause execution, send the UI metadata to the webview, and wait for user response
 				const uiMeta = {
 					...toolResult._meta.ui,
+					input: parsedArguments,
+				}
+				// Store interactive app metadata so we can include it in the say message
+				interactiveAppMeta = {
+					resourceUri: toolResult._meta.ui.resourceUri,
 					input: parsedArguments,
 				}
 				const { response, text } = await task.ask("interactive_app", JSON.stringify(uiMeta))
@@ -581,7 +589,16 @@ export class UseMcpToolTool extends BaseTool<"use_mcp_tool"> {
 			})
 		}
 
-		await task.say("mcp_server_response", toolResultPretty, images)
+		// If this was an interactive app, wrap the response with metadata so the frontend
+		// can render the iframe (e.g., md-todo-mcp UI) instead of raw JSON text.
+		const sayText = interactiveAppMeta
+			? JSON.stringify({
+					_interactiveMeta: interactiveAppMeta,
+					response: toolResultPretty,
+				})
+			: toolResultPretty
+
+		await task.say("mcp_server_response", sayText, images)
 		pushToolResult(formatResponse.toolResult(toolResultPretty, images))
 	}
 }

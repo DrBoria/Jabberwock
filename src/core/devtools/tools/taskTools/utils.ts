@@ -21,7 +21,12 @@ export const getTaskSummary = (task) => {
 		lastMessageType: lastMessage?.type,
 		lastMessageAsk: lastMessage?.ask,
 		lastMessageSay: lastMessage?.say,
-		todoList: task.todoList,
+		todoList: (task.todoList || []).map((t) => ({
+			id: t.id,
+			title: t.title,
+			status: t.status,
+			assignedTo: t.assignedTo,
+		})),
 	}
 }
 

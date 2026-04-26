@@ -105,7 +105,10 @@ export function registerLogTools(mcpServer: McpServer, provider: ClineProvider) 
 	mcpServer.tool(
 		"get_console_dump",
 		{
-			lines: z.number().optional().describe("Number of recent lines. Default is all."),
+			lines: z
+				.number()
+				.optional()
+				.describe("Number of recent lines. Default is all. Use negative for from start (e.g. -10 = first 10)."),
 			level: z
 				.enum(["info", "warn", "error", "debug"])
 				.optional()
@@ -114,8 +117,24 @@ export function registerLogTools(mcpServer: McpServer, provider: ClineProvider) 
 				.string()
 				.optional()
 				.describe("Exclude lines matching this substring (e.g. 'DEBUG: PROMPT' to hide prompt debug logs)."),
+			search: z
+				.string()
+				.optional()
+				.describe(
+					"Filter logs by keyword/substring (case-insensitive). Only lines containing this string will be returned.",
+				),
+			offset: z
+				.number()
+				.optional()
+				.describe("Skip this many lines from the start (for pagination). Default is 0."),
+			limit: z
+				.number()
+				.optional()
+				.describe(
+					"Maximum number of lines to return after offset (for pagination). Overrides `lines` when set.",
+				),
 		},
-		async ({ lines, level, excludePattern }) => {
+		async ({ lines, level, excludePattern, search, offset, limit }) => {
 			try {
 				const snapshot = diagnosticsManager.getSnapshot()
 				let filteredLogs = snapshot.logs
@@ -130,8 +149,21 @@ export function registerLogTools(mcpServer: McpServer, provider: ClineProvider) 
 					filteredLogs = filteredLogs.filter((l) => !l.message.includes(excludePattern))
 				}
 
-				// Limit lines
-				if (lines && lines > 0) {
+				// Filter by search keyword
+				if (search) {
+					const searchLower = search.toLowerCase()
+					filteredLogs = filteredLogs.filter((l) => l.message.toLowerCase().includes(searchLower))
+				}
+
+				// Pagination: offset + limit takes priority over lines
+				if (limit !== undefined) {
+					const start = offset ?? 0
+					filteredLogs = filteredLogs.slice(start, start + limit)
+				} else if (lines !== undefined && lines < 0) {
+					// Negative lines = first N
+					filteredLogs = filteredLogs.slice(0, Math.abs(lines))
+				} else if (lines && lines > 0) {
+					// Positive lines = last N (default behavior)
 					filteredLogs = filteredLogs.slice(-Math.abs(lines))
 				}
 
@@ -153,14 +185,53 @@ export function registerLogTools(mcpServer: McpServer, provider: ClineProvider) 
 	mcpServer.tool(
 		"get_console_errors",
 		{
-			lines: z.number().optional().describe("Number of recent error lines. Default is 50."),
+			lines: z
+				.number()
+				.optional()
+				.describe(
+					"Number of recent error lines to return from the end. Default is 50. Use negative for from start (e.g. -10 = first 10).",
+				),
 			includeWarnings: z.boolean().optional().describe("Include WARN level logs. Default is false."),
+			search: z
+				.string()
+				.optional()
+				.describe(
+					"Filter logs by keyword/substring (case-insensitive). Only lines containing this string will be returned.",
+				),
+			offset: z
+				.number()
+				.optional()
+				.describe("Skip this many lines from the start (for pagination). Default is 0."),
+			limit: z
+				.number()
+				.optional()
+				.describe(
+					"Maximum number of lines to return after offset (for pagination). Overrides `lines` when set.",
+				),
 		},
-		async ({ lines = 50, includeWarnings = false }) => {
+		async ({ lines = 50, includeWarnings = false, search, offset, limit }) => {
 			try {
 				const snapshot = diagnosticsManager.getSnapshot()
 				const levels = includeWarnings ? ["error", "warn"] : ["error"]
-				const errorLogs = snapshot.logs.filter((l) => levels.includes(l.level)).slice(-Math.abs(lines))
+				let errorLogs = snapshot.logs.filter((l) => levels.includes(l.level))
+
+				// Filter by search keyword
+				if (search) {
+					const searchLower = search.toLowerCase()
+					errorLogs = errorLogs.filter((l) => l.message.toLowerCase().includes(searchLower))
+				}
+
+				// Pagination: offset + limit takes priority over lines
+				if (limit !== undefined) {
+					const start = offset ?? 0
+					errorLogs = errorLogs.slice(start, start + limit)
+				} else if (lines < 0) {
+					// Negative lines = first N
+					errorLogs = errorLogs.slice(0, Math.abs(lines))
+				} else {
+					// Positive lines = last N (default behavior)
+					errorLogs = errorLogs.slice(-Math.abs(lines))
+				}
 
 				const formattedLogs = errorLogs
 					.map((l) => `[${new Date(l.timestamp).toISOString()}][${l.level.toUpperCase()}] ${l.message}`)

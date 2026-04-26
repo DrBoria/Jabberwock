@@ -180,14 +180,11 @@ export function registerUiTools(mcpServer, provider) {
 
 	mcpServer.tool("get_dom", {}, async () => {
 		try {
-			let dom = await provider.getWebviewDom()
-			// Strip styles, scripts, and VS Code CSS variable noise to get true semantic DOM size
-			dom = dom.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
-			dom = dom.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
-			dom = dom.replace(/<svg\b[^<]*(?:(?!<\/svg>)<[^<]*)*<\/svg>/gi, "[SVG]")
-			dom = dom.replace(/\sstyle="[^"]*"/gi, "")
-
-			return { content: [{ type: "text", text: dom }] }
+			const dom = await provider.getWebviewDom()
+			// The webview now returns CSS-selector format with aggressive compression.
+			// Prepend [Webview] marker for context.
+			const output = `[Webview]\n${dom}`
+			return { content: [{ type: "text", text: output }] }
 		} catch (error) {
 			return {
 				content: [
@@ -292,7 +289,13 @@ export function registerUiTools(mcpServer, provider) {
 			const { customModes } = await provider.getState()
 			const { getAllModes } = await import("../../../shared/modes")
 			const modes = getAllModes(customModes)
-			return { content: [{ type: "text", text: JSON.stringify(modes, null, 2) }] }
+			// Strip to minimal payload: only slug, name, description
+			const stripped = modes.map((m) => ({
+				slug: m.slug,
+				name: m.name,
+				...(m.description ? { description: m.description } : {}),
+			}))
+			return { content: [{ type: "text", text: JSON.stringify(stripped, null, 2) }] }
 		} catch (error) {
 			return { content: [{ type: "text", text: `Error: ${error}` }], isError: true }
 		}

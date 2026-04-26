@@ -10,10 +10,33 @@ import { registerAgentTools } from "./tools/agentTools"
 import { registerPromptTools } from "./tools/promptTools"
 import { diagnosticsManager } from "./DiagnosticsManager"
 
-let serverInstance: http.Server | undefined
-const sseTransports: Map<string, SSEServerTransport> = new Map()
-let activeProvider: ClineProvider | undefined
+// ── globalThis state ──────────────────────────────────────────────────────────
+// Module-scoped variables are re-created on every extension hot-reload, but the
+// old HTTP server (and its SSE transports) may still be alive and bound to the
+// same port.  We store everything in globalThis so the reloaded module can find
+// and tear down the previous incarnation before starting a new one.
+interface McpGlobalState {
+	serverInstance: http.Server | undefined
+	sseTransports: Map<string, SSEServerTransport>
+	activeProvider: ClineProvider | undefined
+}
 
+const GLOBAL_KEY = "__jabberwock_mcp_global_state"
+
+function getOrCreateGlobalState(): McpGlobalState {
+	if (!(globalThis as any)[GLOBAL_KEY]) {
+		;(globalThis as any)[GLOBAL_KEY] = {
+			serverInstance: undefined,
+			sseTransports: new Map<string, SSEServerTransport>(),
+			activeProvider: undefined,
+		} satisfies McpGlobalState
+	}
+	return (globalThis as any)[GLOBAL_KEY] as McpGlobalState
+}
+
+const gs = getOrCreateGlobalState()
+
+// ── provider proxy ────────────────────────────────────────────────────────────
 /**
  * A proxy that always delegates to the currently active provider instance.
  * This ensures that if the sidebar is reloaded or a new instance is created,
@@ -22,7 +45,7 @@ let activeProvider: ClineProvider | undefined
 const providerProxy = new Proxy({} as any, {
 	get: (target, prop) => {
 		// Prioritize the visible instance (the one the user is looking at in the extension host)
-		const active = ClineProvider.getVisibleInstance() || activeProvider
+		const active = ClineProvider.getVisibleInstance() || gs.activeProvider
 		if (!active) {
 			throw new Error("Jabberwock MCP Error: No active provider instance found.")
 		}
@@ -38,17 +61,25 @@ const STATIC_PORT = 60060
 
 export async function startJabberwockMcpServer(provider: ClineProvider, port: number = STATIC_PORT): Promise<number> {
 	diagnosticsManager.log(`[Jabberwock DevTools] startJabberwockMcpServer called for port ${port}`, "info")
-	activeProvider = provider
 
-	if (serverInstance) {
-		const address = serverInstance.address()
+	// If the server is already running (survived across hot-reload via globalThis),
+	// just update the active provider and return the existing port.
+	// DO NOT stop & restart — that would kill active SSE connections that the McpHub
+	// relies on, causing "Connection closed" errors.
+	if (gs.serverInstance) {
+		diagnosticsManager.log(
+			`[Jabberwock DevTools] Server already running. Updating active provider and returning existing port ${port}.`,
+			"info",
+		)
+		gs.activeProvider = provider
+		const address = gs.serverInstance.address()
 		if (typeof address === "object" && address !== null) {
-			diagnosticsManager.log(
-				`[Jabberwock DevTools] MCP Server already running on port ${address.port}. Updating provider.`,
-				"info",
-			)
 			return address.port
 		}
+		// If address is weird, fall through and restart
+		diagnosticsManager.log(`[Jabberwock DevTools] Existing server has no valid address, will restart.`, "warn")
+		await stopJabberwockMcpServer()
+		await new Promise((resolve) => setTimeout(resolve, 100))
 	}
 
 	diagnosticsManager.log(`[Jabberwock DevTools] Initializing new MCP server instance...`, "info")
@@ -57,16 +88,16 @@ export async function startJabberwockMcpServer(provider: ClineProvider, port: nu
 	const bridge: any = providerProxy
 
 	mcpServer.tool("debug_get_provider_state", {}, async () => {
-		if (!activeProvider) return { content: [{ type: "text", text: "No active provider" }] }
+		if (!gs.activeProvider) return { content: [{ type: "text", text: "No active provider" }] }
 		return {
 			content: [
 				{
 					type: "text",
 					text: JSON.stringify(
 						{
-							stackSize: (activeProvider as any).clineStack.length,
-							currentTaskId: activeProvider.getCurrentTask()?.taskId,
-							instanceId: (activeProvider as any).instanceId || "N/A",
+							stackSize: (gs.activeProvider as any).clineStack.length,
+							currentTaskId: gs.activeProvider.getCurrentTask()?.taskId,
+							instanceId: (gs.activeProvider as any).instanceId || "N/A",
 						},
 						null,
 						2,
@@ -89,7 +120,7 @@ export async function startJabberwockMcpServer(provider: ClineProvider, port: nu
 
 	diagnosticsManager.log(`[Jabberwock DevTools] Creating HTTP/SSE server instance...`, "info")
 	return new Promise((resolve, reject) => {
-		serverInstance = http.createServer((req, res) => {
+		gs.serverInstance = http.createServer((req, res) => {
 			const parsedUrl = new URL(req.url || "", `http://${req.headers.host || "localhost"}`)
 			const pathname = parsedUrl.pathname
 
@@ -97,15 +128,15 @@ export async function startJabberwockMcpServer(provider: ClineProvider, port: nu
 				diagnosticsManager.log(`[Jabberwock DevTools] Incoming SSE connection request`, "info")
 				const transport = new SSEServerTransport("/messages", res)
 				const sessionId = transport.sessionId
-				sseTransports.set(sessionId, transport)
+				gs.sseTransports.set(sessionId, transport)
 				diagnosticsManager.log(
-					`[Jabberwock DevTools] SSE client connected, sessionId=${sessionId}, total transports=${sseTransports.size}`,
+					`[Jabberwock DevTools] SSE client connected, sessionId=${sessionId}, total transports=${gs.sseTransports.size}`,
 					"info",
 				)
 
 				mcpServer.connect(transport).catch((err) => {
 					diagnosticsManager.log(`[Jabberwock DevTools] MCP connect error: ${err.message}`, "error")
-					sseTransports.delete(sessionId)
+					gs.sseTransports.delete(sessionId)
 				})
 
 				// When the SSE connection closes, clean up the transport
@@ -114,12 +145,12 @@ export async function startJabberwockMcpServer(provider: ClineProvider, port: nu
 						`[Jabberwock DevTools] SSE client disconnected, sessionId=${sessionId}`,
 						"info",
 					)
-					sseTransports.delete(sessionId)
+					gs.sseTransports.delete(sessionId)
 				})
 			} else if (pathname === "/messages" && req.method === "POST") {
 				const sessionId = parsedUrl.searchParams.get("sessionId")
-				if (sessionId && sseTransports.has(sessionId)) {
-					const transport = sseTransports.get(sessionId)!
+				if (sessionId && gs.sseTransports.has(sessionId)) {
+					const transport = gs.sseTransports.get(sessionId)!
 					transport.handlePostMessage(req, res).catch((err) => {
 						const isConnectionNotEstablished = err.message?.includes("SSE connection not established")
 						diagnosticsManager.log(
@@ -127,13 +158,13 @@ export async function startJabberwockMcpServer(provider: ClineProvider, port: nu
 							isConnectionNotEstablished ? "warn" : "error",
 						)
 						if (isConnectionNotEstablished) {
-							sseTransports.delete(sessionId)
+							gs.sseTransports.delete(sessionId)
 						}
 					})
-				} else if (sseTransports.size > 0) {
+				} else if (gs.sseTransports.size > 0) {
 					// Fallback: if no sessionId provided or not found, use the first available transport
 					// This handles the case where the client doesn't include sessionId in POST
-					const firstTransport = sseTransports.values().next().value
+					const firstTransport = gs.sseTransports.values().next().value
 					if (firstTransport) {
 						diagnosticsManager.log(
 							`[Jabberwock DevTools] POST /messages without valid sessionId=${sessionId}, routing to first available transport`,
@@ -160,15 +191,27 @@ export async function startJabberwockMcpServer(provider: ClineProvider, port: nu
 			}
 		})
 
-		serverInstance.on("error", (err) => {
+		gs.serverInstance.on("error", (err: NodeJS.ErrnoException) => {
 			diagnosticsManager.log(`[Jabberwock DevTools] Server instance error: ${err.message}`, "error")
-			serverInstance = undefined
+
+			// EADDRINUSE → try the next port
+			if ((err as any).code === "EADDRINUSE") {
+				diagnosticsManager.log(
+					`[Jabberwock DevTools] Port ${port} is in use, trying port ${port + 1}...`,
+					"warn",
+				)
+				gs.serverInstance = undefined
+				resolve(startJabberwockMcpServer(provider, port + 1))
+				return
+			}
+
+			gs.serverInstance = undefined
 			reject(err)
 		})
 
 		diagnosticsManager.log(`[Jabberwock DevTools] Attempting to listen on 127.0.0.1:${port}...`, "info")
-		serverInstance.listen(port, "127.0.0.1", () => {
-			const address = serverInstance?.address()
+		gs.serverInstance.listen(port, "127.0.0.1", () => {
+			const address = gs.serverInstance?.address()
 			if (typeof address === "object" && address !== null) {
 				diagnosticsManager.log(
 					`[Jabberwock DevTools] MCP Server SUCCESS: listening on static port ${address.port}`,
@@ -183,19 +226,35 @@ export async function startJabberwockMcpServer(provider: ClineProvider, port: nu
 	})
 }
 
-export function stopJabberwockMcpServer() {
-	for (const [sessionId, transport] of sseTransports.entries()) {
+export async function stopJabberwockMcpServer(): Promise<void> {
+	diagnosticsManager.log(`[Jabberwock DevTools] stopJabberwockMcpServer called`, "info")
+
+	// Close all transports first so existing SSE clients get a clean disconnect
+	const closePromises: Promise<void>[] = []
+	for (const [sessionId, transport] of gs.sseTransports.entries()) {
 		diagnosticsManager.log(`[Jabberwock DevTools] Closing SSE transport sessionId=${sessionId}`, "info")
-		transport.close().catch((err) => {
-			diagnosticsManager.log(
-				`[Jabberwock DevTools] Error closing transport ${sessionId}: ${err.message}`,
-				"error",
-			)
+		closePromises.push(
+			transport.close().catch((err) => {
+				diagnosticsManager.log(
+					`[Jabberwock DevTools] Error closing transport ${sessionId}: ${err.message}`,
+					"error",
+				)
+			}),
+		)
+	}
+	await Promise.allSettled(closePromises)
+	gs.sseTransports.clear()
+
+	// Close the HTTP server and wait for the callback so the port is actually released
+	if (gs.serverInstance) {
+		await new Promise<void>((resolve) => {
+			gs.serverInstance!.close(() => {
+				diagnosticsManager.log(`[Jabberwock DevTools] HTTP server closed`, "info")
+				gs.serverInstance = undefined
+				resolve()
+			})
 		})
 	}
-	sseTransports.clear()
-	if (serverInstance) {
-		serverInstance.close()
-		serverInstance = undefined
-	}
+
+	diagnosticsManager.log(`[Jabberwock DevTools] stopJabberwockMcpServer completed`, "info")
 }

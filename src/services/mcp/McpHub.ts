@@ -300,10 +300,25 @@ export class McpHub extends EventEmitter {
 	public async registerInternalConnection(port: number): Promise<void> {
 		const serverName = "jabberwock-devtools"
 
-		// Remove existing internal connection if any
-		this.connections = this.connections.filter(
-			(conn) => !(conn.server.name === serverName && conn.server.source === ("internal" as any)),
+		// Properly dispose the existing internal connection (if any) before creating a new one.
+		// Without this, the old transport's readSseLoop Promise chain keeps running with a stale
+		// SSE connection, causing "Connection closed" errors after extension hot-reload.
+		const existing = this.connections.find(
+			(conn) => conn.server.name === serverName && conn.server.source === ("internal" as any),
 		)
+		if (existing) {
+			try {
+				if (existing.type === "connected") {
+					await existing.transport.close()
+					await existing.client.close()
+				}
+			} catch (error) {
+				console.error(`[McpHub] Failed to close existing internal connection:`, error)
+			}
+			this.connections = this.connections.filter((conn) => conn !== existing)
+			const sanitizedName = sanitizeMcpName(serverName)
+			this.sanitizedNameRegistry.delete(sanitizedName)
+		}
 
 		const transport = new InternalMcpClientTransport(port)
 		const client = new Client(

@@ -28,8 +28,6 @@ describe("ChatTextArea - lockApiConfigAcrossModes toggle", () => {
 		inputValue: "",
 		setInputValue: vi.fn(),
 		onSend: vi.fn(),
-		sendingDisabled: false,
-		selectApiConfigDisabled: false,
 		onSelectImages: vi.fn(),
 		shouldDisableImages: false,
 		placeholderText: "Type a message...",

@@ -37,6 +37,23 @@ const wasmPlugin = (): Plugin => ({
 const persistPortPlugin = (): Plugin => ({
 	name: "write-port-to-file",
 	configureServer(viteDevServer) {
+		// Kill any zombie Vite dev server processes from previous hot-reloads
+		// to prevent port escalation (5173 -> 5174 -> ... -> 5177)
+		try {
+			const pids = execSync("lsof -ti:5173-5180 2>/dev/null", {
+				encoding: "utf-8",
+			})
+				.trim()
+				.split("\n")
+				.filter(Boolean)
+			if (pids.length > 0) {
+				console.log(`[Vite Plugin] Killing ${pids.length} zombie Vite process(es): ${pids.join(", ")}`)
+				execSync(`kill -9 ${pids.join(" ")} 2>/dev/null`, { encoding: "utf-8" })
+			}
+		} catch (_e) {
+			// No zombie processes found — that's fine
+		}
+
 		viteDevServer?.httpServer?.once("listening", () => {
 			const address = viteDevServer?.httpServer?.address()
 			const port = address && typeof address === "object" ? address.port : null
