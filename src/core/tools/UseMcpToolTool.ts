@@ -61,8 +61,6 @@ export class UseMcpToolTool extends BaseTool<"use_mcp_tool"> {
 
 			const executionId = task.lastMessageTs?.toString() ?? Date.now().toString()
 
-			// Approval always uses standard MCP approval flow
-			// Interactive app UI rendering happens in executeToolAndProcessResult when tool returns _meta.ui
 			const didApprove = await askApproval("use_mcp_server", completeMessage)
 
 			if (!didApprove) {
@@ -85,6 +83,7 @@ export class UseMcpToolTool extends BaseTool<"use_mcp_tool"> {
 
 	override async handlePartial(task: Task, block: ToolUse<"use_mcp_tool">): Promise<void> {
 		const params = block.params
+
 		const partialMessage = JSON.stringify({
 			type: "use_mcp_tool",
 			serverName: params.server_name ?? "",

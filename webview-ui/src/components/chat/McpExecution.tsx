@@ -13,7 +13,7 @@ import {
 import { safeJsonParse } from "@shared/core"
 
 import { cn } from "@src/lib/utils"
-import { Button } from "@src/components/ui"
+import { Button, Container } from "@src/components/ui"
 
 import CodeBlock from "../common/CodeBlock"
 import McpToolRow from "../mcp/McpToolRow"
@@ -186,54 +186,50 @@ export const McpExecution = ({
 
 	return (
 		<>
-			<div className="flex flex-row items-center justify-between gap-2 mb-1">
-				<div className="flex flex-row items-center gap-1 flex-wrap">
+			<Container preset="toolbar" gap="8px" mb="4px">
+				<Container preset="row" gap="4px">
 					<Server size={16} className="text-vscode-descriptionForeground" />
-					<div className="flex items-center gap-1 flex-wrap">
-						{serverName && <span className="font-bold text-vscode-foreground">{serverName}</span>}
-					</div>
-				</div>
-				<div className="flex flex-row items-center justify-between gap-2 px-1">
-					<div className="flex flex-row items-center gap-1">
-						{status && (
-							<div className="flex flex-row items-center gap-2 font-mono text-xs">
-								<div
-									className={cn("rounded-full size-1.5", {
-										"bg-lime-400": status.status === "started" || status.status === "completed",
-										"bg-red-400": status.status === "error",
-									})}
-								/>
-								<div
-									className={cn("whitespace-nowrap", {
-										"text-vscode-foreground":
-											status.status === "started" || status.status === "completed",
-										"text-vscode-errorForeground": status.status === "error",
-									})}>
-									{status.status === "started"
-										? t("execution.running")
-										: status.status === "completed"
-											? t("execution.completed")
-											: t("execution.error")}
-								</div>
-								{status.status === "error" && "error" in status && status.error && (
-									<div className="whitespace-nowrap">({status.error})</div>
-								)}
+					{serverName && <span className="font-bold text-vscode-foreground">{serverName}</span>}
+				</Container>
+				<Container preset="row-reverse" gap="8px" p="0 4px">
+					{status && (
+						<Container preset="row" gap="8px" className="font-mono text-xs">
+							<div
+								className={cn("rounded-full size-1.5", {
+									"bg-lime-400": status.status === "started" || status.status === "completed",
+									"bg-red-400": status.status === "error",
+								})}
+							/>
+							<div
+								className={cn("whitespace-nowrap", {
+									"text-vscode-foreground":
+										status.status === "started" || status.status === "completed",
+									"text-vscode-errorForeground": status.status === "error",
+								})}>
+								{status.status === "started"
+									? t("execution.running")
+									: status.status === "completed"
+										? t("execution.completed")
+										: t("execution.error")}
 							</div>
-						)}
-						{responseText && responseText.length > 0 && (
-							<Button variant="ghost" size="icon" onClick={onToggleResponseExpand}>
-								<ChevronDown
-									className={cn("size-4 transition-transform duration-300", {
-										"rotate-180": isResponseExpanded,
-									})}
-								/>
-							</Button>
-						)}
-					</div>
-				</div>
-			</div>
+							{status.status === "error" && "error" in status && status.error && (
+								<div className="whitespace-nowrap">({status.error})</div>
+							)}
+						</Container>
+					)}
+					{responseText && responseText.length > 0 && (
+						<Button variant="ghost" size="icon" onClick={onToggleResponseExpand}>
+							<ChevronDown
+								className={cn("size-4 transition-transform duration-300", {
+									"rotate-180": isResponseExpanded,
+								})}
+							/>
+						</Button>
+					)}
+				</Container>
+			</Container>
 
-			<div className="w-full bg-vscode-editor-background rounded-xs p-2">
+			<Container theme="card" preset="col" gap="0" p="8px" w="100%">
 				{/* Tool information section */}
 				{useMcpServer?.type === "use_mcp_tool" && (
 					<div onClick={(e) => e.stopPropagation()}>
@@ -289,7 +285,7 @@ export const McpExecution = ({
 					hasArguments={!!(isArguments || useMcpServer?.arguments || argumentsText)}
 					isPartial={status ? status.status !== "completed" : false}
 				/>
-			</div>
+			</Container>
 		</>
 	)
 }
