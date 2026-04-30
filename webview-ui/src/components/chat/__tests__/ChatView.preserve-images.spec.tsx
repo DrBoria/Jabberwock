@@ -29,7 +29,7 @@ interface ExtensionState {
 }
 
 // Mock vscode API
-vi.mock("@src/utils/vscode", () => ({
+vi.mock("@src/features/devtools/utils/vscode", () => ({
 	vscode: {
 		postMessage: vi.fn(),
 	},

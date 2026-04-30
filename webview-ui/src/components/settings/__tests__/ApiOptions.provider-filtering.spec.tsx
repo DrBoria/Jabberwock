@@ -25,7 +25,7 @@ vi.mock("@src/i18n/TranslationContext", () => ({
 }))
 
 // Mock vscode
-vi.mock("@src/utils/vscode", () => ({
+vi.mock("@src/features/devtools/utils/vscode", () => ({
 	vscode: {
 		postMessage: vi.fn(),
 	},

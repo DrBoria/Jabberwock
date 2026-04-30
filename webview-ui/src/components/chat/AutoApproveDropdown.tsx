@@ -1,7 +1,7 @@
 import React from "react"
 import { ListChecks, LayoutList, Settings, CheckCheck, X } from "lucide-react"
 
-import { vscode } from "@/utils/vscode"
+import { vscode } from "@/features/devtools/utils/vscode"
 
 import { cn } from "@/lib/utils"
 

@@ -18,6 +18,24 @@ const buttonVariants = cva(
 				link: "text-primary underline-offset-4 hover:underline",
 				combobox:
 					"border border-vscode-dropdown-border focus-visible:border-vscode-focusBorder bg-vscode-dropdown-background hover:bg-transparent text-vscode-dropdown-foreground font-normal",
+				/** Transparent icon button for the chat text area — rounded-md, small, with hover effects */
+				iconButton:
+					"bg-transparent border-none p-1.5 rounded-md min-w-[28px] min-h-[28px] text-vscode-descriptionForeground hover:text-vscode-foreground transition-all duration-150 hover:bg-[rgba(255,255,255,0.03)] hover:border-[rgba(255,255,255,0.15)] focus:outline-none focus-visible:ring-1 focus-visible:ring-vscode-focusBorder active:bg-[rgba(255,255,255,0.1)]",
+				/** Icon button with muted/disabled appearance */
+				iconButtonMuted:
+					"bg-transparent border-none p-1.5 rounded-md min-w-[28px] min-h-[28px] text-vscode-descriptionForeground hover:text-vscode-foreground transition-all duration-1000 opacity-50 hover:opacity-100 hover:bg-[rgba(255,255,255,0.03)] hover:border-[rgba(255,255,255,0.15)] focus:outline-none focus-visible:ring-1 focus-visible:ring-vscode-focusBorder active:bg-[rgba(255,255,255,0.1)]",
+				/** Icon button with disabled appearance */
+				iconButtonDisabled:
+					"bg-transparent border-none p-1.5 rounded-md min-w-[28px] min-h-[28px] text-vscode-descriptionForeground opacity-40 cursor-not-allowed grayscale-[30%] hover:bg-transparent hover:border-[rgba(255,255,255,0.08)] active:bg-transparent focus:outline-none focus-visible:ring-1 focus-visible:ring-vscode-focusBorder",
+				/** Send/stop button — rounded-full like a primary action */
+				sendButton:
+					"bg-transparent border-none p-1.5 rounded-full min-w-[28px] min-h-[28px] text-vscode-descriptionForeground hover:text-vscode-foreground transition-all duration-200 hover:bg-[rgba(255,255,255,0.03)] hover:border-[rgba(255,255,255,0.15)] focus:outline-none focus-visible:ring-1 focus-visible:ring-vscode-focusBorder active:bg-[rgba(255,255,255,0.1)]",
+				/** Send button when streaming (stop button with background) */
+				stopButton:
+					"bg-transparent border-none p-1.5 rounded-full min-w-[28px] min-h-[28px] text-vscode-descriptionForeground hover:text-vscode-foreground transition-all duration-200 hover:bg-[rgba(255,255,255,0.03)] hover:border-[rgba(255,255,255,0.15)] focus:outline-none focus-visible:ring-1 focus-visible:ring-vscode-focusBorder active:bg-[rgba(255,255,255,0.1)] bg-vscode-button-background hover:bg-vscode-button-background",
+				/** DevTools toggle button */
+				devtoolsButton:
+					"bg-transparent border-none p-1.5 rounded-md min-w-[28px] min-h-[28px] transition-all duration-150 focus:outline-none focus-visible:ring-1 focus-visible:ring-vscode-focusBorder cursor-pointer",
 			},
 			size: {
 				default: "h-7 px-3",

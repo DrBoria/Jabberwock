@@ -1,17 +1,17 @@
-import { useCallback, useState, memo, useMemo } from "react"
-import { useEvent } from "react-use"
+import { useState, memo, useMemo, useEffect } from "react"
 import { t } from "i18next"
 import { ChevronDown, OctagonX } from "lucide-react"
+import { onSnapshot } from "mobx-state-tree"
 
-import { type ExtensionMessage, type CommandExecutionStatus, commandExecutionStatusSchema } from "@jabberwock/types"
+import { type CommandExecutionStatus } from "@jabberwock/types"
 
-import { safeJsonParse } from "@shared/core"
 import { COMMAND_OUTPUT_STRING } from "@shared/combineCommandSequences"
 import { parseCommand } from "@shared/parse-command"
 
-import { vscode } from "@src/utils/vscode"
-import { extractPatternsFromCommand } from "@src/utils/command-parser"
+import { vscode } from "@src/features/devtools/utils/vscode"
+import { extractPatternsFromCommand } from "@src/utils/extractCommand"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
+import { commandExecutionStore } from "@src/features/chat/command-execution/store"
 import { cn } from "@src/lib/utils"
 
 import { Button, StandardTooltip } from "@src/components/ui"
@@ -109,41 +109,36 @@ export const CommandExecution = ({ executionId, text, icon, title }: CommandExec
 		})
 	}
 
-	const onMessage = useCallback(
-		(event: MessageEvent) => {
-			const message: ExtensionMessage = event.data
-
-			if (message.type === "commandExecutionStatus") {
-				const result = commandExecutionStatusSchema.safeParse(safeJsonParse(message.text, {}))
-
-				if (result.success) {
-					const data = result.data
-
-					if (data.executionId !== executionId) {
-						return
-					}
-
-					switch (data.status) {
-						case "started":
-							setStatus(data)
-							break
-						case "output":
-							setStreamingOutput(data.output)
-							break
-						case "fallback":
-							setIsExpanded(true)
-							break
-						default:
-							setStatus(data)
-							break
-					}
-				}
+	// Subscribe to MST CommandExecutionStore snapshots instead of raw postMessage events.
+	// The extension writes execution status updates to the store via dual-write;
+	// MstBridge propagates snapshots to the webview, and we react to them here.
+	useEffect(() => {
+		const disposer = onSnapshot(commandExecutionStore, (snapshot) => {
+			const execution = snapshot.executions.find((e: any) => e.executionId === executionId)
+			if (!execution) {
+				return
 			}
-		},
-		[executionId],
-	)
 
-	useEvent("message", onMessage)
+			switch (execution.status) {
+				case "started":
+					setStatus(execution)
+					break
+				case "output":
+					setStreamingOutput(execution.output)
+					break
+				case "fallback":
+					setIsExpanded(true)
+					break
+				default:
+					setStatus(execution)
+					break
+			}
+		})
+
+		return () => {
+			disposer()
+		}
+	}, [executionId])
 
 	return (
 		<>

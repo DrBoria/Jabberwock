@@ -11,11 +11,11 @@ import {
 	ContextMenuQueryItem,
 	getContextMenuOptions,
 	SearchResult,
-} from "@src/utils/context-mentions"
+} from "@src/features/chat/utils/context-mentions"
 import { removeLeadingNonAlphanumeric } from "@src/utils/removeLeadingNonAlphanumeric"
-import { vscode } from "@src/utils/vscode"
+import { vscode } from "@src/features/devtools/utils/vscode"
 
-import { buildDocLink } from "@/utils/docLinks"
+import { buildDocLink } from "@/features/settings/utils/docLinks"
 
 interface ContextMenuProps {
 	onSelect: (type: ContextMenuOptionType, value?: string) => void

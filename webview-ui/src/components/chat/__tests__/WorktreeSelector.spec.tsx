@@ -6,7 +6,7 @@ import { WorktreeSelector } from "../WorktreeSelector"
 
 const mockPostMessage = vi.fn()
 
-vi.mock("@/utils/vscode", () => ({
+vi.mock("@/features/devtools/utils/vscode", () => ({
 	vscode: {
 		postMessage: (...args: unknown[]) => mockPostMessage(...args),
 	},

@@ -11,7 +11,7 @@ import type { ProviderSettings } from "@jabberwock/types"
 
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { validateApiConfiguration } from "@src/utils/validate"
-import { vscode } from "@src/utils/vscode"
+import { vscode } from "@src/features/devtools/utils/vscode"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { Button } from "../ui/button"
 
@@ -21,7 +21,7 @@ import { Tab, TabContent } from "../common/Tab"
 import JabberwockHero from "./JabberwockHero"
 import { Trans } from "react-i18next"
 import { ArrowLeft, ArrowRight, BadgeInfo, Brain, TriangleAlert } from "lucide-react"
-import { buildDocLink } from "@/utils/docLinks"
+import { buildDocLink } from "@/features/settings/utils/docLinks"
 
 type ProviderOption = "jabberwock" | "custom"
 type AuthOrigin = "landing" | "providerSelection"

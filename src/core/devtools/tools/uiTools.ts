@@ -13,7 +13,14 @@ export function registerUiTools(mcpServer, provider) {
 			try {
 				const currentTask = provider.getCurrentTask()
 				if (!currentTask) {
-					return { content: [{ type: "text", text: "Error: No active task available" }], isError: true }
+					return {
+						content: [
+							{
+								type: "text",
+								text: JSON.stringify({ hasTask: false, error: "No active task available" }),
+							},
+						],
+					}
 				}
 
 				if (action === "continue") {
@@ -23,7 +30,35 @@ export function registerUiTools(mcpServer, provider) {
 					await provider.postMessageToWebview({ type: "invoke", invoke: "secondaryButtonClick" })
 					return { content: [{ type: "text", text: "Successfully invoked secondary button (Cancel)." }] }
 				} else if (action === "approve_todo") {
+					// Step 1: Send the plan to the webview (triggers elicitationResponse → resolveElicitation)
 					await provider.postMessageToWebview({ type: "invoke", invoke: "approveTodoPlan", values: state })
+					// Step 2: Wait for the interactive_app ask to appear, then respond with the plan data
+					// The interactive_app ask is created by UseMcpToolTool.ts when md-todo-mcp returns _meta.ui
+					// We must wait for it because handleWebviewAskResponse sets askResponse, but
+					// ask("interactive_app", ...) resets askResponse to undefined at the start.
+					// If we call handleWebviewAskResponse before ask() resets it, the response is lost.
+					const planJson = typeof state === "string" ? state : JSON.stringify(state)
+					const deadline = Date.now() + 10000 // 10 second timeout
+					let responded = false
+					while (Date.now() < deadline) {
+						// Check if the interactive_app ask exists in clineMessages
+						const lastMsg = currentTask.clineMessages?.at(-1)
+						if (lastMsg?.type === "ask" && lastMsg.ask === "interactive_app" && !lastMsg.partial) {
+							currentTask.handleWebviewAskResponse("yesButtonClicked", planJson, undefined)
+							responded = true
+							break
+						}
+						// Wait 100ms before checking again
+						await new Promise((resolve) => setTimeout(resolve, 100))
+					}
+					if (!responded) {
+						// Fallback: try responding anyway (may work if timing is right)
+						try {
+							currentTask.handleWebviewAskResponse("yesButtonClicked", planJson, undefined)
+						} catch (e) {
+							// Ignore
+						}
+					}
 					return { content: [{ type: "text", text: "Successfully invoked Todo Plan approval." }] }
 				}
 
@@ -51,7 +86,14 @@ export function registerUiTools(mcpServer, provider) {
 			try {
 				const currentTask = provider.getCurrentTask()
 				if (!currentTask) {
-					return { content: [{ type: "text", text: "Error: No active task to respond to" }], isError: true }
+					return {
+						content: [
+							{
+								type: "text",
+								text: JSON.stringify({ hasTask: false, error: "No active task to respond to" }),
+							},
+						],
+					}
 				}
 
 				currentTask.askShownAt = undefined
@@ -99,7 +141,7 @@ export function registerUiTools(mcpServer, provider) {
 		try {
 			const currentTask = provider.getCurrentTask()
 			if (!currentTask) {
-				return { content: [{ type: "text", text: "No active task" }], isError: true }
+				return { content: [{ type: "text", text: JSON.stringify({ hasTask: false, ask: null }) }] }
 			}
 
 			const lastMessage = currentTask.clineMessages.at(-1)
@@ -138,14 +180,11 @@ export function registerUiTools(mcpServer, provider) {
 
 	mcpServer.tool("get_dom", {}, async () => {
 		try {
-			let dom = await provider.getWebviewDom()
-			// Strip styles, scripts, and VS Code CSS variable noise to get true semantic DOM size
-			dom = dom.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
-			dom = dom.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
-			dom = dom.replace(/<svg\b[^<]*(?:(?!<\/svg>)<[^<]*)*<\/svg>/gi, "[SVG]")
-			dom = dom.replace(/\sstyle="[^"]*"/gi, "")
-
-			return { content: [{ type: "text", text: dom }] }
+			const dom = await provider.getWebviewDom()
+			// The webview now returns CSS-selector format with aggressive compression.
+			// Prepend [Webview] marker for context.
+			const output = `[Webview]\n${dom}`
+			return { content: [{ type: "text", text: output }] }
 		} catch (error) {
 			return {
 				content: [
@@ -250,7 +289,38 @@ export function registerUiTools(mcpServer, provider) {
 			const { customModes } = await provider.getState()
 			const { getAllModes } = await import("../../../shared/modes")
 			const modes = getAllModes(customModes)
-			return { content: [{ type: "text", text: JSON.stringify(modes, null, 2) }] }
+			// Strip to minimal payload: only slug, name, description
+			const stripped = modes.map((m) => ({
+				slug: m.slug,
+				name: m.name,
+				...(m.description ? { description: m.description } : {}),
+			}))
+			return { content: [{ type: "text", text: JSON.stringify(stripped, null, 2) }] }
+		} catch (error) {
+			return { content: [{ type: "text", text: `Error: ${error}` }], isError: true }
+		}
+	})
+
+	mcpServer.tool("get_window_stack", {}, async () => {
+		try {
+			const currentTask = provider.getCurrentTask()
+			if (!currentTask) {
+				return { content: [{ type: "text", text: JSON.stringify([]) }] }
+			}
+
+			// Build a simple window stack from the task hierarchy
+			const stack: Array<{ taskId: string; mode: string; title?: string }> = []
+			let task = currentTask
+			while (task) {
+				stack.push({
+					taskId: task.taskId,
+					mode: task.taskMode,
+					title: task.clineMessages?.[0]?.text?.substring(0, 100),
+				})
+				task = (task as any).parentTask
+			}
+
+			return { content: [{ type: "text", text: JSON.stringify(stack, null, 2) }] }
 		} catch (error) {
 			return { content: [{ type: "text", text: `Error: ${error}` }], isError: true }
 		}

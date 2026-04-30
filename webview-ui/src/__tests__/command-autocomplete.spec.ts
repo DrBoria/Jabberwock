@@ -1,6 +1,6 @@
 import type { Command } from "@jabberwock/types"
 
-import { getContextMenuOptions, ContextMenuOptionType } from "../utils/context-mentions"
+import { getContextMenuOptions, ContextMenuOptionType } from "../features/chat/utils/context-mentions"
 
 describe("Command Autocomplete", () => {
 	const mockCommands: Command[] = [

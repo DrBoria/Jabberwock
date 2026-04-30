@@ -7,15 +7,20 @@ import { type ExtensionMessage, TelemetryEventName } from "@jabberwock/types"
 import TranslationProvider from "./i18n/TranslationContext"
 import { MarketplaceViewStateManager } from "./components/marketplace/MarketplaceViewStateManager"
 
-import { vscode } from "./utils/vscode"
-import { telemetryClient } from "./utils/TelemetryClient"
-import { initializeSourceMaps, exposeSourceMapsForDebugging } from "./utils/sourceMapInitializer"
+import { vscode } from "./features/devtools/utils/vscode"
+import { telemetryClient } from "./features/cloud/utils/TelemetryClient"
+import { initializeSourceMaps, exposeSourceMapsForDebugging } from "./features/devtools/utils/sourceMapInitializer"
 import { ExtensionStateContextProvider, useExtensionState } from "./context/ExtensionStateContext"
-import { ChatTreeProvider } from "./context/ChatTreeContext"
-import { WindowManagerProvider, useWindowManager, WindowType } from "./context/WindowManagerContext"
+import { ChatTreeProvider } from "./features/chat/tree/store"
+import {
+	WindowManagerProvider,
+	useWindowManager,
+	type WindowTypeValue,
+} from "./features/foundation/window-manager/store"
 import { WindowLayer } from "./components/layout/WindowLayer"
 
 import ChatView, { ChatViewRef } from "./components/chat/ChatView"
+import { ChatUIProvider } from "./features/chat/ui/store"
 import HistoryView from "./components/history/HistoryView"
 import SettingsView, { SettingsViewRef } from "./components/settings/SettingsView"
 import WelcomeView from "./components/welcome/WelcomeViewProvider"
@@ -31,7 +36,7 @@ import { McpIframeRenderer } from "./features/mcp-apps/McpIframeRenderer"
 import { getAllModes } from "@shared/modes"
 import { LocatorBridge } from "./features/devtools/utils/LocatorBridge"
 import { ChatTreeViewer } from "./components/chat/ChatTreeViewer"
-import { chatTreeStore } from "./state/ChatTreeStore"
+import { chatTreeStore } from "./features/chat/tree/store"
 
 interface DeleteMessageDialogState {
 	isOpen: boolean
@@ -51,7 +56,7 @@ const MemoizedDeleteMessageDialog = React.memo(DeleteMessageDialog)
 const MemoizedEditMessageDialog = React.memo(EditMessageDialog)
 const MemoizedCheckpointRestoreDialog = React.memo(CheckpointRestoreDialog)
 
-const tabsByMessageAction: Partial<Record<NonNullable<ExtensionMessage["action"]>, WindowType>> = {
+const tabsByMessageAction: Partial<Record<NonNullable<ExtensionMessage["action"]>, WindowTypeValue>> = {
 	chatButtonClicked: "chat",
 	settingsButtonClicked: "settings",
 	historyButtonClicked: "history",
@@ -102,7 +107,7 @@ const AppContent = () => {
 	const chatViewRef = useRef<ChatViewRef>(null)
 
 	const switchTab = useCallback(
-		(newTab: WindowType, props?: any) => {
+		(newTab: WindowTypeValue, props?: any) => {
 			console.log(`[App] switchTab requested: ${newTab}`, props)
 			if (mdmCompliant === false && newTab !== "cloud") {
 				console.warn(`[App] switchTab BLOCKED by mdmCompliant === false`)
@@ -137,7 +142,7 @@ const AppContent = () => {
 				console.log(`[App] Received action message: ${message.action}`, message)
 				// Prevent infinite loops by ignoring switchTab messages that came from MCP
 				if (message.action === "switchTab" && message.tab && !message.fromMCP) {
-					const targetTab = message.tab as WindowType
+					const targetTab = message.tab as WindowTypeValue
 					const targetSection = message.values?.section as string | undefined
 					const targetNodeId = message.values?.targetNodeId as string | undefined
 					switchTab(targetTab, { section: targetSection, targetNodeId })
@@ -180,14 +185,160 @@ const AppContent = () => {
 			if (message.type === "getDom") {
 				if (message.requestId) {
 					console.log(`[DEBUG: DOM] Webview: Received getDom request ${message.requestId}`)
-					const dom = document.documentElement.outerHTML
+
+					// Optimized DOM serialization: CSS selector format with aggressive compression
+					function getCssPath(el: Element): string {
+						const parts: string[] = []
+						let current: Element | null = el
+						while (current && current !== document.body && current !== document.documentElement) {
+							let selector = current.tagName.toLowerCase()
+							const id = current.getAttribute("id")
+							if (id) {
+								selector = `#${id}`
+								parts.unshift(selector)
+								break
+							}
+							const testId = current.getAttribute("data-testid")
+							if (testId) {
+								selector = `[data-testid="${testId}"]`
+							} else {
+								const parent = current.parentElement
+								if (parent) {
+									const siblings = Array.from(parent.children).filter(
+										(s) => s.tagName === current!.tagName,
+									)
+									const idx = siblings.indexOf(current) + 1
+									if (siblings.length > 1) selector += `:nth-child(${idx})`
+								}
+							}
+							parts.unshift(selector)
+							current = current.parentElement
+						}
+						return parts.join(" > ")
+					}
+
+					function getRelevantAttributes(el: Element): Record<string, string> {
+						const attrs: Record<string, string> = {}
+						const keep = new Set(["id", "data-testid", "name", "value", "disabled", "checked"])
+						for (const attr of el.attributes) {
+							if (keep.has(attr.name)) {
+								attrs[attr.name] = attr.value
+							}
+						}
+						return attrs
+					}
+
+					function hasRelevantAttributes(el: Element): boolean {
+						const keep = new Set(["id", "data-testid", "name", "value", "disabled", "checked"])
+						for (const attr of el.attributes) {
+							if (keep.has(attr.name)) return true
+						}
+						return false
+					}
+
+					function isCollapsible(el: Element): boolean {
+						const tag = el.tagName.toLowerCase()
+						if (tag !== "div" && tag !== "span") return false
+						if (hasRelevantAttributes(el)) return false
+						return !el.textContent?.trim()
+					}
+
+					function getNodeText(el: Element): string {
+						const text = el.textContent?.trim() || ""
+						// Truncate long text nodes
+						if (text.length > 80) return text.slice(0, 80) + "..."
+						return text
+					}
+
+					function shouldSkipTag(tag: string): boolean {
+						return ["script", "style", "noscript", "link", "meta"].includes(tag)
+					}
+
+					function serializeDomToSelectors(root: Element, depth = 0, maxDepth = 15): string[] {
+						if (depth > maxDepth) return []
+						const tag = root.tagName.toLowerCase()
+						if (shouldSkipTag(tag)) return []
+
+						const lines: string[] = []
+						const path = getCssPath(root)
+						const text = getNodeText(root)
+						const attrs = getRelevantAttributes(root)
+
+						// Handle SVG, PATH, CANVAS - replace with single tag
+						if (tag === "svg" || tag === "path" || tag === "canvas") {
+							const testId = root.getAttribute("data-testid")
+							const sel = testId ? `[data-testid="${testId}"]` : tag
+							lines.push(`${sel}`)
+							return lines
+						}
+
+						// Handle IFRAME - target inner document
+						if (tag === "iframe") {
+							try {
+								const iframe = root as HTMLIFrameElement
+								const innerDoc = iframe.contentDocument || iframe.contentWindow?.document
+								if (innerDoc?.body) {
+									const innerLines = serializeDomToSelectors(innerDoc.body, depth, maxDepth)
+									// Mark with [Webview] prefix
+									lines.push(...innerLines.map((l) => `[Webview] ${l}`))
+								}
+							} catch {
+								// Cross-origin iframe, skip
+							}
+							return lines
+						}
+
+						// Check if this element has meaningful content
+						const children = Array.from(root.children)
+						const nonCollapsibleChildren = children.filter(
+							(c) => !isCollapsible(c) && !shouldSkipTag(c.tagName.toLowerCase()),
+						)
+
+						// Collapse empty divs/spans without target attributes
+						if (isCollapsible(root) && nonCollapsibleChildren.length === 0) {
+							return lines
+						}
+
+						// Build output line
+						let line = path
+						if (Object.keys(attrs).length > 0) {
+							const attrStr = Object.entries(attrs)
+								.map(([k, v]) => `${k}="${v}"`)
+								.join(" ")
+							// If path already has id/data-testid, don't duplicate
+							if (!path.includes("#") && !path.includes("data-testid")) {
+								line = path + `[${attrStr}]`
+							}
+						}
+						if (
+							text &&
+							!["div", "span", "section", "article", "main", "nav", "header", "footer"].includes(tag)
+						) {
+							line += ` "${text}"`
+						}
+
+						if (line) lines.push(line)
+
+						// Process children
+						for (const child of nonCollapsibleChildren) {
+							lines.push(...serializeDomToSelectors(child, depth + 1, maxDepth))
+						}
+
+						return lines
+					}
+
+					// Target #root or body as the mount point
+					const rootEl = document.getElementById("root") || document.body
+					const selectorLines = serializeDomToSelectors(rootEl)
+					const output = selectorLines.join("\n")
+
 					console.log(
-						`[DEBUG: DOM] Webview: Sending domResponse for ${message.requestId} (size: ${dom.length})`,
+						`[DEBUG: DOM] Webview: Sending domResponse for ${message.requestId} (size: ${output.length})`,
 					)
 					vscode.postMessage({
 						type: "domResponse",
 						requestId: message.requestId,
-						text: dom,
+						text: output,
 					})
 				}
 			}
@@ -455,9 +606,11 @@ const AppWithProviders = () => {
 					<TranslationProvider>
 						<QueryClientProvider client={queryClient}>
 							<TooltipProvider delayDuration={STANDARD_TOOLTIP_DELAY}>
-								<WindowManagerProvider>
-									<AppContent />
-								</WindowManagerProvider>
+								<ChatUIProvider>
+									<WindowManagerProvider>
+										<AppContent />
+									</WindowManagerProvider>
+								</ChatUIProvider>
 							</TooltipProvider>
 						</QueryClientProvider>
 					</TranslationProvider>

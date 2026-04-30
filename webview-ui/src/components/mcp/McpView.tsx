@@ -4,7 +4,7 @@ import { VSCodeLink, VSCodePanels, VSCodePanelTab, VSCodePanelView } from "@vsco
 
 import type { McpServer } from "@jabberwock/types"
 
-import { vscode } from "@src/utils/vscode"
+import { vscode } from "@src/features/devtools/utils/vscode"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { useTooManyTools } from "@src/hooks/useTooManyTools"
@@ -19,7 +19,7 @@ import {
 	ToggleSwitch,
 	StandardTooltip,
 } from "@src/components/ui"
-import { buildDocLink } from "@src/utils/docLinks"
+import { buildDocLink } from "@src/features/settings/utils/docLinks"
 import { Section } from "@src/components/settings/Section"
 import { SectionHeader } from "@src/components/settings/SectionHeader"
 

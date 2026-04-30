@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover"
 import { StandardTooltip } from "../ui/standard-tooltip"
 import { Button } from "../ui/button"
 import { useAppTranslation } from "@/i18n/TranslationContext"
-import { vscode } from "@/utils/vscode"
+import { vscode } from "@/features/devtools/utils/vscode"
 
 import { CreateWorktreeModal } from "../worktrees/CreateWorktreeModal"
 import { IconButton } from "./IconButton"

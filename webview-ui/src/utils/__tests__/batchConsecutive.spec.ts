@@ -1,4 +1,4 @@
-import { batchConsecutive } from "../batchConsecutive"
+import { batchConsecutive } from "../../features/foundation/utils/batchConsecutive"
 
 interface TestItem {
 	ts: number

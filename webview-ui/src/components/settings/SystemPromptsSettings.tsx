@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { VSCodeTextArea } from "@vscode/webview-ui-toolkit/react"
 
-import { vscode } from "@src/utils/vscode"
+import { vscode } from "@src/features/devtools/utils/vscode"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import {

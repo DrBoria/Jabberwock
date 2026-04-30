@@ -1,19 +1,14 @@
 import { useCallback, useEffect, useMemo, useState, memo } from "react"
 import { Server, ChevronDown } from "lucide-react"
-import { useEvent } from "react-use"
+import { onSnapshot } from "mobx-state-tree"
 import { useTranslation } from "react-i18next"
 
-import {
-	type ExtensionMessage,
-	type ClineAskUseMcpServer,
-	type McpExecutionStatus,
-	mcpExecutionStatusSchema,
-} from "@jabberwock/types"
+import { type ClineAskUseMcpServer, type McpExecutionStatus } from "@jabberwock/types"
 
-import { safeJsonParse } from "@shared/core"
+import { mcpExecutionStore } from "@src/features/chat/mcp-execution/store"
 
 import { cn } from "@src/lib/utils"
-import { Button } from "@src/components/ui"
+import { Button, Container } from "@src/components/ui"
 
 import CodeBlock from "../common/CodeBlock"
 import McpToolRow from "../mcp/McpToolRow"
@@ -130,38 +125,22 @@ export const McpExecution = ({
 		setIsResponseExpanded(!isResponseExpanded)
 	}, [isResponseExpanded])
 
-	// Listen for MCP execution status messages
-	const onMessage = useCallback(
-		(event: MessageEvent) => {
-			const message: ExtensionMessage = event.data
+	// Listen for MCP execution status via MST snapshot
+	useEffect(() => {
+		const unsubscribe = onSnapshot(mcpExecutionStore, (snapshot) => {
+			const execution = snapshot.executions.find((e: any) => e.executionId === executionId)
+			if (execution) {
+				setStatus(execution)
 
-			if (message.type === "mcpExecutionStatus") {
-				try {
-					const result = mcpExecutionStatusSchema.safeParse(safeJsonParse(message.text || "{}", {}))
-
-					if (result.success) {
-						const data = result.data
-
-						// Only update if this message is for our response
-						if (data.executionId === executionId) {
-							setStatus(data)
-
-							if (data.status === "output" && data.response) {
-								setResponseText((prev) => prev + data.response)
-							} else if (data.status === "completed" && data.response) {
-								setResponseText(data.response)
-							}
-						}
-					}
-				} catch (e) {
-					console.error("Failed to parse MCP execution status", e)
+				if (execution.status === "output" && execution.response) {
+					setResponseText((prev) => prev + execution.response)
+				} else if (execution.status === "completed" && execution.response) {
+					setResponseText(execution.response)
 				}
 			}
-		},
-		[executionId],
-	)
-
-	useEvent("message", onMessage)
+		})
+		return () => unsubscribe()
+	}, [executionId])
 
 	// Initialize with text if provided and parse command/response sections
 	useEffect(() => {
@@ -186,54 +165,50 @@ export const McpExecution = ({
 
 	return (
 		<>
-			<div className="flex flex-row items-center justify-between gap-2 mb-1">
-				<div className="flex flex-row items-center gap-1 flex-wrap">
+			<Container preset="toolbar" gap="8px" mb="4px">
+				<Container preset="row" gap="4px">
 					<Server size={16} className="text-vscode-descriptionForeground" />
-					<div className="flex items-center gap-1 flex-wrap">
-						{serverName && <span className="font-bold text-vscode-foreground">{serverName}</span>}
-					</div>
-				</div>
-				<div className="flex flex-row items-center justify-between gap-2 px-1">
-					<div className="flex flex-row items-center gap-1">
-						{status && (
-							<div className="flex flex-row items-center gap-2 font-mono text-xs">
-								<div
-									className={cn("rounded-full size-1.5", {
-										"bg-lime-400": status.status === "started" || status.status === "completed",
-										"bg-red-400": status.status === "error",
-									})}
-								/>
-								<div
-									className={cn("whitespace-nowrap", {
-										"text-vscode-foreground":
-											status.status === "started" || status.status === "completed",
-										"text-vscode-errorForeground": status.status === "error",
-									})}>
-									{status.status === "started"
-										? t("execution.running")
-										: status.status === "completed"
-											? t("execution.completed")
-											: t("execution.error")}
-								</div>
-								{status.status === "error" && "error" in status && status.error && (
-									<div className="whitespace-nowrap">({status.error})</div>
-								)}
+					{serverName && <span className="font-bold text-vscode-foreground">{serverName}</span>}
+				</Container>
+				<Container preset="row-reverse" gap="8px" p="0 4px">
+					{status && (
+						<Container preset="row" gap="8px" className="font-mono text-xs">
+							<div
+								className={cn("rounded-full size-1.5", {
+									"bg-lime-400": status.status === "started" || status.status === "completed",
+									"bg-red-400": status.status === "error",
+								})}
+							/>
+							<div
+								className={cn("whitespace-nowrap", {
+									"text-vscode-foreground":
+										status.status === "started" || status.status === "completed",
+									"text-vscode-errorForeground": status.status === "error",
+								})}>
+								{status.status === "started"
+									? t("execution.running")
+									: status.status === "completed"
+										? t("execution.completed")
+										: t("execution.error")}
 							</div>
-						)}
-						{responseText && responseText.length > 0 && (
-							<Button variant="ghost" size="icon" onClick={onToggleResponseExpand}>
-								<ChevronDown
-									className={cn("size-4 transition-transform duration-300", {
-										"rotate-180": isResponseExpanded,
-									})}
-								/>
-							</Button>
-						)}
-					</div>
-				</div>
-			</div>
+							{status.status === "error" && "error" in status && status.error && (
+								<div className="whitespace-nowrap">({status.error})</div>
+							)}
+						</Container>
+					)}
+					{responseText && responseText.length > 0 && (
+						<Button variant="ghost" size="icon" onClick={onToggleResponseExpand}>
+							<ChevronDown
+								className={cn("size-4 transition-transform duration-300", {
+									"rotate-180": isResponseExpanded,
+								})}
+							/>
+						</Button>
+					)}
+				</Container>
+			</Container>
 
-			<div className="w-full bg-vscode-editor-background rounded-xs p-2">
+			<Container theme="card" preset="col" gap="0" p="8px" w="100%">
 				{/* Tool information section */}
 				{useMcpServer?.type === "use_mcp_tool" && (
 					<div onClick={(e) => e.stopPropagation()}>
@@ -289,7 +264,7 @@ export const McpExecution = ({
 					hasArguments={!!(isArguments || useMcpServer?.arguments || argumentsText)}
 					isPartial={status ? status.status !== "completed" : false}
 				/>
-			</div>
+			</Container>
 		</>
 	)
 }

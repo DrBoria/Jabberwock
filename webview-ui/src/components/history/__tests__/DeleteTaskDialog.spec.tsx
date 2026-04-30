@@ -1,10 +1,10 @@
 import { render, screen, fireEvent } from "@/utils/test-utils"
 
-import { vscode } from "@/utils/vscode"
+import { vscode } from "@/features/devtools/utils/vscode"
 
 import { DeleteTaskDialog } from "../DeleteTaskDialog"
 
-vi.mock("@/utils/vscode")
+vi.mock("@/features/devtools/utils/vscode")
 
 vi.mock("@/i18n/TranslationContext", () => ({
 	useAppTranslation: () => ({

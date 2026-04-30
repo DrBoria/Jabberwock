@@ -74,7 +74,7 @@ export function StandardTooltip({
 				side={side}
 				align={align}
 				sideOffset={sideOffset}
-				className={`rounded-lg p-2 ${className}`}
+				className={`max-w-[300px] break-words rounded-lg p-2 ${className}`}
 				style={style}>
 				{content}
 			</TooltipContent>

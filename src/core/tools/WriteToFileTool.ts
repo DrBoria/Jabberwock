@@ -248,6 +248,14 @@ export class WriteToFileTool extends BaseTool<"write_to_file"> {
 				await task.diffViewProvider.open(relPath!)
 			}
 
+			// Guard against calling update before open() has fully initialized
+			// the diff view provider (activeLineController and fadedOverlayController).
+			// This can happen when handlePartial is called multiple times concurrently
+			// during streaming, before the first open() call completes.
+			if (!task.diffViewProvider.isFullyInitialized()) {
+				return
+			}
+
 			await task.diffViewProvider.update(
 				everyLineHasLineNumbers(newContent) ? stripLineNumbers(newContent) : newContent,
 				false,

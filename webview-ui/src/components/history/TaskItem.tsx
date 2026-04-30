@@ -2,7 +2,7 @@ import { memo } from "react"
 import { ArrowRight, Folder } from "lucide-react"
 import type { DisplayHistoryItem } from "./types"
 
-import { vscode } from "@/utils/vscode"
+import { vscode } from "@/features/devtools/utils/vscode"
 import { cn } from "@/lib/utils"
 import { Checkbox } from "../ui/checkbox"
 

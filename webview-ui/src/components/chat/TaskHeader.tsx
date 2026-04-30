@@ -12,14 +12,14 @@ import { isAlive, isStateTreeNode } from "mobx-state-tree"
 import { getModelMaxOutputTokens } from "@shared/api"
 import { findLastIndex } from "@shared/array"
 
-import { formatLargeNumber } from "@src/utils/format"
+import { formatLargeNumber } from "@src/utils/formatNumber"
 import { cn } from "@src/lib/utils"
 import { StandardTooltip, Button, Table, TableBody, TableRow, TableCell, CircularProgress } from "@src/components/ui"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { useSelectedModel } from "@/components/ui/hooks/useSelectedModel"
-import { vscode } from "@src/utils/vscode"
-import { useChatTree } from "@src/context/ChatTreeContext"
-import { useWindowManager } from "@src/context/WindowManagerContext"
+import { vscode } from "@src/features/devtools/utils/vscode"
+import { useChatTree } from "@src/features/chat/tree/store"
+import { useWindowManager } from "@src/features/foundation/window-manager/store"
 
 import Thumbnails from "../common/Thumbnails"
 

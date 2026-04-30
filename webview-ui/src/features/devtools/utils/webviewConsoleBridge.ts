@@ -1,4 +1,4 @@
-import { vscode } from "../../../utils/vscode"
+import { vscode } from "../../../features/devtools/utils/vscode"
 
 const originalConsole = {
 	log: console.log.bind(console),

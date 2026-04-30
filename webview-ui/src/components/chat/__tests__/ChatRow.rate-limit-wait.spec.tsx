@@ -27,14 +27,11 @@ function renderChatRow(message: any) {
 			<QueryClientProvider client={queryClient}>
 				<ChatRowContent
 					message={message}
-					isExpanded={false}
 					isLast={false}
 					isStreaming={false}
-					onToggleExpand={() => {}}
 					onSuggestionClick={() => {}}
 					onBatchFileResponse={() => {}}
 					onFollowUpUnmount={() => {}}
-					isFollowUpAnswered={false}
 				/>
 			</QueryClientProvider>
 		</ExtensionStateContextProvider>,

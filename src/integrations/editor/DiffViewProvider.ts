@@ -120,6 +120,20 @@ export class DiffViewProvider {
 		this.streamedLines = []
 	}
 
+	/**
+	 * Returns true when the diff view provider is fully initialized and ready
+	 * for update() calls. Guards against race conditions where handlePartial is
+	 * called multiple times during streaming before open() completes setting up
+	 * the required controllers.
+	 */
+	isFullyInitialized(): boolean {
+		return (
+			this.relPath !== undefined &&
+			this.activeLineController !== undefined &&
+			this.fadedOverlayController !== undefined
+		)
+	}
+
 	async update(accumulatedContent: string, isFinal: boolean) {
 		if (!this.relPath || !this.activeLineController || !this.fadedOverlayController) {
 			throw new Error("Required values not set")

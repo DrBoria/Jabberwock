@@ -6,7 +6,7 @@ import { useJabberwockPortal } from "@/components/ui/hooks/useJabberwockPortal"
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover"
 import { StandardTooltip } from "../ui/standard-tooltip"
 import { useAppTranslation } from "@/i18n/TranslationContext"
-import { vscode } from "@/utils/vscode"
+import { vscode } from "@/features/devtools/utils/vscode"
 import { Button } from "../ui/button"
 
 import { IconButton } from "./IconButton"
@@ -168,6 +168,7 @@ export const ApiConfigSelector = ({
 				align="start"
 				sideOffset={4}
 				container={portalContainer}
+				data-testid="popover-content"
 				className="p-0 overflow-hidden w-[300px]">
 				<div className="flex flex-col w-full">
 					{/* Search input or info blurb */}

@@ -1,13 +1,13 @@
 import { render, waitFor } from "@testing-library/react"
 
 import { ExtensionStateContext } from "@/context/ExtensionStateContext"
-import { vscode } from "@/utils/vscode"
+import { vscode } from "@/features/devtools/utils/vscode"
 
 import { MarketplaceView } from "../MarketplaceView"
 import { MarketplaceViewStateManager } from "../MarketplaceViewStateManager"
 import { DEFAULT_CHECKPOINT_TIMEOUT_SECONDS } from "@jabberwock/types"
 
-vi.mock("@/utils/vscode", () => ({
+vi.mock("@/features/devtools/utils/vscode", () => ({
 	vscode: {
 		postMessage: vi.fn(),
 	},

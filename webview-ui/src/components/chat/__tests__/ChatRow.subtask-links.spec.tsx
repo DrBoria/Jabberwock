@@ -6,7 +6,7 @@ import type { HistoryItem, ClineMessage } from "@jabberwock/types"
 
 // Mock vscode API
 const mockPostMessage = vi.fn()
-vi.mock("@src/utils/vscode", () => ({
+vi.mock("@src/features/devtools/utils/vscode", () => ({
 	vscode: {
 		postMessage: (msg: unknown) => mockPostMessage(msg),
 	},
@@ -60,14 +60,11 @@ function renderChatRow(message: any, currentTaskItem?: Partial<HistoryItem>, cli
 		<QueryClientProvider client={queryClient}>
 			<ChatRowContent
 				message={message}
-				isExpanded={false}
 				isLast={false}
 				isStreaming={false}
-				onToggleExpand={() => {}}
 				onSuggestionClick={() => {}}
 				onBatchFileResponse={() => {}}
 				onFollowUpUnmount={() => {}}
-				isFollowUpAnswered={false}
 			/>
 		</QueryClientProvider>,
 	)

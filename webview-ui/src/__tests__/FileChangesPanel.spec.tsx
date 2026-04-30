@@ -6,7 +6,7 @@ import FileChangesPanel from "../components/chat/FileChangesPanel"
 
 const mockPostMessage = vi.fn()
 
-vi.mock("@src/utils/vscode", () => ({
+vi.mock("@src/features/devtools/utils/vscode", () => ({
 	vscode: {
 		postMessage: (...args: unknown[]) => mockPostMessage(...args),
 	},

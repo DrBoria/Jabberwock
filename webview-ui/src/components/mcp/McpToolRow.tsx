@@ -3,7 +3,7 @@ import { VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react"
 import type { McpTool } from "@jabberwock/types"
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { vscode } from "@src/utils/vscode"
+import { vscode } from "@src/features/devtools/utils/vscode"
 import { StandardTooltip, ToggleSwitch } from "@/components/ui"
 
 type McpToolRowProps = {

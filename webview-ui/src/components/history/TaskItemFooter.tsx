@@ -1,6 +1,6 @@
 import React from "react"
 import type { HistoryItem } from "@jabberwock/types"
-import { formatTimeAgo } from "@/utils/format"
+import { formatTimeAgo } from "@/utils/formatDate"
 import { CopyButton } from "./CopyButton"
 import { ExportButton } from "./ExportButton"
 import { DeleteButton } from "./DeleteButton"

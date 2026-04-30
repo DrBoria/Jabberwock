@@ -1,6 +1,6 @@
 import { mentionRegexGlobal } from "@shared/context-mentions"
 
-import { vscode } from "../../utils/vscode"
+import { vscode } from "../../features/devtools/utils/vscode"
 
 interface MentionProps {
 	text?: string

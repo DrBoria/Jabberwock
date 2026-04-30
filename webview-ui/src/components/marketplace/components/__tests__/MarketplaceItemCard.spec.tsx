@@ -3,12 +3,12 @@ import userEvent from "@testing-library/user-event"
 
 import { MarketplaceItem } from "@jabberwock/types"
 
-import { vscode } from "@/utils/vscode"
+import { vscode } from "@/features/devtools/utils/vscode"
 import { TooltipProvider } from "@/components/ui/tooltip"
 
 import { MarketplaceItemCard } from "../MarketplaceItemCard"
 
-vi.mock("@/utils/vscode", () => ({
+vi.mock("@/features/devtools/utils/vscode", () => ({
 	vscode: {
 		postMessage: vi.fn(),
 	},

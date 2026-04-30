@@ -167,6 +167,7 @@ async function checkGitInstallation(
 					text: to,
 					suppressMessage: !!suppressMessage,
 				})
+				provider?.checkpointStore?.setCurrentCheckpoint(to)
 
 				// Always create the chat message but include the suppress flag in the payload
 				// so the chatview can choose not to render it while keeping it in history.
@@ -250,6 +251,7 @@ export async function checkpointRestore(
 		await service.restoreCheckpoint(commitHash)
 		TelemetryService.instance.captureCheckpointRestored(task.taskId)
 		await provider?.postMessageToWebview({ type: "currentCheckpointUpdated", text: commitHash })
+		provider?.checkpointStore?.setCurrentCheckpoint(commitHash)
 
 		if (mode === "restore") {
 			// Calculate metrics from messages that will be deleted (must be done before rewind)

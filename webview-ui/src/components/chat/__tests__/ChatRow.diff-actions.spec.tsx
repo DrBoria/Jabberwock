@@ -7,7 +7,7 @@ import { ChatRowContent } from "../ChatRow"
 
 const mockPostMessage = vi.fn()
 
-vi.mock("@src/utils/vscode", () => ({
+vi.mock("@src/features/devtools/utils/vscode", () => ({
 	vscode: {
 		postMessage: (...args: unknown[]) => mockPostMessage(...args),
 	},
@@ -47,20 +47,17 @@ function createToolAskMessage(toolPayload: Record<string, unknown>): ClineMessag
 	}
 }
 
-function renderChatRow(message: ClineMessage, isExpanded = false) {
+function renderChatRow(message: ClineMessage) {
 	return render(
 		<ExtensionStateContextProvider>
 			<QueryClientProvider client={queryClient}>
 				<ChatRowContent
 					message={message}
-					isExpanded={isExpanded}
 					isLast={false}
 					isStreaming={false}
-					onToggleExpand={() => {}}
 					onSuggestionClick={() => {}}
 					onBatchFileResponse={() => {}}
 					onFollowUpUnmount={() => {}}
-					isFollowUpAnswered={false}
 				/>
 			</QueryClientProvider>
 		</ExtensionStateContextProvider>,
@@ -82,7 +79,7 @@ describe("ChatRow - inline diff stats and actions", () => {
 			diffStats: { added: 1, removed: 1 },
 		})
 
-		const { container } = renderChatRow(message, false)
+		const { container } = renderChatRow(message)
 
 		expect(screen.getByText("Jabberwock wants to edit this file")).toBeInTheDocument()
 		expect(container.querySelector(".codicon-diff")).toBeInTheDocument()

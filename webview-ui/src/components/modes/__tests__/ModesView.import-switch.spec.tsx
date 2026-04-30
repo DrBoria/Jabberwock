@@ -3,11 +3,11 @@
 import { render, waitFor } from "@/utils/test-utils"
 import ModesView from "../ModesView"
 import { ExtensionStateContext } from "@src/context/ExtensionStateContext"
-import { vscode } from "@src/utils/vscode"
+import { vscode } from "@src/features/devtools/utils/vscode"
 import { defaultModeSlug } from "@shared/modes"
 
 // Mock vscode API
-vitest.mock("@src/utils/vscode", () => ({
+vitest.mock("@src/features/devtools/utils/vscode", () => ({
 	vscode: {
 		postMessage: vitest.fn(),
 	},

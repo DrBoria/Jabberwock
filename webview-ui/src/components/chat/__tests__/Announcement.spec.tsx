@@ -4,7 +4,7 @@ import { render, screen } from "@/utils/test-utils"
 
 import Announcement from "../Announcement"
 
-vi.mock("@src/utils/vscode", () => ({
+vi.mock("@src/features/devtools/utils/vscode", () => ({
 	vscode: {
 		postMessage: vi.fn(),
 	},

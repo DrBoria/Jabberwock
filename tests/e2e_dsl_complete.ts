@@ -1,5 +1,5 @@
-import { Client } from "/Users/mikita_dusmikeev/Documents/Work/jabberwock/Jabberwock/node_modules/.pnpm/@modelcontextprotocol+sdk@1.12.0/node_modules/@modelcontextprotocol/sdk/dist/cjs/client/index.js"
-import { SSEClientTransport } from "/Users/mikita_dusmikeev/Documents/Work/jabberwock/Jabberwock/node_modules/.pnpm/@modelcontextprotocol+sdk@1.12.0/node_modules/@modelcontextprotocol/sdk/dist/cjs/client/sse.js"
+import { Client } from "@modelcontextprotocol/sdk/client/index.js"
+import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js"
 import fs from "fs"
 import path from "path"
 
@@ -240,6 +240,23 @@ export class JabberwockE2EDSL {
 				const statusRaw = await this.callTool("get_active_ask")
 				const status = await this.safeJsonParse(statusRaw, { ask: "unknown" })
 
+				// Handle resume_task — the orchestrator has created a plan via manage_todo_plan
+				// and is waiting for user approval. The plan is stored in md-todo-mcp's
+				// mockApprovedTasks, NOT in the local task's todoList. We need to read it
+				// from the conversation history (apiConversationHistory).
+				if (status.ask === "resume_task") {
+					console.log(`  Detected resume_task — reading plan from conversation history...`)
+					const plan = await this.readPlanFromHistory()
+					if (plan) {
+						console.log(`  ✓ Task plan detected via conversation history (resume_task)`)
+						return plan
+					}
+					// Plan might still be generating
+					console.log(`  No plan found in history yet, waiting...`)
+					await this.wait(2000)
+					continue
+				}
+
 				if (status.ask === "use_mcp_server" || status.ask === "tool") {
 					console.log(`  Auto-approving ${status.ask}...`)
 					await this.callTool("respond_to_ask", { response: "yesButtonClicked" })
@@ -249,9 +266,19 @@ export class JabberwockE2EDSL {
 
 				if (status.ask === "interactive_app") {
 					const uiMeta = await this.safeJsonParse(status["text"], { resourceUri: "", input: null })
-					if (uiMeta.resourceUri?.includes("3005")) {
+					if (uiMeta.resourceUri?.includes("todo") || uiMeta.resourceUri?.includes("plan") || uiMeta.input) {
 						console.log("  ✓ Task plan UI detected")
 						return uiMeta.input as TaskPlan
+					}
+				}
+
+				// Also check if the todo plan is available via the todo list state
+				if (status.ask === "interactive_app" || status.ask === "followup") {
+					const todoState = await this.callTool("get_todo_list_state")
+					const todoParsed = await this.safeJsonParse(todoState, { items: [] })
+					if (todoParsed.items && todoParsed.items.length > 0) {
+						console.log("  ✓ Task plan detected via todo list state")
+						return { initialTasks: todoParsed.items }
 					}
 				}
 			} catch (error) {
@@ -262,6 +289,47 @@ export class JabberwockE2EDSL {
 		}
 
 		throw new Error("Timeout waiting for Task Plan UI")
+	}
+
+	/**
+	 * Read the task plan from conversation history by finding the manage_todo_plan tool call.
+	 * The plan is stored in md-todo-mcp's mockApprovedTasks, which is NOT accessible via
+	 * get_todo_list_state (that reads the local task's todoList). Instead, we read it from
+	 * the apiConversationHistory where the manage_todo_plan tool_use block contains the plan.
+	 */
+	private async readPlanFromHistory(): Promise<TaskPlan | null> {
+		try {
+			const historyRaw = await this.callTool("get_api_history", { count: 20, fullContent: true })
+			const history = await this.safeJsonParse(historyRaw, { messages: [] })
+
+			if (!history.messages || !Array.isArray(history.messages)) {
+				return null
+			}
+
+			// Search through all messages for a tool_use block with manage_todo_plan
+			for (const msg of history.messages) {
+				if (!msg.blocks || !Array.isArray(msg.blocks)) continue
+
+				for (const block of msg.blocks) {
+					if (block.type === "tool_use" && block.name === "mcp--md-todo-mcp--manage_todo_plan") {
+						const input = block.input
+						if (
+							input &&
+							input.initialTasks &&
+							Array.isArray(input.initialTasks) &&
+							input.initialTasks.length > 0
+						) {
+							return { initialTasks: input.initialTasks }
+						}
+					}
+				}
+			}
+
+			return null
+		} catch (error) {
+			console.log(`  [readPlanFromHistory] Error: ${error instanceof Error ? error.message : String(error)}`)
+			return null
+		}
 	}
 
 	async approvePlan(mutatedPlan?: TaskPlan): Promise<void> {
@@ -287,6 +355,28 @@ export class JabberwockE2EDSL {
 	async getTaskHierarchy(): Promise<TaskHierarchy> {
 		const hierarchy = await this.callTool("get_task_hierarchy")
 		return await this.safeJsonParse(hierarchy, { taskId: "unknown", mode: "unknown" })
+	}
+
+	/**
+	 * Wait for child tasks to appear in the task hierarchy.
+	 * After approving a plan, the orchestrator needs time to create child tasks.
+	 */
+	async waitForChildTasks(timeoutMs: number = 30000): Promise<TaskHierarchy> {
+		console.log(`[HIERARCHY] Waiting for child tasks (timeout: ${timeoutMs}ms)...`)
+		const startTime = Date.now()
+
+		while (Date.now() - startTime < timeoutMs) {
+			const hierarchy = await this.getTaskHierarchy()
+			if (hierarchy.children && hierarchy.children.length > 0) {
+				console.log(`  ✓ Child tasks found: ${hierarchy.children.length}`)
+				return hierarchy
+			}
+			console.log(`  No child tasks yet, waiting...`)
+			await this.wait(2000)
+		}
+
+		console.log(`  ⚠ Timeout waiting for child tasks, returning last hierarchy`)
+		return await this.getTaskHierarchy()
 	}
 
 	async getTaskSummary(): Promise<TaskSummary> {
@@ -500,55 +590,6 @@ export class JabberwockE2EDSL {
 		console.log("=".repeat(80) + "\n")
 	}
 
-	async verifyNoHallucination(): Promise<void> {
-		console.log(`[VERIFY] Checking for possible agent hallucinations...`)
-		const dom = await this.getDOM()
-
-		// Hallucinations often manifest as repeated strings or garbage characters in chat bubbles
-		const chatBubbles = dom.match(/<div[^>]*class="chat-bubble"[^>]*>(.*?)<\/div>/gs) || []
-
-		for (const bubble of chatBubbles) {
-			const text = bubble.replace(/<[^>]*>/g, "").trim()
-
-			// Check for suspicious repeating patterns (e.g. "abcabcabcabc")
-			if (text.length > 20) {
-				const firstHalf = text.substring(0, text.length / 2)
-				const secondHalf = text.substring(text.length / 2)
-				if (firstHalf === secondHalf && firstHalf.length > 10) {
-					throw new Error(
-						`Potential hallucination detected (repeating content): "${text.substring(0, 50)}..."`,
-					)
-				}
-			}
-
-			// Check for garbage strings
-			if (/[^\x20-\x7E\s]{10,}/.test(text)) {
-				throw new Error(`Potential hallucination detected (garbage characters): "${text.substring(0, 50)}..."`)
-			}
-		}
-
-		console.log("  ✓ No obvious hallucinations detected")
-	}
-
-	async verifyNoDuplicates(): Promise<void> {
-		console.log(`[VERIFY] Checking for duplicate messages in chat...`)
-		const dom = await this.getDOM()
-
-		// Look for duplicate task prompts or assistant responses
-		const messages = dom.match(/<div[^>]*data-message-id="(?<id>[^"]+)"/g) || []
-		const ids = messages
-			.map((m) => m.match(/data-message-id="(?<id>[^"]+)"/)?.groups?.id)
-			.filter(Boolean) as string[]
-
-		const duplicates = ids.filter((item, index) => ids.indexOf(item) !== index)
-
-		if (duplicates.length > 0) {
-			throw new Error(`Duplicate message IDs detected in DOM: ${duplicates.join(", ")}`)
-		}
-
-		console.log("  ✓ No duplicate messages detected")
-	}
-
 	async verifyNoHallucination(allowedKeywords: string[]): Promise<void> {
 		console.log(`[VERIFY] Checking for hallucinations (allowed: ${allowedKeywords.join(", ")})...`)
 		const dom = await this.getDOM()
@@ -754,6 +795,14 @@ export class JabberwockE2EDSL {
 	async navigateToPage(page: string, props?: any): Promise<void> {
 		console.log(`[NAV] Navigating to ${page} page...`)
 
+		// Check if provider is ready by calling get_extension_info
+		try {
+			const providerState = await this.callTool("get_extension_info")
+			console.log(`[NAV] Provider state: ${providerState}`)
+		} catch (error) {
+			console.warn(`[NAV] Could not check provider state: ${error}`)
+		}
+
 		if (page === "chat") {
 			console.log(`[DEBUG] Calling navigate_to_node with nodeId: ${props?.taskId || ""}`)
 			await this.callTool("navigate_to_node", {
@@ -779,7 +828,7 @@ export class JabberwockE2EDSL {
 	}
 
 	async navigateToChat(taskId?: string): Promise<void> {
-		await this.navigateToPage("chat", taskId ? { targetNodeId: taskId } : undefined)
+		await this.navigateToPage("chat", taskId ? { taskId } : undefined)
 	}
 
 	async navigateToHistory(): Promise<void> {

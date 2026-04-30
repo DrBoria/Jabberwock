@@ -1,36 +1,34 @@
 import { useQuery } from "@tanstack/react-query"
+import { onSnapshot } from "mobx-state-tree"
 
-import { type ModelRecord, type ExtensionMessage } from "@jabberwock/types"
+import { type ModelRecord } from "@jabberwock/types"
 
-import { vscode } from "@src/utils/vscode"
+import { vscode } from "@src/features/devtools/utils/vscode"
+import { routerModelsStore } from "@src/features/router-models/store"
 
 const getLmStudioModels = async () =>
 	new Promise<ModelRecord>((resolve, reject) => {
-		const cleanup = () => {
-			window.removeEventListener("message", handler)
+		// Check the MST store first
+		const existing = routerModelsStore.lmStudioModels
+		if (existing) {
+			resolve(existing)
+			return
 		}
 
+		// Subscribe to MST store changes
+		const unsubscribe = onSnapshot(routerModelsStore, (snapshot) => {
+			if (snapshot.lmStudioModels) {
+				unsubscribe()
+				clearTimeout(timeout)
+				resolve(snapshot.lmStudioModels)
+			}
+		})
+
 		const timeout = setTimeout(() => {
-			cleanup()
+			unsubscribe()
 			reject(new Error("LM Studio models request timed out"))
 		}, 10000)
 
-		const handler = (event: MessageEvent) => {
-			const message: ExtensionMessage = event.data
-
-			if (message.type === "lmStudioModels") {
-				clearTimeout(timeout)
-				cleanup()
-
-				if (message.lmStudioModels) {
-					resolve(message.lmStudioModels)
-				} else {
-					reject(new Error("No LMStudio models in response"))
-				}
-			}
-		}
-
-		window.addEventListener("message", handler)
 		vscode.postMessage({ type: "requestLmStudioModels" })
 	})
 

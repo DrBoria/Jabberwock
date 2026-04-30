@@ -15,7 +15,7 @@ import {
 import { Button } from "../ui/button"
 import { useAppTranslation } from "@/i18n/TranslationContext"
 
-import { vscode } from "@/utils/vscode"
+import { vscode } from "@/features/devtools/utils/vscode"
 
 interface DeleteTaskDialogProps extends AlertDialogProps {
 	taskId: string

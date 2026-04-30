@@ -39,7 +39,7 @@ describe("Jabberwock MCP Protocol E2E", () => {
 	}, 15000)
 
 	afterAll(async () => {
-		stopJabberwockMcpServer()
+		await stopJabberwockMcpServer()
 	})
 
 	it("should verify Phase 1: Execution Tracing over MCP protocol", async () => {

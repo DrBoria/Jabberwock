@@ -7,7 +7,9 @@ export const registerTodoTools = (mcpServer: McpServer, provider: ClineProvider)
 		try {
 			const currentTask = provider.getCurrentTask()
 			if (!currentTask) {
-				return { content: [{ type: "text", text: "No active task" }], isError: true }
+				return {
+					content: [{ type: "text", text: JSON.stringify({ hasTask: false, todoCount: 0, items: [] }) }],
+				}
 			}
 
 			const todoList = currentTask.todoList || []
@@ -40,7 +42,11 @@ export const registerTodoTools = (mcpServer: McpServer, provider: ClineProvider)
 		try {
 			const currentTask = provider.getCurrentTask()
 			if (!currentTask) {
-				return { content: [{ type: "text", text: "No active task" }], isError: true }
+				return {
+					content: [
+						{ type: "text", text: JSON.stringify({ hasTask: false, totalMessages: 0, totalChars: 0 }) },
+					],
+				}
 			}
 
 			const history = currentTask.apiConversationHistory
@@ -123,7 +129,20 @@ export const registerTodoTools = (mcpServer: McpServer, provider: ClineProvider)
 			try {
 				const currentTask = provider.getCurrentTask()
 				if (!currentTask) {
-					return { content: [{ type: "text", text: "No active task" }], isError: true }
+					return {
+						content: [
+							{
+								type: "text",
+								text: JSON.stringify({
+									hasTask: false,
+									query,
+									found: false,
+									matchCount: 0,
+									matches: [],
+								}),
+							},
+						],
+					}
 				}
 
 				const history = currentTask.apiConversationHistory

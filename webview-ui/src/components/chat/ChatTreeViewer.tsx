@@ -4,13 +4,13 @@ import * as Collapsible from "@radix-ui/react-collapsible"
 import { ChevronRight, ChevronDown, Bot, ListTree, X } from "lucide-react"
 import { cn } from "../../lib/utils"
 
-import { useChatTree } from "../../context/ChatTreeContext"
+import { useChatTree } from "../../features/chat/tree/store"
 import { useExtensionState } from "../../context/ExtensionStateContext"
-import { useWindowManager } from "../../context/WindowManagerContext"
+import { useWindowManager } from "../../features/foundation/window-manager/store"
 import ChatRow from "./ChatRow"
 import { ClineMessage } from "@jabberwock/types"
 import { Instance } from "mobx-state-tree"
-import { TaskNode } from "../../state/ChatTreeStore"
+import { TaskNode } from "../../features/chat/tree/store"
 
 type TaskNodeType = Instance<typeof TaskNode>
 
@@ -23,7 +23,6 @@ interface ChatTreeNodeProps {
 // Ensure ChatRow receives a stable object where possible, though ChatRow is heavy.
 const ChatTreeNode = observer(({ node, depth, isRoot }: ChatTreeNodeProps) => {
 	const [isOpen, setIsOpen] = useState(true)
-	const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({})
 	const store = useChatTree()
 	const { pushWindow: _pushWindow } = useWindowManager()
 
@@ -94,10 +93,8 @@ const ChatTreeNode = observer(({ node, depth, isRoot }: ChatTreeNodeProps) => {
 								key={msg.ts || idx}
 								message={msg}
 								history={messages}
-								isExpanded={expandedRows[msg.ts] || false}
 								isLast={idx === messages.length - 1}
 								isStreaming={false}
-								onToggleExpand={(ts) => setExpandedRows((prev) => ({ ...prev, [ts]: !prev[ts] }))}
 								onHeightChange={() => {}}
 								isNested={true}
 							/>

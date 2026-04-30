@@ -6,7 +6,7 @@ import {
 } from "@jabberwock/types"
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { vscode } from "@src/utils/vscode"
+import { vscode } from "@src/features/devtools/utils/vscode"
 import { Button } from "@src/components/ui"
 
 import { ModelPicker } from "../ModelPicker"

@@ -1,7 +1,7 @@
 import React from "react"
 import { TriangleAlert, BookOpenText } from "lucide-react"
 import { useAppTranslation } from "@/i18n/TranslationContext"
-import { vscode } from "@src/utils/vscode"
+import { vscode } from "@src/features/devtools/utils/vscode"
 
 export interface WarningRowProps {
 	title: string

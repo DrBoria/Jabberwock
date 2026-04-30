@@ -1,6 +1,6 @@
 import { memo } from "react"
 import { ArrowRight } from "lucide-react"
-import { vscode } from "@/utils/vscode"
+import { vscode } from "@/features/devtools/utils/vscode"
 import { cn } from "@/lib/utils"
 import type { SubtaskTreeNode } from "./types"
 import { countAllSubtasks } from "./types"

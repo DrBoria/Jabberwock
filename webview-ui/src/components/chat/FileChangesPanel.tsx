@@ -7,7 +7,7 @@ import type { ClineMessage, ExtensionMessage } from "@jabberwock/types"
 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible"
 import { cn } from "@/lib/utils"
-import { vscode } from "@src/utils/vscode"
+import { vscode } from "@src/features/devtools/utils/vscode"
 
 import { fileChangesFromMessages, type FileChangeEntry } from "./utils/fileChangesFromMessages"
 import CodeAccordion from "../common/CodeAccordion"

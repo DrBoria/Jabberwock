@@ -1,5 +1,5 @@
 import { useEffect } from "react"
-import { vscode } from "../../../utils/vscode"
+import { vscode } from "../../../features/devtools/utils/vscode"
 
 /**
  * LocatorBridge allows Alt+Click navigation from the Webview UI to the source code.

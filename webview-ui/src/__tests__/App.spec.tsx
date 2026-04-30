@@ -5,7 +5,7 @@ import { render, screen, act, cleanup } from "@/utils/test-utils"
 
 import AppWithProviders from "../App"
 
-vi.mock("@src/utils/vscode", () => ({
+vi.mock("@src/features/devtools/utils/vscode", () => ({
 	vscode: {
 		postMessage: vi.fn(),
 	},
@@ -18,7 +18,7 @@ vi.mock("@src/components/ErrorBoundary", () => ({
 }))
 
 // Mock the telemetry client
-vi.mock("@src/utils/TelemetryClient", () => ({
+vi.mock("@src/features/cloud/utils/TelemetryClient", () => ({
 	telemetryClient: {
 		capture: vi.fn(),
 		updateTelemetryState: vi.fn(),

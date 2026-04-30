@@ -17,14 +17,20 @@ export async function handleRequestSkills(provider: ClineProvider): Promise<Skil
 		if (skillsManager) {
 			const skills = skillsManager.getSkillsMetadata()
 			await provider.postMessageToWebview({ type: "skills", skills })
+			// Dual-write: MST store
+			provider.skillsStore?.setSkills(skills)
 			return skills
 		} else {
 			await provider.postMessageToWebview({ type: "skills", skills: [] })
+			// Dual-write: MST store
+			provider.skillsStore?.setSkills([])
 			return []
 		}
 	} catch (error) {
 		provider.log(`Error fetching skills: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`)
 		await provider.postMessageToWebview({ type: "skills", skills: [] })
+		// Dual-write: MST store
+		provider.skillsStore?.setSkills([])
 		return []
 	}
 }
@@ -60,6 +66,8 @@ export async function handleCreateSkill(
 		// Send updated skills list
 		const skills = skillsManager.getSkillsMetadata()
 		await provider.postMessageToWebview({ type: "skills", skills })
+		// Dual-write: MST store
+		provider.skillsStore?.setSkills(skills)
 		return skills
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error)
@@ -96,6 +104,7 @@ export async function handleDeleteSkill(
 		// Send updated skills list
 		const skills = skillsManager.getSkillsMetadata()
 		await provider.postMessageToWebview({ type: "skills", skills })
+		provider.skillsStore?.setSkills(skills)
 		return skills
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error)
@@ -132,6 +141,7 @@ export async function handleMoveSkill(
 		// Send updated skills list
 		const skills = skillsManager.getSkillsMetadata()
 		await provider.postMessageToWebview({ type: "skills", skills })
+		provider.skillsStore?.setSkills(skills)
 		return skills
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error)
@@ -167,6 +177,7 @@ export async function handleUpdateSkillModes(
 		// Send updated skills list
 		const skills = skillsManager.getSkillsMetadata()
 		await provider.postMessageToWebview({ type: "skills", skills })
+		provider.skillsStore?.setSkills(skills)
 		return skills
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error)

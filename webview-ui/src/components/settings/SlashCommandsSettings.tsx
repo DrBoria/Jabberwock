@@ -18,8 +18,8 @@ import {
 } from "../ui/alert-dialog"
 import { Button } from "../ui/button"
 import { StandardTooltip } from "../ui/standard-tooltip"
-import { vscode } from "@/utils/vscode"
-import { buildDocLink } from "@/utils/docLinks"
+import { vscode } from "@/features/devtools/utils/vscode"
+import { buildDocLink } from "@/features/settings/utils/docLinks"
 
 import { SectionHeader } from "./SectionHeader"
 import { CreateSlashCommandDialog } from "./CreateSlashCommandDialog"
@@ -120,14 +120,22 @@ export const SlashCommandsSettings: React.FC = () => {
 						{/* Actions */}
 						<div className="flex items-center gap-1 px-0 ml-0 min-[400px]:ml-0 min-[400px]:mt-2 flex-shrink-0">
 							<StandardTooltip content={t("settings:slashCommands.editCommand")}>
-								<Button variant="ghost" size="icon" onClick={() => handleEditClick(command)}>
+								<Button
+									data-testid="button"
+									variant="ghost"
+									size="icon"
+									onClick={() => handleEditClick(command)}>
 									<Edit />
 								</Button>
 							</StandardTooltip>
 
 							{!isBuiltIn && (
 								<StandardTooltip content={t("settings:slashCommands.deleteCommand")}>
-									<Button variant="ghost" size="icon" onClick={() => handleDeleteClick(command)}>
+									<Button
+										data-testid="button"
+										variant="ghost"
+										size="icon"
+										onClick={() => handleDeleteClick(command)}>
 										<Trash2 className="text-destructive" />
 									</Button>
 								</StandardTooltip>
@@ -164,7 +172,11 @@ export const SlashCommandsSettings: React.FC = () => {
 					</p>
 
 					{/* Add Command button */}
-					<Button variant="secondary" className="py-1" onClick={() => setCreateDialogOpen(true)}>
+					<Button
+						data-testid="button"
+						variant="secondary"
+						className="py-1"
+						onClick={() => setCreateDialogOpen(true)}>
 						<Plus />
 						{t("settings:slashCommands.addCommand")}
 					</Button>

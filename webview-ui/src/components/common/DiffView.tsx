@@ -1,8 +1,7 @@
 import { memo, useMemo, useEffect, useState } from "react"
 import { parseUnifiedDiff, type DiffLine } from "@src/utils/parseUnifiedDiff"
-import { normalizeLanguage } from "@src/utils/highlighter"
+import { normalizeLanguage, highlightHunks } from "@src/utils/highlighter"
 import { getLanguageFromPath } from "@src/utils/getLanguageFromPath"
-import { highlightHunks } from "@src/utils/highlightDiff"
 
 interface DiffViewProps {
 	source: string

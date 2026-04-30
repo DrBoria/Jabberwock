@@ -93,6 +93,15 @@ export class DiagnosticsManager {
 	public recordToolEnd(toolId: string, status: "success" | "failure", result?: any, error?: string) {
 		this.tracer.recordToolEnd(toolId, status, result, error)
 	}
+	public recordTodoChange(
+		taskId: string,
+		action: "created" | "updated" | "cleared",
+		count: number,
+		details?: string,
+	) {
+		const msg = `[TODO-WATCHER] [${action.toUpperCase()}] taskId: ${taskId}, count: ${count}${details ? `, ${details}` : ""}`
+		this.log(msg, "info")
+	}
 
 	public recordMstPatch(patch: any) {
 		this.mstPatches.push({ ...patch, timestamp: Date.now() })

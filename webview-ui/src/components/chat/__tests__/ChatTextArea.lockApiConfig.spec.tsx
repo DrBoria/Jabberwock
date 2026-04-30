@@ -2,11 +2,11 @@ import { defaultModeSlug } from "@shared/modes"
 
 import { render, fireEvent, screen } from "@src/utils/test-utils"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
-import { vscode } from "@src/utils/vscode"
+import { vscode } from "@src/features/devtools/utils/vscode"
 
 import { ChatTextArea } from "../ChatTextArea"
 
-vi.mock("@src/utils/vscode", () => ({
+vi.mock("@src/features/devtools/utils/vscode", () => ({
 	vscode: {
 		postMessage: vi.fn(),
 	},
@@ -14,7 +14,7 @@ vi.mock("@src/utils/vscode", () => ({
 
 vi.mock("@src/components/common/CodeBlock")
 vi.mock("@src/components/common/MarkdownBlock")
-vi.mock("@src/utils/path-mentions", () => ({
+vi.mock("@src/features/chat/utils/path-mentions", () => ({
 	convertToMentionPath: vi.fn((path: string) => path),
 }))
 
@@ -28,8 +28,6 @@ describe("ChatTextArea - lockApiConfigAcrossModes toggle", () => {
 		inputValue: "",
 		setInputValue: vi.fn(),
 		onSend: vi.fn(),
-		sendingDisabled: false,
-		selectApiConfigDisabled: false,
 		onSelectImages: vi.fn(),
 		shouldDisableImages: false,
 		placeholderText: "Type a message...",

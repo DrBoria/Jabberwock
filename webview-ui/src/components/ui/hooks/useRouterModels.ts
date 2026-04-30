@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query"
+import { onSnapshot } from "mobx-state-tree"
 
-import { type RouterModels, type ExtensionMessage } from "@jabberwock/types"
+import { type RouterModels } from "@jabberwock/types"
 
-import { vscode } from "@src/utils/vscode"
+import { vscode } from "@src/features/devtools/utils/vscode"
+import { routerModelsStore } from "@src/features/router-models/store"
 
 type UseRouterModelsOptions = {
 	provider?: string // single provider filter (e.g. "jabberwock")
@@ -11,41 +13,32 @@ type UseRouterModelsOptions = {
 
 const getRouterModels = async (provider?: string) =>
 	new Promise<RouterModels>((resolve, reject) => {
-		const cleanup = () => {
-			if (typeof window !== "undefined") {
-				window.removeEventListener("message", handler)
+		// For "all" requests, check the MST store first (avoids unnecessary requests)
+		if (!provider) {
+			const existing = routerModelsStore.routerModels
+			if (existing) {
+				resolve(existing)
+				return
 			}
 		}
 
+		// Subscribe to MST store changes instead of raw message events
+		const unsubscribe = onSnapshot(routerModelsStore, (snapshot) => {
+			if (!snapshot.routerModels) return
+
+			// For "all" requests, resolve when store has data
+			if (!provider) {
+				unsubscribe()
+				clearTimeout(timeout)
+				resolve(snapshot.routerModels)
+			}
+		})
+
 		const timeout = setTimeout(() => {
-			cleanup()
+			unsubscribe()
 			reject(new Error("Router models request timed out"))
 		}, 10000)
 
-		const handler = (event: MessageEvent) => {
-			const message: ExtensionMessage = event.data
-
-			if (message.type === "routerModels") {
-				const msgProvider = message?.values?.provider as string | undefined
-
-				// Verify response matches request
-				if (provider !== msgProvider) {
-					// Not our response; ignore and wait for the matching one
-					return
-				}
-
-				clearTimeout(timeout)
-				cleanup()
-
-				if (message.routerModels) {
-					resolve(message.routerModels)
-				} else {
-					reject(new Error("No router models in response"))
-				}
-			}
-		}
-
-		window.addEventListener("message", handler)
 		if (provider) {
 			vscode.postMessage({ type: "requestRouterModels", values: { provider } })
 		} else {

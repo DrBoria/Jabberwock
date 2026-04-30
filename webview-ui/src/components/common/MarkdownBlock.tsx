@@ -6,7 +6,7 @@ import rehypeKatex from "rehype-katex"
 import remarkMath from "remark-math"
 import remarkGfm from "remark-gfm"
 
-import { vscode } from "@src/utils/vscode"
+import { vscode } from "@src/features/devtools/utils/vscode"
 
 import CodeBlock from "./CodeBlock"
 import MermaidBlock from "./MermaidBlock"

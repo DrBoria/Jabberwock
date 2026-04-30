@@ -6,20 +6,23 @@ async function testTaskDelegationAndReorganization() {
 	const { run } = createTestSuite("Task Delegation and Reorganization")
 
 	await run(async (dsl) => {
-		// 1. Проверяем начальное состояние - страница истории
-		await dsl.recordTest("Check initial history page", "PASS", "Verifying initial page is history")
-		await dsl.navigateToPage("history")
-		await dsl.verifyActivePage("history")
-		await dsl.verifyCleanConsole()
-
-		// 2. Создаем задачу для менеджера
+		// 1. Create task first to activate the extension and provider
 		await dsl.recordTest("Create manager task", "PASS", "Creating C++ to Python task")
 		const taskId = await dsl.createNewTask(
 			"Создай функцию на C++ которая напишет hello world скрипт на python и обязательно делегируй эту задачу designer",
 			"orchestrator",
 		)
 
-		// 3. Проверяем текущую страницу и вручную переходим на чат если нужно
+		// 2. Now navigate to history page (provider is now active)
+		await dsl.recordTest("Navigate to history page", "PASS", "Navigating after task creation")
+		await dsl.navigateToPage("history")
+		await dsl.verifyActivePage("history")
+		await dsl.verifyCleanConsole()
+
+		// 3. Return to chat with the created task
+		await dsl.recordTest("Navigate back to chat", "PASS", "Returning to chat after history check")
+		await dsl.navigateToPage("chat", { taskId })
+		await dsl.verifyActivePage("chat")
 		await dsl.recordTest("Check current page", "PASS", "Checking current page after task creation")
 		const currentPage = await dsl.getActivePage()
 		console.log(`[DEBUG] Current page after task creation: ${currentPage}`)
@@ -87,9 +90,9 @@ async function testTaskDelegationAndReorganization() {
 		await dsl.recordTest("Verify task execution", "PASS", "Monitoring task execution")
 		await dsl.verifyTaskProgress(30)
 
-		// 11. Проверяем иерархию задач
+		// 11. Проверяем иерархию задач (с ожиданием появления дочерних задач)
 		await dsl.recordTest("Check task hierarchy", "PASS", "Verifying task hierarchy structure")
-		const hierarchy = await dsl.getTaskHierarchy()
+		const hierarchy = await dsl.waitForChildTasks(30000)
 
 		if (!hierarchy.children || hierarchy.children.length === 0) {
 			throw new Error("No child tasks found in hierarchy")

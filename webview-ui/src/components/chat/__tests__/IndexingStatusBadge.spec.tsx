@@ -1,7 +1,7 @@
 import React from "react"
 import { render, screen, fireEvent, waitFor, act } from "@/utils/test-utils"
 
-import { vscode } from "@src/utils/vscode"
+import { vscode } from "@src/features/devtools/utils/vscode"
 
 import { IndexingStatusBadge } from "../IndexingStatusBadge"
 
@@ -49,7 +49,7 @@ vi.mock("react-i18next", () => ({
 }))
 
 // Mock vscode API
-vi.mock("@src/utils/vscode", () => ({
+vi.mock("@src/features/devtools/utils/vscode", () => ({
 	vscode: {
 		postMessage: vi.fn(),
 	},

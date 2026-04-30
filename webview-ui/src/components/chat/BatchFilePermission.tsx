@@ -1,7 +1,7 @@
 import { memo } from "react"
 
 import { ToolUseBlock, ToolUseBlockHeader } from "../common/ToolUseBlock"
-import { vscode } from "@src/utils/vscode"
+import { vscode } from "@src/features/devtools/utils/vscode"
 import { formatPathTooltip } from "@src/utils/formatPathTooltip"
 import { PathTooltip } from "../ui/PathTooltip"
 
