@@ -1,7 +1,6 @@
 import { z } from "zod"
 import { type McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import { type ClineProvider } from "../../webview/ClineProvider"
-import { getSnapshot } from "mobx-state-tree"
 import { getNativeTools } from "../../prompts/tools/native-tools"
 import { diagnosticsManager } from "../DiagnosticsManager"
 import { Package } from "../../../shared/package"
@@ -57,79 +56,270 @@ function optimizeSnapshot(value: any, depth: number, maxDepth: number): any {
 }
 
 export function registerStateTools(mcpServer: McpServer, provider: ClineProvider) {
+	// ============================================================
+	// Store registry — maps store names to provider properties
+	// ============================================================
+	const STORE_REGISTRY: Record<string, keyof ClineProvider> = {
+		chatStore: "chatStore",
+		commandExecutionStore: "commandExecutionStore",
+		mcpExecutionStore: "mcpExecutionStore",
+		diagnosticsStoreMst: "diagnosticsStoreMst",
+		checkpointStore: "checkpointStore",
+		taskHistoryStoreMst: "taskHistoryStoreMst",
+	}
+
+	// ============================================================
+	// Helpers
+	// ============================================================
+
+	/**
+	 * Build a structural graph of an MST node's shape (keys + types, no data values).
+	 * Walks properties without calling getSnapshot.
+	 */
+	function buildGraphStructure(obj: any, depth: number, maxDepth: number): any {
+		if (obj === null || obj === undefined) {
+			return { type: "null" }
+		}
+
+		if (depth >= maxDepth) {
+			return { type: typeof obj, value: String(obj).slice(0, 100) }
+		}
+
+		// Handle MST maps (Map-like with .get, .has, .keys)
+		if (typeof obj === "object" && typeof obj.keys === "function" && typeof obj.get === "function") {
+			const keys = Array.from(obj.keys())
+			return {
+				type: "map",
+				size: keys.length,
+				keys: keys.slice(0, 20),
+				children: keys.length > 0 ? buildGraphStructure(obj.get(keys[0]), depth + 1, maxDepth) : undefined,
+			}
+		}
+
+		if (Array.isArray(obj)) {
+			return {
+				type: "array",
+				size: obj.length,
+				children: obj.length > 0 ? buildGraphStructure(obj[0], depth + 1, maxDepth) : undefined,
+			}
+		}
+
+		if (typeof obj === "object") {
+			const result: Record<string, any> = {}
+			for (const key of Object.keys(obj)) {
+				// Strip MST internal fields
+				if (key.startsWith("$") || key.startsWith("_")) continue
+				const val = obj[key]
+				if (typeof val === "function") continue
+				result[key] = buildGraphStructure(val, depth + 1, maxDepth)
+			}
+			return result
+		}
+
+		return { type: typeof obj }
+	}
+
+	/**
+	 * Resolve a dot-separated path on an MST store using direct property access.
+	 * Supports array index notation: nodes[4], messages[0]
+	 */
+	function resolvePath(store: any, path: string): { value: any; error?: string } {
+		let value: any = store
+		const parts = path.split(".")
+		for (const part of parts) {
+			if (value === null || value === undefined) {
+				return { value: undefined, error: `Path '${path}' not found at '${part}'.` }
+			}
+			// Support array index notation: nodes[4]
+			const bracketMatch = part.match(/^(\w+)\[(\d+)\]$/)
+			if (bracketMatch) {
+				value = value[bracketMatch[1]]
+				if (Array.isArray(value)) {
+					value = value[parseInt(bracketMatch[2])]
+				} else if (value && typeof value === "object" && typeof value.get === "function") {
+					// MST Map-like access
+					const keys = Array.from(value.keys())
+					value = value.get(keys[parseInt(bracketMatch[2])])
+				} else if (value && typeof value === "object") {
+					const keys = Object.keys(value)
+					value = value[keys[parseInt(bracketMatch[2])]]
+				} else {
+					return { value: undefined, error: `Path '${path}' not found at '${part}'.` }
+				}
+			} else {
+				// Try direct property access first, then .get for MST maps
+				if (value && typeof value.get === "function" && part in value) {
+					value = value.get(part)
+				} else {
+					value = value[part]
+				}
+			}
+		}
+		if (value === undefined) {
+			return { value: undefined, error: `Path '${path}' not found.` }
+		}
+		return { value }
+	}
+
+	// ============================================================
+	// get_mst_state — refactored with graph + query modes
+	// ============================================================
+
 	mcpServer.tool(
 		"get_mst_state",
 		{
-			nodeId: z.string().optional().describe("Optional: specific node ID to inspect. Omit for full tree."),
+			store: z
+				.string()
+				.optional()
+				.describe(
+					"Which MST store to query. Options: 'chatStore', 'commandExecutionStore', 'mcpExecutionStore', 'diagnosticsStoreMst', 'checkpointStore', 'taskHistoryStoreMst'. Default: 'chatStore'.",
+				),
+			mode: z
+				.enum(["graph", "query"])
+				.optional()
+				.describe(
+					"'graph' — show structural shape (keys + types, no values). 'query' — get actual values at a specific path. Default: 'graph'.",
+				),
+			depth: z
+				.number()
+				.min(1)
+				.max(5)
+				.optional()
+				.describe(
+					"For 'graph' mode: how many levels deep to explore (1-5). Default: 2. For 'query' mode: how deep to expand nested values. Default: 3.",
+				),
 			path: z
 				.string()
 				.optional()
 				.describe(
-					'Optional: dot-separated path for targeted fetching (e.g. "nodes.taskId.messages" or "nodes[4]"). Overrides nodeId.',
+					'For \'query\' mode: dot-separated path for targeted fetching (e.g. "nodes" or "activeNodeId" or "nodes.taskId123.messages"). Overrides nodeId.',
+				),
+			nodeId: z
+				.string()
+				.optional()
+				.describe(
+					"For 'query' mode: shortcut to get a specific TaskNode by ID (equivalent to path='nodes.{nodeId}').",
+				),
+			fields: z
+				.string()
+				.optional()
+				.describe(
+					"For 'query' mode: comma-separated field filter (e.g. 'id,title,status'). Only these fields are returned.",
 				),
 		},
-		async ({ nodeId, path }) => {
+		async ({ store = "chatStore", mode = "graph", depth, path, nodeId, fields }) => {
 			try {
-				const snapshot = getSnapshot(provider.chatStore)
-
-				// Targeted fetching via path argument
-				if (path) {
-					let value: any = snapshot
-					const parts = path.split(".")
-					for (const part of parts) {
-						if (value === null || value === undefined) {
-							return {
-								content: [{ type: "text", text: `Path '${path}' not found at '${part}'.` }],
-								isError: true,
-							}
-						}
-						// Support array index notation: nodes[4]
-						const bracketMatch = part.match(/^(\w+)\[(\d+)\]$/)
-						if (bracketMatch) {
-							value = value[bracketMatch[1]]
-							if (Array.isArray(value)) {
-								value = value[parseInt(bracketMatch[2])]
-							} else if (value && typeof value === "object") {
-								// Try Map-like access
-								const keys = Object.keys(value)
-								value = value[keys[parseInt(bracketMatch[2])]]
-							} else {
-								return {
-									content: [{ type: "text", text: `Path '${path}' not found at '${part}'.` }],
-									isError: true,
-								}
-							}
-						} else {
-							value = value[part]
-						}
-					}
-					if (value === undefined) {
-						return {
-							content: [{ type: "text", text: `Path '${path}' not found.` }],
-							isError: true,
-						}
-					}
+				// Resolve the store from the provider
+				const storeKey = STORE_REGISTRY[store]
+				if (!storeKey) {
 					return {
 						content: [
 							{
 								type: "text",
-								text: JSON.stringify(optimizeSnapshot(value, 0, 3), null, 2),
+								text: `Unknown store '${store}'. Available stores: ${Object.keys(STORE_REGISTRY).join(", ")}`,
+							},
+						],
+						isError: true,
+					}
+				}
+				const mstStore = (provider as any)[storeKey]
+				if (!mstStore) {
+					return {
+						content: [{ type: "text", text: `Store '${store}' is not available.` }],
+						isError: true,
+					}
+				}
+
+				// --- GRAPH MODE ---
+				if (mode === "graph") {
+					const graphDepth = depth ?? 2
+					const structure = buildGraphStructure(mstStore, 0, graphDepth)
+					return {
+						content: [
+							{
+								type: "text",
+								text: JSON.stringify(
+									{
+										store,
+										mode: "graph",
+										depth: graphDepth,
+										structure,
+									},
+									null,
+									2,
+								),
 							},
 						],
 					}
 				}
 
-				if (nodeId) {
-					const node = (snapshot.nodes as any)[nodeId]
-					if (!node)
-						return { content: [{ type: "text", text: `Node '${nodeId}' not found.` }], isError: true }
-					return { content: [{ type: "text", text: JSON.stringify(optimizeSnapshot(node, 0, 3), null, 2) }] }
+				// --- QUERY MODE ---
+				const queryDepth = depth ?? 3
+
+				// Resolve the target value
+				let targetValue: any
+				let resolvedPath: string
+
+				if (path) {
+					const result = resolvePath(mstStore, path)
+					if (result.error) {
+						return { content: [{ type: "text", text: result.error }], isError: true }
+					}
+					targetValue = result.value
+					resolvedPath = path
+				} else if (nodeId) {
+					// Access via MST map: nodes.get(nodeId)
+					if (typeof mstStore.nodes?.get === "function") {
+						targetValue = mstStore.nodes.get(nodeId)
+					} else {
+						targetValue = (mstStore.nodes as any)?.[nodeId]
+					}
+					if (!targetValue) {
+						return {
+							content: [{ type: "text", text: `Node '${nodeId}' not found in store '${store}'.` }],
+							isError: true,
+						}
+					}
+					resolvedPath = `nodes.${nodeId}`
+				} else {
+					// No path, no nodeId — reject full-store access
+					return {
+						content: [
+							{
+								type: "text",
+								text: "Full store access is not allowed. Use mode:'graph' to explore structure, or mode:'query' with a specific path/nodeId to get data.",
+							},
+						],
+						isError: true,
+					}
 				}
+
+				// Apply field filtering if requested
+				if (fields && targetValue && typeof targetValue === "object") {
+					const fieldList = fields.split(",").map((f) => f.trim())
+					const filtered: Record<string, any> = {}
+					for (const field of fieldList) {
+						if (field in targetValue) {
+							filtered[field] = targetValue[field]
+						}
+					}
+					targetValue = filtered
+				}
+
 				return {
 					content: [
 						{
 							type: "text",
-							text: JSON.stringify(optimizeSnapshot(snapshot, 0, 2), null, 2),
+							text: JSON.stringify(
+								{
+									store,
+									mode: "query",
+									path: resolvedPath,
+									data: optimizeSnapshot(targetValue, 0, queryDepth),
+								},
+								null,
+								2,
+							),
 						},
 					],
 				}
@@ -156,7 +346,9 @@ export function registerStateTools(mcpServer: McpServer, provider: ClineProvider
 								version: Package.version,
 								stackSize: provider.getTaskStackSize(),
 								activeNodeId: provider.chatStore.activeNodeId,
-								nodesCount: Object.keys(getSnapshot(provider.chatStore).nodes || {}).length,
+								nodesCount: provider.chatStore.nodes
+									? Array.from(provider.chatStore.nodes.keys()).length
+									: 0,
 							},
 							null,
 							2,
@@ -238,7 +430,6 @@ export function registerStateTools(mcpServer: McpServer, provider: ClineProvider
 	mcpServer.tool("get_internal_state", {}, async () => {
 		try {
 			const providerState = await provider.getState()
-			const agentsSnapshot = getSnapshot(provider.chatStore)
 
 			return {
 				content: [
@@ -246,7 +437,16 @@ export function registerStateTools(mcpServer: McpServer, provider: ClineProvider
 						type: "text",
 						text: JSON.stringify(
 							{
-								tasks: Object.values(agentsSnapshot.nodes || {}),
+								tasks: provider.chatStore.nodes
+									? Array.from(provider.chatStore.nodes.values()).map((n: any) => ({
+											id: n.id,
+											title: n.title,
+											status: n.status,
+											mode: n.mode,
+											messageCount: n.messages?.length ?? 0,
+											childCount: n.children?.length ?? 0,
+										}))
+									: [],
 								agents: Array.from(agentStore.agents.values()).map((a) => ({
 									id: a.id,
 									name: a.name,

@@ -78,6 +78,21 @@ export interface InternalState {
 	workspace: any
 }
 
+export interface MstStateQuery {
+	store: string
+	fields?: string
+	nodeId?: string
+	depth?: number
+	path?: string
+}
+
+export interface MstStateResult {
+	store: string
+	mode: string
+	data?: any
+	structure?: any
+}
+
 // ==================== CORE DSL CLASS ====================
 
 export class JabberwockE2EDSL {
@@ -191,6 +206,32 @@ export class JabberwockE2EDSL {
 		}
 	}
 
+	/**
+	 * Call a tool with additional SSE reconnection resilience.
+	 * Extends callTool with automatic reconnection on SSE transport errors.
+	 */
+	private async callToolWithRetry(name: string, args: any = {}, maxRetries = 2): Promise<string> {
+		for (let attempt = 0; attempt <= maxRetries; attempt++) {
+			try {
+				return await this.callTool(name, args)
+			} catch (error) {
+				const msg = error instanceof Error ? error.message : String(error)
+				if (attempt < maxRetries && (msg.includes("Connection closed") || msg.includes("Connection timeout"))) {
+					console.log(`  ⚠️ SSE connection issue, reconnecting... (attempt ${attempt + 1}/${maxRetries})`)
+					try {
+						await this.reconnect()
+					} catch {
+						// If reconnect fails, wait and try again
+						await this.wait(2000)
+					}
+					continue
+				}
+				throw error
+			}
+		}
+		throw new Error("Unreachable")
+	}
+
 	// ==================== TEST MANAGEMENT ====================
 
 	async recordTest(name: string, status: "PASS" | "FAIL" | "SKIP", detail?: string): Promise<void> {
@@ -220,8 +261,28 @@ export class JabberwockE2EDSL {
 		await this.wait(1000)
 
 		const result = await this.callTool("send_chat_request", { prompt, mode })
-		const match = result.match(/ID: ([a-f0-9-]+)/)
 
+		// Try to parse JSON response for taskId
+		try {
+			const parsed = JSON.parse(result)
+			if (parsed.taskId && parsed.taskId !== "pending") {
+				console.log(`[TASK] Task created with ID: ${parsed.taskId}`)
+				return parsed.taskId
+			}
+		} catch {}
+
+		// Fallback: get task status to find the actual task ID
+		try {
+			const statusResult = await this.callTool("get_task_status")
+			const status = JSON.parse(statusResult)
+			if (status.taskId) {
+				console.log(`[TASK] Task created with ID (from status): ${status.taskId}`)
+				return status.taskId
+			}
+		} catch {}
+
+		// Legacy fallback for ID: pattern
+		const match = result.match(/ID: ([a-f0-9-]+)/)
 		if (match && match[1]) {
 			console.log(`[TASK] Task created with ID: ${match[1]}`)
 			return match[1]
@@ -444,7 +505,44 @@ export class JabberwockE2EDSL {
 
 	async getWorkspaceState(): Promise<any> {
 		const state = await this.callTool("get_workspace_state")
-		return await this.safeJsonParse(state, {})
+		const parsed = await this.safeJsonParse(state, {})
+
+		// Sanitize sensitive fields (API keys, tokens, etc.)
+		const sensitiveKeys = [
+			"apiKey",
+			"api_key",
+			"apiKey",
+			"deepSeekApiKey",
+			"openAiApiKey",
+			"anthropicApiKey",
+			"geminiApiKey",
+			"openRouterApiKey",
+			"requestyApiKey",
+			"awsAccessKey",
+			"awsSecretKey",
+			"token",
+			"secret",
+			"password",
+		]
+		const sanitize = (obj: any, depth = 0): any => {
+			if (depth > 5 || typeof obj !== "object" || obj === null) return obj
+			if (Array.isArray(obj)) return obj.map((item) => sanitize(item, depth + 1))
+
+			const sanitized: any = {}
+			for (const [key, value] of Object.entries(obj)) {
+				const isSensitive = sensitiveKeys.some((sk) => key.toLowerCase().includes(sk.toLowerCase()))
+				if (isSensitive && typeof value === "string" && value.length > 0) {
+					sanitized[key] = "***REDACTED***"
+				} else if (typeof value === "object" && value !== null) {
+					sanitized[key] = sanitize(value, depth + 1)
+				} else {
+					sanitized[key] = value
+				}
+			}
+			return sanitized
+		}
+
+		return sanitize(parsed)
 	}
 
 	// ==================== DIAGNOSTICS & MONITORING COMMANDS ====================
@@ -723,6 +821,96 @@ export class JabberwockE2EDSL {
 		return await this.safeJsonParse(state, { tasks: [], agents: [], settings: {}, workspace: {} })
 	}
 
+	// ==================== MST STATE COMMANDS ====================
+
+	async getMstState(query: MstStateQuery): Promise<any> {
+		console.log(`[MST] Querying ${query.store} store...`)
+		const toolMode = query.mode || "query"
+		const result = await this.callTool("get_mst_state", {
+			store: query.store,
+			mode: toolMode,
+			...(query.fields && { fields: query.fields }),
+			...(query.nodeId && { nodeId: query.nodeId }),
+			...(query.depth !== undefined && { depth: query.depth }),
+			...(query.path && { path: query.path }),
+		})
+		const parsed = await this.safeJsonParse(result, {})
+		// The MCP tool wraps the actual data inside a `data` property.
+		// For convenience, unwrap it if present so callers get the raw node state.
+		if (parsed && typeof parsed === "object" && "data" in parsed) {
+			return parsed.data
+		}
+		return parsed
+	}
+
+	async verifyMstTaskState(
+		taskId: string,
+		expected: {
+			title?: string
+			mode?: string
+			status?: string
+		},
+	): Promise<void> {
+		console.log(`[MST] Verifying task state for ${taskId}...`)
+		const state = await this.getMstState({
+			store: "chatStore",
+			nodeId: taskId,
+			depth: 1,
+		})
+
+		const checks: string[] = []
+		if (expected.title && state.title !== expected.title) {
+			checks.push(`title: expected "${expected.title}", got "${state.title}"`)
+		}
+		if (expected.mode && state.mode !== expected.mode) {
+			checks.push(`mode: expected "${expected.mode}", got "${state.mode}"`)
+		}
+		if (expected.status && state.status !== expected.status) {
+			checks.push(`status: expected "${expected.status}", got "${state.status}"`)
+		}
+
+		if (checks.length > 0) {
+			throw new Error(`MST state verification failed: ${checks.join("; ")}`)
+		}
+
+		if (expected.title) console.log(`  ✓ MST: title = "${state.title}"`)
+		if (expected.mode) console.log(`  ✓ MST: mode = "${state.mode}"`)
+		if (expected.status) console.log(`  ✓ MST: status = "${state.status}"`)
+		console.log(`  ✓ MST task state verified for ${taskId}`)
+	}
+
+	async verifyMstActiveNode(expectedTaskId: string): Promise<void> {
+		console.log(`[MST] Verifying active node is ${expectedTaskId}...`)
+		const state = await this.getMstState({
+			store: "chatStore",
+			path: "activeNodeId",
+		})
+
+		// activeNodeId in MST is the full task node object, not just a string
+		const actualId = typeof state === "string" ? state : state?.id
+		if (actualId !== expectedTaskId) {
+			throw new Error(
+				`MST activeNodeId mismatch: expected "${expectedTaskId}", got "${actualId}" (raw: ${JSON.stringify(state).substring(0, 200)})`,
+			)
+		}
+		console.log(`  ✓ MST activeNodeId.id = "${expectedTaskId}"`)
+	}
+
+	async verifyMstHasMessages(taskId: string, minCount: number = 1): Promise<void> {
+		console.log(`[MST] Verifying task ${taskId} has at least ${minCount} message(s)...`)
+		const state = await this.getMstState({
+			store: "chatStore",
+			nodeId: taskId,
+			depth: 1,
+		})
+
+		const msgCount = state.messages?.length || 0
+		if (msgCount < minCount) {
+			throw new Error(`MST: expected at least ${minCount} messages, got ${msgCount}`)
+		}
+		console.log(`  ✓ MST: ${msgCount} messages found`)
+	}
+
 	// ==================== UI & DOM VERIFICATION COMMANDS ====================
 
 	async getDOM(): Promise<string> {
@@ -731,41 +919,41 @@ export class JabberwockE2EDSL {
 
 	async getActivePage(): Promise<string> {
 		console.log(`[PAGE] Detecting active page...`)
+
+		// Priority 1: Use the dedicated get_active_page MCP tool (most reliable)
+		try {
+			const result = await this.callTool("get_active_page")
+			const parsed = JSON.parse(result)
+			if (parsed.activePage) {
+				console.log(`  ✓ Detected active page via MCP tool: "${parsed.activePage}"`)
+				return parsed.activePage
+			}
+		} catch (error) {
+			console.log(`  ⚠️ get_active_page MCP tool failed, falling back to DOM parsing: ${error}`)
+		}
+
+		// Priority 2: Parse DOM output for active window indicators
 		const dom = await this.getDOM()
 
-		// Priority 1: Check for the explicit window-layer attributes
-		// Using a more robust regex that ignores attribute order and handles extra whitespace
-		const activeWindowRegex =
-			/<div[^>]*\s+data-window-type="(?<type1>[^"]+)"[^>]*\s+data-active="true"|<div[^>]*\s+data-active="true"[^>]*\s+data-window-type="(?<type2>[^"]+)"/i
-		const match = dom.match(activeWindowRegex)
-
-		if (match) {
-			const activePage = match.groups?.type1 || match.groups?.type2
-			if (activePage) {
-				console.log(`  ✓ Detected active page from window attributes: "${activePage}"`)
-				return activePage
+		// Check for active window markers in the DOM output
+		// The DOM output uses CSS selector paths; look for visibility/active indicators
+		if (dom.includes('[data-active="true"]') || dom.includes('data-active="true"')) {
+			// Try to extract the window type near the active marker
+			const typeMatch = dom.match(/data-window-type="([^"]+)"[^>]*data-active="true"/)
+			if (typeMatch?.[1]) {
+				console.log(`  ✓ Detected active page from window attributes: "${typeMatch[1]}"`)
+				return typeMatch[1]
 			}
 		}
 
-		// Priority 2: Traditional data-testid identification (fallback)
+		// Priority 3: Traditional data-testid identification (fallback)
+		// Note: ALL views render simultaneously, so this is unreliable.
+		// This is a last-resort heuristic.
 		if (dom.includes('data-testid="settings-view"')) return "settings"
 		if (dom.includes('data-testid="marketplace-view"')) return "marketplace"
 		if (dom.includes('data-testid="history-view"')) return "history"
 		if (dom.includes('data-testid="chat-view"')) return "chat"
 		if (dom.includes('data-testid="welcome-view"')) return "welcome"
-
-		// Priority 2: Traditional heuristics (fallback to full DOM if active marker fails)
-		if (dom.includes("Recent Tasks") || dom.includes("history:recentTasks")) {
-			return "history"
-		}
-
-		if (dom.includes("chat-row") || dom.includes("message-container") || dom.includes("chat-input")) {
-			return "chat"
-		}
-
-		if (dom.includes("settings") || dom.includes("config")) {
-			return "settings"
-		}
 
 		return "unknown"
 	}
@@ -794,6 +982,22 @@ export class JabberwockE2EDSL {
 
 	async navigateToPage(page: string, props?: any): Promise<void> {
 		console.log(`[NAV] Navigating to ${page} page...`)
+
+		// If navigating away from chat, clear any blocking task asks first
+		// (e.g., resume_task state prevents navigation)
+		if (page !== "chat") {
+			try {
+				const taskStatus = await this.callTool("get_task_status")
+				const status = JSON.parse(taskStatus)
+				if (status.lastMessageAsk === "resume_task" || status.ask === "resume_task") {
+					console.log(`  ⚠️ Task has pending ask, clearing task before navigation...`)
+					await this.callTool("clear_task")
+					await this.wait(500)
+				}
+			} catch {
+				// Ignore errors checking task status
+			}
+		}
 
 		// Check if provider is ready by calling get_extension_info
 		try {

@@ -1,6 +1,23 @@
 import { JabberwockE2EDSL, createJabberwockTestSession, createTestSuite } from "./e2e_dsl_complete"
 
 /**
+ * Helper: ensure MCP connection is healthy before proceeding.
+ * If the connection is dead (e.g. SSE transport closed after a timeout),
+ * this will reconnect automatically.
+ */
+async function ensureMcpConnection(dsl: JabberwockE2EDSL): Promise<void> {
+	try {
+		await dsl.getActivePage()
+		console.log("  ✓ MCP connection healthy")
+	} catch (error) {
+		console.warn(`  ⚠️ MCP connection issue detected: ${error instanceof Error ? error.message : error}`)
+		console.log("  🔄 Attempting MCP reconnection...")
+		await dsl.reconnect()
+		console.log("  ✓ MCP reconnected successfully")
+	}
+}
+
+/**
  * Вспомогательные функции для проверки сообщений в чате
  */
 async function verifyChatContainsMessage(
@@ -59,8 +76,22 @@ async function runSmokeTest() {
 		const firstTaskId = await dsl.createNewTask(firstTaskPrompt, "orchestrator")
 		console.log(`✅ First task created successfully: ${firstTaskId}`)
 
+		// Ensure MCP connection is healthy before navigating to the task
+		await ensureMcpConnection(dsl)
+
 		// Explicitly navigate to the newly created task to ensure we are seeing its messages
 		await dsl.navigateToChat(firstTaskId)
+
+		// [MST] Verify task state in MST store
+		console.log("2a. Verifying MST task state...")
+		await dsl.recordTest("MST: Verify first task state", "PASS", "Checking MST store for first task")
+		await dsl.verifyMstTaskState(firstTaskId, {
+			title: firstTaskPrompt,
+			mode: "orchestrator",
+			status: "pending",
+		})
+		await dsl.verifyMstActiveNode(firstTaskId)
+		console.log("✅ MST state verified for first task")
 
 		// Проверяем, что задача начата на странице чата
 		await dsl.recordTest("Verify task started on chat page", "PASS", "Checking task started on correct page")
@@ -82,6 +113,9 @@ async function runSmokeTest() {
 		await dsl.verifyCleanConsole()
 		console.log("✅ Return to history page successful")
 
+		// Ensure MCP connection is healthy after history navigation
+		await ensureMcpConnection(dsl)
+
 		// 5. Перед созданием второй задачи явно переходим на страницу чата
 		console.log("5. Navigating to chat page for second task...")
 		await dsl.recordTest("Navigate to chat for second task", "PASS", "Explicitly navigating to chat page")
@@ -98,8 +132,21 @@ async function runSmokeTest() {
 		const secondTaskId = await dsl.createNewTask(secondTaskPrompt, "orchestrator")
 		console.log(`✅ Second task created successfully: ${secondTaskId}`)
 
+		// Ensure MCP connection is healthy before navigating to the second task
+		await ensureMcpConnection(dsl)
+
 		// Explicitly navigate to the newly created task to ensure we are seeing its messages
 		await dsl.navigateToChat(secondTaskId)
+
+		// [MST] Verify second task state in MST store
+		console.log("6a. Verifying MST state for second task...")
+		await dsl.recordTest("MST: Verify second task state", "PASS", "Checking MST store for second task")
+		await dsl.verifyMstTaskState(secondTaskId, {
+			title: secondTaskPrompt,
+			mode: "orchestrator",
+		})
+		await dsl.verifyMstActiveNode(secondTaskId)
+		console.log("✅ MST state verified for second task")
 
 		// Проверяем, что вторая задача тоже начата на странице чата
 		await dsl.recordTest(
@@ -146,6 +193,9 @@ async function runSmokeTest() {
 		await dsl.verifyActivePage("settings")
 		console.log("✅ Navigation to settings successful")
 
+		// Ensure MCP connection is healthy after settings navigation
+		await ensureMcpConnection(dsl)
+
 		// 12. Возвращаемся на страницу истории
 		console.log("12. Returning to history page...")
 		await dsl.recordTest("Return to history", "PASS", "Returning to history page")
@@ -184,6 +234,24 @@ async function runSmokeTest() {
 		const dom = await dsl.getDOM()
 		console.log("✅ DOM retrieved (length:", dom.length, "characters)")
 
+		// 18. [MST] Verify messages in store
+		console.log("18. Verifying MST message count...")
+		await dsl.recordTest("MST: Verify messages in store", "PASS", "Checking MST message count for second task")
+		await dsl.verifyMstHasMessages(secondTaskId, 1)
+		console.log("✅ MST message count verified")
+
+		// 19. [MST] Query diagnostics store
+		console.log("19. Querying MST diagnostics store...")
+		await dsl.recordTest("MST: Diagnostics store", "PASS", "Querying diagnostics MST store")
+		const diagState = await dsl.getMstState({ store: "diagnosticsStoreMst", mode: "graph", depth: 1 })
+		console.log("✅ Diagnostics store queried:", JSON.stringify(diagState).substring(0, 200))
+
+		// 20. [MST] Query task history store
+		console.log("20. Querying MST task history store...")
+		await dsl.recordTest("MST: Task history store", "PASS", "Querying task history MST store")
+		const historyState = await dsl.getMstState({ store: "taskHistoryStoreMst", mode: "graph", depth: 1 })
+		console.log("✅ Task history store queried:", JSON.stringify(historyState).substring(0, 200))
+
 		console.log("🎉 All smoke tests passed successfully!")
 		console.log("\n📋 Test Summary:")
 		console.log("✅ Initial page verification")
@@ -195,6 +263,11 @@ async function runSmokeTest() {
 		console.log("✅ Available agents")
 		console.log("✅ Workspace state")
 		console.log("✅ DOM structure")
+		console.log("✅ MST task state verification")
+		console.log("✅ MST active node verification")
+		console.log("✅ MST message count verification")
+		console.log("✅ MST diagnostics store")
+		console.log("✅ MST task history store")
 
 		// Возвращаем успешное завершение
 		return

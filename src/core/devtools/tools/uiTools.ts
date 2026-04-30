@@ -178,25 +178,38 @@ export function registerUiTools(mcpServer, provider) {
 		}
 	})
 
-	mcpServer.tool("get_dom", {}, async () => {
-		try {
-			const dom = await provider.getWebviewDom()
-			// The webview now returns CSS-selector format with aggressive compression.
-			// Prepend [Webview] marker for context.
-			const output = `[Webview]\n${dom}`
-			return { content: [{ type: "text", text: output }] }
-		} catch (error) {
-			return {
-				content: [
-					{
-						type: "text",
-						text: `Error getting DOM: ${error instanceof Error ? error.message : String(error)}`,
-					},
-				],
-				isError: true,
+	mcpServer.tool(
+		"get_dom",
+		{
+			maxDepth: z
+				.number()
+				.optional()
+				.describe("Maximum DOM depth to return (default: unlimited). Use lower values for a shallow overview."),
+			maxChildren: z
+				.number()
+				.optional()
+				.describe("Max children per node to show (default: all). Truncates wide nodes."),
+		},
+		async ({ maxDepth, maxChildren }) => {
+			try {
+				const dom = await provider.getWebviewDom(maxDepth, maxChildren)
+				// The webview now returns CSS-selector format with aggressive compression.
+				// Prepend [Webview] marker for context.
+				const output = `[Webview]\n${dom}`
+				return { content: [{ type: "text", text: output }] }
+			} catch (error) {
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Error getting DOM: ${error instanceof Error ? error.message : String(error)}`,
+						},
+					],
+					isError: true,
+				}
 			}
-		}
-	})
+		},
+	)
 
 	mcpServer.tool(
 		"navigate_to_node",
@@ -213,18 +226,30 @@ export function registerUiTools(mcpServer, provider) {
 					if (!historyItem) {
 						return { content: [{ type: "text", text: `Task with ID ${nodeId} not found.` }], isError: true }
 					}
-					await provider.createTaskWithHistoryItem(historyItem)
-				}
 
-				// Ensure webview switches to chat tab and syncs state
-				await provider.postStateToWebview()
-				await provider.postMessageToWebview({ type: "action", action: "chatButtonClicked" })
+					// Fire-and-forget: don't block SSE response channel with heavy operations.
+					// createTaskWithHistoryItem, postStateToWebview, and postMessageToWebview
+					// are all heavy (mode restore, API config restore, state serialization…)
+					// and can take >60s, causing MCP timeout. Same pattern as create_new_task.
+					provider
+						.createTaskWithHistoryItem(historyItem)
+						.then(async () => {
+							await provider.postStateToWebview()
+							await provider.postMessageToWebview({ type: "action", action: "chatButtonClicked" })
+						})
+						.catch((err: Error) => {
+							console.error(`[navigate_to_node] background error: ${err.message}`)
+						})
+				} else {
+					// Empty nodeId = return to active chat (lightweight, safe to await)
+					await provider.postMessageToWebview({ type: "action", action: "chatButtonClicked" })
+				}
 
 				return {
 					content: [
 						{
 							type: "text",
-							text: `Successfully navigated to ${nodeId ? `node ${nodeId}` : "active chat"}`,
+							text: `Successfully navigating to ${nodeId ? `node ${nodeId}` : "active chat"}`,
 						},
 					],
 				}
@@ -321,6 +346,52 @@ export function registerUiTools(mcpServer, provider) {
 			}
 
 			return { content: [{ type: "text", text: JSON.stringify(stack, null, 2) }] }
+		} catch (error) {
+			return {
+				content: [
+					{
+						type: "text",
+						text: `Error getting window stack: ${error instanceof Error ? error.message : String(error)}`,
+					},
+				],
+				isError: true,
+			}
+		}
+	})
+
+	mcpServer.tool("get_active_page", {}, async () => {
+		try {
+			// Ask the webview for the active page via a dedicated message
+			const activePage = await new Promise<string>((resolve, reject) => {
+				const requestId = Math.random().toString(36).substring(7)
+				const timeout = setTimeout(() => {
+					reject(new Error("Timeout waiting for active page response after 3s"))
+				}, 3000)
+
+				const p = provider as any
+
+				// Register a one-time pending request on the provider
+				p.pendingActivePageRequests.set(requestId, (result: string) => {
+					clearTimeout(timeout)
+					resolve(result)
+				})
+
+				// Send request to webview
+				p.postMessageToWebview({
+					type: "action",
+					action: "getActivePage",
+					requestId,
+				})
+			})
+
+			return {
+				content: [
+					{
+						type: "text",
+						text: JSON.stringify({ activePage }, null, 2),
+					},
+				],
+			}
 		} catch (error) {
 			return { content: [{ type: "text", text: `Error: ${error}` }], isError: true }
 		}

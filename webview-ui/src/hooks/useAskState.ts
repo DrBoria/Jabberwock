@@ -165,7 +165,7 @@ export function useAskState(
 					break
 				case "interactive_app":
 					setSendingDisabled(isPartial)
-					setClineAsk("interactive_app")
+					setClineAsk(undefined)
 					setEnableButtons(false)
 					setPrimaryButtonText(undefined)
 					setSecondaryButtonText(undefined)

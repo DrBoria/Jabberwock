@@ -160,7 +160,7 @@ function getTimerQueue(): ReturnType<typeof createTimerQueueStore> {
 	return _timerQueue
 }
 
-export function getWebviewDom(provider: ClineProvider): Promise<string> {
+export function getWebviewDom(provider: ClineProvider, maxDepth?: number, maxChildren?: number): Promise<string> {
 	const p = provider as any
 	const requestId = Math.random().toString(36).substring(7)
 	console.log(`[DEBUG: DOM] Extension: Sending getDom request ${requestId}`)
@@ -170,6 +170,8 @@ export function getWebviewDom(provider: ClineProvider): Promise<string> {
 		postMessageToWebview(provider, {
 			type: "getDom",
 			requestId,
+			maxDepth,
+			maxChildren,
 		} as any)
 
 		const domTimeoutId = `dom-request-${requestId}`
@@ -199,6 +201,18 @@ export function resolveDomRequest(provider: ClineProvider, requestId: string, do
 	if (resolve) {
 		resolve(dom)
 		p.pendingDomRequests.delete(requestId)
+	}
+}
+
+/**
+ * Resolve a pending active page request.
+ */
+export function resolveActivePageRequest(provider: ClineProvider, requestId: string, activePage: string): void {
+	const p = provider as any
+	const resolve = p.pendingActivePageRequests.get(requestId)
+	if (resolve) {
+		resolve(activePage)
+		p.pendingActivePageRequests.delete(requestId)
 	}
 }
 

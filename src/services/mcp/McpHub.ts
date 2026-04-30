@@ -54,17 +54,24 @@ class InternalMcpClientTransport {
 	private serverUrl: string
 	sessionId: string
 	private abortController: AbortController | null = null
+	private port: number
+	private reconnectAttempts = 0
+	private readonly MAX_RECONNECT_ATTEMPTS = 10
+	private readonly RECONNECT_BASE_DELAY_MS = 1000
+	private reconnectTimer: ReturnType<typeof setTimeout> | null = null
+	private isReconnecting = false
 
 	constructor(port: number) {
+		this.port = port
 		this.serverUrl = `http://127.0.0.1:${port}`
-		this.sessionId = `internal-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+		this.sessionId = this.generateSessionId()
+	}
+
+	private generateSessionId(): string {
+		return `internal-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 	}
 
 	async start(): Promise<void> {
-		// Connect to the SSE stream to receive JSON-RPC responses from the DevTools server.
-		// The MCP SDK's SSEServerTransport sends responses back through the SSE stream,
-		// not through the POST /messages HTTP response. Without reading the SSE stream,
-		// the MCP Client would never receive responses and would time out.
 		this.abortController = new AbortController()
 		try {
 			const response = await fetch(`${this.serverUrl}/sse`, {
@@ -73,6 +80,9 @@ class InternalMcpClientTransport {
 			if (!response.ok || !response.body) {
 				throw new Error(`SSE connection failed: ${response.status}`)
 			}
+
+			// Reset reconnect counter on successful connection
+			this.reconnectAttempts = 0
 
 			const reader = response.body.getReader()
 			const decoder = new TextDecoder()
@@ -83,11 +93,15 @@ class InternalMcpClientTransport {
 				if (err.name !== "AbortError") {
 					console.error(`[InternalMcpClientTransport] SSE read error:`, err)
 					this.onerror?.(err)
+					// Trigger auto-reconnect on read error
+					this.scheduleReconnect()
 				}
 			})
 		} catch (err) {
 			// SSE connection failed — log but don't throw, send() will still POST
 			console.warn(`[InternalMcpClientTransport] SSE connection failed:`, err)
+			// Trigger auto-reconnect on connection failure
+			this.scheduleReconnect()
 		}
 	}
 
@@ -96,44 +110,127 @@ class InternalMcpClientTransport {
 		decoder: TextDecoder,
 		buffer: string,
 	): Promise<void> {
-		while (true) {
-			const { done, value } = await reader.read()
-			if (done) break
-
-			buffer += decoder.decode(value, { stream: true })
-			const lines = buffer.split("\n")
-			buffer = lines.pop() || ""
-
-			let data = ""
-			for (const line of lines) {
-				if (line.startsWith("data: ")) {
-					data = line.slice(6).trim()
-				} else if (line === "" && data) {
-					try {
-						const msg = JSON.parse(data)
-						this.onmessage?.(msg)
-					} catch {
-						// Not JSON — skip
-					}
-					data = ""
+		try {
+			while (true) {
+				const { done, value } = await reader.read()
+				if (done) {
+					// Stream ended naturally — trigger reconnect
+					console.warn(`[InternalMcpClientTransport] SSE stream ended, will reconnect`)
+					this.scheduleReconnect()
+					break
 				}
+
+				buffer += decoder.decode(value, { stream: true })
+				const lines = buffer.split("\n")
+				buffer = lines.pop() || ""
+
+				let data = ""
+				for (const line of lines) {
+					if (line.startsWith("data: ")) {
+						data = line.slice(6).trim()
+					} else if (line === "" && data) {
+						try {
+							const msg = JSON.parse(data)
+							this.onmessage?.(msg)
+						} catch {
+							// Not JSON — skip
+						}
+						data = ""
+					}
+				}
+			}
+		} catch (err: any) {
+			if (err.name !== "AbortError") {
+				console.error(`[InternalMcpClientTransport] readSseLoop error:`, err)
+				this.onerror?.(err)
+				this.scheduleReconnect()
 			}
 		}
 	}
 
-	async send(message: any): Promise<void> {
-		const url = `${this.serverUrl}/messages?sessionId=${this.sessionId}`
-		const response = await fetch(url, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify(message),
-		})
-		if (!response.ok) {
-			throw new Error(`Internal MCP transport error: ${response.status} ${response.statusText}`)
+	private scheduleReconnect(): void {
+		// Don't reconnect if we're already in the process
+		if (this.isReconnecting) return
+		// Don't reconnect if we've exceeded the max attempts
+		if (this.reconnectAttempts >= this.MAX_RECONNECT_ATTEMPTS) {
+			console.error(
+				`[InternalMcpClientTransport] Max reconnect attempts (${this.MAX_RECONNECT_ATTEMPTS}) reached, giving up`,
+			)
+			this.onclose?.()
+			return
 		}
+
+		this.isReconnecting = true
+		this.reconnectAttempts++
+
+		// Exponential backoff: 1s, 2s, 4s, 8s, ... capped at 30s
+		const delay = Math.min(this.RECONNECT_BASE_DELAY_MS * Math.pow(2, this.reconnectAttempts - 1), 30_000)
+
+		console.log(
+			`[InternalMcpClientTransport] Scheduling reconnect attempt ${this.reconnectAttempts}/${this.MAX_RECONNECT_ATTEMPTS} in ${delay}ms`,
+		)
+
+		this.reconnectTimer = setTimeout(async () => {
+			this.isReconnecting = false
+			// Generate a new sessionId so the server creates a fresh transport
+			this.sessionId = this.generateSessionId()
+			// Abort any existing connection
+			this.abortController?.abort()
+			this.abortController = null
+			// Reconnect
+			await this.start()
+		}, delay)
+	}
+
+	async send(message: any): Promise<void> {
+		const maxRetries = 5
+		const baseDelay = 1000
+		let lastError: Error | null = null
+
+		for (let attempt = 0; attempt < maxRetries; attempt++) {
+			try {
+				const url = `${this.serverUrl}/messages?sessionId=${this.sessionId}`
+				const response = await fetch(url, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(message),
+					signal: this.abortController?.signal,
+				})
+				if (!response.ok) {
+					throw new Error(`Internal MCP transport error: ${response.status} ${response.statusText}`)
+				}
+				return // success
+			} catch (err: any) {
+				lastError = err
+				// Don't retry if transport was explicitly closed
+				if (err.name === "AbortError") throw err
+
+				// If connection refused (server down), trigger reconnect and wait
+				if (err.cause?.code === "ECONNREFUSED" || err.message?.includes("ERR_CONNECTION_REFUSED")) {
+					console.warn(
+						`[InternalMcpClientTransport] send() attempt ${attempt + 1}/${maxRetries} failed: connection refused, will retry in ${baseDelay * Math.pow(2, attempt)}ms`,
+					)
+					// Trigger reconnection in background
+					this.scheduleReconnect()
+					// Wait before retry with exponential backoff
+					await new Promise((resolve) => setTimeout(resolve, baseDelay * Math.pow(2, attempt)))
+					continue
+				}
+
+				// For other errors, throw immediately
+				throw err
+			}
+		}
+
+		throw lastError || new Error(`Internal MCP transport send() failed after ${maxRetries} retries`)
 	}
 
 	async close(): Promise<void> {
+		if (this.reconnectTimer) {
+			clearTimeout(this.reconnectTimer)
+			this.reconnectTimer = null
+		}
+		this.isReconnecting = false
 		this.abortController?.abort()
 		this.abortController = null
 	}

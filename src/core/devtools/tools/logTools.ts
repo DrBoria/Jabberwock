@@ -31,17 +31,53 @@ export function registerLogTools(mcpServer: McpServer, provider: ClineProvider) 
 		},
 	)
 
-	mcpServer.tool("get_diagnostics_snapshot", {}, async () => {
-		try {
-			const snapshot = diagnosticsManager.getSnapshot()
-			return { content: [{ type: "text", text: JSON.stringify(snapshot, null, 2) }] }
-		} catch (error) {
-			return {
-				content: [{ type: "text", text: `Error: ${error instanceof Error ? error.message : String(error)}` }],
-				isError: true,
+	mcpServer.tool(
+		"get_diagnostics_snapshot",
+		{
+			limit: z.number().optional().describe("Max log entries to return (last N). Default: 50. Use -1 for all."),
+			offset: z.number().optional().describe("Skip N entries from start (for pagination). Default: 0."),
+			level: z.enum(["info", "warn", "error", "debug"]).optional().describe("Filter by log level."),
+			search: z.string().optional().describe("Filter logs containing this substring (case-insensitive)."),
+			includeLogs: z.boolean().optional().describe("Include log entries. Default: true (limited to 50)."),
+			includeMetrics: z.boolean().optional().describe("Include performance metrics. Default: false."),
+			includePatches: z.boolean().optional().describe("Include MST patches. Default: false."),
+			includeTraces: z.boolean().optional().describe("Include task/tool traces. Default: false."),
+			includeResources: z.boolean().optional().describe("Include resource snapshots. Default: false."),
+		},
+		async ({
+			limit,
+			offset,
+			level,
+			search,
+			includeLogs,
+			includeMetrics,
+			includePatches,
+			includeTraces,
+			includeResources,
+		}) => {
+			try {
+				const snapshot = diagnosticsManager.getSnapshot({
+					limit,
+					offset,
+					level: level as any,
+					search,
+					includeLogs,
+					includeMetrics,
+					includePatches,
+					includeTraces,
+					includeResources,
+				})
+				return { content: [{ type: "text", text: JSON.stringify(snapshot, null, 2) }] }
+			} catch (error) {
+				return {
+					content: [
+						{ type: "text", text: `Error: ${error instanceof Error ? error.message : String(error)}` },
+					],
+					isError: true,
+				}
 			}
-		}
-	})
+		},
+	)
 
 	mcpServer.tool(
 		"get_diagnostic_timeline",
@@ -136,8 +172,8 @@ export function registerLogTools(mcpServer: McpServer, provider: ClineProvider) 
 		},
 		async ({ lines, level, excludePattern, search, offset, limit }) => {
 			try {
-				const snapshot = diagnosticsManager.getSnapshot()
-				let filteredLogs = snapshot.logs
+				const snapshot = diagnosticsManager.getSnapshot({ includeLogs: true, limit: -1 })
+				let filteredLogs = snapshot.logs ?? []
 
 				// Filter by level
 				if (level) {
@@ -211,9 +247,9 @@ export function registerLogTools(mcpServer: McpServer, provider: ClineProvider) 
 		},
 		async ({ lines = 50, includeWarnings = false, search, offset, limit }) => {
 			try {
-				const snapshot = diagnosticsManager.getSnapshot()
+				const snapshot = diagnosticsManager.getSnapshot({ includeLogs: true, limit: -1 })
 				const levels = includeWarnings ? ["error", "warn"] : ["error"]
-				let errorLogs = snapshot.logs.filter((l) => levels.includes(l.level))
+				let errorLogs = (snapshot.logs ?? []).filter((l) => levels.includes(l.level))
 
 				// Filter by search keyword
 				if (search) {

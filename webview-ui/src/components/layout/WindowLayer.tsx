@@ -77,7 +77,10 @@ export const WindowLayer: React.FC<WindowLayerProps> = ({
 					className="absolute left-0 top-0 w-[40px] h-full cursor-pointer hover:bg-vscode-toolbar-hoverBackground transition-colors pointer-events-auto flex flex-col items-center py-4 group"
 					onClick={(e) => {
 						e.stopPropagation()
-						popWindow()
+						console.log(
+							`[WindowLayer] popWindow clicked for ${id} at index ${index}, activeWindows length: ${/* will be logged by store */ ""}`,
+						)
+						popWindow(index)
 					}}>
 					<div className="vertical-text opacity-30 group-hover:opacity-100 transition-opacity font-medium text-[10px]">
 						{id}

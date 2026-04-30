@@ -124,14 +124,16 @@ const AppContent = () => {
 				}
 			}
 
-			if (settingsRef.current?.checkUnsaveChanges) {
-				console.log(`[App] Checking unsaved changes before switch`)
+			// Only check unsaved changes when switching AWAY from settings, not when entering settings
+			const currentTop = activeWindows[activeWindows.length - 1]
+			if (currentTop?.type === "settings" && settingsRef.current?.checkUnsaveChanges) {
+				console.log(`[App] Checking unsaved changes before leaving settings`)
 				settingsRef.current.checkUnsaveChanges(doSwitch)
 			} else {
 				doSwitch()
 			}
 		},
-		[mdmCompliant, pushWindow, switchToBaseWindow],
+		[mdmCompliant, pushWindow, switchToBaseWindow, activeWindows],
 	)
 
 	const onMessage = useCallback(
@@ -182,44 +184,94 @@ const AppContent = () => {
 				chatViewRef.current?.acceptInput()
 			}
 
+			if (message.type === "action" && message.action === "getActivePage") {
+				const requestId = (message as any).requestId
+				const topWindow = activeWindows[activeWindows.length - 1]
+				const activePage = topWindow?.type || "chat"
+				console.log(`[App] getActivePage: responding with "${activePage}" (requestId: ${requestId})`)
+				vscode.postMessage({
+					type: "activePageResponse",
+					requestId,
+					activePage,
+				})
+				return
+			}
+
 			if (message.type === "getDom") {
 				if (message.requestId) {
 					console.log(`[DEBUG: DOM] Webview: Received getDom request ${message.requestId}`)
 
+					const userMaxDepth = (message as any).maxDepth
+					const userMaxChildren = (message as any).maxChildren
+
 					// Optimized DOM serialization: CSS selector format with aggressive compression
+					// Collapses consecutive generic elements (div/span without id/data-testid)
+					// into compact notation like "div^5" instead of "div > div > div > div > div"
 					function getCssPath(el: Element): string {
 						const parts: string[] = []
 						let current: Element | null = el
+						let genericCount = 0
+
 						while (current && current !== document.body && current !== document.documentElement) {
-							let selector = current.tagName.toLowerCase()
+							const tag = current.tagName.toLowerCase()
 							const id = current.getAttribute("id")
-							if (id) {
-								selector = `#${id}`
-								parts.unshift(selector)
-								break
-							}
 							const testId = current.getAttribute("data-testid")
-							if (testId) {
-								selector = `[data-testid="${testId}"]`
+
+							// Check if this is a "generic" element (div/span without distinguishing attributes)
+							const isGeneric = (tag === "div" || tag === "span") && !id && !testId
+
+							if (isGeneric) {
+								genericCount++
 							} else {
-								const parent = current.parentElement
-								if (parent) {
-									const siblings = Array.from(parent.children).filter(
-										(s) => s.tagName === current!.tagName,
-									)
-									const idx = siblings.indexOf(current) + 1
-									if (siblings.length > 1) selector += `:nth-child(${idx})`
+								// Flush any accumulated generic count before this meaningful element
+								if (genericCount > 0) {
+									parts.unshift(`div^${genericCount}`)
+									genericCount = 0
 								}
+
+								let selector = tag
+								if (id) {
+									selector = `#${id}`
+									parts.unshift(selector)
+									break
+								}
+								if (testId) {
+									selector = `[data-testid="${testId}"]`
+								} else {
+									const parent = current.parentElement
+									if (parent) {
+										const siblings = Array.from(parent.children).filter(
+											(s) => s.tagName === current!.tagName,
+										)
+										const idx = siblings.indexOf(current) + 1
+										if (siblings.length > 1) selector += `:nth-child(${idx})`
+									}
+								}
+								parts.unshift(selector)
 							}
-							parts.unshift(selector)
 							current = current.parentElement
 						}
+
+						// Flush remaining generic count at the top
+						if (genericCount > 0) {
+							parts.unshift(`div^${genericCount}`)
+						}
+
 						return parts.join(" > ")
 					}
 
 					function getRelevantAttributes(el: Element): Record<string, string> {
 						const attrs: Record<string, string> = {}
-						const keep = new Set(["id", "data-testid", "name", "value", "disabled", "checked"])
+						const keep = new Set([
+							"id",
+							"data-testid",
+							"name",
+							"value",
+							"disabled",
+							"checked",
+							"data-window-type",
+							"data-active",
+						])
 						for (const attr of el.attributes) {
 							if (keep.has(attr.name)) {
 								attrs[attr.name] = attr.value
@@ -229,7 +281,16 @@ const AppContent = () => {
 					}
 
 					function hasRelevantAttributes(el: Element): boolean {
-						const keep = new Set(["id", "data-testid", "name", "value", "disabled", "checked"])
+						const keep = new Set([
+							"id",
+							"data-testid",
+							"name",
+							"value",
+							"disabled",
+							"checked",
+							"data-window-type",
+							"data-active",
+						])
 						for (const attr of el.attributes) {
 							if (keep.has(attr.name)) return true
 						}
@@ -245,7 +306,6 @@ const AppContent = () => {
 
 					function getNodeText(el: Element): string {
 						const text = el.textContent?.trim() || ""
-						// Truncate long text nodes
 						if (text.length > 80) return text.slice(0, 80) + "..."
 						return text
 					}
@@ -254,8 +314,13 @@ const AppContent = () => {
 						return ["script", "style", "noscript", "link", "meta"].includes(tag)
 					}
 
-					function serializeDomToSelectors(root: Element, depth = 0, maxDepth = 15): string[] {
-						if (depth > maxDepth) return []
+					function serializeDomToSelectors(
+						root: Element,
+						depth = 0,
+						maxDepth?: number,
+						maxChildren?: number,
+					): string[] {
+						if (maxDepth !== undefined && depth > maxDepth) return []
 						const tag = root.tagName.toLowerCase()
 						if (shouldSkipTag(tag)) return []
 
@@ -278,8 +343,12 @@ const AppContent = () => {
 								const iframe = root as HTMLIFrameElement
 								const innerDoc = iframe.contentDocument || iframe.contentWindow?.document
 								if (innerDoc?.body) {
-									const innerLines = serializeDomToSelectors(innerDoc.body, depth, maxDepth)
-									// Mark with [Webview] prefix
+									const innerLines = serializeDomToSelectors(
+										innerDoc.body,
+										depth,
+										maxDepth,
+										maxChildren,
+									)
 									lines.push(...innerLines.map((l) => `[Webview] ${l}`))
 								}
 							} catch {
@@ -290,9 +359,16 @@ const AppContent = () => {
 
 						// Check if this element has meaningful content
 						const children = Array.from(root.children)
-						const nonCollapsibleChildren = children.filter(
+						let nonCollapsibleChildren = children.filter(
 							(c) => !isCollapsible(c) && !shouldSkipTag(c.tagName.toLowerCase()),
 						)
+
+						// Truncate wide nodes if maxChildren is set
+						if (maxChildren !== undefined && nonCollapsibleChildren.length > maxChildren) {
+							const truncated = nonCollapsibleChildren.slice(0, maxChildren)
+							truncated.push(`…and ${nonCollapsibleChildren.length - maxChildren} more` as any)
+							nonCollapsibleChildren = truncated
+						}
 
 						// Collapse empty divs/spans without target attributes
 						if (isCollapsible(root) && nonCollapsibleChildren.length === 0) {
@@ -305,7 +381,6 @@ const AppContent = () => {
 							const attrStr = Object.entries(attrs)
 								.map(([k, v]) => `${k}="${v}"`)
 								.join(" ")
-							// If path already has id/data-testid, don't duplicate
 							if (!path.includes("#") && !path.includes("data-testid")) {
 								line = path + `[${attrStr}]`
 							}
@@ -321,7 +396,11 @@ const AppContent = () => {
 
 						// Process children
 						for (const child of nonCollapsibleChildren) {
-							lines.push(...serializeDomToSelectors(child, depth + 1, maxDepth))
+							if (typeof child === "string") {
+								lines.push(child)
+							} else {
+								lines.push(...serializeDomToSelectors(child, depth + 1, maxDepth, maxChildren))
+							}
 						}
 
 						return lines
@@ -329,11 +408,13 @@ const AppContent = () => {
 
 					// Target #root or body as the mount point
 					const rootEl = document.getElementById("root") || document.body
-					const selectorLines = serializeDomToSelectors(rootEl)
+					const effectiveMaxDepth = userMaxDepth
+					const effectiveMaxChildren = typeof userMaxChildren === "number" ? userMaxChildren : 10
+					const selectorLines = serializeDomToSelectors(rootEl, 0, effectiveMaxDepth, effectiveMaxChildren)
 					const output = selectorLines.join("\n")
 
 					console.log(
-						`[DEBUG: DOM] Webview: Sending domResponse for ${message.requestId} (size: ${output.length})`,
+						`[DEBUG: DOM] Webview: Sending domResponse for ${message.requestId} (size: ${output.length}, maxDepth: ${effectiveMaxDepth})`,
 					)
 					vscode.postMessage({
 						type: "domResponse",
@@ -343,7 +424,7 @@ const AppContent = () => {
 				}
 			}
 		},
-		[switchTab],
+		[switchTab, activeWindows],
 	)
 
 	useEvent("message", onMessage)

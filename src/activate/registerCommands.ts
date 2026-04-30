@@ -17,11 +17,22 @@ import { t } from "../i18n"
 
 /**
  * Helper to get the visible ClineProvider instance or log if not found.
+ * Falls back to the first available (non-disposed) instance when no visible
+ * instance exists, so that VSCode toolbar commands (settings, history, etc.)
+ * still work even when the sidebar is hidden or in another tab group.
  */
 export function getVisibleProviderOrLog(outputChannel: vscode.OutputChannel): ClineProvider | undefined {
 	const visibleProvider = ClineProvider.getVisibleInstance()
 	if (!visibleProvider) {
-		outputChannel.appendLine("Cannot find any visible Jabberwock instances.")
+		// Fallback: try the first available (non-disposed) instance
+		const fallback = ClineProvider.getFirstAvailableInstance()
+		if (fallback) {
+			outputChannel.appendLine(
+				"No visible Jabberwock instance found; using first available instance as fallback.",
+			)
+			return fallback
+		}
+		outputChannel.appendLine("Cannot find any visible or available Jabberwock instances.")
 		return undefined
 	}
 	return visibleProvider

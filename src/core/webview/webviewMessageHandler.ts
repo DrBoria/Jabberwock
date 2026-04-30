@@ -569,6 +569,14 @@ export const webviewMessageHandler = async (
 			}
 		},
 
+		activePageResponse: async (message) => {
+			const msg = message as any
+			if (msg.requestId && msg.activePage) {
+				const { resolveActivePageRequest } = await import("../features/foundation/window-manager/store")
+				resolveActivePageRequest(provider, msg.requestId, msg.activePage)
+			}
+		},
+
 		// case "mstPatch":
 		// 	{
 		// 		const { diagnosticsManager } = await import("../devtools/DiagnosticsManager")

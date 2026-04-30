@@ -239,6 +239,7 @@ export class ClineProvider
 	 */
 	private clineMessagesSeq = 0
 	private pendingDomRequests = new Map<string, (dom: string) => void>()
+	private pendingActivePageRequests = new Map<string, (activePage: string) => void>()
 
 	public isViewLaunched = false
 	public settingsImportedAt?: number
@@ -899,6 +900,15 @@ export class ClineProvider
 		return findLast(Array.from(this.activeInstances), (instance) => instance.view?.visible === true)
 	}
 
+	/**
+	 * Returns the first available (non-disposed) instance from activeInstances.
+	 * Used as a fallback when no visible instance exists — e.g., for VSCode toolbar
+	 * commands that need to post messages to the webview even when the sidebar is hidden.
+	 */
+	public static getFirstAvailableInstance(): ClineProvider | undefined {
+		return Array.from(this.activeInstances).find((instance) => !instance._disposed)
+	}
+
 	public static async getInstance(): Promise<ClineProvider | undefined> {
 		let visibleProvider = ClineProvider.getVisibleInstance()
 
@@ -933,9 +943,9 @@ export class ClineProvider
 		return false
 	}
 
-	public async getWebviewDom(): Promise<string> {
+	public async getWebviewDom(maxDepth?: number, maxChildren?: number): Promise<string> {
 		const { getWebviewDom } = await import("../features/foundation/window-manager/store")
-		return getWebviewDom(this)
+		return getWebviewDom(this, maxDepth, maxChildren)
 	}
 
 	public resolveDomRequest(requestId: string, dom: string) {

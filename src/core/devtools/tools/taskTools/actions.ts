@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { type McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import { type ClineProvider } from "../../../webview/ClineProvider"
+import { diagnosticsManager } from "../../DiagnosticsManager"
 
 export const registerActionsTools = (mcpServer: McpServer, provider: ClineProvider) => {
 	mcpServer.tool(
@@ -8,12 +9,25 @@ export const registerActionsTools = (mcpServer: McpServer, provider: ClineProvid
 		{
 			text: z.string().describe("The task description to start"),
 			mode: z.string().optional().describe("The mode slug to use (e.g. 'orchestrator', 'coder')"),
+			force: z.boolean().optional().describe("Clear existing task before creating new one (default: false)"),
 		},
-		async ({ text, mode }) => {
+		async ({ text, mode, force }) => {
 			try {
+				if (force) {
+					await provider.clearTask()
+				}
+
 				if (mode) {
 					await provider.handleModeSwitch(mode as any)
 				}
+
+				// Clear accumulated diagnostics (logs, metrics, traces) for a fresh start
+				diagnosticsManager.clear()
+
+				// Capture the previous taskId BEFORE creating a new task, so the
+				// polling loop below can distinguish the new task from the old one.
+				const previousTask = provider.getCurrentTask()
+				const previousTaskId = previousTask?.taskId
 
 				// createTask is heavy — it creates a Task instance and starts the
 				// full task loop (API calls, streaming, etc.). Don't await it so
@@ -29,6 +43,22 @@ export const registerActionsTools = (mcpServer: McpServer, provider: ClineProvid
 					await provider.postMessageToWebview({ type: "action", action: "chatButtonClicked" }).catch(() => {})
 				})
 
+				// Poll for the real taskId. We compare against previousTaskId to
+				// avoid returning a stale taskId on the second call (when the
+				// extension reuses the same task instance).
+				const taskId = await Promise.race([
+					(async (): Promise<string> => {
+						while (true) {
+							const task = provider.getCurrentTask()
+							if (task?.taskId && task.taskId !== previousTaskId) return task.taskId
+							await new Promise((resolve) => setTimeout(resolve, 50))
+						}
+					})(),
+					new Promise<string>((_, reject) =>
+						setTimeout(() => reject(new Error("Timeout waiting for taskId")), 5000),
+					),
+				])
+
 				return {
 					content: [
 						{
@@ -36,7 +66,7 @@ export const registerActionsTools = (mcpServer: McpServer, provider: ClineProvid
 							text: JSON.stringify(
 								{
 									message: `Successfully initiated task in ${mode || "default"} mode`,
-									taskId: "pending",
+									taskId,
 								},
 								null,
 								2,
@@ -58,15 +88,72 @@ export const registerActionsTools = (mcpServer: McpServer, provider: ClineProvid
 		},
 	)
 
-	// Alias for backward compatibility
+	// Alias for backward compatibility — delegates to create_new_task handler
 	mcpServer.tool(
 		"start_task",
 		{
 			text: z.string().describe("The task description to start"),
 			mode: z.string().optional().describe("The mode slug to use (e.g. 'orchestrator', 'coder')"),
+			force: z.boolean().optional().describe("Clear existing task before creating new one (default: false)"),
 		},
-		async (args) => {
-			return await (mcpServer as any).callTool("create_new_task", args)
+		async ({ text, mode, force }) => {
+			try {
+				if (force) {
+					await provider.clearTask()
+				}
+
+				if (mode) {
+					await provider.handleModeSwitch(mode as any)
+				}
+
+				// Clear accumulated diagnostics (logs, metrics, traces) for a fresh start
+				diagnosticsManager.clear()
+
+				const taskPromise = provider.createTask(text, [], undefined, { mode })
+
+				taskPromise.then(async () => {
+					await provider.postMessageToWebview({ type: "action", action: "chatButtonClicked" }).catch(() => {})
+				})
+
+				const taskId = await Promise.race([
+					(async (): Promise<string> => {
+						while (true) {
+							const task = provider.getCurrentTask()
+							if (task?.taskId) return task.taskId
+							await new Promise((resolve) => setTimeout(resolve, 50))
+						}
+					})(),
+					new Promise<string>((_, reject) =>
+						setTimeout(() => reject(new Error("Timeout waiting for taskId")), 5000),
+					),
+				])
+
+				return {
+					content: [
+						{
+							type: "text",
+							text: JSON.stringify(
+								{
+									message: `Successfully initiated task in ${mode || "default"} mode`,
+									taskId,
+								},
+								null,
+								2,
+							),
+						},
+					],
+				}
+			} catch (error) {
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Error initiating task: ${error instanceof Error ? error.message : String(error)}`,
+						},
+					],
+					isError: true,
+				}
+			}
 		},
 	)
 
@@ -142,6 +229,51 @@ export const registerActionsTools = (mcpServer: McpServer, provider: ClineProvid
 				return { content: [{ type: "text", text: `Task ${taskId} marked as async` }] }
 			} catch (error) {
 				return { content: [{ type: "text", text: `Error: ${error}` }], isError: true }
+			}
+		},
+	)
+
+	mcpServer.tool(
+		"wait_for_task_id",
+		{
+			timeoutMs: z.number().optional().describe("Max wait time in ms (default: 30000)"),
+		},
+		async ({ timeoutMs = 30000 }) => {
+			try {
+				const deadline = Date.now() + timeoutMs
+				while (Date.now() < deadline) {
+					const currentTask = provider.getCurrentTask()
+					if (currentTask?.taskId) {
+						return {
+							content: [
+								{
+									type: "text",
+									text: JSON.stringify({ taskId: currentTask.taskId }, null, 2),
+								},
+							],
+						}
+					}
+					await new Promise((resolve) => setTimeout(resolve, 200))
+				}
+				return {
+					content: [
+						{
+							type: "text",
+							text: JSON.stringify({ error: "Timeout waiting for task ID" }),
+						},
+					],
+					isError: true,
+				}
+			} catch (error) {
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Error waiting for task: ${error instanceof Error ? error.message : String(error)}`,
+						},
+					],
+					isError: true,
+				}
 			}
 		},
 	)

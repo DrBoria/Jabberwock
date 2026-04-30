@@ -6,7 +6,7 @@ import { TimelineTracker } from "./TimelineTracker"
 import { LifecycleManager } from "./LifecycleManager"
 import { LogFileManager } from "./LogFileManager"
 import { TimelineEvent, TimelineFilters } from "./types/TimelineTypes"
-import { ExtendedDiagnosticSnapshot } from "./types"
+import { ExtendedDiagnosticSnapshot, SnapshotFilters } from "./types"
 
 export class DiagnosticsManager {
 	private logs: DiagnosticLog[] = []
@@ -117,22 +117,67 @@ export class DiagnosticsManager {
 		return this.timeline.getTimeline(filters)
 	}
 
-	public getSnapshot(): ExtendedDiagnosticSnapshot {
+	public getSnapshot(filters?: SnapshotFilters): ExtendedDiagnosticSnapshot {
 		const traces = this.tracer.getTraces()
-		return {
+		const {
+			limit = 50,
+			offset: offsetVal = 0,
+			level,
+			search,
+			includeLogs = true,
+			includeMetrics = false,
+			includePatches = false,
+			includeTraces = false,
+			includeResources = false,
+		} = filters ?? {}
+
+		// Build summary
+		const snapshot: ExtendedDiagnosticSnapshot = {
 			timestamp: Date.now(),
 			activeTasks: traces.taskTraces.filter((t) => t.status === "active").length,
 			totalMessages: this.logs.length,
 			toolCalls: Object.keys(traces.toolTraces).length,
 			errors: this.logs.filter((l) => l.level === "error").length,
-			logs: this.logs,
-			metrics: this.metrics,
-			mstPatches: this.mstPatches,
-			resources: this.monitor.getSnapshot(),
-			taskTraces: traces.taskTraces,
-			toolTraces: traces.toolTraces,
 			currentAction: this.currentAction,
+			// Always include required DiagnosticSnapshot fields (empty arrays if filtered out)
+			logs: [],
+			metrics: [],
+			resources: [],
 		}
+
+		// Filter logs
+		if (includeLogs) {
+			let filteredLogs = [...this.logs]
+			if (level) {
+				filteredLogs = filteredLogs.filter((l) => l.level === level)
+			}
+			if (search) {
+				const searchLower = search.toLowerCase()
+				filteredLogs = filteredLogs.filter((l) => l.message.toLowerCase().includes(searchLower))
+			}
+			// Pagination
+			if (limit >= 0) {
+				const start = offsetVal
+				filteredLogs = filteredLogs.slice(start, start + limit)
+			}
+			snapshot.logs = filteredLogs
+		}
+
+		if (includeMetrics) {
+			snapshot.metrics = this.metrics
+		}
+		if (includePatches) {
+			snapshot.mstPatches = this.mstPatches
+		}
+		if (includeTraces) {
+			snapshot.taskTraces = traces.taskTraces
+			snapshot.toolTraces = traces.toolTraces
+		}
+		if (includeResources) {
+			snapshot.resources = this.monitor.getSnapshot()
+		}
+
+		return snapshot
 	}
 
 	public clear() {

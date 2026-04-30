@@ -139,8 +139,22 @@ export async function startJabberwockMcpServer(provider: ClineProvider, port: nu
 					gs.sseTransports.delete(sessionId)
 				})
 
-				// When the SSE connection closes, clean up the transport
+				// Heartbeat: detect stale connections and clean them up.
+				// When McpHub calls restartConnection, the old SSE transport is closed
+				// but the client may still send POST /messages with the old sessionId.
+				// The heartbeat lets us detect dead connections proactively.
+				const heartbeatInterval = setInterval(() => {
+					try {
+						res.write(": heartbeat\n\n")
+					} catch {
+						clearInterval(heartbeatInterval)
+						gs.sseTransports.delete(sessionId)
+					}
+				}, 15000)
+
+				// When the SSE connection closes, clean up the transport and heartbeat
 				res.on("close", () => {
+					clearInterval(heartbeatInterval)
 					diagnosticsManager.log(
 						`[Jabberwock DevTools] SSE client disconnected, sessionId=${sessionId}`,
 						"info",
@@ -162,23 +176,39 @@ export async function startJabberwockMcpServer(provider: ClineProvider, port: nu
 						}
 					})
 				} else if (gs.sseTransports.size > 0) {
-					// Fallback: if no sessionId provided or not found, use the first available transport
-					// This handles the case where the client doesn't include sessionId in POST
-					const firstTransport = gs.sseTransports.values().next().value
-					if (firstTransport) {
-						diagnosticsManager.log(
-							`[Jabberwock DevTools] POST /messages without valid sessionId=${sessionId}, routing to first available transport`,
-							"warn",
-						)
-						firstTransport.handlePostMessage(req, res).catch((err) => {
+					// Fallback: if no sessionId provided or not found, try ALL available transports.
+					// When McpHub calls restartConnection, the old SSE transport is closed and a new
+					// one is opened with a different sessionId. The client may still send POST /messages
+					// with the old sessionId. Iterating all transports ensures we find the active one.
+					// Use IIFE because http.createServer callback cannot be async.
+					;(async () => {
+						let handled = false
+						for (const [sid, transport] of gs.sseTransports.entries()) {
+							try {
+								await transport.handlePostMessage(req, res)
+								handled = true
+								diagnosticsManager.log(
+									`[Jabberwock DevTools] POST /messages fallback: routed to sessionId=${sid}`,
+									"info",
+								)
+								break
+							} catch (err: any) {
+								diagnosticsManager.log(
+									`[Jabberwock DevTools] POST /messages fallback: transport sessionId=${sid} failed: ${err.message}`,
+									"warn",
+								)
+								// Remove stale transport so we don't keep trying it
+								gs.sseTransports.delete(sid)
+							}
+						}
+						if (!handled) {
 							diagnosticsManager.log(
-								`[Jabberwock DevTools] SSE message handling error (fallback): ${err.message}`,
-								"error",
+								`[Jabberwock DevTools] POST /messages fallback: no working transport found`,
+								"warn",
 							)
-						})
-					} else {
-						res.writeHead(503).end("SSE transport not initialized")
-					}
+							res.writeHead(503).end("No working SSE transport available")
+						}
+					})()
 				} else {
 					diagnosticsManager.log(
 						`[Jabberwock DevTools] Received POST /messages but no SSE transports available`,

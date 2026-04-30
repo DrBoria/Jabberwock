@@ -117,12 +117,64 @@ export const registerWorkspaceTools = (mcpServer: McpServer, provider: ClineProv
 		}
 	})
 
-	mcpServer.tool("get_workspace_state", {}, async () => {
-		try {
-			const state = await provider.getState()
-			return { content: [{ type: "text", text: JSON.stringify(state, null, 2) }] }
-		} catch (error) {
-			return { content: [{ type: "text", text: `Error: ${error}` }], isError: true }
-		}
-	})
+	mcpServer.tool(
+		"get_workspace_state",
+		{
+			fields: z
+				.string()
+				.describe(
+					"Comma-separated list of fields to return (e.g. 'mode,autoApprovalEnabled,customModes'). Required — use '*' to return all non-sensitive fields.",
+				),
+		},
+		async ({ fields }: { fields: string }) => {
+			try {
+				// Add a timeout to prevent hanging for 60s when provider.getState() is slow
+				const state = await Promise.race([
+					provider.getState(),
+					new Promise<never>((_, reject) =>
+						setTimeout(() => reject(new Error("getState timed out after 10s")), 10_000),
+					),
+				])
+				// Strip sensitive configuration (contains API keys)
+				const { apiConfiguration, ...safeRest } = state as any
+
+				// If fields is '*', return only the most essential diagnostic fields
+				if (fields === "*") {
+					const essentialFields = [
+						"mode",
+						"autoApprovalEnabled",
+						"customModes",
+						"mcpEnabled",
+						"devtoolEnabled",
+						"currentApiConfigName",
+						"apiModelId",
+						"language",
+						"diagnosticsEnabled",
+						"telemetrySetting",
+						"locatorTarget",
+					]
+					const essential: Record<string, unknown> = {}
+					for (const key of essentialFields) {
+						if (key in safeRest) {
+							essential[key] = (safeRest as any)[key]
+						}
+					}
+					return { content: [{ type: "text", text: JSON.stringify(essential, null, 2) }] }
+				}
+
+				// Otherwise filter to only requested fields
+				const fieldList = fields.split(",").map((f: string) => f.trim())
+				const safeState: Record<string, unknown> = {}
+				for (const field of fieldList) {
+					if (field in safeRest) {
+						safeState[field] = (safeRest as any)[field]
+					}
+				}
+
+				return { content: [{ type: "text", text: JSON.stringify(safeState, null, 2) }] }
+			} catch (error) {
+				return { content: [{ type: "text", text: `Error: ${error}` }], isError: true }
+			}
+		},
+	)
 }

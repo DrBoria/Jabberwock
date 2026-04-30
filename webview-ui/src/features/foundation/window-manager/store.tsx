@@ -29,9 +29,14 @@ export const WindowManagerStore = types
 			if (self.activeWindows.length > 0 && self.activeWindows[self.activeWindows.length - 1].type === type) return
 			self.activeWindows.push({ type, props })
 		},
-		popWindow() {
+		popWindow(index?: number) {
 			if (self.activeWindows.length <= 1) return // Always keep base window
-			self.activeWindows.pop()
+			if (index !== undefined) {
+				// Pop all windows above the given index
+				self.activeWindows.splice(index + 1)
+			} else {
+				self.activeWindows.pop()
+			}
 		},
 		switchToBaseWindow(type: WindowTypeValue, props?: any) {
 			self.activeWindows.clear()

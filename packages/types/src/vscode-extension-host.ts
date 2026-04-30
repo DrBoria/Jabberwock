@@ -131,6 +131,7 @@ export interface ExtensionMessage {
 		| "focusInput"
 		| "switchTab"
 		| "toggleAutoApprove"
+		| "getActivePage"
 	invoke?:
 		| "newChat"
 		| "sendMessage"
@@ -613,6 +614,7 @@ export interface WebviewMessage {
 		| "openSkillFile"
 		| "locatorTarget"
 		| "domResponse"
+		| "activePageResponse"
 		| "webviewError"
 	text?: string
 	taskId?: string
@@ -729,6 +731,8 @@ export interface WebviewMessage {
 	locatorPayload?: { filePath: string; line: number; column: number }
 	/** Indicates if the message originated from MCP to prevent infinite loops */
 	fromMCP?: boolean
+	/** Response to getActivePage request — the active window type */
+	activePage?: string
 }
 
 export interface RequestOpenAiCodexRateLimitsMessage {
