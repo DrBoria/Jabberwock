@@ -5,7 +5,7 @@ import { useExtensionState } from "@src/context/ExtensionStateContext"
 import HistoryView from "../HistoryView"
 
 vi.mock("@src/context/ExtensionStateContext")
-vi.mock("@src/utils/vscode")
+vi.mock("@src/features/devtools/utils/vscode")
 
 vi.mock("@src/i18n/TranslationContext", () => ({
 	useAppTranslation: () => ({

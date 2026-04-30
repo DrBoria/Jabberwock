@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from "@/utils/test-utils"
 import TaskGroupItem from "../TaskGroupItem"
 import type { TaskGroup, DisplayHistoryItem, SubtaskTreeNode } from "../types"
 
-vi.mock("@src/utils/vscode")
+vi.mock("@src/features/devtools/utils/vscode")
 vi.mock("@src/i18n/TranslationContext", () => ({
 	useAppTranslation: () => ({
 		t: (key: string, options?: Record<string, unknown>) => {
@@ -16,9 +16,12 @@ vi.mock("@src/i18n/TranslationContext", () => ({
 	}),
 }))
 
-vi.mock("@/utils/format", () => ({
+vi.mock("@/utils/formatDate", () => ({
 	formatTimeAgo: vi.fn(() => "2 hours ago"),
 	formatDate: vi.fn(() => "January 15 at 2:30 PM"),
+}))
+
+vi.mock("@/utils/formatNumber", () => ({
 	formatLargeNumber: vi.fn((num: number) => num.toString()),
 }))
 

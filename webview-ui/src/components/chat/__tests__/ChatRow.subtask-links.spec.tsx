@@ -6,7 +6,7 @@ import type { HistoryItem, ClineMessage } from "@jabberwock/types"
 
 // Mock vscode API
 const mockPostMessage = vi.fn()
-vi.mock("@src/utils/vscode", () => ({
+vi.mock("@src/features/devtools/utils/vscode", () => ({
 	vscode: {
 		postMessage: (msg: unknown) => mockPostMessage(msg),
 	},

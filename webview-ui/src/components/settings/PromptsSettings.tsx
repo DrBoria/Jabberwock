@@ -3,7 +3,7 @@ import { VSCodeTextArea, VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react
 
 import { supportPrompt, SupportPromptType } from "@shared/support-prompt"
 
-import { vscode } from "@src/utils/vscode"
+import { vscode } from "@src/features/devtools/utils/vscode"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import {

@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import TaskHeader from "@src/components/chat/TaskHeader"
 
 // Mock formatLargeNumber function
-vi.mock("@/utils/format", () => ({
+vi.mock("@/utils/formatNumber", () => ({
 	formatLargeNumber: vi.fn((num) => num.toString()),
 }))
 

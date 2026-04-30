@@ -2,13 +2,13 @@ import React from "react"
 import type { ClineMessage, ClineAskUseMcpServer } from "@jabberwock/types"
 import { safeJsonParse } from "@shared/core"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
-import { findMatchingResourceOrTemplate } from "@src/utils/mcp"
+import { findMatchingResourceOrTemplate } from "@src/features/settings/utils/mcp"
 import McpResourceRow from "../../../mcp/McpResourceRow"
 import { McpExecution } from "../../McpExecution"
 import { Container } from "@src/components/ui"
 
 import { McpIframeRenderer } from "../../../../features/mcp-apps/McpIframeRenderer"
-import { vscode } from "@src/utils/vscode"
+import { vscode } from "@src/features/devtools/utils/vscode"
 
 interface UseMcpServerAskProps {
 	message: ClineMessage

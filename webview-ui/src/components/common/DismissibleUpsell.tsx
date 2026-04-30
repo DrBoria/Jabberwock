@@ -1,7 +1,7 @@
 import { memo, ReactNode, useEffect, useState, useRef } from "react"
-import { vscode } from "@src/utils/vscode"
+import { vscode } from "@src/features/devtools/utils/vscode"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { telemetryClient } from "@src/utils/TelemetryClient"
+import { telemetryClient } from "@src/features/cloud/utils/TelemetryClient"
 import { TelemetryEventName } from "@jabberwock/types"
 
 interface DismissibleUpsellProps {

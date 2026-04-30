@@ -1,7 +1,7 @@
 import React, { Component } from "react"
-import { telemetryClient } from "@src/utils/TelemetryClient"
-import { enhanceErrorWithSourceMaps } from "@src/utils/sourceMapUtils"
-import { vscode } from "@src/utils/vscode"
+import { telemetryClient } from "@src/features/cloud/utils/TelemetryClient"
+import { enhanceErrorWithSourceMaps } from "@src/features/devtools/utils/sourceMapUtils"
+import { vscode } from "@src/features/devtools/utils/vscode"
 
 type ErrorProps = {
 	children: React.ReactNode

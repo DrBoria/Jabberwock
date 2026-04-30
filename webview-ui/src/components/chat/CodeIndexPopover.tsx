@@ -14,10 +14,10 @@ import { AlertTriangle } from "lucide-react"
 
 import { type IndexingStatus, type EmbedderProvider, CODEBASE_INDEX_DEFAULTS } from "@jabberwock/types"
 
-import { vscode } from "@src/utils/vscode"
+import { vscode } from "@src/features/devtools/utils/vscode"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { buildDocLink } from "@src/utils/docLinks"
+import { buildDocLink } from "@src/features/settings/utils/docLinks"
 import { cn } from "@src/lib/utils"
 import {
 	Select,

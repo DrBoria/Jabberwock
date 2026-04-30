@@ -4,8 +4,8 @@
  */
 
 import type { Command, ModeConfig } from "@jabberwock/types"
-import { ContextMenuOptionType, type SearchResult } from "@src/utils/context-mentions"
-import { getContextMenuOptions } from "@src/utils/context-mentions"
+import { ContextMenuOptionType, type SearchResult } from "@src/features/chat/utils/context-mentions"
+import { getContextMenuOptions } from "@src/features/chat/utils/context-mentions"
 
 /**
  * Finds the next selectable index in the context menu given a direction.

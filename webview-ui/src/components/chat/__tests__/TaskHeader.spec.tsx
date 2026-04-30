@@ -24,7 +24,7 @@ vi.mock("react-i18next", () => ({
 const { mockPostMessage } = vi.hoisted(() => ({
 	mockPostMessage: vi.fn(),
 }))
-vi.mock("@/utils/vscode", () => ({
+vi.mock("@/features/devtools/utils/vscode", () => ({
 	vscode: {
 		postMessage: mockPostMessage,
 	},

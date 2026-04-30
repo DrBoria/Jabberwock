@@ -8,7 +8,7 @@ import {
 	requestyDefaultModelId,
 } from "@jabberwock/types"
 
-import { vscode } from "@src/utils/vscode"
+import { vscode } from "@src/features/devtools/utils/vscode"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { Button } from "@src/components/ui"
 

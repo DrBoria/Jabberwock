@@ -6,8 +6,8 @@ import { type ModeConfig, type CustomModePrompts, TelemetryEventName } from "@ja
 
 import { type Mode, getAllModes, defaultModeSlug } from "@shared/modes"
 
-import { vscode } from "@/utils/vscode"
-import { telemetryClient } from "@/utils/TelemetryClient"
+import { vscode } from "@/features/devtools/utils/vscode"
+import { telemetryClient } from "@/features/cloud/utils/TelemetryClient"
 import { cn } from "@/lib/utils"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { useAppTranslation } from "@/i18n/TranslationContext"

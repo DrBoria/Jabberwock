@@ -24,8 +24,8 @@ import {
 } from "@shared/modes"
 import { TOOL_GROUPS } from "@shared/tools"
 
-import { vscode } from "@src/utils/vscode"
-import { buildDocLink } from "@src/utils/docLinks"
+import { vscode } from "@src/features/devtools/utils/vscode"
+import { buildDocLink } from "@src/features/settings/utils/docLinks"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { Section } from "@src/components/settings/Section"

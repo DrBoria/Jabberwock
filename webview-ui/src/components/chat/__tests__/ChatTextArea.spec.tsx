@@ -2,12 +2,12 @@
 
 import { render, fireEvent, screen } from "@src/utils/test-utils"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
-import { vscode } from "@src/utils/vscode"
-import * as pathMentions from "@src/utils/path-mentions"
+import { vscode } from "@src/features/devtools/utils/vscode"
+import * as pathMentions from "@src/features/chat/utils/path-mentions"
 
 import { ChatTextArea } from "../ChatTextArea"
 
-vi.mock("@src/utils/vscode", () => ({
+vi.mock("@src/features/devtools/utils/vscode", () => ({
 	vscode: {
 		postMessage: vi.fn(),
 	},
@@ -15,7 +15,7 @@ vi.mock("@src/utils/vscode", () => ({
 
 vi.mock("@src/components/common/CodeBlock")
 vi.mock("@src/components/common/MarkdownBlock")
-vi.mock("@src/utils/path-mentions", () => ({
+vi.mock("@src/features/chat/utils/path-mentions", () => ({
 	convertToMentionPath: vi.fn((path, cwd) => {
 		// Simple mock implementation that mimics the real function's behavior
 		if (cwd && path.toLowerCase().startsWith(cwd.toLowerCase())) {
@@ -32,7 +32,7 @@ const mockConvertToMentionPath = pathMentions.convertToMentionPath as ReturnType
 
 // Helper to set useChatUI mock return value
 const mockChatUI = (overrides: Record<string, unknown> = {}) => {
-	const { useChatUI } = require("@src/context/ChatUIContext") // eslint-disable-line @typescript-eslint/no-require-imports
+	const { useChatUI } = require("@src/features/chat/ui/store") // eslint-disable-line @typescript-eslint/no-require-imports
 	;(useChatUI as ReturnType<typeof vi.fn>).mockReturnValue({
 		inputValue: "",
 		setInputValue: vi.fn(),
@@ -46,7 +46,7 @@ const mockChatUI = (overrides: Record<string, unknown> = {}) => {
 
 // Mock ExtensionStateContext
 vi.mock("@src/context/ExtensionStateContext")
-vi.mock("@src/context/ChatUIContext")
+vi.mock("@src/features/chat/ui/store")
 
 // Custom query function to get the enhance prompt button
 const getEnhancePromptButton = () => {

@@ -1,6 +1,6 @@
 // npx vitest src/utils/__tests__/model-utils.spec.ts
 
-import { calculateTokenDistribution } from "../model-utils"
+import { calculateTokenDistribution } from "../../features/settings/utils/model-utils"
 
 describe("calculateTokenDistribution", () => {
 	it("should calculate token distribution correctly", () => {

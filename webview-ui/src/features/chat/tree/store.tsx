@@ -1,4 +1,5 @@
-import { types, applySnapshot, isAlive, isStateTreeNode } from "mobx-state-tree"
+import React, { createContext, useContext } from "react"
+import { types, applySnapshot, isAlive, isStateTreeNode, Instance } from "mobx-state-tree"
 
 export const Message = types.model("Message", {
 	id: types.identifier,
@@ -94,4 +95,22 @@ export const ChatStore = types
 		},
 	}))
 
+export type IChatStore = Instance<typeof ChatStore>
+
 export const chatTreeStore = ChatStore.create({ nodes: {} })
+
+// ── React Context bridge ──
+
+const ChatTreeContext = createContext<IChatStore | undefined>(undefined)
+
+export const ChatTreeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+	return <ChatTreeContext.Provider value={chatTreeStore}>{children}</ChatTreeContext.Provider>
+}
+
+export const useChatTree = (): IChatStore => {
+	const context = useContext(ChatTreeContext)
+	if (context === undefined) {
+		throw new Error("useChatTree must be used within a ChatTreeProvider")
+	}
+	return context
+}

@@ -18,8 +18,8 @@ import {
 } from "../ui/alert-dialog"
 import { Button } from "../ui/button"
 import { StandardTooltip } from "../ui/standard-tooltip"
-import { vscode } from "@/utils/vscode"
-import { buildDocLink } from "@/utils/docLinks"
+import { vscode } from "@/features/devtools/utils/vscode"
+import { buildDocLink } from "@/features/settings/utils/docLinks"
 
 import { SectionHeader } from "./SectionHeader"
 import { CreateSlashCommandDialog } from "./CreateSlashCommandDialog"

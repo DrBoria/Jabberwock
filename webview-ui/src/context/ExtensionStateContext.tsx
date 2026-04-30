@@ -28,8 +28,8 @@ import { Mode, defaultModeSlug, defaultPrompts } from "@shared/modes"
 import { CustomSupportPrompts } from "@shared/support-prompt"
 import { experimentDefault } from "@shared/experiments"
 
-import { vscode } from "@src/utils/vscode"
-import { convertTextMateToHljs } from "@src/utils/textMateToHljs"
+import { vscode } from "@src/features/devtools/utils/vscode"
+import { convertTextMateToHljs } from "@src/utils/convertTextMateToHljs"
 
 export interface ExtensionStateContextType extends ExtensionState {
 	historyPreviewCollapsed?: boolean // Add the new state property

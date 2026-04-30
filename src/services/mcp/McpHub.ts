@@ -22,6 +22,7 @@ import { z } from "zod"
 import { EventEmitter } from "events"
 
 import type {
+	McpErrorEntry,
 	McpResource,
 	McpResourceResponse,
 	McpResourceTemplate,
@@ -1200,20 +1201,20 @@ export class McpHub extends EventEmitter {
 				: error
 
 		// Add to error history
-		if (!connection.server.errorHistory) {
-			connection.server.errorHistory = []
-		}
-
-		connection.server.errorHistory.push({
+		// Use spread to create a new array instead of mutating, because the array
+		// may have been frozen by MST's types.frozen() when passed through McpServersStore.
+		const currentHistory = connection.server.errorHistory ?? []
+		const newEntry: McpErrorEntry = {
 			message: truncatedError,
 			timestamp: Date.now(),
 			level,
-		})
+		}
 
 		// Keep only the last 100 errors
-		if (connection.server.errorHistory.length > 100) {
-			connection.server.errorHistory = connection.server.errorHistory.slice(-100)
-		}
+		const updatedHistory =
+			currentHistory.length >= 100 ? [...currentHistory.slice(1), newEntry] : [...currentHistory, newEntry]
+
+		connection.server.errorHistory = updatedHistory
 
 		// Update current error display
 		connection.server.error = truncatedError
@@ -1733,6 +1734,8 @@ export class McpHub extends EventEmitter {
 
 			try {
 				await targetProvider.postMessageToWebview(message)
+				// Dual-write: MST store
+				targetProvider.mcpServersStore?.setServers(serversToSend)
 			} catch (error) {
 				console.error("[McpHub] Error calling targetProvider.postMessageToWebview:", error)
 			}

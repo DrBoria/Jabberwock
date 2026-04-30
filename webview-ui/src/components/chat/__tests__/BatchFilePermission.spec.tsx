@@ -6,7 +6,7 @@ import { BatchFilePermission } from "../BatchFilePermission"
 
 const mockVscodePostMessage = vi.fn()
 
-vi.mock("@src/utils/vscode", () => ({
+vi.mock("@src/features/devtools/utils/vscode", () => ({
 	vscode: {
 		postMessage: (...args: any[]) => mockVscodePostMessage(...args),
 	},

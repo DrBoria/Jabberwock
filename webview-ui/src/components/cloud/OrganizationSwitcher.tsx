@@ -4,7 +4,7 @@ import { Building2, User, Plus } from "lucide-react"
 import { type CloudUserInfo, type CloudOrganizationMembership, type ExtensionMessage } from "@jabberwock/types"
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { vscode } from "@src/utils/vscode"
+import { vscode } from "@src/features/devtools/utils/vscode"
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectSeparator } from "@/components/ui/select"
 

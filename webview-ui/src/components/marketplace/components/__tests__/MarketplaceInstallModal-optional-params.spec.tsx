@@ -4,13 +4,13 @@ import { MarketplaceItem } from "@jabberwock/types"
 
 import { MarketplaceInstallModal } from "../MarketplaceInstallModal"
 
-vi.mock("@/utils/vscode", () => ({
+vi.mock("@/features/devtools/utils/vscode", () => ({
 	vscode: {
 		postMessage: vi.fn(),
 	},
 }))
 
-import { vscode } from "@/utils/vscode"
+import { vscode } from "@/features/devtools/utils/vscode"
 const mockPostMessage = vscode.postMessage as any
 
 vi.mock("@/i18n/TranslationContext", () => ({

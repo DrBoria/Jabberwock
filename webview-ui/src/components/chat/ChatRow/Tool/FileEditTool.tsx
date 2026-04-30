@@ -1,7 +1,7 @@
 import React from "react"
 import { FileDiff } from "lucide-react"
 import type { ClineMessage, ClineSayTool } from "@jabberwock/types"
-import { vscode } from "@src/utils/vscode"
+import { vscode } from "@src/features/devtools/utils/vscode"
 import { toolIcon, Container } from "@src/components/ui"
 import CodeAccordion from "../../../common/CodeAccordion"
 import { BatchDiffApproval } from "../../BatchDiffApproval"

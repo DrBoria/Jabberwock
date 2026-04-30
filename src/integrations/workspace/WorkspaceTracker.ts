@@ -99,11 +99,14 @@ class WorkspaceTracker {
 		}
 		this.resetTimer = setTimeout(async () => {
 			if (this.prevWorkSpacePath !== this.cwd) {
-				await this.providerRef.deref()?.postMessageToWebview({
+				const provider = this.providerRef.deref()
+				await provider?.postMessageToWebview({
 					type: "workspaceUpdated",
 					filePaths: [],
 					openedTabs: this.getOpenedTabsInfo(),
 				})
+				// Dual-write: MST store
+				provider?.workspaceStore?.setWorkspace([], this.getOpenedTabsInfo())
 				this.filePaths.clear()
 				this.prevWorkSpacePath = this.cwd
 				this.initializeFilePaths()
@@ -121,11 +124,14 @@ class WorkspaceTracker {
 			}
 
 			const relativeFilePaths = Array.from(this.filePaths).map((file) => toRelativePath(file, this.cwd))
-			this.providerRef.deref()?.postMessageToWebview({
+			const provider = this.providerRef.deref()
+			provider?.postMessageToWebview({
 				type: "workspaceUpdated",
 				filePaths: relativeFilePaths,
 				openedTabs: this.getOpenedTabsInfo(),
 			})
+			// Dual-write: MST store
+			provider?.workspaceStore?.setWorkspace(relativeFilePaths, this.getOpenedTabsInfo())
 			this.updateTimer = null
 		}, 300) // Debounce for 300ms
 	}

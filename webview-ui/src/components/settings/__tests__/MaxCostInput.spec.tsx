@@ -2,7 +2,7 @@ import { render, screen, fireEvent } from "@testing-library/react"
 
 import { MaxCostInput } from "../MaxCostInput"
 
-vi.mock("@/utils/vscode", () => ({
+vi.mock("@/features/devtools/utils/vscode", () => ({
 	vscode: { postMessage: vi.fn() },
 }))
 

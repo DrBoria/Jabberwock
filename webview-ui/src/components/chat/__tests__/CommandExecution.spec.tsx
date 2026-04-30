@@ -11,7 +11,7 @@ vi.mock("react-use", () => ({
 	useEvent: vi.fn(),
 }))
 
-import { vscode } from "../../../utils/vscode"
+import { vscode } from "../../../features/devtools/utils/vscode"
 
 vi.mock("../../../utils/vscode", () => ({
 	vscode: {

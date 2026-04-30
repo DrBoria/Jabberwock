@@ -16,7 +16,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui"
-import { vscode } from "@/utils/vscode"
+import { vscode } from "@/features/devtools/utils/vscode"
 
 interface CreateSlashCommandDialogProps {
 	open: boolean

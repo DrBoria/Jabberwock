@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react"
 import { Fzf } from "fzf"
 
-import { highlightFzfMatch } from "@/utils/highlight"
+import { highlightFzfMatch } from "@src/utils/highlighter"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 
 type SortOption = "newest" | "oldest" | "mostExpensive" | "mostTokens" | "mostRelevant"

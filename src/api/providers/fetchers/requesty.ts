@@ -19,7 +19,16 @@ export async function getRequestyModels(baseUrl?: string, apiKey?: string): Prom
 		const modelsUrl = new URL("v1/models", resolvedBaseUrl)
 
 		const response = await axios.get(modelsUrl.toString(), { headers })
-		const rawModels = response.data.data
+		const rawModels = response.data?.data
+
+		if (!Array.isArray(rawModels)) {
+			console.error(
+				`[getRequestyModels] Unexpected response format: rawModels is not iterable`,
+				typeof rawModels,
+				rawModels,
+			)
+			return models
+		}
 
 		for (const rawModel of rawModels) {
 			const reasoningBudget =

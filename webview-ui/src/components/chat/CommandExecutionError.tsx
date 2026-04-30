@@ -1,7 +1,7 @@
 import { useCallback } from "react"
 import { useTranslation, Trans } from "react-i18next"
 import { VSCodeLink } from "@vscode/webview-ui-toolkit/react"
-import { buildDocLink } from "../../utils/docLinks"
+import { buildDocLink } from "../../features/settings/utils/docLinks"
 
 export const CommandExecutionError = () => {
 	const { t } = useTranslation()

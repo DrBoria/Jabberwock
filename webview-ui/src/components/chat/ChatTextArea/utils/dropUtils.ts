@@ -3,7 +3,7 @@
  * Handles file path drops and image drops.
  */
 
-import { convertToMentionPath } from "@src/utils/path-mentions"
+import { convertToMentionPath } from "@src/features/chat/utils/path-mentions"
 
 /**
  * Processes dropped text (file paths) and converts them to mention paths.

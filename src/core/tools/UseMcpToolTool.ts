@@ -251,10 +251,12 @@ export class UseMcpToolTool extends BaseTool<"use_mcp_tool"> {
 
 	private async sendExecutionStatus(task: Task, status: McpExecutionStatus): Promise<void> {
 		const clineProvider = await task.providerRef.deref()
+		// Dual-write: keep postMessage for backward compat, add MST store write
 		clineProvider?.postMessageToWebview({
 			type: "mcpExecutionStatus",
 			text: JSON.stringify(status),
 		})
+		clineProvider?.mcpExecutionStore?.addOrUpdateExecution(status)
 	}
 
 	private processToolContent(toolResult: any): { text: string; images: string[] } {

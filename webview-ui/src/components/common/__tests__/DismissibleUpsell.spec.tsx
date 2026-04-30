@@ -5,7 +5,7 @@ import { TelemetryEventName } from "@jabberwock/types"
 
 // Mock the vscode API
 const mockPostMessage = vi.fn()
-vi.mock("@src/utils/vscode", () => ({
+vi.mock("@src/features/devtools/utils/vscode", () => ({
 	vscode: {
 		postMessage: (message: any) => mockPostMessage(message),
 	},
@@ -13,7 +13,7 @@ vi.mock("@src/utils/vscode", () => ({
 
 // Mock telemetryClient
 const mockCapture = vi.fn()
-vi.mock("@src/utils/TelemetryClient", () => ({
+vi.mock("@src/features/cloud/utils/TelemetryClient", () => ({
 	telemetryClient: {
 		capture: (eventName: string, properties?: Record<string, any>) => mockCapture(eventName, properties),
 	},

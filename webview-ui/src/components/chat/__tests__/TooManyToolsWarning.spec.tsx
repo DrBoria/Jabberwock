@@ -4,7 +4,7 @@ import { MAX_MCP_TOOLS_THRESHOLD } from "@jabberwock/types"
 import { TooManyToolsWarning } from "../TooManyToolsWarning"
 
 // Mock vscode webview messaging
-vi.mock("@/utils/vscode", () => ({
+vi.mock("@/features/devtools/utils/vscode", () => ({
 	vscode: {
 		postMessage: vi.fn(),
 	},

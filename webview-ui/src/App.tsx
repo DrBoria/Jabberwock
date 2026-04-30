@@ -7,16 +7,20 @@ import { type ExtensionMessage, TelemetryEventName } from "@jabberwock/types"
 import TranslationProvider from "./i18n/TranslationContext"
 import { MarketplaceViewStateManager } from "./components/marketplace/MarketplaceViewStateManager"
 
-import { vscode } from "./utils/vscode"
-import { telemetryClient } from "./utils/TelemetryClient"
-import { initializeSourceMaps, exposeSourceMapsForDebugging } from "./utils/sourceMapInitializer"
+import { vscode } from "./features/devtools/utils/vscode"
+import { telemetryClient } from "./features/cloud/utils/TelemetryClient"
+import { initializeSourceMaps, exposeSourceMapsForDebugging } from "./features/devtools/utils/sourceMapInitializer"
 import { ExtensionStateContextProvider, useExtensionState } from "./context/ExtensionStateContext"
-import { ChatTreeProvider } from "./context/ChatTreeContext"
-import { WindowManagerProvider, useWindowManager, WindowType } from "./context/WindowManagerContext"
+import { ChatTreeProvider } from "./features/chat/tree/store"
+import {
+	WindowManagerProvider,
+	useWindowManager,
+	type WindowTypeValue,
+} from "./features/foundation/window-manager/store"
 import { WindowLayer } from "./components/layout/WindowLayer"
 
 import ChatView, { ChatViewRef } from "./components/chat/ChatView"
-import { ChatUIProvider } from "./context/ChatUIContext"
+import { ChatUIProvider } from "./features/chat/ui/store"
 import HistoryView from "./components/history/HistoryView"
 import SettingsView, { SettingsViewRef } from "./components/settings/SettingsView"
 import WelcomeView from "./components/welcome/WelcomeViewProvider"
@@ -32,7 +36,7 @@ import { McpIframeRenderer } from "./features/mcp-apps/McpIframeRenderer"
 import { getAllModes } from "@shared/modes"
 import { LocatorBridge } from "./features/devtools/utils/LocatorBridge"
 import { ChatTreeViewer } from "./components/chat/ChatTreeViewer"
-import { chatTreeStore } from "./state/ChatTreeStore"
+import { chatTreeStore } from "./features/chat/tree/store"
 
 interface DeleteMessageDialogState {
 	isOpen: boolean
@@ -52,7 +56,7 @@ const MemoizedDeleteMessageDialog = React.memo(DeleteMessageDialog)
 const MemoizedEditMessageDialog = React.memo(EditMessageDialog)
 const MemoizedCheckpointRestoreDialog = React.memo(CheckpointRestoreDialog)
 
-const tabsByMessageAction: Partial<Record<NonNullable<ExtensionMessage["action"]>, WindowType>> = {
+const tabsByMessageAction: Partial<Record<NonNullable<ExtensionMessage["action"]>, WindowTypeValue>> = {
 	chatButtonClicked: "chat",
 	settingsButtonClicked: "settings",
 	historyButtonClicked: "history",
@@ -103,7 +107,7 @@ const AppContent = () => {
 	const chatViewRef = useRef<ChatViewRef>(null)
 
 	const switchTab = useCallback(
-		(newTab: WindowType, props?: any) => {
+		(newTab: WindowTypeValue, props?: any) => {
 			console.log(`[App] switchTab requested: ${newTab}`, props)
 			if (mdmCompliant === false && newTab !== "cloud") {
 				console.warn(`[App] switchTab BLOCKED by mdmCompliant === false`)
@@ -138,7 +142,7 @@ const AppContent = () => {
 				console.log(`[App] Received action message: ${message.action}`, message)
 				// Prevent infinite loops by ignoring switchTab messages that came from MCP
 				if (message.action === "switchTab" && message.tab && !message.fromMCP) {
-					const targetTab = message.tab as WindowType
+					const targetTab = message.tab as WindowTypeValue
 					const targetSection = message.values?.section as string | undefined
 					const targetNodeId = message.values?.targetNodeId as string | undefined
 					switchTab(targetTab, { section: targetSection, targetNodeId })

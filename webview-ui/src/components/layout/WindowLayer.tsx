@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react"
-import { useWindowManager } from "../../context/WindowManagerContext"
+import { useWindowManager } from "../../features/foundation/window-manager/store"
 
 interface WindowLayerProps {
 	id: string

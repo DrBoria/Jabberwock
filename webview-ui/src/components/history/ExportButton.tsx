@@ -1,4 +1,4 @@
-import { vscode } from "@/utils/vscode"
+import { vscode } from "@/features/devtools/utils/vscode"
 import { Button } from "../ui/button"
 import { StandardTooltip } from "../ui/standard-tooltip"
 import { useAppTranslation } from "@/i18n/TranslationContext"

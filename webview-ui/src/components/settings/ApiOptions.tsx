@@ -42,7 +42,7 @@ import {
 	handleModelChangeSideEffects,
 } from "./utils/providerModelConfig"
 
-import { vscode } from "@src/utils/vscode"
+import { vscode } from "@src/features/devtools/utils/vscode"
 import { validateApiConfigurationExcludingModelErrors, getModelValidationError } from "@src/utils/validate"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { useRouterModels } from "@src/components/ui/hooks/useRouterModels"
@@ -97,7 +97,7 @@ import { RateLimitSecondsControl } from "./RateLimitSecondsControl"
 import { ConsecutiveMistakeLimitControl } from "./ConsecutiveMistakeLimitControl"
 import { BedrockCustomArn } from "./providers/BedrockCustomArn"
 import { JabberwockBalanceDisplay } from "./providers/JabberwockBalanceDisplay"
-import { buildDocLink } from "@src/utils/docLinks"
+import { buildDocLink } from "@src/features/settings/utils/docLinks"
 import { BookOpenText } from "lucide-react"
 
 export interface ApiOptionsProps {

@@ -1,3 +1,7 @@
+import { LRUCache } from "lru-cache"
+import { ReactNode } from "react"
+import { toJsxRuntime } from "hast-util-to-jsx-runtime"
+import { Fragment, jsx, jsxs } from "react/jsx-runtime"
 import {
 	createHighlighter,
 	type Highlighter,
@@ -147,16 +151,10 @@ export const getHighlighter = async (language?: string): Promise<Highlighter> =>
 		// Initialize highlighter if needed
 		if (!state.instanceInitPromise) {
 			state.instanceInitPromise = (async () => {
-				// const startTime = performance.now()
-				// console.debug("[Shiki] Initialization started...")
-
 				const instance = await createHighlighter({
 					themes: Object.keys(bundledThemes) as BundledTheme[],
 					langs: initialLanguages,
 				})
-
-				// const elapsed = Math.round(performance.now() - startTime)
-				// console.debug(`[Shiki] Initialization complete (${elapsed}ms)`)
 
 				state.instance = instance
 
@@ -176,7 +174,6 @@ export const getHighlighter = async (language?: string): Promise<Highlighter> =>
 			let loadingPromise = state.pendingLanguageLoads.get(shikilang)
 
 			if (!loadingPromise) {
-				// const loadStart = performance.now()
 				// Create new loading promise
 				loadingPromise = (async () => {
 					try {
@@ -187,9 +184,6 @@ export const getHighlighter = async (language?: string): Promise<Highlighter> =>
 
 						await instance.loadLanguage(shikilang as BundledLanguage)
 						state.loadedLanguages.add(shikilang)
-
-						// const loadTime = Math.round(performance.now() - loadStart)
-						// console.debug(`[Shiki] Loaded language ${shikilang} (${loadTime}ms)`)
 					} catch (error) {
 						console.error(`[Shiki] Failed to load language ${shikilang}:`, error)
 						throw error
@@ -210,5 +204,212 @@ export const getHighlighter = async (language?: string): Promise<Highlighter> =>
 	} catch (error) {
 		console.error("[Shiki] Error in getHighlighter:", error)
 		throw error
+	}
+}
+
+// ============================================================
+// Merged from highlight.ts
+// ============================================================
+
+// LRU cache for escapeHtml with reasonable size limit
+const escapeHtmlCache = new LRUCache<string, string>({ max: 500 })
+
+function escapeHtml(text: string): string {
+	// Check cache first
+	const cached = escapeHtmlCache.get(text)
+	if (cached !== undefined) {
+		return cached
+	}
+
+	// Compute escaped text
+	const escaped = text
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;")
+		.replace(/'/g, "&#39;")
+
+	// Cache the result
+	escapeHtmlCache.set(text, escaped)
+
+	return escaped
+}
+
+export function highlightFzfMatch(
+	text: string,
+	positions: number[],
+	highlightClassName: string = "history-item-highlight",
+) {
+	if (!positions.length) return text
+
+	const parts: { text: string; highlight: boolean }[] = []
+	let lastIndex = 0
+
+	// Sort positions to ensure we process them in order
+	positions.sort((a, b) => a - b)
+
+	positions.forEach((pos) => {
+		// Add non-highlighted text before this position
+		if (pos > lastIndex) {
+			parts.push({
+				text: text.substring(lastIndex, pos),
+				highlight: false,
+			})
+		}
+
+		// Add highlighted character
+		parts.push({
+			text: text[pos],
+			highlight: true,
+		})
+
+		lastIndex = pos + 1
+	})
+
+	// Add any remaining text
+	if (lastIndex < text.length) {
+		parts.push({
+			text: text.substring(lastIndex),
+			highlight: false,
+		})
+	}
+
+	// Build final string
+	return parts
+		.map((part) => {
+			const escapedText = escapeHtml(part.text)
+			return part.highlight ? `<span class="${highlightClassName}">${escapedText}</span>` : escapedText
+		})
+		.join("")
+}
+
+// ============================================================
+// Merged from highlightDiff.ts
+// ============================================================
+
+/**
+ * Highlight two pieces of code (old and new) in a single pass and return
+ * arrays of ReactNode representing each line
+ */
+export async function highlightHunks(
+	oldText: string,
+	newText: string,
+	lang: string,
+	theme: "light" | "dark",
+	_hunkIndex = 0,
+	_filePath?: string,
+): Promise<{ oldLines: ReactNode[]; newLines: ReactNode[] }> {
+	try {
+		const highlighter = await getHighlighter(lang)
+		const shikiTheme = theme === "light" ? "github-light" : "github-dark"
+
+		// Helper to highlight text and extract lines
+		const highlightAndExtractLines = (text: string): ReactNode[] => {
+			const textLines = text.split("\n")
+
+			if (!text.trim()) {
+				return textLines.map((line) => line || "")
+			}
+
+			try {
+				// Use Shiki's line transformer to get per-line highlighting
+				const hast: any = highlighter.codeToHast(text, {
+					lang,
+					theme: shikiTheme,
+					transformers: [
+						{
+							pre(node: any) {
+								node.properties.style = "padding:0;margin:0;background:none;"
+								return node
+							},
+							code(node: any) {
+								node.properties.class = `hljs language-${lang}`
+								return node
+							},
+							line(node: any, line: number) {
+								// Add a line marker to help with extraction
+								node.properties["data-line"] = line
+								return node
+							},
+						},
+					],
+				})
+
+				// Extract the <code> element's children (which should be line elements)
+				const codeEl = hast?.children?.[0]?.children?.[0]
+				if (!codeEl || !codeEl.children) {
+					return textLines.map((line) => line || "")
+				}
+
+				// Convert each line element to a ReactNode
+				const highlightedLines: ReactNode[] = []
+
+				for (const lineNode of codeEl.children) {
+					if (lineNode.tagName === "span" && lineNode.properties?.className?.includes("line")) {
+						// This is a line span from Shiki
+						const reactNode = toJsxRuntime(
+							{ type: "element", tagName: "span", properties: {}, children: lineNode.children || [] },
+							{ Fragment, jsx, jsxs },
+						)
+						highlightedLines.push(reactNode)
+					}
+				}
+
+				// If we didn't get the expected structure, fall back to simple approach
+				if (highlightedLines.length !== textLines.length) {
+					// For each line, highlight it individually (fallback)
+					return textLines.map((line) => {
+						if (!line.trim()) return line
+
+						try {
+							const lineHast: any = highlighter.codeToHast(line, {
+								lang,
+								theme: shikiTheme,
+								transformers: [
+									{
+										pre(node: any) {
+											node.properties.style = "padding:0;margin:0;background:none;"
+											return node
+										},
+										code(node: any) {
+											node.properties.class = `hljs language-${lang}`
+											return node
+										},
+									},
+								],
+							})
+
+							const lineCodeEl = lineHast?.children?.[0]?.children?.[0]
+							if (!lineCodeEl || !lineCodeEl.children) {
+								return line
+							}
+
+							return toJsxRuntime(
+								{ type: "element", tagName: "span", properties: {}, children: lineCodeEl.children },
+								{ Fragment, jsx, jsxs },
+							)
+						} catch {
+							return line
+						}
+					})
+				}
+
+				return highlightedLines
+			} catch {
+				return textLines.map((line) => line || "")
+			}
+		}
+
+		// Process both old and new text
+		const oldLines = highlightAndExtractLines(oldText)
+		const newLines = highlightAndExtractLines(newText)
+
+		return { oldLines, newLines }
+	} catch {
+		// Fallback to plain text on any error
+		return {
+			oldLines: oldText.split("\n").map((line) => line || ""),
+			newLines: newText.split("\n").map((line) => line || ""),
+		}
 	}
 }

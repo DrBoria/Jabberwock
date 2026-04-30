@@ -1,12 +1,12 @@
 import { useTranslation } from "react-i18next"
 
 import { render, screen, fireEvent, waitFor } from "@/utils/test-utils"
-import { vscode } from "@/utils/vscode"
+import { vscode } from "@/features/devtools/utils/vscode"
 
 import { ShareButton } from "../ShareButton"
 
 // Mock the vscode utility
-vi.mock("@/utils/vscode", () => ({
+vi.mock("@/features/devtools/utils/vscode", () => ({
 	vscode: {
 		postMessage: vi.fn(),
 	},
@@ -31,7 +31,7 @@ vi.mock("@/context/ExtensionStateContext", () => ({
 }))
 
 // Mock telemetry client
-vi.mock("@/utils/TelemetryClient", () => ({
+vi.mock("@/features/cloud/utils/TelemetryClient", () => ({
 	telemetryClient: {
 		capture: vi.fn(),
 	},

@@ -1,5 +1,5 @@
 import type { ClineAsk, ClineMessage, ExtensionMessage } from "@jabberwock/types"
-import { vscode } from "@src/utils/vscode"
+import { vscode } from "@src/features/devtools/utils/vscode"
 
 /**
  * ── Primary Button Click Handlers ───────────────────────────────

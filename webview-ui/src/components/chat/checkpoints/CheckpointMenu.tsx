@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next"
 import { Button, Popover, PopoverContent, PopoverTrigger, StandardTooltip } from "@/components/ui"
 import { useJabberwockPortal } from "@/components/ui/hooks"
 
-import { vscode } from "@src/utils/vscode"
+import { vscode } from "@src/features/devtools/utils/vscode"
 import { Checkpoint } from "./schema"
 
 type CheckpointMenuBaseProps = {

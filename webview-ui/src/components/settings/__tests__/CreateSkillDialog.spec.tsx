@@ -1,11 +1,11 @@
 import { render, screen, fireEvent, waitFor } from "@/utils/test-utils"
 
-import { vscode } from "@/utils/vscode"
+import { vscode } from "@/features/devtools/utils/vscode"
 
 import { CreateSkillDialog } from "../CreateSkillDialog"
 
 // Mock vscode
-vi.mock("@/utils/vscode", () => ({
+vi.mock("@/features/devtools/utils/vscode", () => ({
 	vscode: {
 		postMessage: vi.fn(),
 	},

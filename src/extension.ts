@@ -21,6 +21,7 @@ import type { CloudUserInfo, AuthState } from "@jabberwock/types"
 import { CloudService } from "@jabberwock/cloud"
 import { TelemetryService, PostHogTelemetryClient } from "@jabberwock/telemetry"
 import { customToolRegistry } from "@jabberwock/core"
+import { configure } from "mobx"
 
 import "./utils/path" // Necessary to have access to String.prototype.toPosix.
 import { createOutputChannelLogger, createDualLogger } from "./utils/outputChannelLogger"
@@ -118,6 +119,10 @@ async function checkWorktreeAutoOpen(
 // This method is called when your extension is activated.
 // Your extension is activated the very first time the command is executed.
 export async function activate(context: vscode.ExtensionContext) {
+	// Isolate MobX global state to prevent conflicts with other extensions
+	// that bundle their own MobX version (e.g., vsls-contrib.codetour).
+	configure({ isolateGlobalState: true })
+
 	extensionContext = context
 	outputChannel = vscode.window.createOutputChannel(Package.outputChannel)
 	context.subscriptions.push(outputChannel)

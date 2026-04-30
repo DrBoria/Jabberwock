@@ -1,36 +1,34 @@
 import { useQuery } from "@tanstack/react-query"
+import { onSnapshot } from "mobx-state-tree"
 
-import { type ModelRecord, type ExtensionMessage } from "@jabberwock/types"
+import { type ModelRecord } from "@jabberwock/types"
 
-import { vscode } from "@src/utils/vscode"
+import { vscode } from "@src/features/devtools/utils/vscode"
+import { routerModelsStore } from "@src/features/router-models/store"
 
 const getOllamaModels = async () =>
 	new Promise<ModelRecord>((resolve, reject) => {
-		const cleanup = () => {
-			window.removeEventListener("message", handler)
+		// Check the MST store first
+		const existing = routerModelsStore.ollamaModels
+		if (existing) {
+			resolve(existing)
+			return
 		}
 
+		// Subscribe to MST store changes
+		const unsubscribe = onSnapshot(routerModelsStore, (snapshot) => {
+			if (snapshot.ollamaModels) {
+				unsubscribe()
+				clearTimeout(timeout)
+				resolve(snapshot.ollamaModels)
+			}
+		})
+
 		const timeout = setTimeout(() => {
-			cleanup()
+			unsubscribe()
 			reject(new Error("Ollama models request timed out"))
 		}, 10000)
 
-		const handler = (event: MessageEvent) => {
-			const message: ExtensionMessage = event.data
-
-			if (message.type === "ollamaModels") {
-				clearTimeout(timeout)
-				cleanup()
-
-				if (message.ollamaModels) {
-					resolve(message.ollamaModels)
-				} else {
-					reject(new Error("No Ollama models in response"))
-				}
-			}
-		}
-
-		window.addEventListener("message", handler)
 		vscode.postMessage({ type: "requestOllamaModels" })
 	})
 

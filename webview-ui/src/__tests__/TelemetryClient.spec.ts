@@ -1,6 +1,6 @@
 import posthog from "posthog-js"
 
-import { telemetryClient } from "@src/utils/TelemetryClient"
+import { telemetryClient } from "@src/features/cloud/utils/TelemetryClient"
 
 vi.mock("posthog-js", () => ({
 	default: {

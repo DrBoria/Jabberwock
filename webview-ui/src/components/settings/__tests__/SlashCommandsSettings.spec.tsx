@@ -5,12 +5,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import type { Command } from "@jabberwock/types"
 
 import { ExtensionStateContextProvider } from "@/context/ExtensionStateContext"
-import { vscode } from "@/utils/vscode"
+import { vscode } from "@/features/devtools/utils/vscode"
 
 import { SlashCommandsSettings } from "../SlashCommandsSettings"
 
 // Mock vscode
-vi.mock("@/utils/vscode", () => ({
+vi.mock("@/features/devtools/utils/vscode", () => ({
 	vscode: {
 		postMessage: vi.fn(),
 	},
@@ -29,7 +29,7 @@ vi.mock("@/i18n/TranslationContext", () => ({
 }))
 
 // Mock the doc links utility
-vi.mock("@/utils/docLinks", () => ({
+vi.mock("@/features/settings/utils/docLinks", () => ({
 	buildDocLink: (path: string, anchor?: string) => `https://docs.example.com/${path}${anchor ? `#${anchor}` : ""}`,
 }))
 

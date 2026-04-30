@@ -1,14 +1,14 @@
 import { render, waitFor } from "@/utils/test-utils"
 import React from "react"
 
-vi.mock("@src/utils/vscode", () => ({
+vi.mock("@src/features/devtools/utils/vscode", () => ({
 	vscode: {
 		postMessage: vi.fn(),
 	},
 }))
 
 import { ExtensionStateContextProvider } from "@src/context/ExtensionStateContext"
-import { vscode } from "@src/utils/vscode"
+import { vscode } from "@src/features/devtools/utils/vscode"
 
 describe("ExtensionStateContext Jabberwock auth gate", () => {
 	beforeEach(() => {

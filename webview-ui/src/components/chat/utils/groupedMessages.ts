@@ -1,5 +1,5 @@
 import type { ClineMessage, ClineSayTool } from "@jabberwock/types"
-import { batchConsecutive } from "@src/utils/batchConsecutive"
+import { batchConsecutive } from "@src/features/foundation/utils/batchConsecutive"
 
 /**
  * Type guard: checks if a message is a "tool" ask for a specific tool type.

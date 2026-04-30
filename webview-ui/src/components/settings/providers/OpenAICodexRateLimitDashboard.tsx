@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from "react"
 import type { OpenAiCodexRateLimitInfo } from "@jabberwock/types"
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { vscode } from "@src/utils/vscode"
+import { vscode } from "@src/features/devtools/utils/vscode"
 
 interface OpenAICodexRateLimitDashboardProps {
 	isAuthenticated: boolean

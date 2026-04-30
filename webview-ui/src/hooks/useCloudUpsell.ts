@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from "react"
 import { TelemetryEventName } from "@jabberwock/types"
-import { vscode } from "@/utils/vscode"
-import { telemetryClient } from "@/utils/TelemetryClient"
+import { vscode } from "@/features/devtools/utils/vscode"
+import { telemetryClient } from "@/features/cloud/utils/TelemetryClient"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 
 interface UseCloudUpsellOptions {

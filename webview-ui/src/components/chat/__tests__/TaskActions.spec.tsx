@@ -1,9 +1,9 @@
 import type { HistoryItem } from "@jabberwock/types"
 
 import { render, screen, fireEvent } from "@/utils/test-utils"
-import { vscode } from "@/utils/vscode"
+import { vscode } from "@/features/devtools/utils/vscode"
 import { useExtensionState } from "@/context/ExtensionStateContext"
-import { useCopyToClipboard } from "@/utils/clipboard"
+import { useCopyToClipboard } from "@/features/chat/utils/clipboard"
 
 import { TaskActions } from "../TaskActions"
 
@@ -14,7 +14,7 @@ Object.defineProperty(Element.prototype, "scrollIntoView", {
 })
 
 // Mock the vscode utility
-vi.mock("@/utils/vscode", () => ({
+vi.mock("@/features/devtools/utils/vscode", () => ({
 	vscode: {
 		postMessage: vi.fn(),
 	},
@@ -26,7 +26,7 @@ vi.mock("@/context/ExtensionStateContext", () => ({
 }))
 
 // Mock the useCopyToClipboard hook
-vi.mock("@/utils/clipboard", () => ({
+vi.mock("@/features/chat/utils/clipboard", () => ({
 	useCopyToClipboard: vi.fn(),
 }))
 

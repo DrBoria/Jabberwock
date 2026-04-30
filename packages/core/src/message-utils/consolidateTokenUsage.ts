@@ -108,8 +108,8 @@ export function consolidateTokenUsage(messages: ClineMessage[]): TokenUsage {
  * @param snapshot - Previous snapshot to compare against
  * @returns true if any relevant property has changed or snapshot is undefined
  */
-export function hasTokenUsageChanged(current: TokenUsage, snapshot?: TokenUsage): boolean {
-	if (!snapshot) {
+export function hasTokenUsageChanged(current?: TokenUsage, snapshot?: TokenUsage): boolean {
+	if (!current || !snapshot) {
 		return true
 	}
 
@@ -131,11 +131,12 @@ export function hasTokenUsageChanged(current: TokenUsage, snapshot?: TokenUsage)
  * @param snapshot - Previous snapshot to compare against (undefined treated as empty)
  * @returns true if any tool's attempts/failures have changed between current and snapshot
  */
-export function hasToolUsageChanged(current: ToolUsage, snapshot?: ToolUsage): boolean {
-	// Treat undefined snapshot as empty object for consistent comparison
+export function hasToolUsageChanged(current?: ToolUsage, snapshot?: ToolUsage): boolean {
+	// Treat undefined values as empty objects for consistent comparison
+	const effectiveCurrent = current ?? {}
 	const effectiveSnapshot = snapshot ?? {}
 
-	const currentKeys = Object.keys(current) as ToolName[]
+	const currentKeys = Object.keys(effectiveCurrent) as ToolName[]
 	const snapshotKeys = Object.keys(effectiveSnapshot) as ToolName[]
 
 	// Check if number of tools changed
@@ -145,7 +146,7 @@ export function hasToolUsageChanged(current: ToolUsage, snapshot?: ToolUsage): b
 
 	// Check if any tool's stats changed
 	return currentKeys.some((key) => {
-		const currentTool = current[key]
+		const currentTool = effectiveCurrent[key]
 		const snapshotTool = effectiveSnapshot[key]
 
 		if (!snapshotTool || !currentTool) {

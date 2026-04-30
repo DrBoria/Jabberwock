@@ -4,7 +4,7 @@ import { TranslationProvider } from "@/i18n/__mocks__/TranslationContext"
 
 import { About } from "../About"
 
-vi.mock("@/utils/vscode", () => ({
+vi.mock("@/features/devtools/utils/vscode", () => ({
 	vscode: { postMessage: vi.fn() },
 }))
 

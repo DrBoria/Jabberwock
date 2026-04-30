@@ -6,7 +6,7 @@ import * as ExtensionStateContext from "@src/context/ExtensionStateContext"
 const { ExtensionStateContextProvider } = ExtensionStateContext
 
 import WelcomeViewProvider from "../WelcomeViewProvider"
-import { vscode } from "@src/utils/vscode"
+import { vscode } from "@src/features/devtools/utils/vscode"
 
 // Mock VSCode components
 vi.mock("@vscode/webview-ui-toolkit/react", () => ({
@@ -66,7 +66,7 @@ vi.mock("lucide-react", () => ({
 }))
 
 // Mock vscode utility
-vi.mock("@src/utils/vscode", () => ({
+vi.mock("@src/features/devtools/utils/vscode", () => ({
 	vscode: {
 		postMessage: vi.fn(),
 	},
@@ -89,7 +89,7 @@ vi.mock("@src/i18n/TranslationContext", () => ({
 }))
 
 // Mock buildDocLink
-vi.mock("@/utils/docLinks", () => ({
+vi.mock("@/features/settings/utils/docLinks", () => ({
 	buildDocLink: (path: string, source: string) => `https://docs.jabberwock.com/${path}?utm_source=${source}`,
 }))
 

@@ -3,7 +3,7 @@ import type { ClineMessage } from "@jabberwock/types"
 import { safeJsonParse } from "@shared/core"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { getAllModes } from "@shared/modes"
-import { vscode } from "@src/utils/vscode"
+import { vscode } from "@src/features/devtools/utils/vscode"
 import { McpIframeRenderer } from "../../../../features/mcp-apps/McpIframeRenderer"
 import { Container } from "@src/components/ui"
 

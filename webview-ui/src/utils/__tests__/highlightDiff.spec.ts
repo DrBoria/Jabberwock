@@ -1,4 +1,4 @@
-import { highlightHunks } from "../highlightDiff"
+import { highlightHunks } from "../highlighter"
 import { getHighlighter } from "../highlighter"
 
 // Mock the highlighter

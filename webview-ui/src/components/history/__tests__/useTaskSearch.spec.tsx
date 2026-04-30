@@ -8,7 +8,7 @@ vi.mock("@/context/ExtensionStateContext", () => ({
 	useExtensionState: vi.fn(),
 }))
 
-vi.mock("@/utils/highlight", () => ({
+vi.mock("@src/utils/highlighter", () => ({
 	highlightFzfMatch: vi.fn((text) => `<mark>${text}</mark>`),
 }))
 

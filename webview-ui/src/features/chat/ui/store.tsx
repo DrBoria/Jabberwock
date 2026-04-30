@@ -1,3 +1,4 @@
+import React, { createContext, useContext } from "react"
 import { types, Instance } from "mobx-state-tree"
 
 /**
@@ -132,3 +133,19 @@ export const ChatUIStore = types
 export type IChatUIStore = Instance<typeof ChatUIStore>
 
 export const chatUIStore = ChatUIStore.create({})
+
+// ── React Context bridge ──
+
+const ChatUIContext = createContext<IChatUIStore | undefined>(undefined)
+
+export const ChatUIProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+	return <ChatUIContext.Provider value={chatUIStore}>{children}</ChatUIContext.Provider>
+}
+
+export const useChatUI = (): IChatUIStore => {
+	const context = useContext(ChatUIContext)
+	if (context === undefined) {
+		throw new Error("useChatUI must be used within a ChatUIProvider")
+	}
+	return context
+}

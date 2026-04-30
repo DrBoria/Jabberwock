@@ -4,13 +4,13 @@ import * as Collapsible from "@radix-ui/react-collapsible"
 import { ChevronRight, ChevronDown, Bot, ListTree, X } from "lucide-react"
 import { cn } from "../../lib/utils"
 
-import { useChatTree } from "../../context/ChatTreeContext"
+import { useChatTree } from "../../features/chat/tree/store"
 import { useExtensionState } from "../../context/ExtensionStateContext"
-import { useWindowManager } from "../../context/WindowManagerContext"
+import { useWindowManager } from "../../features/foundation/window-manager/store"
 import ChatRow from "./ChatRow"
 import { ClineMessage } from "@jabberwock/types"
 import { Instance } from "mobx-state-tree"
-import { TaskNode } from "../../state/ChatTreeStore"
+import { TaskNode } from "../../features/chat/tree/store"
 
 type TaskNodeType = Instance<typeof TaskNode>
 

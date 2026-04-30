@@ -4,14 +4,14 @@ import { MarketplaceItem } from "@jabberwock/types"
 
 import { MarketplaceInstallModal } from "../MarketplaceInstallModal"
 
-vi.mock("@/utils/vscode", () => ({
+vi.mock("@/features/devtools/utils/vscode", () => ({
 	vscode: {
 		postMessage: vi.fn(),
 	},
 }))
 
 // Import the mocked vscode after setting up the mock
-import { vscode } from "@/utils/vscode"
+import { vscode } from "@/features/devtools/utils/vscode"
 const mockedVscode = vscode as any
 
 // Mock the translation hook

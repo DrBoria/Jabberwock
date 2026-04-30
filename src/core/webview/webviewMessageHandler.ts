@@ -534,28 +534,22 @@ export const webviewMessageHandler = async (
 		}
 	}
 
-	switch (message.type) {
-		case "devtoolStatus":
-			{
-				const config = vscode.workspace.getConfiguration(Package.name)
-				const current = config.get<boolean>("devtool", false)
-				await config.update("devtool", !current, vscode.ConfigurationTarget.Global)
-			}
-			break
-		case "clearDiagnostics":
-			{
-				const { diagnosticsManager } = await import("../devtools/DiagnosticsManager")
-				diagnosticsManager.clear()
-				await provider.postDiagnosticsToWebview()
-			}
-			break
-		case "webviewLog":
-			{
-				const { diagnosticsManager } = await import("../devtools/DiagnosticsManager")
-				diagnosticsManager.log(message.text || "")
-			}
-			break
-		case "domResponse":
+	const messageHandlers: Record<string, (message: WebviewMessage) => Promise<void>> = {
+		devtoolStatus: async (message) => {
+			const config = vscode.workspace.getConfiguration(Package.name)
+			const current = config.get<boolean>("devtool", false)
+			await config.update("devtool", !current, vscode.ConfigurationTarget.Global)
+		},
+		clearDiagnostics: async (message) => {
+			const { diagnosticsManager } = await import("../devtools/DiagnosticsManager")
+			diagnosticsManager.clear()
+			await provider.postDiagnosticsToWebview()
+		},
+		webviewLog: async (message) => {
+			const { diagnosticsManager } = await import("../devtools/DiagnosticsManager")
+			diagnosticsManager.log(message.text || "")
+		},
+		domResponse: async (message) => {
 			if (message.requestId && message.text) {
 				console.log(
 					`[DEBUG: DOM] Extension: Received domResponse for ${message.requestId} (size: ${message.text.length})`,
@@ -566,14 +560,14 @@ export const webviewMessageHandler = async (
 					`[DEBUG: DOM] Extension: Received invalid domResponse (req: ${message.requestId}, hasText: ${!!message.text})`,
 				)
 			}
-			break
-		case "webviewError":
+		},
+		webviewError: async (message) => {
 			if (message.text) {
 				const { diagnosticsManager } = await import("../devtools/DiagnosticsManager")
 				diagnosticsManager.log(`[WEBVIEW_ERROR] ${message.text}`, "error")
 				vscode.window.showErrorMessage(`Webview Error: ${message.text}`)
 			}
-			break
+		},
 
 		// case "mstPatch":
 		// 	{
@@ -581,7 +575,7 @@ export const webviewMessageHandler = async (
 		// 		diagnosticsManager.log(`[MST_PATCH] ${message.text || ""}`, "debug")
 		// 	}
 		// 	break
-		case "LOCATOR_OPEN_FILE":
+		LOCATOR_OPEN_FILE: async (message) => {
 			if (message.locatorPayload) {
 				const { filePath, line, column } = message.locatorPayload
 				const globalSettings = provider.contextProxy.getValues()
@@ -609,8 +603,8 @@ export const webviewMessageHandler = async (
 					)
 				}
 			}
-			break
-		case "webviewDidLaunch":
+		},
+		webviewDidLaunch: async (message) => {
 			// Load custom modes first
 			const customModes = await provider.customModesManager.getCustomModes()
 			await updateGlobalState("customModes", customModes)
@@ -625,7 +619,10 @@ export const webviewMessageHandler = async (
 			const mcpHub = provider.getMcpHub()
 
 			if (mcpHub) {
-				provider.postMessageToWebview({ type: "mcpServers", mcpServers: mcpHub.getAllServers() })
+				const servers = mcpHub.getAllServers()
+				provider.postMessageToWebview({ type: "mcpServers", mcpServers: servers })
+				// Dual-write: MST store
+				provider.mcpServersStore?.setServers(servers)
 			}
 
 			provider.providerSettingsManager
@@ -674,6 +671,7 @@ export const webviewMessageHandler = async (
 						await updateGlobalState("listApiConfigMeta", listApiConfig),
 						await provider.postMessageToWebview({ type: "listApiConfig", listApiConfig }),
 					])
+					provider.listApiConfigStore?.setListApiConfig(listApiConfig)
 				})
 				.catch((error) =>
 					provider.log(
@@ -689,8 +687,8 @@ export const webviewMessageHandler = async (
 			})
 
 			provider.isViewLaunched = true
-			break
-		case "newTask":
+		},
+		newTask: async (message) => {
 			// Initializing new instance of Cline will make sure that any
 			// agentically running promises in old instance don't affect our new
 			// task. This essentially creates a fresh slate for the new task.
@@ -713,27 +711,21 @@ export const webviewMessageHandler = async (
 					`Failed to create task: ${error instanceof Error ? error.message : String(error)}`,
 				)
 			}
-			break
-		case "customInstructions":
+		},
+		customInstructions: async (message) => {
 			await provider.updateCustomInstructions(message.text)
-			break
-
-		case "askResponse":
-			{
-				const resolved = await resolveIncomingImages({ text: message.text, images: message.images })
-				provider
-					.getCurrentTask()
-					?.handleWebviewAskResponse(message.askResponse!, resolved.text, resolved.images)
-			}
-			break
-
-		case "elicitationResponse":
+		},
+		askResponse: async (message) => {
+			const resolved = await resolveIncomingImages({ text: message.text, images: message.images })
+			provider.getCurrentTask()?.handleWebviewAskResponse(message.askResponse!, resolved.text, resolved.images)
+		},
+		elicitationResponse: async (message) => {
 			if (message.values) {
 				provider.getCurrentTask()?.resolveElicitation(message.values)
 			}
-			break
+		},
 
-		case "updateSettings":
+		updateSettings: async (message) => {
 			if (message.updatedSettings) {
 				for (const [key, value] of Object.entries(message.updatedSettings)) {
 					let newValue = value
@@ -828,27 +820,26 @@ export const webviewMessageHandler = async (
 
 				await provider.postStateToWebview()
 			}
+		},
 
-			break
-
-		case "terminalOperation":
+		terminalOperation: async (message) => {
 			if (message.terminalOperation) {
 				provider.getCurrentTask()?.handleTerminalOperation(message.terminalOperation)
 			}
-			break
-		case "clearTask":
+		},
+		clearTask: async (message) => {
 			// Clear task resets the current session. Delegation flows are
 			// handled via metadata; parent resumption occurs through
 			// reopenParentFromDelegation, not via finishSubTask.
 			await provider.clearTask()
 			await provider.postMessageToWebview({ type: "invoke", invoke: "newChat" })
 			await provider.postStateToWebview()
-			break
-		case "didShowAnnouncement":
+		},
+		didShowAnnouncement: async (message) => {
 			await updateGlobalState("lastShownAnnouncementId", provider.latestAnnouncementId)
 			await provider.postStateToWebview()
-			break
-		case "selectImages":
+		},
+		selectImages: async (message) => {
 			const images = await selectImages()
 			await provider.postMessageToWebview({
 				type: "selectedImages",
@@ -856,20 +847,20 @@ export const webviewMessageHandler = async (
 				context: message.context,
 				messageTs: message.messageTs,
 			})
-			break
-		case "exportCurrentTask":
+		},
+		exportCurrentTask: async (message) => {
 			const currentTaskId = provider.getCurrentTask()?.taskId
 			if (currentTaskId) {
 				provider.exportTaskWithId(currentTaskId)
 			}
-			break
-		case "shareCurrentTask":
+		},
+		shareCurrentTask: async (message) => {
 			const shareTaskId = provider.getCurrentTask()?.taskId
 			const clineMessages = provider.getCurrentTask()?.clineMessages
 
 			if (!shareTaskId) {
 				vscode.window.showErrorMessage(t("common:errors.share_no_active_task"))
-				break
+				return
 			}
 
 			try {
@@ -907,17 +898,17 @@ export const webviewMessageHandler = async (
 				provider.log(`[shareCurrentTask] Unexpected error: ${error}`)
 				vscode.window.showErrorMessage(t("common:errors.share_task_failed"))
 			}
-			break
-		case "showTaskWithId":
+		},
+		showTaskWithId: async (message) => {
 			provider.showTaskWithId(message.text!)
-			break
-		case "condenseTaskContextRequest":
+		},
+		condenseTaskContextRequest: async (message) => {
 			provider.condenseTaskContext(message.text!)
-			break
-		case "deleteTaskWithId":
+		},
+		deleteTaskWithId: async (message) => {
 			provider.deleteTaskWithId(message.text!)
-			break
-		case "deleteMultipleTasksWithIds": {
+		},
+		deleteMultipleTasksWithIds: async (message) => {
 			const ids = message.ids
 
 			if (Array.isArray(ids)) {
@@ -959,12 +950,11 @@ export const webviewMessageHandler = async (
 					`Batch deletion completed: ${successCount}/${ids.length} tasks successful, ${failCount} tasks failed`,
 				)
 			}
-			break
-		}
-		case "exportTaskWithId":
+		},
+		exportTaskWithId: async (message) => {
 			provider.exportTaskWithId(message.text!)
-			break
-		case "getTaskWithAggregatedCosts": {
+		},
+		getTaskWithAggregatedCosts: async (message) => {
 			try {
 				const taskId = message.text
 				if (!taskId) {
@@ -988,35 +978,31 @@ export const webviewMessageHandler = async (
 					error: error instanceof Error ? error.message : String(error),
 				})
 			}
-			break
-		}
-		case "importSettings": {
+		},
+		importSettings: async (message) => {
 			await importSettingsWithFeedback({
 				providerSettingsManager: provider.providerSettingsManager,
 				contextProxy: provider.contextProxy,
 				customModesManager: provider.customModesManager,
 				provider: provider,
 			})
-
-			break
-		}
-		case "exportSettings":
+		},
+		exportSettings: async (message) => {
 			await exportSettings({
 				providerSettingsManager: provider.providerSettingsManager,
 				contextProxy: provider.contextProxy,
 			})
-
-			break
-		case "resetState":
+		},
+		resetState: async (message) => {
 			await provider.resetState()
-			break
-		case "flushRouterModels":
+		},
+		flushRouterModels: async (message) => {
 			const routerNameFlush: RouterName = toRouterName(message.text)
 			// Note: flushRouterModels is a generic flush without credentials
 			// For providers that need credentials, use their specific handlers
 			await flushModels({ provider: routerNameFlush } as GetModelsOptions, true)
-			break
-		case "requestRouterModels":
+		},
+		requestRouterModels: async (message) => {
 			const { apiConfiguration } = await provider.getState()
 
 			// Optional single provider filter from webview
@@ -1146,8 +1132,9 @@ export const webviewMessageHandler = async (
 				routerModels,
 				values: providerFilter ? { provider: requestedProvider } : undefined,
 			})
-			break
-		case "requestOllamaModels": {
+			provider.routerModelsStore?.setRouterModels(routerModels)
+		},
+		requestOllamaModels: async (message) => {
 			// Specific handler for Ollama models only.
 			const { apiConfiguration: ollamaApiConfig } = await provider.getState()
 			try {
@@ -1163,14 +1150,14 @@ export const webviewMessageHandler = async (
 
 				if (Object.keys(ollamaModels).length > 0) {
 					provider.postMessageToWebview({ type: "ollamaModels", ollamaModels: ollamaModels })
+					provider.routerModelsStore?.setOllamaModels(ollamaModels)
 				}
 			} catch (error) {
 				// Silently fail - user hasn't configured Ollama yet
 				console.debug("Ollama models fetch failed:", error)
 			}
-			break
-		}
-		case "requestLmStudioModels": {
+		},
+		requestLmStudioModels: async (message) => {
 			// Specific handler for LM Studio models only.
 			const { apiConfiguration: lmStudioApiConfig } = await provider.getState()
 			try {
@@ -1188,14 +1175,14 @@ export const webviewMessageHandler = async (
 						type: "lmStudioModels",
 						lmStudioModels: lmStudioModels,
 					})
+					provider.routerModelsStore?.setLmStudioModels(lmStudioModels)
 				}
 			} catch (error) {
 				// Silently fail - user hasn't configured LM Studio yet.
 				console.debug("LM Studio models fetch failed:", error)
 			}
-			break
-		}
-		case "requestRooModels": {
+		},
+		requestRooModels: async (message) => {
 			// Specific handler for Jabberwock models only - flushes cache to ensure fresh auth token is used
 			try {
 				const rooOptions = {
@@ -1226,9 +1213,8 @@ export const webviewMessageHandler = async (
 					values: { provider: "jabberwock" },
 				})
 			}
-			break
-		}
-		case "requestRooCreditBalance": {
+		},
+		requestRooCreditBalance: async (message) => {
 			// Fetch Jabberwock credit balance using CloudAPI
 			const requestId = message.requestId
 			try {
@@ -1251,9 +1237,8 @@ export const webviewMessageHandler = async (
 					values: { error: errorMessage },
 				})
 			}
-			break
-		}
-		case "requestOpenAiModels":
+		},
+		requestOpenAiModels: async (message) => {
 			if (message?.values?.baseUrl && message?.values?.apiKey) {
 				const openAiModels = await getOpenAiModels(
 					message?.values?.baseUrl,
@@ -1262,24 +1247,25 @@ export const webviewMessageHandler = async (
 				)
 
 				provider.postMessageToWebview({ type: "openAiModels", openAiModels })
+				provider.routerModelsStore?.setOpenAiModels(openAiModels)
 			}
-
-			break
-		case "requestVsCodeLmModels":
+		},
+		requestVsCodeLmModels: async (message) => {
 			const vsCodeLmModels = await getVsCodeLmModels()
 			// TODO: Cache like we do for OpenRouter, etc?
 			provider.postMessageToWebview({ type: "vsCodeLmModels", vsCodeLmModels })
-			break
-		case "openImage":
+			provider.routerModelsStore?.setVsCodeLmModels(vsCodeLmModels)
+		},
+		openImage: async (message) => {
 			openImage(message.text!, { values: message.values })
-			break
-		case "saveImage":
+		},
+		saveImage: async (message) => {
 			if (message.dataUri) {
 				const matches = message.dataUri.match(/^data:image\/([a-zA-Z]+);base64,(.+)$/)
 				if (!matches) {
 					// Let saveImage handle invalid URI error
 					saveImage(message.dataUri, vscode.Uri.file(""))
-					break
+					return
 				}
 				const format = matches[1]
 				const defaultFileName = `img_${Date.now()}.${format}`
@@ -1300,22 +1286,22 @@ export const webviewMessageHandler = async (
 					await saveLastExportPath(provider.contextProxy, "lastImageSavePath", savedUri)
 				}
 			}
-			break
-		case "openFile":
+		},
+		openFile: async (message) => {
 			let filePath: string = message.text!
 			if (!path.isAbsolute(filePath)) {
 				filePath = path.join(getCurrentCwd(), filePath)
 			}
 			openFile(filePath, message.values as { create?: boolean; content?: string; line?: number })
-			break
-		case "readFileContent": {
+		},
+		readFileContent: async (message) => {
 			const relPath = message.text || ""
 			if (!relPath) {
 				provider.postMessageToWebview({
 					type: "fileContent",
 					fileContent: { path: relPath, content: null, error: "No path provided" },
 				})
-				break
+				return
 			}
 			try {
 				const cwd = getCurrentCwd()
@@ -1324,7 +1310,7 @@ export const webviewMessageHandler = async (
 						type: "fileContent",
 						fileContent: { path: relPath, content: null, error: "No workspace path available" },
 					})
-					break
+					return
 				}
 				const absPath = path.resolve(cwd, relPath)
 				// Workspace-boundary validation: prevent path traversal attacks
@@ -1333,7 +1319,7 @@ export const webviewMessageHandler = async (
 						type: "fileContent",
 						fileContent: { path: relPath, content: null, error: "Path is outside workspace" },
 					})
-					break
+					return
 				}
 				const content = await fs.readFile(absPath, "utf-8")
 				provider.postMessageToWebview({ type: "fileContent", fileContent: { path: relPath, content } })
@@ -1344,17 +1330,16 @@ export const webviewMessageHandler = async (
 					fileContent: { path: relPath, content: null, error: errorMsg },
 				})
 			}
-			break
-		}
-		case "openMention":
+		},
+		openMention: async (message) => {
 			openMention(getCurrentCwd(), message.text)
-			break
-		case "openExternal":
+		},
+		openExternal: async (message) => {
 			if (message.url) {
 				vscode.env.openExternal(vscode.Uri.parse(message.url))
 			}
-			break
-		case "checkpointDiff":
+		},
+		checkpointDiff: async (message) => {
 			const result = checkoutDiffPayloadSchema.safeParse(message.payload)
 
 			if (result.success) {
@@ -1365,9 +1350,8 @@ export const webviewMessageHandler = async (
 					previousCommitHash: result.data.previousCommitHash,
 				})
 			}
-
-			break
-		case "checkpointRestore": {
+		},
+		checkpointRestore: async (message) => {
 			const result = checkoutRestorePayloadSchema.safeParse(message.payload)
 
 			if (result.success) {
@@ -1389,17 +1373,15 @@ export const webviewMessageHandler = async (
 					vscode.window.showErrorMessage(t("common:errors.checkpoint_failed"))
 				}
 			}
-
-			break
-		}
-		case "cancelTask":
+		},
+		cancelTask: async (message) => {
 			await provider.cancelTask()
-			break
-		case "cancelAutoApproval":
+		},
+		cancelAutoApproval: async (message) => {
 			// Cancel any pending auto-approval timeout for the current task
 			provider.getCurrentTask()?.cancelAutoApprovalTimeout()
-			break
-		case "allowedCommands": {
+		},
+		allowedCommands: async (message) => {
 			// Validate and sanitize the commands array
 			const commands = message.commands ?? []
 			const validCommands = Array.isArray(commands)
@@ -1412,10 +1394,8 @@ export const webviewMessageHandler = async (
 			await vscode.workspace
 				.getConfiguration(Package.name)
 				.update("allowedCommands", validCommands, vscode.ConfigurationTarget.Global)
-
-			break
-		}
-		case "deniedCommands": {
+		},
+		deniedCommands: async (message) => {
 			// Validate and sanitize the commands array
 			const commands = message.commands ?? []
 			const validCommands = Array.isArray(commands)
@@ -1428,19 +1408,15 @@ export const webviewMessageHandler = async (
 			await vscode.workspace
 				.getConfiguration(Package.name)
 				.update("deniedCommands", validCommands, vscode.ConfigurationTarget.Global)
-
-			break
-		}
-		case "openCustomModesSettings": {
+		},
+		openCustomModesSettings: async (message) => {
 			const customModesFilePath = await provider.customModesManager.getCustomModesFilePath()
 
 			if (customModesFilePath) {
 				openFile(customModesFilePath)
 			}
-
-			break
-		}
-		case "openKeyboardShortcuts": {
+		},
+		openKeyboardShortcuts: async (message) => {
 			// Open VSCode keyboard shortcuts settings and optionally filter to show the Jabberwock commands
 			const searchQuery = message.text || ""
 			if (searchQuery) {
@@ -1450,18 +1426,15 @@ export const webviewMessageHandler = async (
 				// Just open the keyboard shortcuts settings
 				await vscode.commands.executeCommand("workbench.action.openGlobalKeybindings")
 			}
-			break
-		}
-		case "openMcpSettings": {
+		},
+		openMcpSettings: async (message) => {
 			const mcpSettingsFilePath = await provider.getMcpHub()?.getMcpSettingsFilePath()
 
 			if (mcpSettingsFilePath) {
 				openFile(mcpSettingsFilePath)
 			}
-
-			break
-		}
-		case "openProjectMcpSettings": {
+		},
+		openProjectMcpSettings: async (message) => {
 			if (!vscode.workspace.workspaceFolders?.length) {
 				vscode.window.showErrorMessage(t("common:errors.no_workspace"))
 				return
@@ -1483,12 +1456,10 @@ export const webviewMessageHandler = async (
 			} catch (error) {
 				vscode.window.showErrorMessage(t("mcp:errors.create_json", { error: `${error}` }))
 			}
-
-			break
-		}
-		case "deleteMcpServer": {
+		},
+		deleteMcpServer: async (message) => {
 			if (!message.serverName) {
-				break
+				return
 			}
 
 			try {
@@ -1503,9 +1474,8 @@ export const webviewMessageHandler = async (
 				provider.log(`Failed to delete MCP server: ${errorMessage}`)
 				// Error messages are already handled by McpHub.deleteServer
 			}
-			break
-		}
-		case "restartMcpServer": {
+		},
+		restartMcpServer: async (message) => {
 			try {
 				await provider.getMcpHub()?.restartConnection(message.text!, message.source as "global" | "project")
 			} catch (error) {
@@ -1513,9 +1483,8 @@ export const webviewMessageHandler = async (
 					`Failed to retry connection for ${message.text}: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`,
 				)
 			}
-			break
-		}
-		case "toggleToolAlwaysAllow": {
+		},
+		toggleToolAlwaysAllow: async (message) => {
 			try {
 				await provider
 					.getMcpHub()
@@ -1530,9 +1499,8 @@ export const webviewMessageHandler = async (
 					`Failed to toggle auto-approve for tool ${message.toolName}: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`,
 				)
 			}
-			break
-		}
-		case "toggleToolEnabledForPrompt": {
+		},
+		toggleToolEnabledForPrompt: async (message) => {
 			try {
 				await provider
 					.getMcpHub()
@@ -1547,9 +1515,8 @@ export const webviewMessageHandler = async (
 					`Failed to toggle enabled for prompt for tool ${message.toolName}: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`,
 				)
 			}
-			break
-		}
-		case "toggleMcpServer": {
+		},
+		toggleMcpServer: async (message) => {
 			try {
 				await provider
 					.getMcpHub()
@@ -1563,9 +1530,8 @@ export const webviewMessageHandler = async (
 					`Failed to toggle MCP server ${message.serverName}: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`,
 				)
 			}
-			break
-		}
-		case "taskSyncEnabled":
+		},
+		taskSyncEnabled: async (message) => {
 			const enabled = message.bool ?? false
 			const updatedSettings: Partial<UserSettingsConfig> = { taskSyncEnabled: enabled }
 
@@ -1574,53 +1540,49 @@ export const webviewMessageHandler = async (
 			} catch (error) {
 				provider.log(`Failed to update cloud settings for task sync: ${error}`)
 			}
+		},
 
-			break
-
-		case "refreshAllMcpServers": {
+		refreshAllMcpServers: async (message) => {
 			const mcpHub = provider.getMcpHub()
 
 			if (mcpHub) {
 				await mcpHub.refreshAllConnections()
 			}
+		},
 
-			break
-		}
-
-		case "locatorTarget":
+		locatorTarget: async (message) => {
 			if (message.text) {
 				const target = message.text as string
 				await provider.contextProxy.setValue("locatorTarget", target)
 				await provider.postStateToWebview()
 			}
-			break
+		},
 
-		case "ttsEnabled":
+		ttsEnabled: async (message) => {
 			const ttsEnabled = message.bool ?? true
 			await updateGlobalState("ttsEnabled", ttsEnabled)
 			setTtsEnabled(ttsEnabled)
 			await provider.postStateToWebview()
-			break
-		case "ttsSpeed":
+		},
+		ttsSpeed: async (message) => {
 			const ttsSpeed = message.value ?? 1.0
 			await updateGlobalState("ttsSpeed", ttsSpeed)
 			setTtsSpeed(ttsSpeed)
 			await provider.postStateToWebview()
-			break
-		case "playTts":
+		},
+		playTts: async (message) => {
 			if (message.text) {
 				playTts(message.text, {
 					onStart: () => provider.postMessageToWebview({ type: "ttsStart", text: message.text }),
 					onStop: () => provider.postMessageToWebview({ type: "ttsStop", text: message.text }),
 				})
 			}
-
-			break
-		case "stopTts":
+		},
+		stopTts: async (message) => {
 			stopTts()
-			break
+		},
 
-		case "updateVSCodeSetting": {
+		updateVSCodeSetting: async (message) => {
 			const { setting, value } = message
 
 			if (setting !== undefined && value !== undefined) {
@@ -1630,10 +1592,8 @@ export const webviewMessageHandler = async (
 					vscode.window.showErrorMessage(`Cannot update restricted VSCode setting: ${setting}`)
 				}
 			}
-
-			break
-		}
-		case "getVSCodeSetting":
+		},
+		getVSCodeSetting: async (message) => {
 			const { setting } = message
 
 			if (setting) {
@@ -1654,13 +1614,12 @@ export const webviewMessageHandler = async (
 					})
 				}
 			}
+		},
 
-			break
-
-		case "mode":
+		mode: async (message) => {
 			await provider.handleModeSwitch(message.text as Mode)
-			break
-		case "updatePrompt":
+		},
+		updatePrompt: async (message) => {
 			if (message.promptMode && message.customPrompt !== undefined) {
 				const existingPrompts = getGlobalState("customModePrompts") ?? {}
 				const updatedPrompts = { ...existingPrompts, [message.promptMode]: message.customPrompt }
@@ -1688,8 +1647,8 @@ export const webviewMessageHandler = async (
 					}
 				}
 			}
-			break
-		case "updateSystemPromptTemplate":
+		},
+		updateSystemPromptTemplate: async (message) => {
 			if (message.systemPromptTemplateKey !== undefined) {
 				const existingTemplates = getGlobalState("systemPromptTemplates") ?? {}
 				const updatedTemplates = { ...existingTemplates }
@@ -1709,22 +1668,21 @@ export const webviewMessageHandler = async (
 				}
 				provider.postMessageToWebview({ type: "state", state: stateWithTemplates })
 			}
-			break
-		case "deleteMessage": {
+		},
+		deleteMessage: async (message) => {
 			if (!provider.getCurrentTask()) {
 				await vscode.window.showErrorMessage(t("common:errors.message.no_active_task_to_delete"))
-				break
+				return
 			}
 
 			if (typeof message.value !== "number" || !message.value) {
 				await vscode.window.showErrorMessage(t("common:errors.message.invalid_timestamp_for_deletion"))
-				break
+				return
 			}
 
 			await handleMessageModificationsOperation(message.value, "delete")
-			break
-		}
-		case "submitEditedMessage": {
+		},
+		submitEditedMessage: async (message) => {
 			if (
 				provider.getCurrentTask() &&
 				typeof message.value === "number" &&
@@ -1738,23 +1696,21 @@ export const webviewMessageHandler = async (
 					message.images,
 				)
 			}
-			break
-		}
+		},
 
-		case "hasOpenedModeSelector":
+		hasOpenedModeSelector: async (message) => {
 			await updateGlobalState("hasOpenedModeSelector", message.bool ?? true)
 			await provider.postStateToWebview()
-			break
+		},
 
-		case "lockApiConfigAcrossModes": {
+		lockApiConfigAcrossModes: async (message) => {
 			const enabled = message.bool ?? false
 			await provider.context.workspaceState.update("lockApiConfigAcrossModes", enabled)
 
 			await provider.postStateToWebview()
-			break
-		}
+		},
 
-		case "toggleApiConfigPin":
+		toggleApiConfigPin: async (message) => {
 			if (message.text) {
 				const currentPinned = getGlobalState("pinnedApiConfigs") ?? {}
 				const updatedPinned: Record<string, boolean> = { ...currentPinned }
@@ -1768,17 +1724,17 @@ export const webviewMessageHandler = async (
 				await updateGlobalState("pinnedApiConfigs", updatedPinned)
 				await provider.postStateToWebview()
 			}
-			break
-		case "enhancementApiConfigId":
+		},
+		enhancementApiConfigId: async (message) => {
 			await updateGlobalState("enhancementApiConfigId", message.text)
 			await provider.postStateToWebview()
-			break
+		},
 
-		case "autoApprovalEnabled":
+		autoApprovalEnabled: async (message) => {
 			await updateGlobalState("autoApprovalEnabled", message.bool ?? false)
 			await provider.postStateToWebview()
-			break
-		case "enhancePrompt":
+		},
+		enhancePrompt: async (message) => {
 			if (message.text) {
 				try {
 					const state = await provider.getState()
@@ -1822,8 +1778,8 @@ export const webviewMessageHandler = async (
 					await provider.postMessageToWebview({ type: "enhancedPrompt" })
 				}
 			}
-			break
-		case "getSystemPrompt":
+		},
+		getSystemPrompt: async (message) => {
 			try {
 				const systemPrompt = await generateSystemPrompt(provider, message)
 
@@ -1838,8 +1794,8 @@ export const webviewMessageHandler = async (
 				)
 				vscode.window.showErrorMessage(t("common:errors.get_system_prompt"))
 			}
-			break
-		case "copySystemPrompt":
+		},
+		copySystemPrompt: async (message) => {
 			try {
 				const systemPrompt = await generateSystemPrompt(provider, message)
 
@@ -1851,8 +1807,8 @@ export const webviewMessageHandler = async (
 				)
 				vscode.window.showErrorMessage(t("common:errors.get_system_prompt"))
 			}
-			break
-		case "searchCommits": {
+		},
+		searchCommits: async (message) => {
 			const cwd = getCurrentCwd()
 			if (cwd) {
 				try {
@@ -1868,9 +1824,8 @@ export const webviewMessageHandler = async (
 					vscode.window.showErrorMessage(t("common:errors.search_commits"))
 				}
 			}
-			break
-		}
-		case "searchFiles": {
+		},
+		searchFiles: async (message) => {
 			const workspacePath = getCurrentCwd()
 
 			if (!workspacePath) {
@@ -1881,7 +1836,7 @@ export const webviewMessageHandler = async (
 					requestId: message.requestId,
 					error: "No workspace path available",
 				})
-				break
+				return
 			}
 			try {
 				// Call file search service with query from message
@@ -1935,17 +1890,15 @@ export const webviewMessageHandler = async (
 					requestId: message.requestId,
 				})
 			}
-			break
-		}
-		case "updateTodoList": {
+		},
+		updateTodoList: async (message) => {
 			const payload = message.payload as { todos?: any[] }
 			const todos = payload?.todos
 			if (Array.isArray(todos)) {
 				await setPendingTodoList(todos)
 			}
-			break
-		}
-		case "refreshCustomTools": {
+		},
+		refreshCustomTools: async (message) => {
 			try {
 				const toolDirs = getRooDirectoriesForCwd(getCurrentCwd()).map((dir) => path.join(dir, "tools"))
 				await customToolRegistry.loadFromDirectories(toolDirs)
@@ -1961,10 +1914,8 @@ export const webviewMessageHandler = async (
 					error: error instanceof Error ? error.message : String(error),
 				})
 			}
-
-			break
-		}
-		case "saveApiConfiguration":
+		},
+		saveApiConfiguration: async (message) => {
 			if (message.text && message.apiConfiguration) {
 				try {
 					await provider.providerSettingsManager.saveConfig(message.text, message.apiConfiguration)
@@ -1977,19 +1928,19 @@ export const webviewMessageHandler = async (
 					vscode.window.showErrorMessage(t("common:errors.save_api_config"))
 				}
 			}
-			break
-		case "upsertApiConfiguration":
+		},
+		upsertApiConfiguration: async (message) => {
 			if (message.text && message.apiConfiguration) {
 				await provider.upsertProviderProfile(message.text, message.apiConfiguration)
 			}
-			break
-		case "renameApiConfiguration":
+		},
+		renameApiConfiguration: async (message) => {
 			if (message.values && message.apiConfiguration) {
 				try {
 					const { oldName, newName } = message.values
 
 					if (oldName === newName) {
-						break
+						return
 					}
 
 					// Load the old configuration to get its ID.
@@ -2012,8 +1963,8 @@ export const webviewMessageHandler = async (
 					vscode.window.showErrorMessage(t("common:errors.rename_api_config"))
 				}
 			}
-			break
-		case "loadApiConfiguration":
+		},
+		loadApiConfiguration: async (message) => {
 			if (message.text) {
 				try {
 					await provider.activateProviderProfile({ name: message.text })
@@ -2024,8 +1975,8 @@ export const webviewMessageHandler = async (
 					vscode.window.showErrorMessage(t("common:errors.load_api_config"))
 				}
 			}
-			break
-		case "loadApiConfigurationById":
+		},
+		loadApiConfigurationById: async (message) => {
 			if (message.text) {
 				try {
 					await provider.activateProviderProfile({ id: message.text })
@@ -2036,8 +1987,8 @@ export const webviewMessageHandler = async (
 					vscode.window.showErrorMessage(t("common:errors.load_api_config"))
 				}
 			}
-			break
-		case "deleteApiConfiguration":
+		},
+		deleteApiConfiguration: async (message) => {
 			if (message.text) {
 				const answer = await vscode.window.showInformationMessage(
 					t("common:confirmation.delete_config_profile"),
@@ -2046,7 +1997,7 @@ export const webviewMessageHandler = async (
 				)
 
 				if (answer !== t("common:answers.yes")) {
-					break
+					return
 				}
 
 				const oldName = message.text
@@ -2071,21 +2022,21 @@ export const webviewMessageHandler = async (
 					vscode.window.showErrorMessage(t("common:errors.delete_api_config"))
 				}
 			}
-			break
-		case "deleteMessageConfirm":
+		},
+		deleteMessageConfirm: async (message) => {
 			if (!message.messageTs) {
 				await vscode.window.showErrorMessage(t("common:errors.message.cannot_delete_missing_timestamp"))
-				break
+				return
 			}
 
 			if (typeof message.messageTs !== "number") {
 				await vscode.window.showErrorMessage(t("common:errors.message.cannot_delete_invalid_timestamp"))
-				break
+				return
 			}
 
 			await handleDeleteMessageConfirm(message.messageTs, message.restoreCheckpoint)
-			break
-		case "editMessageConfirm":
+		},
+		editMessageConfirm: async (message) => {
 			if (message.messageTs && message.text) {
 				const resolved = await resolveIncomingImages({ text: message.text, images: message.images })
 				await handleEditMessageConfirm(
@@ -2095,21 +2046,22 @@ export const webviewMessageHandler = async (
 					resolved.images,
 				)
 			}
-			break
-		case "getListApiConfiguration":
+		},
+		getListApiConfiguration: async (message) => {
 			try {
 				const listApiConfig = await provider.providerSettingsManager.listConfig()
 				await updateGlobalState("listApiConfigMeta", listApiConfig)
 				provider.postMessageToWebview({ type: "listApiConfig", listApiConfig })
+				provider.listApiConfigStore?.setListApiConfig(listApiConfig)
 			} catch (error) {
 				provider.log(
 					`Error get list api configuration: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`,
 				)
 				vscode.window.showErrorMessage(t("common:errors.list_api_config"))
 			}
-			break
+		},
 
-		case "updateMcpTimeout":
+		updateMcpTimeout: async (message) => {
 			if (message.serverName && typeof message.timeout === "number") {
 				try {
 					await provider
@@ -2126,8 +2078,8 @@ export const webviewMessageHandler = async (
 					vscode.window.showErrorMessage(t("common:errors.update_server_timeout"))
 				}
 			}
-			break
-		case "updateCustomMode":
+		},
+		updateCustomMode: async (message) => {
 			if (message.modeConfig) {
 				try {
 					// Check if this is a new mode or an update to an existing mode
@@ -2170,15 +2122,15 @@ export const webviewMessageHandler = async (
 					// Just prevent unhandled rejection and skip state updates
 				}
 			}
-			break
-		case "deleteCustomMode":
+		},
+		deleteCustomMode: async (message) => {
 			if (message.slug) {
 				// Get the mode details to determine source and rules folder path
 				const customModes = await provider.customModesManager.getCustomModes()
 				const modeToDelete = customModes.find((mode) => mode.slug === message.slug)
 
 				if (!modeToDelete) {
-					break
+					return
 				}
 
 				// Determine the scope based on source (project or global)
@@ -2209,7 +2161,7 @@ export const webviewMessageHandler = async (
 						slug: message.slug,
 						rulesFolderPath: rulesFolderExists ? rulesFolderPath : undefined,
 					})
-					break
+					return
 				}
 
 				// Delete the mode
@@ -2237,8 +2189,8 @@ export const webviewMessageHandler = async (
 				await updateGlobalState("mode", defaultModeSlug)
 				await provider.postStateToWebview()
 			}
-			break
-		case "exportMode":
+		},
+		exportMode: async (message) => {
 			if (message.slug) {
 				try {
 					// Get custom mode prompts to check if built-in mode has been customized
@@ -2315,8 +2267,8 @@ export const webviewMessageHandler = async (
 					})
 				}
 			}
-			break
-		case "importMode":
+		},
+		importMode: async (message) => {
 			try {
 				// Get last used directory for import
 				const lastImportPath = getGlobalState("lastModeImportPath")
@@ -2407,8 +2359,8 @@ export const webviewMessageHandler = async (
 				// Show error message
 				vscode.window.showErrorMessage(t("common:errors.mode_import_failed", { error: errorMessage }))
 			}
-			break
-		case "checkRulesDirectory":
+		},
+		checkRulesDirectory: async (message) => {
 			if (message.slug) {
 				const hasContent = await provider.customModesManager.checkRulesDirectoryHasContent(message.slug)
 
@@ -2418,8 +2370,8 @@ export const webviewMessageHandler = async (
 					hasContent: hasContent,
 				})
 			}
-			break
-		case "telemetrySetting": {
+		},
+		telemetrySetting: async (message) => {
 			const telemetrySetting = message.text as TelemetrySetting
 			const previousSetting = getGlobalState("telemetrySetting") || "unset"
 			const isOptedIn = telemetrySetting !== "disabled"
@@ -2443,21 +2395,18 @@ export const webviewMessageHandler = async (
 			}
 
 			await provider.postStateToWebview()
-			break
-		}
-		case "debugSetting": {
+		},
+		debugSetting: async (message) => {
 			await vscode.workspace
 				.getConfiguration(Package.name)
 				.update("debug", message.bool ?? false, vscode.ConfigurationTarget.Global)
 			await provider.postStateToWebview()
-			break
-		}
-		case "cloudButtonClicked": {
+		},
+		cloudButtonClicked: async (message) => {
 			// Navigate to the cloud tab.
 			provider.postMessageToWebview({ type: "action", action: "cloudButtonClicked" })
-			break
-		}
-		case "jabberwockCloudSignIn": {
+		},
+		jabberwockCloudSignIn: async (message) => {
 			try {
 				TelemetryService.instance.captureEvent(TelemetryEventName.AUTHENTICATION_INITIATED)
 				// Use provider signup flow if useProviderSignup is explicitly true
@@ -2466,10 +2415,8 @@ export const webviewMessageHandler = async (
 				provider.log(`AuthService#login failed: ${error}`)
 				vscode.window.showErrorMessage("Sign in failed.")
 			}
-
-			break
-		}
-		case "cloudLandingPageSignIn": {
+		},
+		cloudLandingPageSignIn: async (message) => {
 			try {
 				const landingPageSlug = message.text || "supernova"
 				TelemetryService.instance.captureEvent(TelemetryEventName.AUTHENTICATION_INITIATED)
@@ -2478,9 +2425,8 @@ export const webviewMessageHandler = async (
 				provider.log(`CloudService#login failed: ${error}`)
 				vscode.window.showErrorMessage("Sign in failed.")
 			}
-			break
-		}
-		case "jabberwockCloudSignOut": {
+		},
+		jabberwockCloudSignOut: async (message) => {
 			try {
 				await CloudService.instance.logout()
 				await provider.postStateToWebview()
@@ -2489,10 +2435,8 @@ export const webviewMessageHandler = async (
 				provider.log(`AuthService#logout failed: ${error}`)
 				vscode.window.showErrorMessage("Sign out failed.")
 			}
-
-			break
-		}
-		case "openAiCodexSignIn": {
+		},
+		openAiCodexSignIn: async (message) => {
 			try {
 				const { openAiCodexOAuthManager } = await import("../../integrations/openai-codex/oauth")
 				const authUrl = openAiCodexOAuthManager.startAuthorizationFlow()
@@ -2517,9 +2461,8 @@ export const webviewMessageHandler = async (
 				provider.log(`OpenAI Codex OAuth failed: ${error}`)
 				vscode.window.showErrorMessage("OpenAI Codex sign in failed.")
 			}
-			break
-		}
-		case "openAiCodexSignOut": {
+		},
+		openAiCodexSignOut: async (message) => {
 			try {
 				const { openAiCodexOAuthManager } = await import("../../integrations/openai-codex/oauth")
 				await openAiCodexOAuthManager.clearCredentials()
@@ -2529,13 +2472,12 @@ export const webviewMessageHandler = async (
 				provider.log(`OpenAI Codex sign out failed: ${error}`)
 				vscode.window.showErrorMessage("OpenAI Codex sign out failed.")
 			}
-			break
-		}
-		case "jabberwockCloudManualUrl": {
+		},
+		jabberwockCloudManualUrl: async (message) => {
 			try {
 				if (!message.text) {
 					vscode.window.showErrorMessage(t("common:errors.manual_url_empty"))
-					break
+					return
 				}
 
 				// Parse the callback URL to extract parameters
@@ -2570,16 +2512,13 @@ export const webviewMessageHandler = async (
 				// Show error message through VS Code UI
 				vscode.window.showErrorMessage(`${t("common:errors.manual_url_auth_error")}: ${errorMessage}`)
 			}
-
-			break
-		}
-		case "clearCloudAuthSkipModel": {
+		},
+		clearCloudAuthSkipModel: async (message) => {
 			// Clear the flag that indicates auth completed without model selection
 			await provider.context.globalState.update("jabberwock-auth-skip-model", undefined)
 			await provider.postStateToWebview()
-			break
-		}
-		case "switchOrganization": {
+		},
+		switchOrganization: async (message) => {
 			try {
 				const organizationId = message.organizationId ?? null
 
@@ -2609,12 +2548,11 @@ export const webviewMessageHandler = async (
 
 				vscode.window.showErrorMessage(`Failed to switch organization: ${errorMessage}`)
 			}
-			break
-		}
+		},
 
-		case "saveCodeIndexSettingsAtomic": {
+		saveCodeIndexSettingsAtomic: async (message) => {
 			if (!message.codeIndexSettings) {
-				break
+				return
 			}
 
 			const settings = message.codeIndexSettings
@@ -2712,7 +2650,7 @@ export const webviewMessageHandler = async (
 								values: currentCodeIndexManager.getCurrentStatus(),
 							})
 							// Exit early - don't try to start indexing with invalid configuration
-							break
+							return
 						}
 					} else {
 						// No provider change, just handle settings normally
@@ -2769,10 +2707,9 @@ export const webviewMessageHandler = async (
 					error: error.message || "Failed to save settings",
 				})
 			}
-			break
-		}
+		},
 
-		case "requestIndexingStatus": {
+		requestIndexingStatus: async (message) => {
 			const manager = provider.getCurrentWorkspaceCodeIndexManager()
 			if (!manager) {
 				// No workspace open - send error status
@@ -2805,9 +2742,8 @@ export const webviewMessageHandler = async (
 				type: "indexingStatusUpdate",
 				values: status,
 			})
-			break
-		}
-		case "requestCodeIndexSecretStatus": {
+		},
+		requestCodeIndexSecretStatus: async (message) => {
 			// Check if secrets are set using the VSCode context directly for async access
 			const hasOpenAiKey = !!(await provider.context.secrets.get("codeIndexOpenAiKey"))
 			const hasQdrantApiKey = !!(await provider.context.secrets.get("codeIndexQdrantApiKey"))
@@ -2833,9 +2769,8 @@ export const webviewMessageHandler = async (
 					hasOpenRouterApiKey,
 				},
 			})
-			break
-		}
-		case "startIndexing": {
+		},
+		startIndexing: async (message) => {
 			try {
 				const manager = provider.getCurrentWorkspaceCodeIndexManager()
 				if (!manager) {
@@ -2874,9 +2809,8 @@ export const webviewMessageHandler = async (
 			} catch (error) {
 				provider.log(`Error starting indexing: ${error instanceof Error ? error.message : String(error)}`)
 			}
-			break
-		}
-		case "stopIndexing": {
+		},
+		stopIndexing: async (message) => {
 			try {
 				const manager = provider.getCurrentWorkspaceCodeIndexManager()
 				if (!manager) {
@@ -2891,9 +2825,8 @@ export const webviewMessageHandler = async (
 			} catch (error) {
 				provider.log(`Error stopping indexing: ${error instanceof Error ? error.message : String(error)}`)
 			}
-			break
-		}
-		case "toggleWorkspaceIndexing": {
+		},
+		toggleWorkspaceIndexing: async (message) => {
 			try {
 				const manager = provider.getCurrentWorkspaceCodeIndexManager()
 				if (!manager) {
@@ -2917,9 +2850,8 @@ export const webviewMessageHandler = async (
 					`Error toggling workspace indexing: ${error instanceof Error ? error.message : String(error)}`,
 				)
 			}
-			break
-		}
-		case "setAutoEnableDefault": {
+		},
+		setAutoEnableDefault: async (message) => {
 			try {
 				const manager = provider.getCurrentWorkspaceCodeIndexManager()
 				if (!manager) {
@@ -2950,9 +2882,8 @@ export const webviewMessageHandler = async (
 					`Error setting auto-enable default: ${error instanceof Error ? error.message : String(error)}`,
 				)
 			}
-			break
-		}
-		case "clearIndexData": {
+		},
+		clearIndexData: async (message) => {
 			try {
 				const manager = provider.getCurrentWorkspaceCodeIndexManager()
 				if (!manager) {
@@ -2978,14 +2909,12 @@ export const webviewMessageHandler = async (
 					},
 				})
 			}
-			break
-		}
-		case "focusPanelRequest": {
+		},
+		focusPanelRequest: async (message) => {
 			// Execute the focusPanel command to focus the WebView
 			await vscode.commands.executeCommand(getCommand("focusPanel"))
-			break
-		}
-		case "filterMarketplaceItems": {
+		},
+		filterMarketplaceItems: async (message) => {
 			if (marketplaceManager && message.filters) {
 				try {
 					await marketplaceManager.updateWithFilteredItems({
@@ -2999,16 +2928,14 @@ export const webviewMessageHandler = async (
 					vscode.window.showErrorMessage("Failed to filter marketplace items")
 				}
 			}
-			break
-		}
+		},
 
-		case "fetchMarketplaceData": {
+		fetchMarketplaceData: async (message) => {
 			// Fetch marketplace data on demand
 			await provider.fetchMarketplaceData()
-			break
-		}
+		},
 
-		case "installMarketplaceItem": {
+		installMarketplaceItem: async (message) => {
 			if (marketplaceManager && message.mpItem && message.mpInstallOptions) {
 				try {
 					const configFilePath = await marketplaceManager.installMarketplaceItem(
@@ -3035,10 +2962,9 @@ export const webviewMessageHandler = async (
 					})
 				}
 			}
-			break
-		}
+		},
 
-		case "removeInstalledMarketplaceItem": {
+		removeInstalledMarketplaceItem: async (message) => {
 			if (marketplaceManager && message.mpItem && message.mpInstallOptions) {
 				try {
 					await marketplaceManager.removeInstalledMarketplaceItem(message.mpItem, message.mpInstallOptions)
@@ -3084,10 +3010,9 @@ export const webviewMessageHandler = async (
 					})
 				}
 			}
-			break
-		}
+		},
 
-		case "installMarketplaceItemWithParameters": {
+		installMarketplaceItemWithParameters: async (message) => {
 			if (marketplaceManager && message.payload && "item" in message.payload && "parameters" in message.payload) {
 				try {
 					const configFilePath = await marketplaceManager.installMarketplaceItem(message.payload.item, {
@@ -3102,10 +3027,9 @@ export const webviewMessageHandler = async (
 					)
 				}
 			}
-			break
-		}
+		},
 
-		case "switchTab": {
+		switchTab: async (message) => {
 			if (message.tab) {
 				// Only capture telemetry for user-initiated switchTab messages
 				// MCP-originated messages should not trigger telemetry to prevent infinite loops
@@ -3122,19 +3046,21 @@ export const webviewMessageHandler = async (
 					fromMCP: true, // Prevent webview from sending this back to extension host
 				})
 			}
-			break
-		}
-		case "requestCommands": {
+		},
+		requestCommands: async (message) => {
 			try {
 				const commandList = await getDiscoveredCommands()
 				await provider.postMessageToWebview({ type: "commands", commands: commandList })
+				// Dual-write: MST store
+				provider.commandsStore?.setCommands(commandList)
 			} catch (error) {
 				provider.log(`Error fetching commands: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`)
 				await provider.postMessageToWebview({ type: "commands", commands: [] })
+				// Dual-write: MST store
+				provider.commandsStore?.setCommands([])
 			}
-			break
-		}
-		case "requestModes": {
+		},
+		requestModes: async (message) => {
 			try {
 				const modes = await provider.getModes()
 				await provider.postMessageToWebview({ type: "modes", modes })
@@ -3142,33 +3068,26 @@ export const webviewMessageHandler = async (
 				provider.log(`Error fetching modes: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`)
 				await provider.postMessageToWebview({ type: "modes", modes: [] })
 			}
-			break
-		}
-		case "requestSkills": {
+		},
+		requestSkills: async (message) => {
 			await handleRequestSkills(provider)
-			break
-		}
-		case "createSkill": {
+		},
+		createSkill: async (message) => {
 			await handleCreateSkill(provider, message)
-			break
-		}
-		case "deleteSkill": {
+		},
+		deleteSkill: async (message) => {
 			await handleDeleteSkill(provider, message)
-			break
-		}
-		case "moveSkill": {
+		},
+		moveSkill: async (message) => {
 			await handleMoveSkill(provider, message)
-			break
-		}
-		case "updateSkillModes": {
+		},
+		updateSkillModes: async (message) => {
 			await handleUpdateSkillModes(provider, message)
-			break
-		}
-		case "openSkillFile": {
+		},
+		openSkillFile: async (message) => {
 			await handleOpenSkillFile(provider, message)
-			break
-		}
-		case "openCommandFile": {
+		},
+		openCommandFile: async (message) => {
 			try {
 				if (message.text) {
 					const { getCommand } = await import("../../services/command/commands")
@@ -3186,9 +3105,8 @@ export const webviewMessageHandler = async (
 				)
 				vscode.window.showErrorMessage(t("common:errors.open_command_file"))
 			}
-			break
-		}
-		case "deleteCommand": {
+		},
+		deleteCommand: async (message) => {
 			try {
 				if (message.text && message.values?.source) {
 					const { getCommand } = await import("../../services/command/commands")
@@ -3206,16 +3124,15 @@ export const webviewMessageHandler = async (
 				provider.log(`Error deleting command: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`)
 				vscode.window.showErrorMessage(t("common:errors.delete_command"))
 			}
-			break
-		}
-		case "createCommand": {
+		},
+		createCommand: async (message) => {
 			try {
 				const source = message.values?.source as "global" | "project"
 				const fileName = message.text // Custom filename from user input
 
 				if (!source) {
 					provider.log("Missing source for createCommand")
-					break
+					return
 				}
 
 				// Determine the commands directory based on source
@@ -3232,7 +3149,7 @@ export const webviewMessageHandler = async (
 					const workspaceRoot = getCurrentCwd()
 					if (!workspaceRoot) {
 						vscode.window.showErrorMessage(t("common:errors.no_workspace_for_project_command"))
-						break
+						return
 					}
 					commandsDir = path.join(workspaceRoot, ".jabberwock", "commands")
 				}
@@ -3295,7 +3212,7 @@ export const webviewMessageHandler = async (
 						.catch(() => false)
 				) {
 					vscode.window.showErrorMessage(t("common:errors.command_already_exists", { commandName }))
-					break
+					return
 				}
 
 				// Create the command file with template content
@@ -3321,14 +3238,15 @@ export const webviewMessageHandler = async (
 					type: "commands",
 					commands: commandList,
 				})
+				// Dual-write: MST store
+				provider.commandsStore?.setCommands(commandList)
 			} catch (error) {
 				provider.log(`Error creating command: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`)
 				vscode.window.showErrorMessage(t("common:errors.create_command_failed"))
 			}
-			break
-		}
+		},
 
-		case "insertTextIntoTextarea": {
+		insertTextIntoTextarea: async (message) => {
 			const text = message.text
 			if (text) {
 				// Send message to insert text into the chat textarea
@@ -3337,37 +3255,31 @@ export const webviewMessageHandler = async (
 					text: text,
 				})
 			}
-			break
-		}
-		case "showMdmAuthRequiredNotification": {
+		},
+		showMdmAuthRequiredNotification: async (message) => {
 			// Show notification that organization requires authentication
 			vscode.window.showWarningMessage(t("common:mdm.info.organization_requires_auth"))
-			break
-		}
+		},
 
 		/**
 		 * Chat Message Queue
 		 */
 
-		case "queueMessage": {
+		queueMessage: async (message) => {
 			const resolved = await resolveIncomingImages({ text: message.text, images: message.images })
 			provider.getCurrentTask()?.messageQueueService.addMessage(resolved.text, resolved.images)
-			break
-		}
-		case "removeQueuedMessage": {
+		},
+		removeQueuedMessage: async (message) => {
 			provider.getCurrentTask()?.messageQueueService.removeMessage(message.text ?? "")
-			break
-		}
-		case "editQueuedMessage": {
+		},
+		editQueuedMessage: async (message) => {
 			if (message.payload) {
 				const { id, text, images } = message.payload as EditQueuedMessagePayload
 				provider.getCurrentTask()?.messageQueueService.updateMessage(id, text, images)
 			}
+		},
 
-			break
-		}
-
-		case "dismissUpsell": {
+		dismissUpsell: async (message) => {
 			if (message.upsellId) {
 				try {
 					// Get current list of dismissed upsells
@@ -3390,19 +3302,17 @@ export const webviewMessageHandler = async (
 					provider.log(`Failed to dismiss upsell: ${error instanceof Error ? error.message : String(error)}`)
 				}
 			}
-			break
-		}
-		case "getDismissedUpsells": {
+		},
+		getDismissedUpsells: async (message) => {
 			// Send the current list of dismissed upsells to the webview
 			const dismissedUpsells = getGlobalState("dismissedUpsells") || []
 			await provider.postMessageToWebview({
 				type: "dismissedUpsells",
 				list: dismissedUpsells,
 			})
-			break
-		}
+		},
 
-		case "openMarkdownPreview": {
+		openMarkdownPreview: async (message) => {
 			if (message.text) {
 				try {
 					const tmpDir = os.tmpdir()
@@ -3420,10 +3330,9 @@ export const webviewMessageHandler = async (
 					vscode.window.showErrorMessage(`Failed to open markdown preview: ${errorMessage}`)
 				}
 			}
-			break
-		}
+		},
 
-		case "requestOpenAiCodexRateLimits": {
+		requestOpenAiCodexRateLimits: async (message) => {
 			try {
 				const { openAiCodexOAuthManager } = await import("../../integrations/openai-codex/oauth")
 				const accessToken = await openAiCodexOAuthManager.getAccessToken()
@@ -3433,7 +3342,7 @@ export const webviewMessageHandler = async (
 						type: "openAiCodexRateLimits",
 						error: "Not authenticated with OpenAI Codex",
 					})
-					break
+					return
 				}
 
 				const accountId = await openAiCodexOAuthManager.getAccountId()
@@ -3452,15 +3361,13 @@ export const webviewMessageHandler = async (
 					error: errorMessage,
 				})
 			}
-			break
-		}
+		},
 
-		case "openDebugApiHistory":
-		case "openDebugUiHistory": {
+		openDebugApiHistory: async (message) => {
 			const currentTask = provider.getCurrentTask()
 			if (!currentTask) {
 				vscode.window.showErrorMessage("No active task to view history for")
-				break
+				return
 			}
 
 			try {
@@ -3468,14 +3375,13 @@ export const webviewMessageHandler = async (
 				const globalStoragePath = provider.contextProxy.globalStorageUri.fsPath
 				const taskDirPath = await getTaskDirectoryPath(globalStoragePath, currentTask.taskId)
 
-				const fileName =
-					message.type === "openDebugApiHistory" ? "api_conversation_history.json" : "ui_messages.json"
+				const fileName = "api_conversation_history.json"
 				const sourceFilePath = path.join(taskDirPath, fileName)
 
 				// Check if file exists
 				if (!(await fileExistsAtPath(sourceFilePath))) {
 					vscode.window.showErrorMessage(`File not found: ${fileName}`)
-					break
+					return
 				}
 
 				// Read the source file
@@ -3486,7 +3392,7 @@ export const webviewMessageHandler = async (
 					jsonContent = JSON.parse(content)
 				} catch {
 					vscode.window.showErrorMessage(`Failed to parse ${fileName}`)
-					break
+					return
 				}
 
 				// Prettify the JSON
@@ -3495,7 +3401,7 @@ export const webviewMessageHandler = async (
 				// Create a temporary file
 				const tmpDir = os.tmpdir()
 				const timestamp = Date.now()
-				const tempFileName = `jabberwock-debug-${message.type === "openDebugApiHistory" ? "api" : "ui"}-${currentTask.taskId.slice(0, 8)}-${timestamp}.json`
+				const tempFileName = `jabberwock-debug-api-${currentTask.taskId.slice(0, 8)}-${timestamp}.json`
 				const tempFilePath = path.join(tmpDir, tempFileName)
 
 				await fs.writeFile(tempFilePath, prettifiedContent, "utf8")
@@ -3508,14 +3414,65 @@ export const webviewMessageHandler = async (
 				provider.log(`Error opening debug history: ${errorMessage}`)
 				vscode.window.showErrorMessage(`Failed to open debug history: ${errorMessage}`)
 			}
-			break
-		}
+		},
+		openDebugUiHistory: async (message) => {
+			const currentTask = provider.getCurrentTask()
+			if (!currentTask) {
+				vscode.window.showErrorMessage("No active task to view history for")
+				return
+			}
 
-		case "downloadErrorDiagnostics": {
+			try {
+				const { getTaskDirectoryPath } = await import("../../utils/storage")
+				const globalStoragePath = provider.contextProxy.globalStorageUri.fsPath
+				const taskDirPath = await getTaskDirectoryPath(globalStoragePath, currentTask.taskId)
+
+				const fileName = "ui_messages.json"
+				const sourceFilePath = path.join(taskDirPath, fileName)
+
+				// Check if file exists
+				if (!(await fileExistsAtPath(sourceFilePath))) {
+					vscode.window.showErrorMessage(`File not found: ${fileName}`)
+					return
+				}
+
+				// Read the source file
+				const content = await fs.readFile(sourceFilePath, "utf8")
+				let jsonContent: unknown
+
+				try {
+					jsonContent = JSON.parse(content)
+				} catch {
+					vscode.window.showErrorMessage(`Failed to parse ${fileName}`)
+					return
+				}
+
+				// Prettify the JSON
+				const prettifiedContent = JSON.stringify(jsonContent, null, 2)
+
+				// Create a temporary file
+				const tmpDir = os.tmpdir()
+				const timestamp = Date.now()
+				const tempFileName = `jabberwock-debug-ui-${currentTask.taskId.slice(0, 8)}-${timestamp}.json`
+				const tempFilePath = path.join(tmpDir, tempFileName)
+
+				await fs.writeFile(tempFilePath, prettifiedContent, "utf8")
+
+				// Open the temp file in VS Code
+				const doc = await vscode.workspace.openTextDocument(tempFilePath)
+				await vscode.window.showTextDocument(doc, { preview: true })
+			} catch (error) {
+				const errorMessage = error instanceof Error ? error.message : String(error)
+				provider.log(`Error opening debug history: ${errorMessage}`)
+				vscode.window.showErrorMessage(`Failed to open debug history: ${errorMessage}`)
+			}
+		},
+
+		downloadErrorDiagnostics: async (message) => {
 			const currentTask = provider.getCurrentTask()
 			if (!currentTask) {
 				vscode.window.showErrorMessage("No active task to generate diagnostics for")
-				break
+				return
 			}
 
 			await generateErrorDiagnostics({
@@ -3524,14 +3481,13 @@ export const webviewMessageHandler = async (
 				values: message.values,
 				log: (msg) => provider.log(msg),
 			})
-			break
-		}
+		},
 
 		/**
 		 * Git Worktree Management
 		 */
 
-		case "listWorktrees": {
+		listWorktrees: async (message) => {
 			try {
 				const { worktrees, isGitRepo, isMultiRoot, isSubfolder, gitRootPath, error } =
 					await handleListWorktrees(provider)
@@ -3558,11 +3514,9 @@ export const webviewMessageHandler = async (
 					error: errorMessage,
 				})
 			}
+		},
 
-			break
-		}
-
-		case "createWorktree": {
+		createWorktree: async (message) => {
 			try {
 				const { success, message: text } = await handleCreateWorktree(
 					provider,
@@ -3586,11 +3540,9 @@ export const webviewMessageHandler = async (
 				const errorMessage = error instanceof Error ? error.message : String(error)
 				await provider.postMessageToWebview({ type: "worktreeResult", success: false, text: errorMessage })
 			}
+		},
 
-			break
-		}
-
-		case "deleteWorktree": {
+		deleteWorktree: async (message) => {
 			try {
 				const { success, message: text } = await handleDeleteWorktree(
 					provider,
@@ -3603,11 +3555,9 @@ export const webviewMessageHandler = async (
 				const errorMessage = error instanceof Error ? error.message : String(error)
 				await provider.postMessageToWebview({ type: "worktreeResult", success: false, text: errorMessage })
 			}
+		},
 
-			break
-		}
-
-		case "switchWorktree": {
+		switchWorktree: async (message) => {
 			try {
 				const { success, message: text } = await handleSwitchWorktree(
 					provider,
@@ -3620,11 +3570,9 @@ export const webviewMessageHandler = async (
 				const errorMessage = error instanceof Error ? error.message : String(error)
 				await provider.postMessageToWebview({ type: "worktreeResult", success: false, text: errorMessage })
 			}
+		},
 
-			break
-		}
-
-		case "getAvailableBranches": {
+		getAvailableBranches: async (message) => {
 			try {
 				const { localBranches, remoteBranches, currentBranch } = await handleGetAvailableBranches(provider)
 
@@ -3645,11 +3593,9 @@ export const webviewMessageHandler = async (
 					error: errorMessage,
 				})
 			}
+		},
 
-			break
-		}
-
-		case "getWorktreeDefaults": {
+		getWorktreeDefaults: async (message) => {
 			try {
 				const { suggestedBranch, suggestedPath } = await handleGetWorktreeDefaults(provider)
 				await provider.postMessageToWebview({ type: "worktreeDefaults", suggestedBranch, suggestedPath })
@@ -3663,11 +3609,9 @@ export const webviewMessageHandler = async (
 					error: errorMessage,
 				})
 			}
+		},
 
-			break
-		}
-
-		case "getWorktreeIncludeStatus": {
+		getWorktreeIncludeStatus: async (message) => {
 			try {
 				const worktreeIncludeStatus = await handleGetWorktreeIncludeStatus(provider)
 				await provider.postMessageToWebview({ type: "worktreeIncludeStatus", worktreeIncludeStatus })
@@ -3684,11 +3628,9 @@ export const webviewMessageHandler = async (
 					error: errorMessage,
 				})
 			}
+		},
 
-			break
-		}
-
-		case "checkBranchWorktreeInclude": {
+		checkBranchWorktreeInclude: async (message) => {
 			try {
 				const branch = message.worktreeBranch
 				if (!branch) {
@@ -3697,7 +3639,7 @@ export const webviewMessageHandler = async (
 						hasWorktreeInclude: false,
 						error: "No branch specified",
 					})
-					break
+					return
 				}
 				const hasWorktreeInclude = await handleCheckBranchWorktreeInclude(provider, branch)
 				await provider.postMessageToWebview({
@@ -3713,11 +3655,9 @@ export const webviewMessageHandler = async (
 					error: errorMessage,
 				})
 			}
+		},
 
-			break
-		}
-
-		case "createWorktreeInclude": {
+		createWorktreeInclude: async (message) => {
 			try {
 				const { success, message: text } = await handleCreateWorktreeInclude(
 					provider,
@@ -3730,11 +3670,9 @@ export const webviewMessageHandler = async (
 				provider.log(`Error creating worktree include: ${errorMessage}`)
 				await provider.postMessageToWebview({ type: "worktreeResult", success: false, text: errorMessage })
 			}
+		},
 
-			break
-		}
-
-		case "checkoutBranch": {
+		checkoutBranch: async (message) => {
 			try {
 				const { success, message: text } = await handleCheckoutBranch(provider, message.worktreeBranch!)
 				await provider.postMessageToWebview({ type: "worktreeResult", success, text })
@@ -3742,11 +3680,9 @@ export const webviewMessageHandler = async (
 				const errorMessage = error instanceof Error ? error.message : String(error)
 				await provider.postMessageToWebview({ type: "worktreeResult", success: false, text: errorMessage })
 			}
+		},
 
-			break
-		}
-
-		case "browseForWorktreePath": {
+		browseForWorktreePath: async (message) => {
 			try {
 				const options: vscode.OpenDialogOptions = {
 					canSelectFiles: false,
@@ -3770,36 +3706,11 @@ export const webviewMessageHandler = async (
 				const errorMessage = error instanceof Error ? error.message : String(error)
 				provider.log(`Error opening folder picker: ${errorMessage}`)
 			}
+		},
+	}
 
-			break
-		}
-
-		default: {
-			// console.log(`Unhandled message type: ${message.type}`)
-			//
-			// Currently unhandled:
-			//
-			// "currentApiConfigName" |
-			// "codebaseIndexEnabled" |
-			// "enhancedPrompt" |
-			// "systemPrompt" |
-			// "exportModeResult" |
-			// "importModeResult" |
-			// "checkRulesDirectoryResult" |
-			// "browserConnectionResult" |
-			// "vsCodeSetting" |
-			// "indexingStatusUpdate" |
-			// "indexCleared" |
-			// "marketplaceInstallResult" |
-			// "shareTaskSuccess" |
-			// "playSound" |
-			// "draggedImages" |
-			// "setApiConfigPassword" |
-			// "setopenAiCustomModelInfo" |
-			// "marketplaceButtonClicked" |
-			// "cancelMarketplaceInstall" |
-			// "imageGenerationSettings"
-			break
-		}
+	const handler = messageHandlers[message.type]
+	if (handler) {
+		await handler(message)
 	}
 }

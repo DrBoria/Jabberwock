@@ -6,7 +6,7 @@ import type { Mode } from "@shared/modes"
 
 import { ModeSelector } from "../ModeSelector"
 
-vi.mock("@/utils/vscode", () => ({
+vi.mock("@/features/devtools/utils/vscode", () => ({
 	vscode: {
 		postMessage: vi.fn(),
 	},
@@ -29,7 +29,7 @@ vi.mock("@/components/ui/hooks/useJabberwockPortal", () => ({
 	useJabberwockPortal: () => document.body,
 }))
 
-vi.mock("@/utils/TelemetryClient", () => ({
+vi.mock("@/features/cloud/utils/TelemetryClient", () => ({
 	telemetryClient: {
 		capture: vi.fn(),
 	},

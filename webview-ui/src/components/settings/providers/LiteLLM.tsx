@@ -1,4 +1,5 @@
 import { useCallback, useState, useEffect, useRef } from "react"
+import { onSnapshot } from "mobx-state-tree"
 import { VSCodeTextField, VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react"
 
 import {
@@ -10,7 +11,9 @@ import {
 
 import { RouterName } from "@shared/api"
 
-import { vscode } from "@src/utils/vscode"
+import { routerModelsStore } from "@src/features/router-models/store"
+
+import { vscode } from "@src/features/devtools/utils/vscode"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { Button } from "@src/components/ui"
@@ -49,21 +52,23 @@ export const LiteLLM = ({
 					setRefreshStatus("error")
 					setRefreshError(message.error)
 				}
-			} else if (message.type === "routerModels") {
-				// If we were loading and no specific error for litellm was just received, mark as success.
-				// The ModelPicker will show available models or "no models found".
-				if (refreshStatus === "loading") {
-					if (!litellmErrorJustReceived.current) {
-						setRefreshStatus("success")
-					}
-					// If litellmErrorJustReceived.current is true, status is already (or will be) "error".
-				}
 			}
 		}
 
 		window.addEventListener("message", handleMessage)
+
+		// Also watch the MST store for routerModels changes to detect refresh completion
+		const unsubscribe = onSnapshot(routerModelsStore, (snapshot) => {
+			if (snapshot.routerModels && refreshStatus === "loading") {
+				if (!litellmErrorJustReceived.current) {
+					setRefreshStatus("success")
+				}
+			}
+		})
+
 		return () => {
 			window.removeEventListener("message", handleMessage)
+			unsubscribe()
 		}
 	}, [refreshStatus, refreshError, setRefreshStatus, setRefreshError])
 

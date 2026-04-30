@@ -61,7 +61,7 @@ vi.mock("@/components/ui", () => ({
 
 // Mock vscode utilities - this is necessary since we're not in a VSCode environment
 
-vi.mock("@/utils/vscode", () => ({
+vi.mock("@/features/devtools/utils/vscode", () => ({
 	vscode: {
 		postMessage: vi.fn(),
 	},

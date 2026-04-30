@@ -3,8 +3,8 @@ import { useTranslation } from "react-i18next"
 
 import type { HistoryItem } from "@jabberwock/types"
 
-import { vscode } from "@/utils/vscode"
-import { useCopyToClipboard } from "@/utils/clipboard"
+import { vscode } from "@/features/devtools/utils/vscode"
+import { useCopyToClipboard } from "@/features/chat/utils/clipboard"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 
 import { DeleteTaskDialog } from "../history/DeleteTaskDialog"

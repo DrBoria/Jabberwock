@@ -1,6 +1,6 @@
 // This test directly tests the logic of the ContextWindowProgress component calculations
 // without needing to render the full component
-import { calculateTokenDistribution } from "@src/utils/model-utils"
+import { calculateTokenDistribution } from "@src/features/settings/utils/model-utils"
 
 export {} // This makes the file a proper TypeScript module
 

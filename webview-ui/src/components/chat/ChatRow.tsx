@@ -18,9 +18,9 @@ import { COMMAND_OUTPUT_STRING } from "@shared/combineCommandSequences"
 import { safeJsonParse } from "@shared/core"
 
 import { useExtensionState } from "@src/context/ExtensionStateContext"
-import { useChatUI } from "@src/context/ChatUIContext"
+import { useChatUI } from "@src/features/chat/ui/store"
 import { getAllModes } from "@shared/modes"
-import { vscode } from "@src/utils/vscode"
+import { vscode } from "@src/features/devtools/utils/vscode"
 
 import { UserMessage, AssistantMessage, ToolRenderer, SayRenderer, AskRenderer } from "./ChatRow/index"
 
@@ -31,7 +31,7 @@ import { TerminalSquare } from "lucide-react"
 // import { Markdown } from "./Markdown"
 // import { OpenMarkdownPreviewButton } from "./OpenMarkdownPreviewButton"
 import { useSelectedModel } from "../ui/hooks/useSelectedModel"
-import { appendImages } from "@src/utils/imageUtils"
+import { appendImages } from "@src/features/chat/utils/imageUtils"
 import { MAX_IMAGES_PER_MESSAGE } from "./ChatView"
 
 interface ChatRowProps {

@@ -11,8 +11,8 @@ import TaskHeader from "../TaskHeader"
 import FileChangesPanel from "../FileChangesPanel"
 import { CheckpointWarning } from "../CheckpointWarning"
 import DiagnosticDashboard from "../diagnostics/DiagnosticDashboard"
-import { useChatUI } from "@src/context/ChatUIContext"
-import { useChatTree } from "@src/context/ChatTreeContext"
+import { useChatUI } from "@src/features/chat/ui/store"
+import { useChatTree } from "@src/features/chat/tree/store"
 
 interface ChildNode {
 	id: string

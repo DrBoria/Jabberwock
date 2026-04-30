@@ -1,10 +1,10 @@
 import { render, screen, fireEvent, waitFor } from "@/utils/test-utils"
-import { vscode } from "@/utils/vscode"
+import { vscode } from "@/features/devtools/utils/vscode"
 
 import { ApiConfigSelector } from "../ApiConfigSelector"
 
 // Mock the dependencies
-vi.mock("@/utils/vscode", () => ({
+vi.mock("@/features/devtools/utils/vscode", () => ({
 	vscode: {
 		postMessage: vi.fn(),
 	},

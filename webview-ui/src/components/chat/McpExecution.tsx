@@ -1,16 +1,11 @@
 import { useCallback, useEffect, useMemo, useState, memo } from "react"
 import { Server, ChevronDown } from "lucide-react"
-import { useEvent } from "react-use"
+import { onSnapshot } from "mobx-state-tree"
 import { useTranslation } from "react-i18next"
 
-import {
-	type ExtensionMessage,
-	type ClineAskUseMcpServer,
-	type McpExecutionStatus,
-	mcpExecutionStatusSchema,
-} from "@jabberwock/types"
+import { type ClineAskUseMcpServer, type McpExecutionStatus } from "@jabberwock/types"
 
-import { safeJsonParse } from "@shared/core"
+import { mcpExecutionStore } from "@src/features/chat/mcp-execution/store"
 
 import { cn } from "@src/lib/utils"
 import { Button, Container } from "@src/components/ui"
@@ -130,38 +125,22 @@ export const McpExecution = ({
 		setIsResponseExpanded(!isResponseExpanded)
 	}, [isResponseExpanded])
 
-	// Listen for MCP execution status messages
-	const onMessage = useCallback(
-		(event: MessageEvent) => {
-			const message: ExtensionMessage = event.data
+	// Listen for MCP execution status via MST snapshot
+	useEffect(() => {
+		const unsubscribe = onSnapshot(mcpExecutionStore, (snapshot) => {
+			const execution = snapshot.executions.find((e: any) => e.executionId === executionId)
+			if (execution) {
+				setStatus(execution)
 
-			if (message.type === "mcpExecutionStatus") {
-				try {
-					const result = mcpExecutionStatusSchema.safeParse(safeJsonParse(message.text || "{}", {}))
-
-					if (result.success) {
-						const data = result.data
-
-						// Only update if this message is for our response
-						if (data.executionId === executionId) {
-							setStatus(data)
-
-							if (data.status === "output" && data.response) {
-								setResponseText((prev) => prev + data.response)
-							} else if (data.status === "completed" && data.response) {
-								setResponseText(data.response)
-							}
-						}
-					}
-				} catch (e) {
-					console.error("Failed to parse MCP execution status", e)
+				if (execution.status === "output" && execution.response) {
+					setResponseText((prev) => prev + execution.response)
+				} else if (execution.status === "completed" && execution.response) {
+					setResponseText(execution.response)
 				}
 			}
-		},
-		[executionId],
-	)
-
-	useEvent("message", onMessage)
+		})
+		return () => unsubscribe()
+	}, [executionId])
 
 	// Initialize with text if provided and parse command/response sections
 	useEffect(() => {

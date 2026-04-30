@@ -1,7 +1,7 @@
 import { HTMLAttributes, useMemo } from "react"
 import { useAppTranslation } from "@/i18n/TranslationContext"
 import { VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react"
-import { telemetryClient } from "@/utils/TelemetryClient"
+import { telemetryClient } from "@/features/cloud/utils/TelemetryClient"
 
 import { SetCachedStateField } from "./types"
 import { SectionHeader } from "./SectionHeader"

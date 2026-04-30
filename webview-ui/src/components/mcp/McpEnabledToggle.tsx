@@ -3,7 +3,7 @@ import { VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react"
 
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { vscode } from "@src/utils/vscode"
+import { vscode } from "@src/features/devtools/utils/vscode"
 
 const McpEnabledToggle = () => {
 	const { mcpEnabled, setMcpEnabled } = useExtensionState()

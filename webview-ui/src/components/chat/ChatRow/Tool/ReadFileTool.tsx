@@ -1,7 +1,7 @@
 import React from "react"
 import { Eye, FileCode2 } from "lucide-react"
 import type { ClineMessage, ClineSayTool } from "@jabberwock/types"
-import { vscode } from "@src/utils/vscode"
+import { vscode } from "@src/features/devtools/utils/vscode"
 import { formatPathTooltip } from "@src/utils/formatPathTooltip"
 import { headerStyle } from "@src/components/ui"
 import { ToolUseBlock, ToolUseBlockHeader } from "../../../common/ToolUseBlock"

@@ -10,17 +10,17 @@ import { mentionRegex, unescapeSpaces } from "@shared/context-mentions"
 import { WebviewMessage } from "@shared/WebviewMessage"
 import { Mode, getAllModes } from "@shared/modes"
 
-import { vscode } from "@src/utils/vscode"
+import { vscode } from "@src/features/devtools/utils/vscode"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { useChatUI } from "@src/context/ChatUIContext"
+import { useChatUI } from "@src/features/chat/ui/store"
 import {
 	ContextMenuOptionType,
 	insertMention,
 	removeMention,
 	shouldShowContextMenu,
 	SearchResult,
-} from "@src/utils/context-mentions"
+} from "@src/features/chat/utils/context-mentions"
 import { cn } from "@src/lib/utils"
 import { StandardTooltip } from "../ui/standard-tooltip"
 import { Button } from "../ui/button"

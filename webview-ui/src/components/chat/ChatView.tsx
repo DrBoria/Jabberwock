@@ -7,7 +7,7 @@ import { LRUCache } from "lru-cache"
 import { observer } from "mobx-react-lite"
 import { isAlive, isStateTreeNode } from "mobx-state-tree"
 
-import { useDebounceEffect } from "@src/utils/useDebounceEffect"
+import { useDebounceEffect } from "@src/features/foundation/utils/useDebounceEffect"
 
 import type { ClineMessage, ExtensionMessage, AudioType } from "@jabberwock/types"
 import { isRetiredProvider, SuggestionItem } from "@jabberwock/types"
@@ -15,11 +15,11 @@ import { getAllModes } from "@shared/modes"
 import { ProfileValidator } from "@shared/ProfileValidator"
 import { getLatestTodo } from "@shared/todo"
 
-import { vscode } from "@src/utils/vscode"
+import { vscode } from "@src/features/devtools/utils/vscode"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
-import { useChatTree } from "@src/context/ChatTreeContext"
-import { useChatUI } from "@src/context/ChatUIContext"
+import { useChatTree } from "@src/features/chat/tree/store"
+import { useChatUI } from "@src/features/chat/ui/store"
 import { useSelectedModel } from "@src/components/ui/hooks/useSelectedModel"
 import { CloudUpsellDialog } from "@src/components/cloud/CloudUpsellDialog"
 
@@ -37,7 +37,7 @@ import { useScrollLifecycle } from "@src/hooks/useScrollLifecycle"
 import { useChatDragAndDrop } from "../../features/context-drag-drop/useChatDragAndDrop"
 import { ChatDropZoneOverlay } from "../../features/context-drag-drop/ChatDropZoneOverlay"
 
-import { useWindowManager } from "@src/context/WindowManagerContext"
+import { useWindowManager } from "@src/features/foundation/window-manager/store"
 
 import { HomeScreen } from "./ChatView/HomeScreen"
 import { ChatArea } from "./ChatView/ChatArea"

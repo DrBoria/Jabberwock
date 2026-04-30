@@ -4,9 +4,14 @@
  * Listens to all postMessage events from the extension host and
  * publishes typed events to the EventBus. React components subscribe
  * to EventBus instead of adding raw window listeners.
+ *
+ * Also subscribes to MST store snapshots for migrated message types.
  */
 
+import { onSnapshot } from "mobx-state-tree"
+
 import { eventBus, type AskEvent, type McpServerRequestEvent } from "./EventBus"
+import { mcpServersStore } from "@src/features/mcp-servers/store"
 
 export function initExtensionMessageBus(): () => void {
 	const handleMessage = (event: MessageEvent) => {
@@ -55,16 +60,19 @@ export function initExtensionMessageBus(): () => void {
 				}
 			}
 		}
-
-		// Forward MCP server list updates
-		if (message.type === "mcpServers") {
-			eventBus.publish("STATE_CHANGED", { key: "mcpServers", value: message.mcpServers })
-		}
 	}
 
 	window.addEventListener("message", handleMessage)
 
+	// Subscribe to MST store snapshots for migrated message types
+	const unsubscribeMcpServers = onSnapshot(mcpServersStore, (snapshot) => {
+		if (snapshot.servers) {
+			eventBus.publish("STATE_CHANGED", { key: "mcpServers", value: snapshot.servers })
+		}
+	})
+
 	return () => {
 		window.removeEventListener("message", handleMessage)
+		unsubscribeMcpServers()
 	}
 }
