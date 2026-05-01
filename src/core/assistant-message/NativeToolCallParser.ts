@@ -646,6 +646,21 @@ export class NativeToolCallParser {
 				}
 				break
 
+			case "delegate_task":
+				if (
+					partialArgs.task_id !== undefined ||
+					partialArgs.target_role !== undefined ||
+					partialArgs.message !== undefined
+				) {
+					nativeArgs = {
+						task_id: partialArgs.task_id,
+						target_role: partialArgs.target_role,
+						message: partialArgs.message,
+						is_async: this.coerceOptionalBoolean(partialArgs.is_async),
+					}
+				}
+				break
+
 			default:
 				break
 		}
@@ -999,6 +1014,17 @@ export class NativeToolCallParser {
 							mode: args.mode,
 							message: args.message,
 							todos: args.todos,
+						} as NativeArgsFor<TName>
+					}
+					break
+
+				case "delegate_task":
+					if (args.task_id !== undefined && args.target_role !== undefined && args.message !== undefined) {
+						nativeArgs = {
+							task_id: args.task_id,
+							target_role: args.target_role,
+							message: args.message,
+							is_async: args.is_async,
 						} as NativeArgsFor<TName>
 					}
 					break

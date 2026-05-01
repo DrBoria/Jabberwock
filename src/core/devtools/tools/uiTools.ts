@@ -1,4 +1,5 @@
 import { z } from "zod"
+import * as vscode from "vscode"
 
 export function registerUiTools(mcpServer, provider) {
 	mcpServer.tool(
@@ -97,6 +98,23 @@ export function registerUiTools(mcpServer, provider) {
 				}
 
 				currentTask.askShownAt = undefined
+
+				if (response === "objectResponse") {
+					// objectResponse carries a JSON payload (e.g. a mutated todo plan).
+					// Parse it and respond as "yesButtonClicked" with the plan data,
+					// mirroring the approve_todo pattern in interact_with_ui.
+					const planJson = text ?? "{}"
+					currentTask.handleWebviewAskResponse("yesButtonClicked", planJson, undefined)
+					return {
+						content: [
+							{
+								type: "text",
+								text: `Successfully sent objectResponse (parsed as yesButtonClicked with plan data).`,
+							},
+						],
+					}
+				}
+
 				currentTask.handleWebviewAskResponse(response, text, undefined)
 				return {
 					content: [{ type: "text", text: `Successfully sent response "${response}" to current task.` }],
@@ -269,8 +287,28 @@ export function registerUiTools(mcpServer, provider) {
 
 	mcpServer.tool("navigate_to_history", {}, async () => {
 		try {
-			await provider.postMessageToWebview({ type: "action", action: "historyButtonClicked" })
-			return { content: [{ type: "text", text: "Successfully navigated to History page" }] }
+			const p = provider as any
+			const requestId = Math.random().toString(36).substring(7)
+			const navResult = await new Promise<string>((resolve, reject) => {
+				const timeout = setTimeout(() => {
+					reject(new Error("Timeout waiting for navigation confirmation after 5s"))
+				}, 5000)
+
+				p.pendingActivePageRequests.set(requestId, (result: string) => {
+					clearTimeout(timeout)
+					resolve(result)
+				})
+
+				p.postMessageToWebview({
+					type: "action",
+					action: "historyButtonClicked",
+					requestId,
+				})
+			})
+
+			return {
+				content: [{ type: "text", text: `Successfully navigated to History page (confirmed: ${navResult})` }],
+			}
 		} catch (error) {
 			return { content: [{ type: "text", text: `Error: ${error}` }], isError: true }
 		}
@@ -278,8 +316,28 @@ export function registerUiTools(mcpServer, provider) {
 
 	mcpServer.tool("navigate_to_settings", {}, async () => {
 		try {
-			await provider.postMessageToWebview({ type: "action", action: "settingsButtonClicked" })
-			return { content: [{ type: "text", text: "Successfully navigated to Settings page" }] }
+			const p = provider as any
+			const requestId = Math.random().toString(36).substring(7)
+			const navResult = await new Promise<string>((resolve, reject) => {
+				const timeout = setTimeout(() => {
+					reject(new Error("Timeout waiting for navigation confirmation after 5s"))
+				}, 5000)
+
+				p.pendingActivePageRequests.set(requestId, (result: string) => {
+					clearTimeout(timeout)
+					resolve(result)
+				})
+
+				p.postMessageToWebview({
+					type: "action",
+					action: "settingsButtonClicked",
+					requestId,
+				})
+			})
+
+			return {
+				content: [{ type: "text", text: `Successfully navigated to Settings page (confirmed: ${navResult})` }],
+			}
 		} catch (error) {
 			return { content: [{ type: "text", text: `Error: ${error}` }], isError: true }
 		}
@@ -287,8 +345,30 @@ export function registerUiTools(mcpServer, provider) {
 
 	mcpServer.tool("navigate_to_marketplace", {}, async () => {
 		try {
-			await provider.postMessageToWebview({ type: "action", action: "marketplaceButtonClicked" })
-			return { content: [{ type: "text", text: "Successfully navigated to Marketplace page" }] }
+			const p = provider as any
+			const requestId = Math.random().toString(36).substring(7)
+			const navResult = await new Promise<string>((resolve, reject) => {
+				const timeout = setTimeout(() => {
+					reject(new Error("Timeout waiting for navigation confirmation after 5s"))
+				}, 5000)
+
+				p.pendingActivePageRequests.set(requestId, (result: string) => {
+					clearTimeout(timeout)
+					resolve(result)
+				})
+
+				p.postMessageToWebview({
+					type: "action",
+					action: "marketplaceButtonClicked",
+					requestId,
+				})
+			})
+
+			return {
+				content: [
+					{ type: "text", text: `Successfully navigated to Marketplace page (confirmed: ${navResult})` },
+				],
+			}
 		} catch (error) {
 			return { content: [{ type: "text", text: `Error: ${error}` }], isError: true }
 		}
@@ -305,6 +385,55 @@ export function registerUiTools(mcpServer, provider) {
 				return { content: [{ type: "text", text: `Successfully switched to mode: ${args.mode}` }] }
 			} catch (error) {
 				return { content: [{ type: "text", text: `Error: ${error}` }], isError: true }
+			}
+		},
+	)
+
+	mcpServer.tool(
+		"execute_vscode_command",
+		{
+			command: z
+				.string()
+				.describe(
+					"The VS Code command ID to execute (e.g. 'jabberwock.historyButtonClicked', 'jabberwock.settingsButtonClicked', 'jabberwock.plusButtonClicked')",
+				),
+			args: z.any().optional().describe("Optional arguments to pass to the command"),
+		},
+		async ({ command, args }) => {
+			try {
+				const p = provider as any
+				const requestId = Math.random().toString(36).substring(7)
+
+				// Extract action name from command (e.g., "jabberwock.historyButtonClicked" -> "historyButtonClicked")
+				const actionName = command.includes(".") ? command.split(".").pop()! : command
+
+				const result = await new Promise<string>((resolve, reject) => {
+					const timeout = setTimeout(() => {
+						reject(new Error(`Timeout waiting for command '${command}' confirmation after 5s`))
+					}, 5000)
+
+					p.pendingActivePageRequests.set(requestId, (result: string) => {
+						clearTimeout(timeout)
+						resolve(result)
+					})
+
+					p.postMessageToWebview({
+						type: "action",
+						action: actionName,
+						requestId,
+					})
+				})
+
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Successfully executed VS Code command: ${command} (confirmed: ${result})`,
+						},
+					],
+				}
+			} catch (error) {
+				return { content: [{ type: "text", text: `Error executing VS Code command: ${error}` }], isError: true }
 			}
 		},
 	)

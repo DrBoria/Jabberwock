@@ -220,6 +220,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 	childTasks: Task[] = [] // Jabberwock: hold references to background tasks
 	completionResultSummary?: string // Jabberwock: result of attempt_completion
 	isCompleted: boolean = false // Jabberwock: track if task is completed
+	isAsync: boolean = false // Jabberwock: true if task runs in background (async orchestration)
 	pendingNewTaskToolCallId?: string
 
 	readonly instanceId: string

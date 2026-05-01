@@ -164,6 +164,42 @@ export class JabberwockE2EDSL {
 		await this.connect()
 	}
 
+	/**
+	 * Hard reconnect: re-establishes SSE transport AND verifies the provider is alive.
+	 * Unlike reconnect(), this checks provider health via _ping after reconnecting.
+	 * Throws a clear error if the provider is still dead after reconnection.
+	 */
+	async hardReconnect(): Promise<void> {
+		// First, do a standard SSE reconnect
+		await this.reconnect()
+
+		// Then verify provider is alive via _ping
+		try {
+			const pingResult = await this.callTool("_ping", {})
+			const parsed = JSON.parse(pingResult)
+			if (parsed.providerAlive) {
+				console.log("  ✓ Provider is alive after hard reconnect")
+				return
+			}
+			console.warn("  ⚠️ Provider is still dead after SSE reconnect")
+			console.warn("  💡 Try calling restart_provider tool, or manually refresh the MCP server in settings")
+			throw new Error(
+				"Provider is not alive after hard reconnect. The webview/provider connection is dead. " +
+					"Try calling 'restart_provider' tool or manually refreshing the MCP server.",
+			)
+		} catch (error: any) {
+			if (error.message?.includes("Provider is not alive")) {
+				throw error
+			}
+			// _ping itself failed — transport issue
+			console.warn(`  ⚠️ _ping failed after reconnect: ${error.message}`)
+			throw new Error(
+				`MCP transport is not responding after reconnect: ${error.message}. ` +
+					"The extension host may need to be reloaded.",
+			)
+		}
+	}
+
 	// ==================== LOW-LEVEL SSE COMMUNICATION (ISOLATED) ====================
 
 	private async callTool(name: string, args: any = {}): Promise<string> {
@@ -216,10 +252,22 @@ export class JabberwockE2EDSL {
 				return await this.callTool(name, args)
 			} catch (error) {
 				const msg = error instanceof Error ? error.message : String(error)
-				if (attempt < maxRetries && (msg.includes("Connection closed") || msg.includes("Connection timeout"))) {
-					console.log(`  ⚠️ SSE connection issue, reconnecting... (attempt ${attempt + 1}/${maxRetries})`)
+				const isConnectionError =
+					msg.includes("Connection closed") ||
+					msg.includes("Connection timeout") ||
+					msg.includes("timeout") ||
+					msg.includes("ECONNREFUSED") ||
+					msg.includes("fetch") ||
+					msg.includes("network") ||
+					msg.includes("abort")
+				if (attempt < maxRetries && isConnectionError) {
+					console.log(
+						`  ⚠️ Connection error on ${name}, reconnecting... (attempt ${attempt + 1}/${maxRetries})`,
+					)
 					try {
 						await this.reconnect()
+						// Small delay after reconnect to let the transport stabilize
+						await new Promise((r) => setTimeout(r, 2000))
 					} catch {
 						// If reconnect fails, wait and try again
 						await this.wait(2000)
@@ -1007,17 +1055,29 @@ export class JabberwockE2EDSL {
 			console.warn(`[NAV] Could not check provider state: ${error}`)
 		}
 
+		// Map pages to VS Code commands (defined in src/package.json contributes.commands)
+		// These commands are registered via registerCommands.ts and trigger the actual
+		// VS Code toolbar button actions (view/title buttons).
+		const pageToCommand: Record<string, string> = {
+			chat: "", // handled separately via navigate_to_node
+			history: "jabberwock.historyButtonClicked",
+			settings: "jabberwock.settingsButtonClicked",
+			marketplace: "jabberwock.marketplaceButtonClicked",
+			cloud: "jabberwock.cloudButtonClicked",
+			welcome: "", // no dedicated command, falls through
+		}
+
+		const command = pageToCommand[page]
+
 		if (page === "chat") {
 			console.log(`[DEBUG] Calling navigate_to_node with nodeId: ${props?.taskId || ""}`)
 			await this.callTool("navigate_to_node", {
 				nodeId: props?.taskId || "",
 			})
-		} else if (page === "history") {
-			await this.callTool("navigate_to_history")
-		} else if (page === "settings") {
-			await this.callTool("navigate_to_settings")
-		} else if (page === "marketplace") {
-			await this.callTool("navigate_to_marketplace")
+		} else if (command) {
+			// Execute the actual VS Code command — this simulates clicking the toolbar button
+			console.log(`[NAV] Executing VS Code command: ${command}`)
+			await this.callTool("execute_vscode_command", { command })
 		} else {
 			console.warn(`[WARN] Navigation to ${page} page not implemented yet`)
 		}

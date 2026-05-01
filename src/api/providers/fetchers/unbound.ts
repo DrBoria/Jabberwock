@@ -17,16 +17,14 @@ export async function getUnboundModels(apiKey?: string | null): Promise<Record<s
 		const response = await axios.get("https://api.getunbound.ai/models", { headers })
 		const rawModels = response.data?.data ?? response.data
 
-		if (!Array.isArray(rawModels)) {
-			console.error(
-				`[getUnboundModels] Unexpected response format: rawModels is not iterable`,
-				typeof rawModels,
-				rawModels,
-			)
-			return models
-		}
+		// API may return either an array [{id, ...}] or an object {model_id: {...}}
+		const modelEntries = Array.isArray(rawModels)
+			? rawModels
+			: typeof rawModels === "object" && rawModels !== null
+				? Object.entries(rawModels).map(([id, model]: [string, any]) => ({ id, ...model }))
+				: []
 
-		for (const rawModel of rawModels) {
+		for (const rawModel of modelEntries) {
 			const modelInfo: ModelInfo = {
 				maxTokens: rawModel.max_output_tokens ?? 8192,
 				contextWindow: rawModel.context_window ?? 200_000,

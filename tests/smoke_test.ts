@@ -7,14 +7,21 @@ import { JabberwockE2EDSL, createJabberwockTestSession, createTestSuite } from "
  */
 async function ensureMcpConnection(dsl: JabberwockE2EDSL): Promise<void> {
 	try {
-		await dsl.getActivePage()
-		console.log("  ✓ MCP connection healthy")
+		const pingResult = await dsl.callTool("_ping", {})
+		const parsed = JSON.parse(pingResult)
+		if (parsed.providerAlive) {
+			console.log("  ✓ MCP connection healthy (provider alive)")
+			return
+		}
+		// Provider is dead but server is alive — try reconnect
+		console.warn("  ⚠️ Provider is not alive, attempting reconnect...")
 	} catch (error) {
 		console.warn(`  ⚠️ MCP connection issue detected: ${error instanceof Error ? error.message : error}`)
-		console.log("  🔄 Attempting MCP reconnection...")
-		await dsl.reconnect()
-		console.log("  ✓ MCP reconnected successfully")
 	}
+
+	console.log("  🔄 Attempting MCP reconnection...")
+	await dsl.hardReconnect()
+	console.log("  ✓ MCP reconnected successfully")
 }
 
 /**

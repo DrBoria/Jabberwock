@@ -7,6 +7,7 @@ import { type ExtensionMessage, TelemetryEventName } from "@jabberwock/types"
 import TranslationProvider from "./i18n/TranslationContext"
 import { MarketplaceViewStateManager } from "./components/marketplace/MarketplaceViewStateManager"
 
+import { observer } from "mobx-react-lite"
 import { vscode } from "./features/devtools/utils/vscode"
 import { telemetryClient } from "./features/cloud/utils/TelemetryClient"
 import { initializeSourceMaps, exposeSourceMapsForDebugging } from "./features/devtools/utils/sourceMapInitializer"
@@ -64,7 +65,7 @@ const tabsByMessageAction: Partial<Record<NonNullable<ExtensionMessage["action"]
 	cloudButtonClicked: "cloud",
 }
 
-const AppContent = () => {
+const AppContent = observer(() => {
 	const {
 		didHydrateState,
 		showWelcome,
@@ -159,6 +160,18 @@ const AppContent = () => {
 						const marketplaceTab = message.values?.marketplaceTab as string | undefined
 						switchTab(newTab, { section, marketplaceTab })
 					}
+
+					// If the message has a requestId, respond with the active page after navigation
+					const requestId = (message as any).requestId
+					if (requestId) {
+						const topWindow = activeWindows[activeWindows.length - 1]
+						const mstPage = topWindow?.type || "chat"
+						vscode.postMessage({
+							type: "activePageResponse",
+							requestId,
+							activePage: mstPage,
+						})
+					}
 				}
 			}
 
@@ -187,8 +200,46 @@ const AppContent = () => {
 			if (message.type === "action" && message.action === "getActivePage") {
 				const requestId = (message as any).requestId
 				const topWindow = activeWindows[activeWindows.length - 1]
-				const activePage = topWindow?.type || "chat"
-				console.log(`[App] getActivePage: responding with "${activePage}" (requestId: ${requestId})`)
+				const mstPage = topWindow?.type || "chat"
+
+				// Map MST window types to their data-window-type attribute values
+				const windowTypeToDataAttr: Record<string, string> = {
+					chat: "Chat",
+					history: "History",
+					settings: "Settings",
+					marketplace: "Marketplace",
+					cloud: "Cloud",
+					task_hierarchy: "Hierarchy",
+				}
+
+				// DOM-verify: check if the expected view's WindowLayer is actually rendered
+				const expectedAttr = windowTypeToDataAttr[mstPage]
+				const domEl = expectedAttr ? document.querySelector(`[data-window-type="${expectedAttr}"]`) : null
+
+				// If the DOM element for the claimed page doesn't exist, fall back to what's visible
+				let activePage = mstPage
+				if (!domEl) {
+					// Scan all rendered WindowLayers and pick the topmost (last) one
+					const renderedLayers = document.querySelectorAll("[data-window-type]")
+					if (renderedLayers.length > 0) {
+						const lastLayer = renderedLayers[renderedLayers.length - 1]
+						const visibleType = lastLayer.getAttribute("data-window-type")?.toLowerCase()
+						if (visibleType) {
+							activePage = visibleType
+						}
+					} else {
+						// No WindowLayers at all — user is on the chat view
+						activePage = "chat"
+					}
+					console.warn(
+						`[App] getActivePage: MST says "${mstPage}" but DOM has no [data-window-type="${expectedAttr}"]. ` +
+							`Falling back to "${activePage}"`,
+					)
+				}
+
+				console.log(
+					`[App] getActivePage: responding with "${activePage}" (MST: "${mstPage}", requestId: ${requestId})`,
+				)
 				vscode.postMessage({
 					type: "activePageResponse",
 					requestId,
@@ -592,7 +643,7 @@ const AppContent = () => {
 								resourceUri={interactiveAppUri}
 								agentsList={JSON.stringify(
 									getAllModes(customModes).map((m) => ({
-										mode: m.slug,
+										slug: m.slug,
 										name: m.name,
 									})),
 								)}
@@ -675,7 +726,7 @@ const AppContent = () => {
 			)}
 		</>
 	)
-}
+})
 
 const queryClient = new QueryClient()
 

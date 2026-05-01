@@ -277,4 +277,95 @@ export const registerActionsTools = (mcpServer: McpServer, provider: ClineProvid
 			}
 		},
 	)
+	mcpServer.tool(
+		"create_child_tasks",
+		{
+			tasks: z
+				.array(
+					z.object({
+						message: z.string().describe("The task description"),
+						mode: z.string().describe("The mode slug (e.g. 'code', 'architect')"),
+						todos: z.string().optional().describe("Optional markdown checklist for todos"),
+					}),
+				)
+				.describe("Array of child tasks to create in parallel"),
+		},
+		async ({ tasks }) => {
+			try {
+				const currentTask = provider.getCurrentTask()
+				if (!currentTask) {
+					return {
+						content: [
+							{
+								type: "text",
+								text: JSON.stringify({
+									hasTask: false,
+									error: "No active task to create children for",
+								}),
+							},
+						],
+					}
+				}
+
+				// Parse todos for each task
+				const taskDefs = tasks.map((t: any) => {
+					let todoItems: any[] = []
+					if (t.todos) {
+						try {
+							// Simple markdown checklist parsing
+							const lines = t.todos.split("\n")
+							for (const line of lines) {
+								const match = line.match(/^\s*[-*]\s+\[( |x|X)\]\s+(.+)$/)
+								if (match) {
+									todoItems.push({
+										id: `todo-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+										description: match[2],
+										status: match[1] === " " ? "pending" : "completed",
+									})
+								}
+							}
+						} catch {
+							// Ignore parse errors
+						}
+					}
+					return {
+						message: t.message,
+						mode: t.mode,
+						initialTodos: todoItems,
+					}
+				})
+
+				const children = await provider.createChildTasks({
+					parentTaskId: currentTask.taskId,
+					tasks: taskDefs,
+				})
+
+				return {
+					content: [
+						{
+							type: "text",
+							text: JSON.stringify(
+								{
+									message: `Created ${children.length} child tasks in parallel`,
+									childTaskIds: children.map((c) => c.taskId),
+								},
+								null,
+								2,
+							),
+						},
+					],
+				}
+			} catch (error) {
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Error creating child tasks: ${error instanceof Error ? error.message : String(error)}`,
+						},
+					],
+					isError: true,
+				}
+			}
+		},
+	)
 }

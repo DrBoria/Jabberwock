@@ -2081,6 +2081,9 @@ export class ClineProvider
 			startTask: false,
 		})
 
+		// Mark as async so the system knows it's a background task
+		childTask.isAsync = true
+
 		// Add to parent's childTasks for in-memory hierarchy tracking
 		parent.childTasks.push(childTask)
 
@@ -2088,6 +2091,80 @@ export class ClineProvider
 		childTask.start()
 
 		return childTask
+	}
+
+	public async createChildTasks(params: {
+		parentTaskId: string
+		tasks: Array<{
+			message: string
+			initialTodos: TodoItem[]
+			mode: string
+		}>
+	}): Promise<Task[]> {
+		const { parentTaskId, tasks } = params
+
+		const parent = this.getCurrentTask()
+		if (!parent || parent.taskId !== parentTaskId) {
+			throw new Error("[createChildTasks] Parent mismatch or no current task")
+		}
+
+		// Flush parent tool results before spawning children
+		await parent.flushPendingToolResultsToHistory()
+
+		const { apiConfiguration, enableCheckpoints, checkpointTimeout, experiments } = await this.getState()
+
+		// Create all child tasks in parallel
+		const childTasks = await Promise.all(
+			tasks.map(async (taskDef) => {
+				const childTask = new Task({
+					provider: this,
+					apiConfiguration,
+					enableCheckpoints,
+					checkpointTimeout,
+					consecutiveMistakeLimit: apiConfiguration.consecutiveMistakeLimit,
+					task: taskDef.message,
+					images: [],
+					experiments,
+					rootTask: parent.rootTask ?? parent,
+					parentTask: parent,
+					taskNumber: parent.taskNumber + 1000 + Math.floor(Math.random() * 1000),
+					onCreated: this.taskCreationCallback,
+					initialTodos: taskDef.initialTodos,
+					startTask: false,
+				})
+
+				// Mark as async so the system knows it's a background task
+				childTask.isAsync = true
+
+				// Add to parent's childTasks for in-memory hierarchy tracking
+				parent.childTasks.push(childTask)
+
+				// Persist child ID in parent's history
+				try {
+					const { historyItem } = await this.getTaskWithId(parentTaskId)
+					const childIds = Array.from(new Set([...(historyItem.childIds ?? []), childTask.taskId]))
+					await this.updateTaskHistory({
+						...historyItem,
+						childIds,
+					})
+				} catch (err) {
+					this.log(
+						`[createChildTasks] Failed to persist childIds for parent ${parentTaskId}: ${
+							(err as Error)?.message ?? String(err)
+						}`,
+					)
+				}
+
+				return childTask
+			}),
+		)
+
+		// Start all child tasks after they're all created and persisted
+		for (const child of childTasks) {
+			child.start()
+		}
+
+		return childTasks
 	}
 
 	public async delegateParentAndOpenChild(params: {

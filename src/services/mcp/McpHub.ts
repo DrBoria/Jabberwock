@@ -60,6 +60,11 @@ class InternalMcpClientTransport {
 	private readonly RECONNECT_BASE_DELAY_MS = 1000
 	private reconnectTimer: ReturnType<typeof setTimeout> | null = null
 	private isReconnecting = false
+	/** Callback invoked when all reconnect attempts are exhausted and the transport cannot recover on its own. */
+	onInternalRestartNeeded?: () => void
+	private healthCheckInterval: ReturnType<typeof setInterval> | null = null
+	private healthCheckAbortController: AbortController | null = null
+	/** Resolves when the SSE connection is established, rejects on timeout. */
 
 	constructor(port: number) {
 		this.port = port
@@ -71,8 +76,26 @@ class InternalMcpClientTransport {
 		return `internal-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 	}
 
+	/** Resolves when the SSE connection is established, rejects on timeout. */
+	startPromise?: Promise<void>
+	private startResolve?: () => void
+	private startReject?: (err: Error) => void
+	private startTimeout?: ReturnType<typeof setTimeout>
+
 	async start(): Promise<void> {
 		this.abortController = new AbortController()
+
+		// Create a promise that resolves when the SSE connection is established
+		// or rejects after a timeout. This lets callers (e.g. registerInternalConnection)
+		// detect silent connection failures instead of assuming success.
+		this.startPromise = new Promise<void>((resolve, reject) => {
+			this.startResolve = resolve
+			this.startReject = reject
+			this.startTimeout = setTimeout(() => {
+				reject(new Error("SSE connection timed out after 10s"))
+			}, 10_000)
+		})
+
 		try {
 			const response = await fetch(`${this.serverUrl}/sse`, {
 				signal: this.abortController.signal,
@@ -83,6 +106,14 @@ class InternalMcpClientTransport {
 
 			// Reset reconnect counter on successful connection
 			this.reconnectAttempts = 0
+
+			// Connection established — resolve the promise and clear the timeout
+			this.startResolve?.()
+			clearTimeout(this.startTimeout)
+			this.startTimeout = undefined
+
+			// Start periodic healthcheck to detect stale connections (e.g., after HMR reload)
+			this.startHealthCheck()
 
 			const reader = response.body.getReader()
 			const decoder = new TextDecoder()
@@ -98,7 +129,12 @@ class InternalMcpClientTransport {
 				}
 			})
 		} catch (err) {
-			// SSE connection failed — log but don't throw, send() will still POST
+			// SSE connection failed — resolve the promise (don't leave hanging) and clear timeout
+			this.startResolve?.()
+			clearTimeout(this.startTimeout)
+			this.startTimeout = undefined
+
+			// Log but don't throw, send() will still POST
 			console.warn(`[InternalMcpClientTransport] SSE connection failed:`, err)
 			// Trigger auto-reconnect on connection failure
 			this.scheduleReconnect()
@@ -149,6 +185,8 @@ class InternalMcpClientTransport {
 	}
 
 	private scheduleReconnect(): void {
+		// Stop healthcheck while reconnecting
+		this.stopHealthCheck()
 		// Don't reconnect if we're already in the process
 		if (this.isReconnecting) return
 		// Don't reconnect if we've exceeded the max attempts
@@ -157,6 +195,8 @@ class InternalMcpClientTransport {
 				`[InternalMcpClientTransport] Max reconnect attempts (${this.MAX_RECONNECT_ATTEMPTS}) reached, giving up`,
 			)
 			this.onclose?.()
+			// Signal parent to restart the internal connection (e.g., re-register via McpHub)
+			this.onInternalRestartNeeded?.()
 			return
 		}
 
@@ -225,7 +265,73 @@ class InternalMcpClientTransport {
 		throw lastError || new Error(`Internal MCP transport send() failed after ${maxRetries} retries`)
 	}
 
+	/**
+	 * Starts a 2-second periodic healthcheck against the DevTools HTTP server.
+	 * If the `/health` endpoint fails or times out (e.g., after HMR reloads the
+	 * target extension, creating a new server session), triggers `scheduleReconnect()`
+	 * so the transport generates a fresh sessionId and re-establishes the connection.
+	 */
+	private startHealthCheck(): void {
+		this.stopHealthCheck()
+
+		this.healthCheckInterval = setInterval(async () => {
+			// Don't healthcheck while a reconnect is in progress
+			if (this.isReconnecting) return
+
+			// Abort any in-flight healthcheck request from a previous interval tick
+			this.healthCheckAbortController?.abort()
+			this.healthCheckAbortController = new AbortController()
+
+			// Timeout after 2 seconds — if the server is unresponsive (e.g., HMR reload),
+			// we want to detect it promptly.
+			const timeout = setTimeout(() => this.healthCheckAbortController?.abort(), 2000)
+
+			try {
+				const response = await fetch(`${this.serverUrl}/health`, {
+					signal: this.healthCheckAbortController.signal,
+				})
+				clearTimeout(timeout)
+				if (!response.ok) {
+					throw new Error(`Healthcheck returned ${response.status}`)
+				}
+				// Parse the response to check provider health (Fix 2: /health now returns providerAlive)
+				const healthData = await response.json().catch(() => ({}))
+				if (healthData.providerAlive === false) {
+					throw new Error("Healthcheck failed: provider is not alive")
+				}
+				// Connection is healthy — nothing to do
+			} catch (err: any) {
+				clearTimeout(timeout)
+				if (err.name === "AbortError") {
+					console.warn(
+						`[InternalMcpClientTransport] Healthcheck timed out — server may have been HMR-reloaded, triggering reconnect`,
+					)
+				} else {
+					console.warn(
+						`[InternalMcpClientTransport] Healthcheck failed: ${err.message}, triggering reconnect`,
+					)
+				}
+				this.stopHealthCheck()
+				this.scheduleReconnect()
+			}
+		}, 2000)
+	}
+
+	/**
+	 * Stops the healthcheck interval and aborts any in-flight request.
+	 */
+	private stopHealthCheck(): void {
+		if (this.healthCheckInterval) {
+			clearInterval(this.healthCheckInterval)
+			this.healthCheckInterval = null
+		}
+		this.healthCheckAbortController?.abort()
+		this.healthCheckAbortController = null
+	}
+
 	async close(): Promise<void> {
+		// Stop healthcheck and abort any in-flight request
+		this.stopHealthCheck()
 		if (this.reconnectTimer) {
 			clearTimeout(this.reconnectTimer)
 			this.reconnectTimer = null
@@ -433,6 +539,40 @@ export class McpHub extends EventEmitter {
 
 		// Connect the client to the internal transport
 		await client.connect(transport)
+
+		// Await the connection establishment promise to detect silent SSE failures.
+		// If the SSE stream never connects (e.g., server not ready), startPromise will
+		// reject after a 10s timeout, allowing us to fall back to the delayed retry path.
+		try {
+			await transport.startPromise
+		} catch (connError) {
+			diagnosticsManager.log(
+				`[McpHub] Internal transport SSE connection failed on port ${port}: ${connError}`,
+				"warn",
+			)
+			// Don't throw — the delayed retry in ClineProvider.init() will handle this
+		}
+
+		// Set up the auto-restart callback: when the transport exhausts all reconnect
+		// attempts, trigger a full re-registration via McpHub.
+		transport.onInternalRestartNeeded = () => {
+			diagnosticsManager.log(
+				`[McpHub] Internal transport reconnect exhausted, re-registering on port ${port}...`,
+				"warn",
+			)
+			// Fire-and-forget: re-register in the background. Use a microtask to avoid
+			// re-entrancy issues since this callback may be called from within the transport.
+			queueMicrotask(async () => {
+				try {
+					await this.registerInternalConnection(port)
+				} catch (err) {
+					diagnosticsManager.log(
+						`[McpHub] Failed to re-register internal connection after reconnect exhaustion: ${err}`,
+						"error",
+					)
+				}
+			})
+		}
 
 		// Fetch the tool list from the DevTools server
 		let tools: McpTool[] = []
@@ -1665,7 +1805,7 @@ export class McpHub extends EventEmitter {
 		}
 	}
 
-	async restartConnection(serverName: string, source?: "global" | "project"): Promise<void> {
+	async restartConnection(serverName: string, source?: "global" | "project" | "internal"): Promise<void> {
 		this.isConnecting = true
 
 		// Check if MCP is globally enabled
@@ -1676,8 +1816,46 @@ export class McpHub extends EventEmitter {
 		}
 
 		// Get existing connection and update its status
-		const connection = this.findConnection(serverName, source)
+		const connection = this.findConnection(serverName, source as any)
 		const config = connection?.server.config
+
+		// --- Handle internal connections (jabberwock-devtools) specially ---
+		// The synthetic config stored for internal connections lacks command/url fields,
+		// so validateServerConfig + connectToServer will throw. Instead, re-register
+		// via registerInternalConnection which properly creates the transport.
+		const isInternal = source === "internal" || connection?.server.source === ("internal" as any)
+		if (isInternal) {
+			// Get the port from the existing transport
+			const transport = connection?.transport as any
+			const port = transport?.port ?? 60060
+
+			// Close and remove the existing internal connection
+			if (connection) {
+				try {
+					if (connection.type === "connected") {
+						await connection.transport?.close().catch(() => {})
+						await connection.client?.close().catch(() => {})
+					}
+				} catch {
+					// Ignore close errors
+				}
+				this.connections = this.connections.filter(
+					(c) => !(c.server.name === serverName && c.server.source === ("internal" as any)),
+				)
+				const sanitizedName = sanitizeMcpName(serverName)
+				this.sanitizedNameRegistry.delete(sanitizedName)
+			}
+
+			this.isConnecting = false
+
+			// Re-register using the proper internal path
+			await this.registerInternalConnection(port)
+
+			vscode.window.showInformationMessage(t("mcp:info.server_connected", { serverName }))
+			await this.notifyWebviewOfServerChanges()
+			return
+		}
+
 		if (config) {
 			vscode.window.showInformationMessage(t("mcp:info.server_restarting", { serverName }))
 			connection.server.status = "connecting"
@@ -1731,6 +1909,14 @@ export class McpHub extends EventEmitter {
 
 		this.isConnecting = true
 
+		// Preserve the internal connection (jabberwock-devtools) before clearing everything.
+		// refreshAllConnections only re-initializes "global" and "project" sources, so the
+		// internal connection would be silently lost if we don't re-register it.
+		const internalConnection = this.connections.find(
+			(conn) => conn.server.name === "jabberwock-devtools" && conn.server.source === ("internal" as any),
+		)
+		const internalPort = (internalConnection?.transport as any)?.port ?? 60060
+
 		try {
 			const globalPath = await this.getMcpSettingsFilePath()
 			let globalServers: Record<string, any> = {}
@@ -1766,6 +1952,22 @@ export class McpHub extends EventEmitter {
 			// This ensures proper initialization including fetching tools, resources, etc.
 			await this.initializeMcpServers("global")
 			await this.initializeMcpServers("project")
+
+			// Re-register the internal DevTools connection that was preserved
+			if (internalConnection) {
+				try {
+					await this.registerInternalConnection(internalPort)
+					diagnosticsManager.log(
+						`[McpHub] Re-registered internal DevTools connection after refresh (port ${internalPort})`,
+						"info",
+					)
+				} catch (regError) {
+					diagnosticsManager.log(
+						`[McpHub] Failed to re-register internal DevTools connection after refresh: ${regError}`,
+						"error",
+					)
+				}
+			}
 
 			await delay(100)
 

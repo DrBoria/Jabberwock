@@ -8,6 +8,7 @@ import { registerTaskTools } from "./tools/taskTools/index"
 import { registerSettingsTools } from "./tools/settingsTools"
 import { registerAgentTools } from "./tools/agentTools"
 import { registerPromptTools } from "./tools/promptTools"
+import { registerProviderTools } from "./tools/providerTools"
 import { diagnosticsManager } from "./DiagnosticsManager"
 
 // ── globalThis state ──────────────────────────────────────────────────────────
@@ -68,9 +69,26 @@ export async function startJabberwockMcpServer(provider: ClineProvider, port: nu
 	// relies on, causing "Connection closed" errors.
 	if (gs.serverInstance) {
 		diagnosticsManager.log(
-			`[Jabberwock DevTools] Server already running. Updating active provider and returning existing port ${port}.`,
+			`[Jabberwock DevTools] Server already running (hot-reload). Clearing stale SSE transports...`,
 			"info",
 		)
+		// Clear all existing SSE transports — they belong to the old extension instance.
+		// The new InternalMcpClientTransport will create a fresh SSE connection with a new
+		// sessionId. Without this cleanup, stale transports with old sessionIds accumulate
+		// and the POST /messages fallback iterates them unnecessarily.
+		for (const [sid, transport] of gs.sseTransports.entries()) {
+			try {
+				transport.close()
+			} catch {
+				// Ignore close errors for already-dead transports
+			}
+		}
+		gs.sseTransports.clear()
+		diagnosticsManager.log(
+			`[Jabberwock DevTools] Cleared ${gs.sseTransports.size} stale transports. Updating active provider.`,
+			"info",
+		)
+
 		gs.activeProvider = provider
 		const address = gs.serverInstance.address()
 		if (typeof address === "object" && address !== null) {
@@ -107,6 +125,20 @@ export async function startJabberwockMcpServer(provider: ClineProvider, port: nu
 		}
 	})
 
+	mcpServer.tool("_ping", {}, async () => {
+		// Check real provider health — not just HTTP server liveness
+		const provider = ClineProvider.getVisibleInstance() || gs.activeProvider
+		const providerAlive = !!provider
+		return {
+			content: [
+				{
+					type: "text",
+					text: JSON.stringify({ ok: providerAlive, providerAlive, timestamp: Date.now() }),
+				},
+			],
+		}
+	})
+
 	diagnosticsManager.log(
 		`[Jabberwock DevTools] Registering groups: ui, diagnostic, task, settings, agent, prompt...`,
 		"info",
@@ -117,12 +149,23 @@ export async function startJabberwockMcpServer(provider: ClineProvider, port: nu
 	registerSettingsTools(mcpServer, bridge)
 	registerAgentTools(mcpServer, bridge)
 	registerPromptTools(mcpServer, bridge)
+	registerProviderTools(mcpServer, bridge)
 
 	diagnosticsManager.log(`[Jabberwock DevTools] Creating HTTP/SSE server instance...`, "info")
 	return new Promise((resolve, reject) => {
 		gs.serverInstance = http.createServer((req, res) => {
 			const parsedUrl = new URL(req.url || "", `http://${req.headers.host || "localhost"}`)
 			const pathname = parsedUrl.pathname
+
+			// Healthcheck endpoint: used by InternalMcpClientTransport to detect stale connections
+			if (pathname === "/health" && req.method === "GET") {
+				// Check real provider health — not just HTTP server liveness
+				const provider = ClineProvider.getVisibleInstance() || gs.activeProvider
+				const providerAlive = !!provider
+				res.writeHead(providerAlive ? 200 : 503, { "Content-Type": "application/json" })
+				res.end(JSON.stringify({ ok: providerAlive, providerAlive, timestamp: Date.now() }))
+				return
+			}
 
 			if (pathname === "/sse") {
 				diagnosticsManager.log(`[Jabberwock DevTools] Incoming SSE connection request`, "info")
@@ -206,7 +249,14 @@ export async function startJabberwockMcpServer(provider: ClineProvider, port: nu
 								`[Jabberwock DevTools] POST /messages fallback: no working transport found`,
 								"warn",
 							)
-							res.writeHead(503).end("No working SSE transport available")
+							res.writeHead(404, { "Content-Type": "application/json" })
+							res.end(
+								JSON.stringify({
+									error: "Session not found",
+									message:
+										"No SSE transport matched the sessionId. The client may need to re-establish the SSE connection.",
+								}),
+							)
 						}
 					})()
 				} else {
@@ -214,7 +264,13 @@ export async function startJabberwockMcpServer(provider: ClineProvider, port: nu
 						`[Jabberwock DevTools] Received POST /messages but no SSE transports available`,
 						"warn",
 					)
-					res.writeHead(503).end("SSE transport not initialized")
+					res.writeHead(404, { "Content-Type": "application/json" })
+					res.end(
+						JSON.stringify({
+							error: "No transports",
+							message: "SSE transport not initialized",
+						}),
+					)
 				}
 			} else {
 				res.writeHead(404).end("Not found")
