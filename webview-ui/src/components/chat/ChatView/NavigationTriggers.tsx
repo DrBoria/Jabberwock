@@ -42,9 +42,9 @@ export const NavigationTriggers: React.FC<NavigationTriggersProps> = ({
 
 	return (
 		<Container
-			preset="col"
-			p="0"
-			gap="8px"
+			$preset="col"
+			$p="0"
+			$gap="8px"
 			style={{
 				position: "absolute",
 				right: "8px",
@@ -72,11 +72,11 @@ export const NavigationTriggers: React.FC<NavigationTriggersProps> = ({
 					<StandardTooltip
 						key={childId}
 						content={
-							<Container preset="col" p="0" gap="4px" style={{ maxWidth: "200px" }}>
+							<Container $preset="col" $p="0" $gap="4px" style={{ maxWidth: "200px" }}>
 								<Container
-									preset="row"
-									p="0"
-									gap="8px"
+									$preset="row"
+									$p="0"
+									$gap="8px"
 									style={{
 										fontWeight: "bold",
 										alignItems: "center",

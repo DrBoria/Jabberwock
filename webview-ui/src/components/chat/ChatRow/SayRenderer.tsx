@@ -145,7 +145,7 @@ export const SayRenderer: React.FC<SayRendererProps> = (props) => {
 				return (
 					<>
 						{title && (
-							<Container preset="header" p="0">
+							<Container $preset="header" $p="0">
 								{icon}
 								{title}
 							</Container>
@@ -177,7 +177,7 @@ export const SayRenderer: React.FC<SayRendererProps> = (props) => {
 		dispatcherResult ?? (
 			<>
 				{title && (
-					<Container preset="header" p="0">
+					<Container $preset="header" $p="0">
 						{icon}
 						{title}
 					</Container>

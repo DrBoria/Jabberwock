@@ -30,7 +30,7 @@ export const InteractiveAppAsk: React.FC<InteractiveAppAskProps> = ({ message, i
 
 	return (
 		<>
-			<Container preset="header" p="0">
+			<Container $preset="header" $p="0">
 				{icon}
 				{title || "Interactive App"}
 			</Container>

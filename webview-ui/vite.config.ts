@@ -217,7 +217,7 @@ export default defineConfig(({ mode }) => {
 				"mermaid",
 				// dagre is bundled with mermaid and shouldn't be included separately if not a direct dep
 			],
-			exclude: ["vscode", "@vscode/codicons", "vscode-oniguruma", "shiki"],
+			exclude: ["vscode", "@vscode/codicons", "vscode-oniguruma", "shiki", "@jabberwock/devtool"],
 		},
 		assetsInclude: ["**/*.wasm", "**/*.wav"],
 	}

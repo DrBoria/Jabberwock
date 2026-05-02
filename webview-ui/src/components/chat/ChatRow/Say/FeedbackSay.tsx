@@ -85,16 +85,16 @@ export const UserFeedbackSay: React.FC<UserFeedbackProps> = ({ message, isStream
 
 	return (
 		<div className="group">
-			<Container preset="header" p="0">
+			<Container $preset="header" $p="0">
 				<User className="w-4 shrink-0" aria-label="User icon" />
 				<span style={{ fontWeight: "bold" }}>{t("chat:feedback.youSaid")}</span>
 			</Container>
 			<Container
-				preset="col"
-				ml="24px"
-				theme={isEditing ? "card" : "subtle"}
-				p={isEditing ? "8px" : "4px 4px"}
-				gap="0"
+				$preset="col"
+				$ml="24px"
+				$theme={isEditing ? "card" : "subtle"}
+				$p={isEditing ? "8px" : "4px 4px"}
+				$gap="0"
 				style={{
 					borderRadius: "3px",
 					overflow: "hidden",
@@ -112,7 +112,7 @@ export const UserFeedbackSay: React.FC<UserFeedbackProps> = ({ message, isStream
 						onCancel={handleCancelEdit}
 					/>
 				) : (
-					<Container preset="row" gap="0" style={{ gridTemplateColumns: "1fr auto" }}>
+					<Container $preset="row" $gap="0" style={{ gridTemplateColumns: "1fr auto" }}>
 						<div
 							style={{ padding: "4px 8px" }}
 							onClick={(e) => {
@@ -122,7 +122,7 @@ export const UserFeedbackSay: React.FC<UserFeedbackProps> = ({ message, isStream
 							title={t("chat:queuedMessages.clickToEdit")}>
 							<Mention text={message.text} withShadow />
 						</div>
-						<Container preset="row" gap="4px" p="0 4px 0 0">
+						<Container $preset="row" $gap="4px" $p="0 4px 0 0">
 							<div
 								className="cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
 								style={{ visibility: isStreaming ? "hidden" : "visible" }}

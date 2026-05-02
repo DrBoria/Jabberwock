@@ -429,11 +429,20 @@ export async function activate(context: vscode.ExtensionContext) {
 export async function deactivate() {
 	outputChannel.appendLine(`${Package.name} extension deactivated`)
 
-	// Stop our DevTools MCP server so it releases port 60060.
-	// Without this, zombie HTTP processes hold the port across hot-reloads.
-	import("./core/devtools/JabberwockMcpServer")
-		.then(({ stopJabberwockMcpServer }) => stopJabberwockMcpServer())
-		.catch((e) => outputChannel.appendLine(`Failed to stop DevTools MCP server: ${e.message}`))
+	// NOTE: We do NOT stop the Devtool WebSocket server here.
+	//
+	// The WsMcpServer state is stored in globalThis.__jabberwock_ws_mcp_global_state
+	// specifically to survive hot-module replacement (HMR). On HMR, deactivate() is
+	// called but globalThis persists. If we killed the server here, all MCP clients
+	// (e.g. Roo-Code's WebSocketClientTransport) would disconnect and stay
+	// disconnected — they have no auto-reconnect logic.
+	//
+	// The start() method in WsMcpServer already checks:
+	//   if (gs.wss) { return this.port }
+	// so it will safely reuse the existing server across HMR cycles.
+	//
+	// On a full process exit (F5 restart), the OS releases the socket automatically,
+	// and the EADDRINUSE retry loop handles the brief TIME_WAIT window.
 
 	if (cloudService && CloudService.hasInstance()) {
 		try {

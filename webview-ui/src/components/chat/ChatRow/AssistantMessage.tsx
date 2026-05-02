@@ -19,8 +19,8 @@ export const AssistantMessage: React.FC<AssistantMessageProps> = ({ message, mod
 	const content = (message as any).content
 
 	return (
-		<Container preset="col" p="0" gap="0" className="group">
-			<Container preset="row" p="0" gap="10px" style={{ cursor: "default", wordBreak: "break-word" }}>
+		<Container $preset="col" $p="0" $gap="0" className="group">
+			<Container $preset="row" $p="0" $gap="10px" style={{ cursor: "default", wordBreak: "break-word" }}>
 				<MessageCircle className="w-4 shrink-0" aria-label="Speech bubble icon" />
 				<span style={{ fontWeight: "bold" }}>
 					{modeName
@@ -53,7 +53,7 @@ export const AssistantMessage: React.FC<AssistantMessageProps> = ({ message, mod
 					<Markdown markdown={message.text || ""} partial={message.partial} />
 				)}
 				{message.images && message.images.length > 0 && (
-					<Container preset="col" p="0" gap="0" style={{ marginTop: "10px" }}>
+					<Container $preset="col" $p="0" $gap="0" style={{ marginTop: "10px" }}>
 						{message.images.map((image, index) => (
 							<ImageBlock key={index} imageData={image} />
 						))}

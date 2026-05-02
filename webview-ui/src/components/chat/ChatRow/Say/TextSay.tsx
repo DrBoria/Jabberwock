@@ -34,8 +34,8 @@ export const TextSay: React.FC<TextSayProps> = ({
 		return (
 			<div className="group opacity-60 hover:opacity-100 transition-opacity">
 				<Container
-					preset="header"
-					p="0"
+					$preset="header"
+					$p="0"
 					style={{ ...headerStyle, marginBottom: "4px" }}
 					className="cursor-pointer"
 					onClick={onToggleExpand}>
@@ -65,7 +65,7 @@ export const TextSay: React.FC<TextSayProps> = ({
 
 	return (
 		<div className="group">
-			<Container preset="header" p="0">
+			<Container $preset="header" $p="0">
 				<MessageCircle className="w-4 shrink-0" aria-label="Speech bubble icon" />
 				<span style={{ fontWeight: "bold" }}>
 					{modeName

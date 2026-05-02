@@ -1,0 +1,9 @@
+{
+	"extends": "@jabberwock/config-typescript/base.json",
+	"compilerOptions": {
+		"types": ["node"],
+		"jsx": "react-jsx"
+	},
+	"include": ["src"],
+	"exclude": ["node_modules"]
+}

@@ -1,76 +1,42 @@
 import { z } from "zod"
 import { type McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import { type ClineProvider } from "../../../webview/ClineProvider"
-import { diagnosticsManager } from "../../DiagnosticsManager"
 
 export const registerActionsTools = (mcpServer: McpServer, provider: ClineProvider) => {
 	mcpServer.tool(
 		"create_new_task",
 		{
 			text: z.string().describe("The task description to start"),
-			mode: z.string().optional().describe("The mode slug to use (e.g. 'orchestrator', 'coder')"),
-			force: z.boolean().optional().describe("Clear existing task before creating new one (default: false)"),
+			mode: z.string().optional(),
+			force: z.boolean().optional(),
 		},
 		async ({ text, mode, force }) => {
 			try {
-				if (force) {
-					await provider.clearTask()
-				}
+				const previousTaskId = provider.getCurrentTask()?.taskId
 
-				if (mode) {
-					await provider.handleModeSwitch(mode as any)
-				}
-
-				// Clear accumulated diagnostics (logs, metrics, traces) for a fresh start
-				diagnosticsManager.clear()
-
-				// Capture the previous taskId BEFORE creating a new task, so the
-				// polling loop below can distinguish the new task from the old one.
-				const previousTask = provider.getCurrentTask()
-				const previousTaskId = previousTask?.taskId
-
-				// createTask is heavy — it creates a Task instance and starts the
-				// full task loop (API calls, streaming, etc.). Don't await it so
-				// the MCP tool returns immediately and the SSE client doesn't hit
-				// the 60 s timeout. The task will show up in the UI once it starts
-				// processing.
-				const taskPromise = provider.createTask(text, [], undefined, { mode })
-
-				// Fire post-state and chat-button-clicked asynchronously.
-				// postStateToWebview() is heavy (cloud orgs, MCP servers, task
-				// history…) and doesn't need to block the MCP tool response.
-				taskPromise.then(async () => {
-					await provider.postMessageToWebview({ type: "action", action: "chatButtonClicked" }).catch(() => {})
+				// Fire and forget — do not await the task completion
+				provider.createTask(text, undefined, undefined, { mode }).catch((error: any) => {
+					provider.log(`[create_new_task] Error creating task: ${error.message}`)
 				})
 
-				// Poll for the real taskId. We compare against previousTaskId to
-				// avoid returning a stale taskId on the second call (when the
-				// extension reuses the same task instance).
-				const taskId = await Promise.race([
-					(async (): Promise<string> => {
-						while (true) {
-							const task = provider.getCurrentTask()
-							if (task?.taskId && task.taskId !== previousTaskId) return task.taskId
-							await new Promise((resolve) => setTimeout(resolve, 50))
+				// Poll for taskId change (up to 5 seconds)
+				const taskId = await (async (): Promise<string> => {
+					const startTime = Date.now()
+					while (Date.now() - startTime < 5000) {
+						await new Promise((resolve) => setTimeout(resolve, 200))
+						const currentTask = provider.getCurrentTask()
+						if (currentTask && currentTask.taskId !== previousTaskId) {
+							return currentTask.taskId
 						}
-					})(),
-					new Promise<string>((_, reject) =>
-						setTimeout(() => reject(new Error("Timeout waiting for taskId")), 5000),
-					),
-				])
+					}
+					throw new Error("Task creation timed out")
+				})()
 
 				return {
 					content: [
 						{
 							type: "text",
-							text: JSON.stringify(
-								{
-									message: `Successfully initiated task in ${mode || "default"} mode`,
-									taskId,
-								},
-								null,
-								2,
-							),
+							text: JSON.stringify({ message: `Task created successfully`, taskId }, null, 2),
 						},
 					],
 				}
@@ -79,7 +45,7 @@ export const registerActionsTools = (mcpServer: McpServer, provider: ClineProvid
 					content: [
 						{
 							type: "text",
-							text: `Error initiating task: ${error instanceof Error ? error.message : String(error)}`,
+							text: `Error creating task: ${error instanceof Error ? error.message : String(error)}`,
 						},
 					],
 					isError: true,
@@ -88,58 +54,40 @@ export const registerActionsTools = (mcpServer: McpServer, provider: ClineProvid
 		},
 	)
 
-	// Alias for backward compatibility — delegates to create_new_task handler
 	mcpServer.tool(
 		"start_task",
 		{
 			text: z.string().describe("The task description to start"),
-			mode: z.string().optional().describe("The mode slug to use (e.g. 'orchestrator', 'coder')"),
-			force: z.boolean().optional().describe("Clear existing task before creating new one (default: false)"),
+			mode: z.string().optional(),
+			force: z.boolean().optional(),
 		},
 		async ({ text, mode, force }) => {
 			try {
-				if (force) {
-					await provider.clearTask()
-				}
+				const previousTaskId = provider.getCurrentTask()?.taskId
 
-				if (mode) {
-					await provider.handleModeSwitch(mode as any)
-				}
-
-				// Clear accumulated diagnostics (logs, metrics, traces) for a fresh start
-				diagnosticsManager.clear()
-
-				const taskPromise = provider.createTask(text, [], undefined, { mode })
-
-				taskPromise.then(async () => {
-					await provider.postMessageToWebview({ type: "action", action: "chatButtonClicked" }).catch(() => {})
+				// Fire and forget — do not await the task completion
+				provider.createTask(text, undefined, undefined, { mode }).catch((error: any) => {
+					provider.log(`[start_task] Error creating task: ${error.message}`)
 				})
 
-				const taskId = await Promise.race([
-					(async (): Promise<string> => {
-						while (true) {
-							const task = provider.getCurrentTask()
-							if (task?.taskId) return task.taskId
-							await new Promise((resolve) => setTimeout(resolve, 50))
+				// Poll for taskId change (up to 5 seconds)
+				const taskId = await (async (): Promise<string> => {
+					const startTime = Date.now()
+					while (Date.now() - startTime < 5000) {
+						await new Promise((resolve) => setTimeout(resolve, 200))
+						const currentTask = provider.getCurrentTask()
+						if (currentTask && currentTask.taskId !== previousTaskId) {
+							return currentTask.taskId
 						}
-					})(),
-					new Promise<string>((_, reject) =>
-						setTimeout(() => reject(new Error("Timeout waiting for taskId")), 5000),
-					),
-				])
+					}
+					throw new Error("Task creation timed out")
+				})()
 
 				return {
 					content: [
 						{
 							type: "text",
-							text: JSON.stringify(
-								{
-									message: `Successfully initiated task in ${mode || "default"} mode`,
-									taskId,
-								},
-								null,
-								2,
-							),
+							text: JSON.stringify({ message: `Task started successfully`, taskId }, null, 2),
 						},
 					],
 				}
@@ -148,7 +96,7 @@ export const registerActionsTools = (mcpServer: McpServer, provider: ClineProvid
 					content: [
 						{
 							type: "text",
-							text: `Error initiating task: ${error instanceof Error ? error.message : String(error)}`,
+							text: `Error starting task: ${error instanceof Error ? error.message : String(error)}`,
 						},
 					],
 					isError: true,
@@ -159,15 +107,8 @@ export const registerActionsTools = (mcpServer: McpServer, provider: ClineProvid
 
 	mcpServer.tool("clear_task", {}, async () => {
 		try {
-			await provider.clearTask()
-			return {
-				content: [
-					{
-						type: "text",
-						text: "Successfully cleared the current task stack.",
-					},
-				],
-			}
+			await provider.clearTaskStack()
+			return { content: [{ type: "text", text: "Task cleared" }] }
 		} catch (error) {
 			return {
 				content: [
@@ -181,14 +122,20 @@ export const registerActionsTools = (mcpServer: McpServer, provider: ClineProvid
 		}
 	})
 
-	// Alias for backward compatibility or DSL requirements
 	mcpServer.tool("pop_window", {}, async () => {
 		try {
-			// For E2E DSL, pop_window often means "go back to chat" or "reset view"
 			await provider.postMessageToWebview({ type: "action", action: "chatButtonClicked" })
-			return { content: [{ type: "text", text: "Successfully popped window (switched to chat view)." }] }
+			return { content: [{ type: "text", text: "Window popped" }] }
 		} catch (error) {
-			return { content: [{ type: "text", text: `Error: ${error}` }], isError: true }
+			return {
+				content: [
+					{
+						type: "text",
+						text: `Error popping window: ${error instanceof Error ? error.message : String(error)}`,
+					},
+				],
+				isError: true,
+			}
 		}
 	})
 
@@ -200,35 +147,22 @@ export const registerActionsTools = (mcpServer: McpServer, provider: ClineProvid
 		async ({ taskId }) => {
 			try {
 				const currentTask = provider.getCurrentTask()
-				if (!currentTask) {
-					return {
-						content: [{ type: "text", text: JSON.stringify({ hasTask: false, error: "No active task" }) }],
-					}
+				if (currentTask && currentTask.taskId === taskId) {
+					;(currentTask as any).isAsync = true
 				}
-
-				// Find the task by ID in the hierarchy
-				const findTask = (task: any, id: string): any => {
-					if (task.taskId === id) return task
-					if (task.childTasks) {
-						for (const child of task.childTasks) {
-							const found = findTask(child, id)
-							if (found) return found
-						}
-					}
-					return null
+				return {
+					content: [{ type: "text", text: JSON.stringify({ message: `Task ${taskId} marked as async` }) }],
 				}
-
-				const root = currentTask.rootTask || currentTask
-				const target = findTask(root, taskId)
-				if (!target) {
-					return { content: [{ type: "text", text: `Task ${taskId} not found` }], isError: true }
-				}
-
-				// Mark the task as async
-				target.isAsync = true
-				return { content: [{ type: "text", text: `Task ${taskId} marked as async` }] }
 			} catch (error) {
-				return { content: [{ type: "text", text: `Error: ${error}` }], isError: true }
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Error marking task as async: ${error instanceof Error ? error.message : String(error)}`,
+						},
+					],
+					isError: true,
+				}
 			}
 		},
 	)
@@ -240,36 +174,28 @@ export const registerActionsTools = (mcpServer: McpServer, provider: ClineProvid
 		},
 		async ({ timeoutMs = 30000 }) => {
 			try {
-				const deadline = Date.now() + timeoutMs
-				while (Date.now() < deadline) {
+				const startTime = Date.now()
+				while (Date.now() - startTime < timeoutMs) {
 					const currentTask = provider.getCurrentTask()
-					if (currentTask?.taskId) {
+					if (currentTask && currentTask.taskId) {
 						return {
 							content: [
 								{
 									type: "text",
-									text: JSON.stringify({ taskId: currentTask.taskId }, null, 2),
+									text: JSON.stringify({ taskId: currentTask.taskId, message: "Task ID available" }),
 								},
 							],
 						}
 					}
 					await new Promise((resolve) => setTimeout(resolve, 200))
 				}
-				return {
-					content: [
-						{
-							type: "text",
-							text: JSON.stringify({ error: "Timeout waiting for task ID" }),
-						},
-					],
-					isError: true,
-				}
+				throw new Error("Timeout waiting for task ID")
 			} catch (error) {
 				return {
 					content: [
 						{
 							type: "text",
-							text: `Error waiting for task: ${error instanceof Error ? error.message : String(error)}`,
+							text: `Error waiting for task ID: ${error instanceof Error ? error.message : String(error)}`,
 						},
 					],
 					isError: true,
@@ -277,6 +203,7 @@ export const registerActionsTools = (mcpServer: McpServer, provider: ClineProvid
 			}
 		},
 	)
+
 	mcpServer.tool(
 		"create_child_tasks",
 		{
@@ -293,65 +220,47 @@ export const registerActionsTools = (mcpServer: McpServer, provider: ClineProvid
 		async ({ tasks }) => {
 			try {
 				const currentTask = provider.getCurrentTask()
-				if (!currentTask) {
-					return {
-						content: [
-							{
-								type: "text",
-								text: JSON.stringify({
-									hasTask: false,
-									error: "No active task to create children for",
-								}),
-							},
-						],
-					}
+				const parentTaskId = currentTask?.taskId
+				if (!parentTaskId) {
+					throw new Error("No active task to create child tasks under")
 				}
 
-				// Parse todos for each task
-				const taskDefs = tasks.map((t: any) => {
-					let todoItems: any[] = []
-					if (t.todos) {
-						try {
-							// Simple markdown checklist parsing
-							const lines = t.todos.split("\n")
-							for (const line of lines) {
-								const match = line.match(/^\s*[-*]\s+\[( |x|X)\]\s+(.+)$/)
-								if (match) {
-									todoItems.push({
-										id: `todo-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-										description: match[2],
-										status: match[1] === " " ? "pending" : "completed",
-									})
-								}
-							}
-						} catch {
-							// Ignore parse errors
+				// Parse markdown checklist string into TodoItem[] format
+				function parseTodos(
+					todosStr?: string,
+				): Array<{ id: string; content: string; status: "pending" | "in_progress" | "completed" }> {
+					if (!todosStr) return []
+					const lines = todosStr.split("\n")
+					const items: Array<{
+						id: string
+						content: string
+						status: "pending" | "in_progress" | "completed"
+					}> = []
+					for (const line of lines) {
+						const match = line.match(/^\s*[-*]\s*\[( |x|-)\]\s*(.+)$/)
+						if (match) {
+							const statusChar = match[1]
+							const content = match[2].trim()
+							const status =
+								statusChar === "x" ? "completed" : statusChar === "-" ? "in_progress" : "pending"
+							items.push({ id: `todo-${Date.now()}-${items.length}`, content, status })
 						}
 					}
-					return {
-						message: t.message,
-						mode: t.mode,
-						initialTodos: todoItems,
-					}
-				})
+					return items
+				}
 
-				const children = await provider.createChildTasks({
-					parentTaskId: currentTask.taskId,
-					tasks: taskDefs,
-				})
+				const taskDefs = tasks.map((t: any) => ({
+					message: t.message,
+					mode: t.mode,
+					initialTodos: parseTodos(t.todos),
+				}))
 
+				const results = await provider.createChildTasks({ parentTaskId, tasks: taskDefs })
 				return {
 					content: [
 						{
 							type: "text",
-							text: JSON.stringify(
-								{
-									message: `Created ${children.length} child tasks in parallel`,
-									childTaskIds: children.map((c) => c.taskId),
-								},
-								null,
-								2,
-							),
+							text: JSON.stringify({ message: "Child tasks created", tasks: results }, null, 2),
 						},
 					],
 				}
@@ -361,6 +270,46 @@ export const registerActionsTools = (mcpServer: McpServer, provider: ClineProvid
 						{
 							type: "text",
 							text: `Error creating child tasks: ${error instanceof Error ? error.message : String(error)}`,
+						},
+					],
+					isError: true,
+				}
+			}
+		},
+	)
+
+	mcpServer.tool(
+		"navigate_to_task",
+		{
+			taskId: z.string().describe("The ID of the task to navigate to"),
+		},
+		async ({ taskId }) => {
+			try {
+				// Pure UI navigation: post a message to the webview to scroll to / highlight the task
+				// WITHOUT calling showTaskWithId (which creates a new Task from history).
+				await provider.postMessageToWebview({
+					type: "action",
+					action: "chatButtonClicked",
+				})
+				// Also post the task ID so the webview can scroll to the specific task
+				await provider.postMessageToWebview({
+					type: "navigateToTask",
+					taskId,
+				} as any)
+				return {
+					content: [
+						{
+							type: "text",
+							text: JSON.stringify({ message: `Navigated to task ${taskId}`, taskId }, null, 2),
+						},
+					],
+				}
+			} catch (error) {
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Error navigating to task: ${error instanceof Error ? error.message : String(error)}`,
 						},
 					],
 					isError: true,

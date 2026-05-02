@@ -15,7 +15,7 @@ interface ToolRendererProps {
 
 /** Renders codebaseSearch tool */
 export const CodebaseSearchRenderer: React.FC<Pick<ToolRendererProps, "tool" | "t">> = ({ tool, t }) => (
-	<Container preset="header" p="0">
+	<Container $preset="header" $p="0">
 		{toolIcon("search")}
 		<span style={{ fontWeight: "bold" }}>
 			{tool.path ? (
@@ -44,7 +44,7 @@ export const ListFilesRenderer: React.FC<ToolRendererProps> = ({ message, tool, 
 
 	return (
 		<>
-			<Container preset="header" p="0">
+			<Container $preset="header" $p="0">
 				<Icon className="w-4 shrink-0" aria-label="List files icon" />
 				<span style={{ fontWeight: "bold" }}>
 					{message.type === "ask"
@@ -80,7 +80,7 @@ export const ListFilesRenderer: React.FC<ToolRendererProps> = ({ message, tool, 
 /** Renders searchFiles tool */
 export const SearchFilesRenderer: React.FC<ToolRendererProps> = ({ tool, isExpanded, onToggleExpand, t }) => (
 	<>
-		<Container preset="header" p="0">
+		<Container $preset="header" $p="0">
 			{toolIcon("search")}
 			<span style={{ fontWeight: "bold" }}>
 				<Trans

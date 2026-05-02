@@ -1,5 +1,4 @@
 import * as fs from "fs/promises"
-import * as http from "http"
 import * as path from "path"
 
 import * as vscode from "vscode"
@@ -7,6 +6,8 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js"
 import { StdioClientTransport, getDefaultEnvironment } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js"
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js"
+import WebSocket from "ws"
+import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js"
 import ReconnectingEventSource from "reconnecting-eventsource"
 import {
 	CallToolResultSchema,
@@ -45,305 +46,127 @@ import { injectVariables } from "../../utils/config"
 import { safeWriteJson } from "../../utils/safeWriteJson"
 import { sanitizeMcpName, toolNamesMatch } from "../../utils/mcp-name"
 
+// InternalMcpClientTransport has been removed.
+// The Devtool package (@jabberwock/devtool) now uses WebSocket-based MCP transport
+// instead of SSE. Agents connect to the devtool via mcp_settings.json with a
+// standard WebSocket URL (ws://127.0.0.1:60060/ws) — no internal transport needed.
+
 /**
- * Internal MCP client transport that proxies tool calls to the DevTools MCP server
- * via HTTP POST to the local SSE endpoint. This allows agents to use DevTools tools
- * via `use_mcp_tool` without needing to configure an external MCP server.
+ * Minimal MCP Transport adapter for WebSocket clients.
+ * Implements the MCP SDK Transport interface using the `ws` library.
  */
-class InternalMcpClientTransport {
-	private serverUrl: string
-	sessionId: string
-	private abortController: AbortController | null = null
-	private port: number
+class WebSocketClientTransport implements Transport {
+	private ws: WebSocket | null = null
+	private url: string
 	private reconnectAttempts = 0
-	private readonly MAX_RECONNECT_ATTEMPTS = 10
-	private readonly RECONNECT_BASE_DELAY_MS = 1000
+	private maxReconnectAttempts = 5
+	private reconnectDelay = 1000 // 1 second initial delay
 	private reconnectTimer: ReturnType<typeof setTimeout> | null = null
 	private isReconnecting = false
-	/** Callback invoked when all reconnect attempts are exhausted and the transport cannot recover on its own. */
-	onInternalRestartNeeded?: () => void
-	private healthCheckInterval: ReturnType<typeof setInterval> | null = null
-	private healthCheckAbortController: AbortController | null = null
-	/** Resolves when the SSE connection is established, rejects on timeout. */
+	private wasEverConnected = false // Track if we ever connected successfully
 
-	constructor(port: number) {
-		this.port = port
-		this.serverUrl = `http://127.0.0.1:${port}`
-		this.sessionId = this.generateSessionId()
+	onclose?: () => void
+	onerror?: (error: Error) => void
+	onmessage?: (message: any) => void
+
+	constructor(url: string) {
+		this.url = url
 	}
-
-	private generateSessionId(): string {
-		return `internal-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-	}
-
-	/** Resolves when the SSE connection is established, rejects on timeout. */
-	startPromise?: Promise<void>
-	private startResolve?: () => void
-	private startReject?: (err: Error) => void
-	private startTimeout?: ReturnType<typeof setTimeout>
 
 	async start(): Promise<void> {
-		this.abortController = new AbortController()
-
-		// Create a promise that resolves when the SSE connection is established
-		// or rejects after a timeout. This lets callers (e.g. registerInternalConnection)
-		// detect silent connection failures instead of assuming success.
-		this.startPromise = new Promise<void>((resolve, reject) => {
-			this.startResolve = resolve
-			this.startReject = reject
-			this.startTimeout = setTimeout(() => {
-				reject(new Error("SSE connection timed out after 10s"))
-			}, 10_000)
-		})
-
-		try {
-			const response = await fetch(`${this.serverUrl}/sse`, {
-				signal: this.abortController.signal,
-			})
-			if (!response.ok || !response.body) {
-				throw new Error(`SSE connection failed: ${response.status}`)
+		return new Promise((resolve, reject) => {
+			try {
+				this.ws = new WebSocket(this.url)
+			} catch (err) {
+				reject(err)
+				return
 			}
 
-			// Reset reconnect counter on successful connection
-			this.reconnectAttempts = 0
-
-			// Connection established — resolve the promise and clear the timeout
-			this.startResolve?.()
-			clearTimeout(this.startTimeout)
-			this.startTimeout = undefined
-
-			// Start periodic healthcheck to detect stale connections (e.g., after HMR reload)
-			this.startHealthCheck()
-
-			const reader = response.body.getReader()
-			const decoder = new TextDecoder()
-			let buffer = ""
-
-			// Read SSE stream in background and dispatch JSON-RPC messages to onmessage
-			this.readSseLoop(reader, decoder, buffer).catch((err) => {
-				if (err.name !== "AbortError") {
-					console.error(`[InternalMcpClientTransport] SSE read error:`, err)
-					this.onerror?.(err)
-					// Trigger auto-reconnect on read error
-					this.scheduleReconnect()
-				}
-			})
-		} catch (err) {
-			// SSE connection failed — resolve the promise (don't leave hanging) and clear timeout
-			this.startResolve?.()
-			clearTimeout(this.startTimeout)
-			this.startTimeout = undefined
-
-			// Log but don't throw, send() will still POST
-			console.warn(`[InternalMcpClientTransport] SSE connection failed:`, err)
-			// Trigger auto-reconnect on connection failure
-			this.scheduleReconnect()
-		}
-	}
-
-	private async readSseLoop(
-		reader: ReadableStreamDefaultReader<Uint8Array>,
-		decoder: TextDecoder,
-		buffer: string,
-	): Promise<void> {
-		try {
-			while (true) {
-				const { done, value } = await reader.read()
-				if (done) {
-					// Stream ended naturally — trigger reconnect
-					console.warn(`[InternalMcpClientTransport] SSE stream ended, will reconnect`)
-					this.scheduleReconnect()
-					break
-				}
-
-				buffer += decoder.decode(value, { stream: true })
-				const lines = buffer.split("\n")
-				buffer = lines.pop() || ""
-
-				let data = ""
-				for (const line of lines) {
-					if (line.startsWith("data: ")) {
-						data = line.slice(6).trim()
-					} else if (line === "" && data) {
-						try {
-							const msg = JSON.parse(data)
-							this.onmessage?.(msg)
-						} catch {
-							// Not JSON — skip
-						}
-						data = ""
-					}
-				}
-			}
-		} catch (err: any) {
-			if (err.name !== "AbortError") {
-				console.error(`[InternalMcpClientTransport] readSseLoop error:`, err)
+			// Connection timeout: reject if WebSocket doesn't open within 10 seconds.
+			// This prevents hanging forever when the target server is not yet listening
+			// (e.g., Devtool WebSocket server still starting up).
+			const timeout = setTimeout(() => {
+				const err = new Error(`WebSocket connection timeout to ${this.url}`)
 				this.onerror?.(err)
-				this.scheduleReconnect()
-			}
-		}
+				reject(err)
+				this.ws?.close()
+			}, 10_000)
+
+			this.ws.on("open", () => {
+				clearTimeout(timeout)
+				this.wasEverConnected = true // Mark that we successfully connected at least once
+				this.reconnectAttempts = 0 // Reset reconnect counter on successful connection
+				resolve()
+			})
+
+			this.ws.on("message", (data: Buffer) => {
+				try {
+					const message = JSON.parse(data.toString())
+					this.onmessage?.(message)
+				} catch (err) {
+					this.onerror?.(err as Error)
+				}
+			})
+
+			this.ws.on("close", () => {
+				clearTimeout(timeout)
+				this.onclose?.()
+				// Only auto-reconnect if we were ever connected successfully.
+				// This prevents reconnect loops when the initial connection fails
+				// (e.g., devtools server not yet listening).
+				if (this.wasEverConnected) {
+					this.scheduleReconnect()
+				}
+			})
+
+			this.ws.on("error", (err: Error) => {
+				clearTimeout(timeout)
+				this.onerror?.(err)
+				reject(err) // CRITICAL: reject the start promise so connectToServer catch block runs
+			})
+		})
 	}
 
 	private scheduleReconnect(): void {
-		// Stop healthcheck while reconnecting
-		this.stopHealthCheck()
-		// Don't reconnect if we're already in the process
-		if (this.isReconnecting) return
-		// Don't reconnect if we've exceeded the max attempts
-		if (this.reconnectAttempts >= this.MAX_RECONNECT_ATTEMPTS) {
-			console.error(
-				`[InternalMcpClientTransport] Max reconnect attempts (${this.MAX_RECONNECT_ATTEMPTS}) reached, giving up`,
-			)
-			this.onclose?.()
-			// Signal parent to restart the internal connection (e.g., re-register via McpHub)
-			this.onInternalRestartNeeded?.()
+		if (this.isReconnecting || this.reconnectAttempts >= this.maxReconnectAttempts) {
 			return
 		}
-
 		this.isReconnecting = true
-		this.reconnectAttempts++
-
-		// Exponential backoff: 1s, 2s, 4s, 8s, ... capped at 30s
-		const delay = Math.min(this.RECONNECT_BASE_DELAY_MS * Math.pow(2, this.reconnectAttempts - 1), 30_000)
-
+		const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts)
 		console.log(
-			`[InternalMcpClientTransport] Scheduling reconnect attempt ${this.reconnectAttempts}/${this.MAX_RECONNECT_ATTEMPTS} in ${delay}ms`,
+			`[WebSocketClientTransport] Scheduling reconnect attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts} in ${delay}ms`,
 		)
-
 		this.reconnectTimer = setTimeout(async () => {
+			this.reconnectAttempts++
 			this.isReconnecting = false
-			// Generate a new sessionId so the server creates a fresh transport
-			this.sessionId = this.generateSessionId()
-			// Abort any existing connection
-			this.abortController?.abort()
-			this.abortController = null
-			// Reconnect
-			await this.start()
+			try {
+				await this.start()
+				console.log(
+					`[WebSocketClientTransport] Reconnected successfully after ${this.reconnectAttempts} attempt(s)`,
+				)
+			} catch (err) {
+				console.error(`[WebSocketClientTransport] Reconnect attempt ${this.reconnectAttempts} failed:`, err)
+			}
 		}, delay)
 	}
 
 	async send(message: any): Promise<void> {
-		const maxRetries = 5
-		const baseDelay = 1000
-		let lastError: Error | null = null
-
-		for (let attempt = 0; attempt < maxRetries; attempt++) {
-			try {
-				const url = `${this.serverUrl}/messages?sessionId=${this.sessionId}`
-				const response = await fetch(url, {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify(message),
-					signal: this.abortController?.signal,
-				})
-				if (!response.ok) {
-					throw new Error(`Internal MCP transport error: ${response.status} ${response.statusText}`)
-				}
-				return // success
-			} catch (err: any) {
-				lastError = err
-				// Don't retry if transport was explicitly closed
-				if (err.name === "AbortError") throw err
-
-				// If connection refused (server down), trigger reconnect and wait
-				if (err.cause?.code === "ECONNREFUSED" || err.message?.includes("ERR_CONNECTION_REFUSED")) {
-					console.warn(
-						`[InternalMcpClientTransport] send() attempt ${attempt + 1}/${maxRetries} failed: connection refused, will retry in ${baseDelay * Math.pow(2, attempt)}ms`,
-					)
-					// Trigger reconnection in background
-					this.scheduleReconnect()
-					// Wait before retry with exponential backoff
-					await new Promise((resolve) => setTimeout(resolve, baseDelay * Math.pow(2, attempt)))
-					continue
-				}
-
-				// For other errors, throw immediately
-				throw err
-			}
+		if (!this.ws) {
+			throw new Error("WebSocket not connected")
 		}
-
-		throw lastError || new Error(`Internal MCP transport send() failed after ${maxRetries} retries`)
-	}
-
-	/**
-	 * Starts a 2-second periodic healthcheck against the DevTools HTTP server.
-	 * If the `/health` endpoint fails or times out (e.g., after HMR reloads the
-	 * target extension, creating a new server session), triggers `scheduleReconnect()`
-	 * so the transport generates a fresh sessionId and re-establishes the connection.
-	 */
-	private startHealthCheck(): void {
-		this.stopHealthCheck()
-
-		this.healthCheckInterval = setInterval(async () => {
-			// Don't healthcheck while a reconnect is in progress
-			if (this.isReconnecting) return
-
-			// Abort any in-flight healthcheck request from a previous interval tick
-			this.healthCheckAbortController?.abort()
-			this.healthCheckAbortController = new AbortController()
-
-			// Timeout after 2 seconds — if the server is unresponsive (e.g., HMR reload),
-			// we want to detect it promptly.
-			const timeout = setTimeout(() => this.healthCheckAbortController?.abort(), 2000)
-
-			try {
-				const response = await fetch(`${this.serverUrl}/health`, {
-					signal: this.healthCheckAbortController.signal,
-				})
-				clearTimeout(timeout)
-				if (!response.ok) {
-					throw new Error(`Healthcheck returned ${response.status}`)
-				}
-				// Parse the response to check provider health (Fix 2: /health now returns providerAlive)
-				const healthData = await response.json().catch(() => ({}))
-				if (healthData.providerAlive === false) {
-					throw new Error("Healthcheck failed: provider is not alive")
-				}
-				// Connection is healthy — nothing to do
-			} catch (err: any) {
-				clearTimeout(timeout)
-				if (err.name === "AbortError") {
-					console.warn(
-						`[InternalMcpClientTransport] Healthcheck timed out — server may have been HMR-reloaded, triggering reconnect`,
-					)
-				} else {
-					console.warn(
-						`[InternalMcpClientTransport] Healthcheck failed: ${err.message}, triggering reconnect`,
-					)
-				}
-				this.stopHealthCheck()
-				this.scheduleReconnect()
-			}
-		}, 2000)
-	}
-
-	/**
-	 * Stops the healthcheck interval and aborts any in-flight request.
-	 */
-	private stopHealthCheck(): void {
-		if (this.healthCheckInterval) {
-			clearInterval(this.healthCheckInterval)
-			this.healthCheckInterval = null
-		}
-		this.healthCheckAbortController?.abort()
-		this.healthCheckAbortController = null
+		this.ws.send(JSON.stringify(message))
 	}
 
 	async close(): Promise<void> {
-		// Stop healthcheck and abort any in-flight request
-		this.stopHealthCheck()
 		if (this.reconnectTimer) {
 			clearTimeout(this.reconnectTimer)
 			this.reconnectTimer = null
 		}
 		this.isReconnecting = false
-		this.abortController?.abort()
-		this.abortController = null
+		this.reconnectAttempts = this.maxReconnectAttempts // Prevent reconnect after explicit close
+		this.ws?.close()
+		this.ws = null
 	}
-
-	onclose?: () => void
-	onerror?: (error: Error) => void
-	onmessage?: (message: any) => void
 }
 
 // Discriminated union for connection states
@@ -351,7 +174,7 @@ export type ConnectedMcpConnection = {
 	type: "connected"
 	server: McpServer
 	client: Client
-	transport: StdioClientTransport | SSEClientTransport | StreamableHTTPClientTransport
+	transport: StdioClientTransport | SSEClientTransport | StreamableHTTPClientTransport | WebSocketClientTransport
 }
 
 export type DisconnectedMcpConnection = {
@@ -381,7 +204,7 @@ const BaseConfigSchema = z
 	.passthrough()
 
 // Custom error messages for better user feedback
-const typeErrorMessage = "Server type must be 'stdio', 'sse', or 'streamable-http'"
+const typeErrorMessage = "Server type must be 'stdio', 'sse', 'websocket', or 'streamable-http'"
 const stdioFieldsErrorMessage =
 	"For 'stdio' type servers, you must provide a 'command' field and can optionally include 'args' and 'env'"
 const sseFieldsErrorMessage =
@@ -389,9 +212,9 @@ const sseFieldsErrorMessage =
 const streamableHttpFieldsErrorMessage =
 	"For 'streamable-http' type servers, you must provide a 'url' field and can optionally include 'headers'"
 const mixedFieldsErrorMessage =
-	"Cannot mix 'stdio' and ('sse' or 'streamable-http') fields. For 'stdio' use 'command', 'args', and 'env'. For 'sse'/'streamable-http' use 'url' and 'headers'"
+	"Cannot mix 'stdio' and ('sse', 'websocket', or 'streamable-http') fields. For 'stdio' use 'command', 'args', and 'env'. For 'sse'/'websocket'/'streamable-http' use 'url' and 'headers'"
 const missingFieldsErrorMessage =
-	"Server configuration must include either 'command' (for stdio) or 'url' (for sse/streamable-http) and a corresponding 'type' if 'url' is used."
+	"Server configuration must include either 'command' (for stdio) or 'url' (for sse/websocket/streamable-http) and a corresponding 'type' if 'url' is used."
 
 // Helper function to create a refined schema with better error messages
 const createServerTypeSchema = () => {
@@ -403,19 +226,40 @@ const createServerTypeSchema = () => {
 			args: z.array(z.string()).optional(),
 			cwd: z.string().default(() => vscode.workspace.workspaceFolders?.at(0)?.uri.fsPath ?? process.cwd()),
 			env: z.record(z.string()).optional(),
-			// Ensure no SSE fields are present
+			// Ensure no URL fields are present
 			url: z.undefined().optional(),
 			headers: z.undefined().optional(),
 		}).transform((data) => ({
 			...data,
 			mcpTransport: "stdio" as const,
 		})),
-		// SSE config (has url field)
+		// WebSocket config (url starts with ws:// or wss://)
 		BaseConfigSchema.extend({
 			type: z.string().optional(),
-			url: z.string().url("URL must be a valid URL format"),
+			url: z
+				.string()
+				.url("URL must be a valid URL format")
+				.refine((u) => u.startsWith("ws://") || u.startsWith("wss://"), {
+					message: "URL must use ws:// or wss:// scheme for WebSocket transport",
+				}),
 			headers: z.record(z.string()).optional(),
-			// Ensure no stdio fields are present
+			command: z.undefined().optional(),
+			args: z.undefined().optional(),
+			env: z.undefined().optional(),
+		}).transform((data) => ({
+			...data,
+			mcpTransport: "websocket" as const,
+		})),
+		// SSE config (url starts with http:// or https://, no type or type="sse")
+		BaseConfigSchema.extend({
+			type: z.string().optional(),
+			url: z
+				.string()
+				.url("URL must be a valid URL format")
+				.refine((u) => u.startsWith("http://") || u.startsWith("https://"), {
+					message: "URL must use http:// or https:// scheme for SSE transport",
+				}),
+			headers: z.record(z.string()).optional(),
 			command: z.undefined().optional(),
 			args: z.undefined().optional(),
 			env: z.undefined().optional(),
@@ -423,12 +267,16 @@ const createServerTypeSchema = () => {
 			...data,
 			mcpTransport: "sse" as const,
 		})),
-		// StreamableHTTP config (has url field)
+		// StreamableHTTP config (url starts with http:// or https://, type="streamable-http")
 		BaseConfigSchema.extend({
-			type: z.string().optional(),
-			url: z.string().url("URL must be a valid URL format"),
+			type: z.literal("streamable-http"),
+			url: z
+				.string()
+				.url("URL must be a valid URL format")
+				.refine((u) => u.startsWith("http://") || u.startsWith("https://"), {
+					message: "URL must use http:// or https:// scheme for streamable-http transport",
+				}),
 			headers: z.record(z.string()).optional(),
-			// Ensure no stdio fields are present
 			command: z.undefined().optional(),
 			args: z.undefined().optional(),
 			env: z.undefined().optional(),
@@ -492,140 +340,6 @@ export class McpHub extends EventEmitter {
 	}
 
 	/**
-	 * Registers the DevTools MCP server as an internal connection in McpHub.
-	 * This allows agents to call DevTools tools via `use_mcp_tool` without
-	 * needing to configure an external MCP server in mcp_settings.json.
-	 *
-	 * The internal connection uses an InternalMcpClientTransport that proxies
-	 * tool calls to the DevTools SSE server running on the specified port.
-	 *
-	 * @param port - The port the DevTools MCP server is listening on
-	 */
-	public async registerInternalConnection(port: number): Promise<void> {
-		const serverName = "jabberwock-devtools"
-
-		// Properly dispose the existing internal connection (if any) before creating a new one.
-		// Without this, the old transport's readSseLoop Promise chain keeps running with a stale
-		// SSE connection, causing "Connection closed" errors after extension hot-reload.
-		const existing = this.connections.find(
-			(conn) => conn.server.name === serverName && conn.server.source === ("internal" as any),
-		)
-		if (existing) {
-			try {
-				if (existing.type === "connected") {
-					await existing.transport.close()
-					await existing.client.close()
-				}
-			} catch (error) {
-				console.error(`[McpHub] Failed to close existing internal connection:`, error)
-			}
-			this.connections = this.connections.filter((conn) => conn !== existing)
-			const sanitizedName = sanitizeMcpName(serverName)
-			this.sanitizedNameRegistry.delete(sanitizedName)
-		}
-
-		const transport = new InternalMcpClientTransport(port)
-		const client = new Client(
-			{
-				name: "Jabberwock",
-				version: this.providerRef.deref()?.context.extension?.packageJSON?.version ?? "1.0.0",
-			},
-			{
-				capabilities: {
-					tools: {},
-				},
-			},
-		)
-
-		// Connect the client to the internal transport
-		await client.connect(transport)
-
-		// Await the connection establishment promise to detect silent SSE failures.
-		// If the SSE stream never connects (e.g., server not ready), startPromise will
-		// reject after a 10s timeout, allowing us to fall back to the delayed retry path.
-		try {
-			await transport.startPromise
-		} catch (connError) {
-			diagnosticsManager.log(
-				`[McpHub] Internal transport SSE connection failed on port ${port}: ${connError}`,
-				"warn",
-			)
-			// Don't throw — the delayed retry in ClineProvider.init() will handle this
-		}
-
-		// Set up the auto-restart callback: when the transport exhausts all reconnect
-		// attempts, trigger a full re-registration via McpHub.
-		transport.onInternalRestartNeeded = () => {
-			diagnosticsManager.log(
-				`[McpHub] Internal transport reconnect exhausted, re-registering on port ${port}...`,
-				"warn",
-			)
-			// Fire-and-forget: re-register in the background. Use a microtask to avoid
-			// re-entrancy issues since this callback may be called from within the transport.
-			queueMicrotask(async () => {
-				try {
-					await this.registerInternalConnection(port)
-				} catch (err) {
-					diagnosticsManager.log(
-						`[McpHub] Failed to re-register internal connection after reconnect exhaustion: ${err}`,
-						"error",
-					)
-				}
-			})
-		}
-
-		// Fetch the tool list from the DevTools server
-		let tools: McpTool[] = []
-		try {
-			const response = await client.request({ method: "tools/list" }, ListToolsResultSchema)
-			tools = (response?.tools || []).map((tool) => ({
-				name: tool.name ?? "",
-				description: tool.description ?? "",
-				inputSchema: tool.inputSchema ?? { type: "object", properties: {} },
-				alwaysAllow: true, // DevTools tools are always allowed for testing
-				enabledForPrompt: true,
-			})) as McpTool[]
-		} catch (error) {
-			console.error(`[McpHub] Failed to fetch tools from internal DevTools server:`, error)
-		}
-
-		// Register the sanitized name
-		const sanitizedName = sanitizeMcpName(serverName)
-		this.sanitizedNameRegistry.set(sanitizedName, serverName)
-
-		// Create the connection entry
-		const connection: ConnectedMcpConnection = {
-			type: "connected",
-			server: {
-				name: serverName,
-				config: JSON.stringify({
-					disabled: false,
-					timeout: 60,
-					alwaysAllow: tools.map((t) => t.name),
-					disabledTools: [],
-					isGloballyVisible: true,
-				}),
-				status: "connected",
-				disabled: false,
-				source: "internal" as any,
-				errorHistory: [],
-			},
-			client,
-			transport: transport as any,
-		}
-
-		this.connections.push(connection)
-
-		diagnosticsManager.log(
-			`[McpHub] Registered internal DevTools connection with ${tools.length} tools on port ${port}`,
-			"info",
-		)
-
-		// Notify webview of the new server
-		await this.notifyWebviewOfServerChanges()
-	}
-
-	/**
 	 * Unregisters a client. Decrements the reference count.
 	 * If the count reaches zero, disposes the hub.
 	 */
@@ -650,7 +364,7 @@ export class McpHub extends EventEmitter {
 	private validateServerConfig(config: any, serverName?: string): z.infer<typeof ServerConfigSchema> {
 		// Detect configuration issues before validation
 		const hasStdioFields = config.command !== undefined
-		const hasUrlFields = config.url !== undefined // Covers sse and streamable-http
+		const hasUrlFields = config.url !== undefined // Covers sse, websocket, and streamable-http
 
 		// Check for mixed fields (stdio vs url-based)
 		if (hasStdioFields && hasUrlFields) {
@@ -662,14 +376,25 @@ export class McpHub extends EventEmitter {
 			config.type = "stdio"
 		}
 
-		// For url-based configs, type must be provided by the user
+		// Infer type for websocket URLs if not provided
 		if (hasUrlFields && !config.type) {
-			throw new Error("Configuration with 'url' must explicitly specify 'type' as 'sse' or 'streamable-http'.")
+			if (config.url.startsWith("ws://") || config.url.startsWith("wss://")) {
+				config.type = "websocket"
+			} else {
+				throw new Error(
+					"Configuration with 'url' must explicitly specify 'type' as 'sse', 'websocket', or 'streamable-http'.",
+				)
+			}
 		}
 
 		// Validate type if provided
-		if (config.type && !["stdio", "sse", "streamable-http", "interactiveApp", "tool"].includes(config.type)) {
-			throw new Error("Server type must be 'stdio', 'sse', 'streamable-http', 'interactiveApp', or 'tool'")
+		if (
+			config.type &&
+			!["stdio", "sse", "websocket", "streamable-http", "interactiveApp", "tool"].includes(config.type)
+		) {
+			throw new Error(
+				"Server type must be 'stdio', 'sse', 'websocket', 'streamable-http', 'interactiveApp', or 'tool'",
+			)
 		}
 
 		// Check for type/field mismatch
@@ -678,6 +403,9 @@ export class McpHub extends EventEmitter {
 		}
 		if (config.mcpTransport === "sse" && !hasUrlFields) {
 			throw new Error(sseFieldsErrorMessage)
+		}
+		if (config.mcpTransport === "websocket" && !hasUrlFields) {
+			throw new Error("WebSocket config must have a 'url' field")
 		}
 		if (config.mcpTransport === "streamable-http" && !hasUrlFields) {
 			throw new Error(streamableHttpFieldsErrorMessage)
@@ -1131,20 +859,6 @@ export class McpHub extends EventEmitter {
 			return
 		}
 
-		// Skip SSE client connection for jabberwock-devtools when actorRole is "target"
-		// The SSE server is started separately by ClineProvider, and the internal
-		// connection is registered via registerInternalConnection() after the server starts.
-		// If we try to connect as an SSE client here, it will timeout because the server
-		// hasn't started yet (both are initialized asynchronously in the constructor).
-		if (name === "jabberwock-devtools" && (config as any).actorRole === "target") {
-			console.log(
-				`[McpHub] Skipping SSE client connection for "${name}" (actorRole=target) — internal connection will be used instead`,
-			)
-			const connection = this.createPlaceholderConnection(name, config, source, undefined)
-			this.connections.push(connection)
-			return
-		}
-
 		// Set up file watchers for enabled servers
 		this.setupFileWatcher(name, config, source)
 
@@ -1199,7 +913,11 @@ export class McpHub extends EventEmitter {
 				})
 			})
 
-			let transport: StdioClientTransport | SSEClientTransport | StreamableHTTPClientTransport
+			let transport:
+				| StdioClientTransport
+				| SSEClientTransport
+				| StreamableHTTPClientTransport
+				| WebSocketClientTransport
 
 			// Inject variables to the config (environment, magic variables,...)
 			const configInjected = (await injectVariables(config, {
@@ -1382,6 +1100,28 @@ export class McpHub extends EventEmitter {
 					}
 					await this.notifyWebviewOfServerChanges()
 				}
+			} else if (configInjected.mcpTransport === "websocket") {
+				// WebSocket connection
+				transport = new WebSocketClientTransport(configInjected.url)
+
+				// Set up WebSocket specific error handling
+				transport.onerror = async (error) => {
+					console.error(`Transport error for "${name}" (websocket):`, error)
+					const connection = this.findConnection(name, source)
+					if (connection) {
+						connection.server.status = "disconnected"
+						this.appendErrorMessage(connection, error instanceof Error ? error.message : `${error}`)
+					}
+					await this.notifyWebviewOfServerChanges()
+				}
+
+				transport.onclose = async () => {
+					const connection = this.findConnection(name, source)
+					if (connection) {
+						connection.server.status = "disconnected"
+					}
+					await this.notifyWebviewOfServerChanges()
+				}
 			} else {
 				// Should not happen if validateServerConfig is correct
 				throw new Error(`Unsupported MCP server type: ${(configInjected as any).type}`)
@@ -1476,14 +1216,7 @@ export class McpHub extends EventEmitter {
 		)
 		if (projectConn) return projectConn
 
-		// If no project server is found, look for internal first, then global
-		// Internal connections (DevTools SSE server) take priority over global (SSE client from mcp_settings.json)
-		// to avoid deadlocks when both exist with the same server name
-		const internalConn = this.connections.find(
-			(conn) => conn.server.name === serverName && conn.server.source === ("internal" as any),
-		)
-		if (internalConn) return internalConn
-
+		// Fall back to global servers
 		return this.connections.find(
 			(conn) => conn.server.name === serverName && (conn.server.source === "global" || !conn.server.source),
 		)
@@ -1805,7 +1538,7 @@ export class McpHub extends EventEmitter {
 		}
 	}
 
-	async restartConnection(serverName: string, source?: "global" | "project" | "internal"): Promise<void> {
+	async restartConnection(serverName: string, source?: "global" | "project"): Promise<void> {
 		this.isConnecting = true
 
 		// Check if MCP is globally enabled
@@ -1818,43 +1551,6 @@ export class McpHub extends EventEmitter {
 		// Get existing connection and update its status
 		const connection = this.findConnection(serverName, source as any)
 		const config = connection?.server.config
-
-		// --- Handle internal connections (jabberwock-devtools) specially ---
-		// The synthetic config stored for internal connections lacks command/url fields,
-		// so validateServerConfig + connectToServer will throw. Instead, re-register
-		// via registerInternalConnection which properly creates the transport.
-		const isInternal = source === "internal" || connection?.server.source === ("internal" as any)
-		if (isInternal) {
-			// Get the port from the existing transport
-			const transport = connection?.transport as any
-			const port = transport?.port ?? 60060
-
-			// Close and remove the existing internal connection
-			if (connection) {
-				try {
-					if (connection.type === "connected") {
-						await connection.transport?.close().catch(() => {})
-						await connection.client?.close().catch(() => {})
-					}
-				} catch {
-					// Ignore close errors
-				}
-				this.connections = this.connections.filter(
-					(c) => !(c.server.name === serverName && c.server.source === ("internal" as any)),
-				)
-				const sanitizedName = sanitizeMcpName(serverName)
-				this.sanitizedNameRegistry.delete(sanitizedName)
-			}
-
-			this.isConnecting = false
-
-			// Re-register using the proper internal path
-			await this.registerInternalConnection(port)
-
-			vscode.window.showInformationMessage(t("mcp:info.server_connected", { serverName }))
-			await this.notifyWebviewOfServerChanges()
-			return
-		}
 
 		if (config) {
 			vscode.window.showInformationMessage(t("mcp:info.server_restarting", { serverName }))
@@ -1909,66 +1605,7 @@ export class McpHub extends EventEmitter {
 
 		this.isConnecting = true
 
-		// Preserve the internal connection (jabberwock-devtools) before clearing everything.
-		// refreshAllConnections only re-initializes "global" and "project" sources, so the
-		// internal connection would be silently lost if we don't re-register it.
-		const internalConnection = this.connections.find(
-			(conn) => conn.server.name === "jabberwock-devtools" && conn.server.source === ("internal" as any),
-		)
-		const internalPort = (internalConnection?.transport as any)?.port ?? 60060
-
 		try {
-			const globalPath = await this.getMcpSettingsFilePath()
-			let globalServers: Record<string, any> = {}
-			try {
-				const globalContent = await fs.readFile(globalPath, "utf-8")
-				const globalConfig = JSON.parse(globalContent)
-				globalServers = globalConfig.mcpServers || {}
-				const globalServerNames = Object.keys(globalServers)
-			} catch (error) {
-				console.log("Error reading global MCP config:", error)
-			}
-
-			const projectPath = await this.getProjectMcpPath()
-			let projectServers: Record<string, any> = {}
-			if (projectPath) {
-				try {
-					const projectContent = await fs.readFile(projectPath, "utf-8")
-					const projectConfig = JSON.parse(projectContent)
-					projectServers = projectConfig.mcpServers || {}
-					const projectServerNames = Object.keys(projectServers)
-				} catch (error) {
-					console.log("Error reading project MCP config:", error)
-				}
-			}
-
-			// Clear all existing connections first
-			const existingConnections = [...this.connections]
-			for (const conn of existingConnections) {
-				await this.deleteConnection(conn.server.name, conn.server.source)
-			}
-
-			// Re-initialize all servers from scratch
-			// This ensures proper initialization including fetching tools, resources, etc.
-			await this.initializeMcpServers("global")
-			await this.initializeMcpServers("project")
-
-			// Re-register the internal DevTools connection that was preserved
-			if (internalConnection) {
-				try {
-					await this.registerInternalConnection(internalPort)
-					diagnosticsManager.log(
-						`[McpHub] Re-registered internal DevTools connection after refresh (port ${internalPort})`,
-						"info",
-					)
-				} catch (regError) {
-					diagnosticsManager.log(
-						`[McpHub] Failed to re-register internal DevTools connection after refresh: ${regError}`,
-						"error",
-					)
-				}
-			}
-
 			await delay(100)
 
 			await this.notifyWebviewOfServerChanges()

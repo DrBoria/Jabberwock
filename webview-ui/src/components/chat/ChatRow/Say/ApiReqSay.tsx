@@ -42,9 +42,9 @@ export const ApiReqStartedSay: React.FC<ApiReqStartedProps> = ({
 	return (
 		<>
 			<Container
-				preset="header-cost"
-				theme="default"
-				p="0"
+				$preset="header-cost"
+				$theme="default"
+				$p="0"
 				style={{
 					...headerStyle,
 					marginBottom:
@@ -150,9 +150,9 @@ export const ApiReqRateLimitWaitSay: React.FC<ApiReqRateLimitWaitProps> = ({ mes
 
 	return (
 		<Container
-			preset="header-cost"
-			theme="default"
-			p="0"
+			$preset="header-cost"
+			$theme="default"
+			$p="0"
 			style={{ ...headerStyle, marginBottom: 0 }}
 			className="group text-sm transition-opacity opacity-100">
 			<ProgressIndicator />

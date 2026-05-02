@@ -15,7 +15,7 @@ export const CompletionResultAsk: React.FC<CompletionResultAskProps> = ({ messag
 
 	return (
 		<div className="group">
-			<Container preset="header" p="0">
+			<Container $preset="header" $p="0">
 				{icon}
 				{title}
 				<OpenMarkdownPreviewButton markdown={message.text} />

@@ -21,7 +21,7 @@ export const SwitchModeRenderer: React.FC<ToolRendererProps> = ({ message, tool,
 	const targetModeName = targetMode?.name || tool.mode || ""
 
 	return (
-		<Container preset="header" p="0">
+		<Container $preset="header" $p="0">
 			<PocketKnife className="w-4 shrink-0" aria-label="Switch mode icon" />
 			<span style={{ fontWeight: "bold" }}>
 				{message.type === "ask" ? (
@@ -70,7 +70,7 @@ export const NewTaskRenderer: React.FC<ToolRendererProps> = ({ message, tool, t 
 
 	return (
 		<>
-			<Container preset="header" p="0">
+			<Container $preset="header" $p="0">
 				<Split className="size-4" />
 				<span style={{ fontWeight: "bold" }}>
 					<span
@@ -101,7 +101,7 @@ export const NewTaskRenderer: React.FC<ToolRendererProps> = ({ message, tool, t 
 /** Renders finishTask tool */
 export const FinishTaskRenderer: React.FC<Pick<ToolRendererProps, "t">> = ({ t }) => (
 	<>
-		<Container preset="header" p="0">
+		<Container $preset="header" $p="0">
 			{toolIcon("check-all")}
 			<span style={{ fontWeight: "bold" }}>{t("chat:subtasks.wantsToFinish")}</span>
 		</Container>

@@ -165,14 +165,14 @@ export const McpExecution = ({
 
 	return (
 		<>
-			<Container preset="toolbar" gap="8px" mb="4px">
-				<Container preset="row" gap="4px">
+			<Container $preset="toolbar" $gap="8px" $mb="4px">
+				<Container $preset="row" $gap="4px">
 					<Server size={16} className="text-vscode-descriptionForeground" />
 					{serverName && <span className="font-bold text-vscode-foreground">{serverName}</span>}
 				</Container>
-				<Container preset="row-reverse" gap="8px" p="0 4px">
+				<Container $preset="row-reverse" $gap="8px" $p="0 4px">
 					{status && (
-						<Container preset="row" gap="8px" className="font-mono text-xs">
+						<Container $preset="row" $gap="8px" className="font-mono text-xs">
 							<div
 								className={cn("rounded-full size-1.5", {
 									"bg-lime-400": status.status === "started" || status.status === "completed",
@@ -208,7 +208,7 @@ export const McpExecution = ({
 				</Container>
 			</Container>
 
-			<Container theme="card" preset="col" gap="0" p="8px" w="100%">
+			<Container $theme="card" $preset="col" $gap="0" $p="8px" $w="100%">
 				{/* Tool information section */}
 				{useMcpServer?.type === "use_mcp_tool" && (
 					<div onClick={(e) => e.stopPropagation()}>

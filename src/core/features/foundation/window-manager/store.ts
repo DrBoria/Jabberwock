@@ -136,13 +136,33 @@ export function clearWebviewResources(provider: ClineProvider): void {
 export function postMessageToWebview(provider: ClineProvider, message: ExtensionMessage): void {
 	const p = provider as any
 	if (p._disposed) {
+		console.log(
+			`[DEBUG: postMessageToWebview] SKIPPING — provider._disposed is true, msg type=${(message as any).type}`,
+		)
+		return
+	}
+
+	if (!p.view) {
+		console.log(
+			`[DEBUG: postMessageToWebview] SKIPPING — provider.view is undefined, msg type=${(message as any).type}`,
+		)
+		return
+	}
+
+	if (!p.view.webview) {
+		console.log(
+			`[DEBUG: postMessageToWebview] SKIPPING — provider.view.webview is undefined, msg type=${(message as any).type}`,
+		)
 		return
 	}
 
 	try {
-		p.view?.webview.postMessage(message)
-	} catch {
-		// View disposed, drop message silently
+		console.log(
+			`[DEBUG: postMessageToWebview] SENDING type=${(message as any).type}, requestId=${(message as any).requestId || "n/a"}`,
+		)
+		p.view.webview.postMessage(message)
+	} catch (e) {
+		console.error(`[DEBUG: postMessageToWebview] ERROR posting message type=${(message as any).type}:`, e)
 	}
 }
 

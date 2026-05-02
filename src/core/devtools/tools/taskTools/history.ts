@@ -212,14 +212,88 @@ export const registerHistoryTools = (mcpServer: McpServer, provider: ClineProvid
 	)
 
 	// Backward compatibility alias for get_task_history
+	// Inlines the get_api_history logic instead of calling mcpServer.callTool (which doesn't exist)
 	mcpServer.tool(
 		"get_task_history",
 		{
 			count: z.number().optional().describe("Number of recent messages to return. Default is 20."),
 		},
 		async ({ count = 20 }) => {
-			const result = await (mcpServer as any).callTool("get_api_history", { count })
-			return result
+			try {
+				const currentTask = provider.getCurrentTask()
+				if (!currentTask) {
+					return {
+						content: [
+							{
+								type: "text",
+								text: JSON.stringify({ hasTask: false, totalMessages: 0, showing: 0, messages: [] }),
+							},
+						],
+					}
+				}
+
+				const history = currentTask.apiConversationHistory
+				const recent = history.slice(-Math.abs(count))
+				const maxPreview = 2000
+
+				const detailed = recent.map((msg: any, idx: number) => {
+					const blocks = Array.isArray(msg.content)
+						? msg.content.map((b: NonNullable<unknown>) => {
+								if ("type" in b && "text" in b && b.type === "text") {
+									const text = String(b.text || "")
+									return { type: "text", text: text.substring(0, maxPreview) }
+								}
+								if ("type" in b && b.type === "tool_use" && "name" in b && "id" in b) {
+									return {
+										type: "tool_use",
+										name: b.name,
+										id: b.id,
+										input: "input" in b ? b.input : {},
+									}
+								}
+								if ("type" in b && b.type === "tool_result" && "tool_use_id" in b) {
+									const content = String("content" in b ? b.content : "")
+									return {
+										type: "tool_result",
+										tool_use_id: b.tool_use_id,
+										content: content.substring(0, maxPreview),
+									}
+								}
+								return { type: "type" in b ? String(b.type) : "unknown" }
+							})
+						: [{ type: "text", text: String(msg.content).substring(0, maxPreview) }]
+
+					return {
+						index: history.length - recent.length + idx,
+						role: msg.role,
+						blockCount: blocks.length,
+						blocks,
+					}
+				})
+
+				return {
+					content: [
+						{
+							type: "text",
+							text: JSON.stringify(
+								{ totalMessages: history.length, showing: recent.length, messages: detailed },
+								null,
+								2,
+							),
+						},
+					],
+				}
+			} catch (error) {
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Error getting task history: ${error instanceof Error ? error.message : String(error)}`,
+						},
+					],
+					isError: true,
+				}
+			}
 		},
 	)
 }

@@ -68,6 +68,16 @@ export class ToolRepetitionDetector {
 	}
 
 	/**
+	 * Resets the detector state, clearing the previous tool call and counter.
+	 * Use this when a tool call was legitimately intercepted or delegated,
+	 * to prevent false positives in the repetition detection.
+	 */
+	public reset(): void {
+		this.previousToolCallJson = null
+		this.consecutiveIdenticalToolCallCount = 0
+	}
+
+	/**
 	 * Serializes a ToolUse object into a canonical JSON string for comparison
 	 *
 	 * @param toolUse The ToolUse object to serialize

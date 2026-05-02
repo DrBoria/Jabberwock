@@ -25,7 +25,7 @@ export const SayTool: React.FC<SayToolProps> = ({ message, t }) => {
 		runSlashCommand: () => {
 			return (
 				<>
-					<Container preset="header" p="0">
+					<Container $preset="header" $p="0">
 						{toolIcon("terminal-cmd")}
 						<span style={{ fontWeight: "bold" }}>{t("chat:slashCommand.didRun")}</span>
 					</Container>
@@ -39,7 +39,7 @@ export const SayTool: React.FC<SayToolProps> = ({ message, t }) => {
 									gap: "4px",
 									padding: "10px 12px",
 								}}>
-								<Container preset="row" w="100%" p="0">
+								<Container $preset="row" $w="100%" $p="0">
 									<span style={{ fontWeight: "500", fontSize: "var(--vscode-font-size)" }}>
 										/{sayTool.command}
 									</span>
@@ -63,7 +63,7 @@ export const SayTool: React.FC<SayToolProps> = ({ message, t }) => {
 									</div>
 								)}
 								{sayTool.source && (
-									<Container preset="row" p="0" gap="4px">
+									<Container $preset="row" $p="0" $gap="4px">
 										<VSCodeBadge style={{ fontSize: "calc(var(--vscode-font-size) - 2px)" }}>
 											{sayTool.source}
 										</VSCodeBadge>
@@ -96,7 +96,7 @@ export const SayTool: React.FC<SayToolProps> = ({ message, t }) => {
 				infoText = formatBytes(sayTool.totalBytes)
 			}
 			return (
-				<Container preset="header" p="0">
+				<Container $preset="header" $p="0">
 					{toolIcon("file-code")}
 					<span style={{ fontWeight: "bold" }}>{t("chat:readCommandOutput.title")}</span>
 					{infoText && (

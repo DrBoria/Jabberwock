@@ -5,7 +5,7 @@ import styled, { css } from "styled-components"
 
 export type ContainerTheme = "default" | "card" | "overlay" | "dialog" | "subtle"
 
-const themeStyles: Record<ContainerTheme, ReturnType<typeof css>> = {
+const $themeStyles: Record<ContainerTheme, ReturnType<typeof css>> = {
 	default: css`
 		background: transparent;
 		color: var(--vscode-editor-foreground);
@@ -52,7 +52,7 @@ export type GridPreset =
 	| "two-col" // two equal columns
 	| "auto" // auto-flow columns
 
-const gridPresets: Record<GridPreset, ReturnType<typeof css>> = {
+const $gridPresets: Record<GridPreset, ReturnType<typeof css>> = {
 	row: css`
 		display: grid;
 		grid-template-columns: 1fr;
@@ -110,23 +110,23 @@ const gridPresets: Record<GridPreset, ReturnType<typeof css>> = {
 /* ─── Props ─── */
 
 export interface ContainerProps {
-	theme?: ContainerTheme
-	preset?: GridPreset
+	$theme?: ContainerTheme
+	$preset?: GridPreset
 	/** CSS grid-template-columns value, e.g. "1fr 20px" or "repeat(3, 1fr)" */
-	templates?: string
+	$templates?: string
 	/** Custom grid-template-columns override (alias for templates) */
-	columns?: string
+	$columns?: string
 	/** Custom grid-template-rows override */
-	rows?: string
+	$rows?: string
 	/** CSS gap value, e.g. "4px" or "0.5rem" */
-	gap?: string
+	$gap?: string
 	/** CSS align-items value */
-	align?: string
-	ml?: string // margin-left
-	mt?: string // margin-top
-	mb?: string // margin-bottom
-	p?: string // padding
-	w?: string // width
+	$align?: string
+	$ml?: string // margin-left
+	$mt?: string // margin-top
+	$mb?: string // margin-bottom
+	$p?: string // padding
+	$w?: string // width
 	as?: keyof JSX.IntrinsicElements
 	children?: React.ReactNode
 	className?: string
@@ -138,18 +138,18 @@ export interface ContainerProps {
 /* ─── Styled component ─── */
 
 const ContainerRoot = styled.div<ContainerProps>`
-	${({ theme }) => themeStyles[(theme as ContainerTheme) || "default"]};
-	${({ preset }) => preset && gridPresets[preset as GridPreset]};
-	${({ templates }) => templates && `grid-template-columns: ${templates};`};
-	${({ columns }) => columns && `grid-template-columns: ${columns};`};
-	${({ rows }) => rows && `grid-template-rows: ${rows};`};
-	${({ gap }) => gap && `gap: ${gap};`};
-	${({ align }) => align && `align-items: ${align};`};
-	${({ ml }) => ml && `margin-left: ${ml};`};
-	${({ mt }) => mt && `margin-top: ${mt};`};
-	${({ mb }) => mb && `margin-bottom: ${mb};`};
-	${({ p }) => p && `padding: ${p};`};
-	${({ w }) => w && `width: ${w};`};
+	${({ $theme }) => $themeStyles[($theme as ContainerTheme) || "default"]};
+	${({ $preset }) => $preset && $gridPresets[$preset as GridPreset]};
+	${({ $templates }) => $templates && `grid-template-columns: ${$templates};`};
+	${({ $columns }) => $columns && `grid-template-columns: ${$columns};`};
+	${({ $rows }) => $rows && `grid-template-rows: ${$rows};`};
+	${({ $gap }) => $gap && `gap: ${$gap};`};
+	${({ $align }) => $align && `align-items: ${$align};`};
+	${({ $ml }) => $ml && `margin-left: ${$ml};`};
+	${({ $mt }) => $mt && `margin-top: ${$mt};`};
+	${({ $mb }) => $mb && `margin-bottom: ${$mb};`};
+	${({ $p }) => $p && `padding: ${$p};`};
+	${({ $w }) => $w && `width: ${$w};`};
 `
 
 /**
@@ -159,16 +159,16 @@ const ContainerRoot = styled.div<ContainerProps>`
  * Grid presets: "row" | "row-reverse" | "col" | "header" | "header-cost" | "toolbar" | "two-col" | "auto"
  *
  * Examples:
- *   <Container preset="header" theme="card" p="8px 12px">
+ *   <Container $preset="header" $theme="card" $p="8px 12px">
  *     <Icon /><span>Title</span><button>Action</button>
  *   </Container>
  *
- *   <Container preset="col" ml="24px" gap="2px">
+ *   <Container $preset="col" $ml="24px" $gap="2px">
  *     <div>item 1</div>
  *     <div>item 2</div>
  *   </Container>
  *
- *   <Container templates="1fr 20px" gap="4px" align="center">
+ *   <Container $templates="1fr 20px" $gap="4px" $align="center">
  *     <span>Content</span>
  *     <button>X</button>
  *   </Container>

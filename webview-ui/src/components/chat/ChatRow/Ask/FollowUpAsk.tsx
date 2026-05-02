@@ -34,12 +34,12 @@ export const FollowUpAsk: React.FC<FollowUpAskProps> = ({
 	return (
 		<>
 			{title && (
-				<Container preset="header" p="0">
+				<Container $preset="header" $p="0">
 					{icon}
 					{title}
 				</Container>
 			)}
-			<Container preset="col" ml="24px" gap="8px">
+			<Container $preset="col" $ml="24px" $gap="8px">
 				<Markdown markdown={message.partial === true ? message?.text : followUpData?.question} />
 				<FollowUpSuggest
 					suggestions={followUpData?.suggest}

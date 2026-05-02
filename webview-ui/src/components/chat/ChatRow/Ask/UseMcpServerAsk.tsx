@@ -55,7 +55,7 @@ export const UseMcpServerAsk: React.FC<UseMcpServerAskProps> = ({ message, icon,
 	if (serverResourceUri && useMcpServer.type === "use_mcp_tool") {
 		return (
 			<>
-				<Container preset="header" p="0">
+				<Container $preset="header" $p="0">
 					{icon}
 					{title}
 				</Container>
@@ -84,11 +84,11 @@ export const UseMcpServerAsk: React.FC<UseMcpServerAskProps> = ({ message, icon,
 
 	return (
 		<>
-			<Container preset="header" p="0">
+			<Container $preset="header" $p="0">
 				{icon}
 				{title}
 			</Container>
-			<Container theme="card" preset="col" gap="0" mt="8px" p="8px">
+			<Container $theme="card" $preset="col" $gap="0" $mt="8px" $p="8px">
 				{useMcpServer.type === "access_mcp_resource" && (
 					<McpResourceRow
 						item={{

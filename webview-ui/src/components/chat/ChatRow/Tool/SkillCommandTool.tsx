@@ -15,15 +15,15 @@ interface ToolRendererProps {
 export const SkillRenderer: React.FC<ToolRendererProps> = ({ tool, isExpanded, onToggleExpand, t }) => {
 	return (
 		<>
-			<Container preset="header" p="0">
+			<Container $preset="header" $p="0">
 				{toolIcon("book")}
 				<span style={{ fontWeight: "bold" }}>{t("chat:skill.wantsToLoad")}</span>
 			</Container>
 			<Container
-				theme="card"
-				preset="col"
-				gap="0"
-				mt="4px"
+				$theme="card"
+				$preset="col"
+				$gap="0"
+				$mt="4px"
 				style={{ overflow: "hidden", cursor: "pointer" }}
 				onClick={onToggleExpand}>
 				<ToolUseBlockHeader
@@ -34,7 +34,7 @@ export const SkillRenderer: React.FC<ToolRendererProps> = ({ tool, isExpanded, o
 						alignItems: "center",
 						padding: "10px 12px",
 					}}>
-					<Container preset="row" p="0" gap="8px">
+					<Container $preset="row" $p="0" $gap="8px">
 						<span style={{ fontWeight: "500", fontSize: "var(--vscode-font-size)" }}>{tool.skill}</span>
 						{tool.source && (
 							<VSCodeBadge style={{ fontSize: "calc(var(--vscode-font-size) - 2px)" }}>
@@ -47,9 +47,9 @@ export const SkillRenderer: React.FC<ToolRendererProps> = ({ tool, isExpanded, o
 				</ToolUseBlockHeader>
 				{isExpanded && (tool.args || tool.description) && (
 					<Container
-						preset="col"
-						gap="8px"
-						p="12px 16px"
+						$preset="col"
+						$gap="8px"
+						$p="12px 16px"
 						style={{ borderTop: "1px solid var(--vscode-editorGroup-border)" }}>
 						{tool.description && (
 							<div style={{ color: "var(--vscode-descriptionForeground)" }}>{tool.description}</div>
@@ -71,15 +71,15 @@ export const SkillRenderer: React.FC<ToolRendererProps> = ({ tool, isExpanded, o
 export const SlashCommandRenderer: React.FC<ToolRendererProps> = ({ tool, isExpanded, onToggleExpand, t }) => {
 	return (
 		<>
-			<Container preset="header" p="0">
+			<Container $preset="header" $p="0">
 				{toolIcon("play")}
 				<span style={{ fontWeight: "bold" }}>{t("chat:slashCommand.wantsToRun")}</span>
 			</Container>
 			<Container
-				theme="card"
-				preset="col"
-				gap="0"
-				mt="4px"
+				$theme="card"
+				$preset="col"
+				$gap="0"
+				$mt="4px"
 				style={{ overflow: "hidden", cursor: "pointer" }}
 				onClick={onToggleExpand}>
 				<ToolUseBlockHeader
@@ -90,7 +90,7 @@ export const SlashCommandRenderer: React.FC<ToolRendererProps> = ({ tool, isExpa
 						alignItems: "center",
 						padding: "10px 12px",
 					}}>
-					<Container preset="row" p="0" gap="8px">
+					<Container $preset="row" $p="0" $gap="8px">
 						<span style={{ fontWeight: "500", fontSize: "var(--vscode-font-size)" }}>/{tool.command}</span>
 						{tool.source && (
 							<VSCodeBadge style={{ fontSize: "calc(var(--vscode-font-size) - 2px)" }}>
@@ -103,9 +103,9 @@ export const SlashCommandRenderer: React.FC<ToolRendererProps> = ({ tool, isExpa
 				</ToolUseBlockHeader>
 				{isExpanded && (tool.args || tool.description) && (
 					<Container
-						preset="col"
-						gap="8px"
-						p="12px 16px"
+						$preset="col"
+						$gap="8px"
+						$p="12px 16px"
 						style={{ borderTop: "1px solid var(--vscode-editorGroup-border)" }}>
 						{tool.args && (
 							<div>

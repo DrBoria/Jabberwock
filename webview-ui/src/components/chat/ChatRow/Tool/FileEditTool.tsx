@@ -26,7 +26,7 @@ export const FileEditRenderer: React.FC<ToolRendererProps> = ({ message, tool, i
 	if (message.type === "ask" && tool.batchDiffs && Array.isArray(tool.batchDiffs)) {
 		return (
 			<>
-				<Container preset="header" p="0">
+				<Container $preset="header" $p="0">
 					<FileDiff className="w-4 shrink-0" aria-label="Batch diff icon" />
 					<span style={{ fontWeight: "bold" }}>{t("chat:fileOperations.wantsToApplyBatchChanges")}</span>
 				</Container>
@@ -37,7 +37,7 @@ export const FileEditRenderer: React.FC<ToolRendererProps> = ({ message, tool, i
 
 	return (
 		<>
-			<Container preset="header" p="0">
+			<Container $preset="header" $p="0">
 				{tool.isProtected ? (
 					<span
 						className="codicon codicon-lock"
@@ -82,7 +82,7 @@ export const InsertContentRenderer: React.FC<ToolRendererProps> = ({
 	const unifiedDiff = (tool.content ?? tool.diff) as string | undefined
 	return (
 		<>
-			<Container preset="header" p="0">
+			<Container $preset="header" $p="0">
 				{tool.isProtected ? (
 					<span
 						className="codicon codicon-lock"

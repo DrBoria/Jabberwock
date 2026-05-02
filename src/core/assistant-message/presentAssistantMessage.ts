@@ -721,6 +721,14 @@ export async function presentAssistantMessage(cline: Task) {
 Params: ${JSON.stringify(block.params, null, 2)}
 Please execute this tool and confirm once done.`
 
+					// Reset the tool repetition detector — the orchestrator legitimately
+					// used a tool that was intercepted for delegation. Without this reset,
+					// the orchestrator would hit the repetition limit after 3 identical
+					// intercepted calls, triggering a false "mistake_limit_reached".
+					cline.toolRepetitionDetector.reset()
+					// Also reset consecutive mistake count since the tool was handled successfully
+					cline.consecutiveMistakeCount = 0
+
 					// Inform the orchestrator that we're delegating
 					pushToolResult(
 						`[Auto-Delegation] Intercepted '${block.name}' call. Spawning a 'Coder' sub-agent branch to perform this action.`,

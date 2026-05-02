@@ -213,6 +213,7 @@ export class ClineProvider
 	private recentTasksCache?: string[]
 	public readonly taskHistoryStore: TaskHistoryStore
 	private devtoolEnabled = false
+	private devtool?: import("@jabberwock/devtool").Devtool
 	private taskHistoryStoreInitialized = false
 
 	public workspaceStore = WorkspaceStore.create({})
@@ -329,7 +330,7 @@ export class ClineProvider
 
 		// Initialize diagnostic log file so agents can read it from disk
 		import("../devtools/DiagnosticsManager")
-			.then(({ diagnosticsManager }) => {
+			.then(async ({ diagnosticsManager }) => {
 				const logPath = path.join(this.contextProxy.globalStorageUri.fsPath, "jabberwock.diagnostics.log")
 				diagnosticsManager.setLogFilePath(logPath)
 				diagnosticsManager.registerConsoleInterceptor()
@@ -360,108 +361,26 @@ export class ClineProvider
 					}
 
 					if (this.devtoolEnabled) {
-						// Read actorRole from mcp_settings.json (jabberwock-devtools config)
-						// "target" = this instance starts the SSE server + registers internal MCP connection
-						// "controller" = this instance connects to another extension's SSE server via mcp_settings.json SSE client
-						const readActorRole = (): string => {
-							try {
-								// Try project root first (most common location for mcp_settings.json)
-								const projectRoot = path.join(this.contextProxy.extensionUri.fsPath, "..")
-								const settingsPath = path.join(projectRoot, "mcp_settings.json")
-								// Use require('fs') for sync read since fs import is from "fs/promises"
-								const nodeFs = require("fs") as typeof import("fs")
-								const content = nodeFs.readFileSync(settingsPath, "utf-8")
-								const parsed = JSON.parse(content)
-								const devtoolsConfig = parsed?.mcpServers?.["jabberwock-devtools"]
-								if (
-									devtoolsConfig?.actorRole === "controller" ||
-									devtoolsConfig?.actorRole === "target"
-								) {
-									return devtoolsConfig.actorRole
-								}
-							} catch {
-								// ignore — file not found or parse error, default to "target"
-							}
-							return "target"
-						}
-						const actorRole = readActorRole()
+						diagnosticsManager.log(`[ClineProvider] Starting Devtool (WebSocket MCP server)...`, "info")
+
+						// Start the Devtool wrapper from @jabberwock/devtool package.
+						// This creates a WebSocket MCP server on ws://127.0.0.1:60060/ws
+						// and registers generic tools (UI, diagnostics, state, settings, agent, prompt, provider).
+						// The extension-specific model tools (task management, etc.) are registered
+						// via createDevtoolModel().
+						const { Devtool } = await import("@jabberwock/devtool")
+						const { createDevtoolModel } = await import("../devtools/model")
+						const { createDevtoolBridge } = await import("../devtools/devtoolBridge")
+						const devtool = new Devtool(createDevtoolBridge(this), createDevtoolModel(this))
+						await devtool.start()
+						this.devtool = devtool
 
 						diagnosticsManager.log(
-							`[ClineProvider] DevTools actorRole from mcp_settings.json: "${actorRole}"`,
+							`[ClineProvider] Devtool started successfully on ws://127.0.0.1:60060/ws`,
 							"info",
 						)
 
-						if (actorRole === "target") {
-							diagnosticsManager.log(`[ClineProvider] Attempting to start JabberwockMcpServer...`, "info")
-							import("../devtools/JabberwockMcpServer")
-								.then(({ startJabberwockMcpServer }) => {
-									return startJabberwockMcpServer(this)
-								})
-								.then(async (port) => {
-									diagnosticsManager.log(
-										`[ClineProvider] JabberwockMcpServer SUCCESS on port ${port}`,
-										"info",
-									)
-
-									// Register DevTools as an internal MCP connection in McpHub
-									// so agents can call DevTools tools via use_mcp_tool
-									if (this.mcpHub) {
-										try {
-											await this.mcpHub.registerInternalConnection(port)
-											diagnosticsManager.log(
-												`[ClineProvider] DevTools registered as internal MCP connection`,
-												"info",
-											)
-										} catch (regError) {
-											diagnosticsManager.log(
-												`[ClineProvider] Failed to register internal MCP connection: ${regError instanceof Error ? regError.message : String(regError)}`,
-												"error",
-											)
-										}
-									} else {
-										diagnosticsManager.log(
-											`[ClineProvider] McpHub not yet initialized, will retry registration in 5s`,
-											"warn",
-										)
-										// Retry after a short delay since McpHub initialization is also async
-										const retryId = getTimerQueue().schedule({
-											id: `mcp-registration-retry-${port}`,
-											label: "MCP registration retry",
-											timeoutMs: 5000,
-										})
-										getTimerQueue()
-											.createAbortPromise(retryId)
-											.then(async () => {
-												if (this.mcpHub) {
-													try {
-														await this.mcpHub.registerInternalConnection(port)
-														diagnosticsManager.log(
-															`[ClineProvider] DevTools registered as internal MCP connection (delayed)`,
-															"info",
-														)
-													} catch (regError) {
-														diagnosticsManager.log(
-															`[ClineProvider] Delayed registration failed: ${regError instanceof Error ? regError.message : String(regError)}`,
-															"error",
-														)
-													}
-												}
-											})
-									}
-
-									this.postStateToWebview()
-								})
-								.catch((error) => {
-									const msg = `[ClineProvider] FAILED to start DevTools MCP Server: ${error instanceof Error ? error.message : String(error)}`
-									diagnosticsManager.log(msg, "error")
-									console.error(msg)
-								})
-						} else {
-							diagnosticsManager.log(
-								`[ClineProvider] actorRole is "controller" — skipping SSE server start. DevTools tools will be available via SSE client in mcp_settings.json.`,
-								"info",
-							)
-						}
+						this.postStateToWebview()
 					} else {
 						diagnosticsManager.log(
 							`[ClineProvider] DevTools are disabled by configuration ("${Package.name}.devtool")`,
@@ -473,9 +392,19 @@ export class ClineProvider
 					diagnosticsManager.log(msg, "error")
 					console.error(msg)
 				}
+
+				// Initialize MCP Hub AFTER devtool (if enabled) so the WebSocket server
+				// is already listening when McpHub tries to connect to jabberwock-devtools.
+				// This prevents the "retrying" yellow state caused by a hanging promise.
+				const hub = await McpServerManager.getInstance(this.context, this)
+				this.mcpHub = hub
+				this.mcpHub.registerClient()
 			})
 			.catch((err) => {
-				console.error("[ClineProvider] Critical error initializing DiagnosticsManager:", err)
+				console.error(
+					"[ClineProvider] Critical error during initialization:",
+					err instanceof Error ? err.message : String(err),
+				)
 			})
 
 		// Start configuration loading (which might trigger indexing) in the background.
@@ -492,16 +421,6 @@ export class ClineProvider
 		this.customModesManager = new CustomModesManager(this.context, async () => {
 			await this.postStateToWebviewWithoutClineMessages()
 		})
-
-		// Initialize MCP Hub through the singleton manager
-		McpServerManager.getInstance(this.context, this)
-			.then((hub) => {
-				this.mcpHub = hub
-				this.mcpHub.registerClient()
-			})
-			.catch((error) => {
-				this.log(`Failed to initialize MCP Hub: ${error}`)
-			})
 
 		// Initialize Skills Manager for skill discovery
 		this.skillsManager = new SkillsManager(this)
@@ -1143,18 +1062,18 @@ export class ClineProvider
 			}
 			if (e && e.affectsConfiguration(`${Package.name}.devtool`)) {
 				this.devtoolEnabled = vscode.workspace.getConfiguration(Package.name).get<boolean>("devtool") ?? false
-				const { startJabberwockMcpServer, stopJabberwockMcpServer } = await import(
-					"../devtools/JabberwockMcpServer"
-				)
 				if (this.devtoolEnabled) {
-					startJabberwockMcpServer(this)
-						.then(() => {
-							this.postStateToWebview()
-						})
-						.catch(this.log.bind(this))
+					if (!this.devtool) {
+						const { Devtool } = await import("@jabberwock/devtool")
+						const { createDevtoolModel } = await import("../devtools/model")
+						this.devtool = new Devtool(/* bridge */ undefined, createDevtoolModel(this))
+						await this.devtool.start()
+					}
 				} else {
-					await stopJabberwockMcpServer()
-					this.postStateToWebview()
+					if (this.devtool) {
+						await this.devtool.stop()
+						this.devtool = undefined
+					}
 				}
 				await this.postStateToWebview()
 			}

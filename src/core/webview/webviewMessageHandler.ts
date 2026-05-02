@@ -550,15 +550,24 @@ export const webviewMessageHandler = async (
 			diagnosticsManager.log(message.text || "")
 		},
 		domResponse: async (message) => {
-			if (message.requestId && message.text) {
+			if (message.requestId) {
 				console.log(
-					`[DEBUG: DOM] Extension: Received domResponse for ${message.requestId} (size: ${message.text.length})`,
+					`[DEBUG: DOM] Extension: Received domResponse for ${message.requestId} (text: ${(message.text || "").length} chars)`,
 				)
-				provider.resolveDomRequest(message.requestId, message.text)
+				// Debug: check pendingDomRequests before resolving
+				const p = provider as any
+				if (p.pendingDomRequests) {
+					console.log(
+						`[DEBUG: DOM] pendingDomRequests size before resolve: ${p.pendingDomRequests.size}, has requestId: ${p.pendingDomRequests.has(message.requestId)}`,
+					)
+				} else {
+					console.log(
+						`[DEBUG: DOM] CRITICAL: pendingDomRequests is undefined on this provider instance! provider._disposed=${p._disposed}, has view=${!!p.view}`,
+					)
+				}
+				provider.resolveDomRequest(message.requestId, message.text || "")
 			} else {
-				console.log(
-					`[DEBUG: DOM] Extension: Received invalid domResponse (req: ${message.requestId}, hasText: ${!!message.text})`,
-				)
+				console.log(`[DEBUG: DOM] Extension: Received invalid domResponse (missing requestId)`)
 			}
 		},
 		webviewError: async (message) => {

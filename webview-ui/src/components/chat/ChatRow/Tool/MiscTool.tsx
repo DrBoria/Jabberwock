@@ -37,7 +37,7 @@ interface GenerateImageProps {
 /** Renders generateImage tool */
 export const GenerateImageRenderer: React.FC<GenerateImageProps> = ({ message, tool, t }) => (
 	<>
-		<Container preset="header" p="0">
+		<Container $preset="header" $p="0">
 			{tool.isProtected ? (
 				<span
 					className="codicon codicon-lock"
@@ -59,9 +59,13 @@ export const GenerateImageRenderer: React.FC<GenerateImageProps> = ({ message, t
 		{message.type === "ask" && (
 			<div className="pl-6">
 				<ToolUseBlock>
-					<Container preset="col" p="8px" gap="4px">
+					<Container $preset="col" $p="8px" $gap="4px">
 						<div className="break-words">{tool.content}</div>
-						<Container preset="row" p="0" gap="4px" className="text-xs text-vscode-descriptionForeground">
+						<Container
+							$preset="row"
+							$p="0"
+							$gap="4px"
+							className="text-xs text-vscode-descriptionForeground">
 							{tool.path}
 						</Container>
 					</Container>

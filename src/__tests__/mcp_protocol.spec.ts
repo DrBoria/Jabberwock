@@ -1,9 +1,48 @@
 import { describe, it, expect, vi, beforeAll, afterAll } from "vitest"
 import { Client } from "@modelcontextprotocol/sdk/client/index.js"
-import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js"
-import { startJabberwockMcpServer, stopJabberwockMcpServer } from "../core/devtools/JabberwockMcpServer"
+import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js"
+import WebSocket from "ws"
+import { WsMcpServer } from "@jabberwock/devtool"
 import { diagnosticsManager } from "../core/devtools/DiagnosticsManager"
 import { setTimeout } from "timers/promises"
+
+/**
+ * Minimal MCP Transport adapter for WebSocket clients.
+ * Connects to a ws:// endpoint and wraps the WebSocket into the Transport interface.
+ */
+class WebSocketClientTransport implements Transport {
+	private ws!: WebSocket
+	onclose?: () => void
+	onerror?: (error: Error) => void
+	onmessage?: (message: any) => void
+
+	constructor(private url: string) {}
+
+	async start(): Promise<void> {
+		return new Promise((resolve, reject) => {
+			this.ws = new WebSocket(this.url)
+			this.ws.on("open", () => resolve())
+			this.ws.on("error", (err) => reject(err))
+			this.ws.on("message", (data) => {
+				try {
+					const message = JSON.parse(data.toString())
+					this.onmessage?.(message)
+				} catch (err) {
+					this.onerror?.(err as Error)
+				}
+			})
+			this.ws.on("close", () => this.onclose?.())
+		})
+	}
+
+	async send(message: any): Promise<void> {
+		this.ws.send(JSON.stringify(message))
+	}
+
+	async close(): Promise<void> {
+		this.ws.close()
+	}
+}
 
 // 2. Mock vscode and other node dependencies
 vi.mock("vscode", () => ({
@@ -15,8 +54,9 @@ vi.mock("vscode", () => ({
 const TEST_PORT_MCP = 60062
 
 describe("Jabberwock MCP Protocol E2E", () => {
+	let mcpServer: WsMcpServer
 	let mcpClient: Client
-	let transport: SSEClientTransport
+	let transport: WebSocketClientTransport
 
 	beforeAll(async () => {
 		// Mock Provider
@@ -29,17 +69,20 @@ describe("Jabberwock MCP Protocol E2E", () => {
 			getCurrentTask: () => null,
 		} as any
 
-		// Start actual MCP Server on test port
-		await startJabberwockMcpServer(mockProvider, TEST_PORT_MCP)
+		// Start actual WebSocket MCP Server on test port
+		mcpServer = new WsMcpServer(TEST_PORT_MCP)
+		await mcpServer.start()
 
-		// Connect client
-		transport = new SSEClientTransport(new URL(`http://127.0.0.1:${TEST_PORT_MCP}/sse`))
+		// Connect client via WebSocket
+		transport = new WebSocketClientTransport(`ws://127.0.0.1:${TEST_PORT_MCP}/ws`)
+		await transport.start()
 		mcpClient = new Client({ name: "McpTestRunner", version: "1.0.0" }, { capabilities: { tools: {} } })
 		await mcpClient.connect(transport)
 	}, 15000)
 
 	afterAll(async () => {
-		await stopJabberwockMcpServer()
+		await mcpClient.close()
+		await mcpServer.stop()
 	})
 
 	it("should verify Phase 1: Execution Tracing over MCP protocol", async () => {

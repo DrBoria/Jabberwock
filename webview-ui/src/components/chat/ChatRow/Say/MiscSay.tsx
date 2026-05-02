@@ -31,7 +31,7 @@ export const SubtaskResultSay: React.FC<SubtaskResultProps> = ({ message, t }) =
 	const completedChildTaskId = currentTaskItem?.completedByChildId
 	return (
 		<div className="border-l border-muted-foreground/80 ml-2 pl-4 pt-2 pb-1 -mt-5">
-			<Container preset="header" p="0">
+			<Container $preset="header" $p="0">
 				<span style={{ fontWeight: "bold" }}>{t("chat:subtasks.resultContent")}</span>
 				<Check className="size-3" />
 			</Container>
@@ -57,7 +57,7 @@ interface CompletionResultProps {
 
 export const CompletionResultSay: React.FC<CompletionResultProps> = ({ message, icon, title }) => (
 	<div className="group">
-		<Container preset="header" p="0">
+		<Container $preset="header" $p="0">
 			{icon}
 			{title}
 			<OpenMarkdownPreviewButton markdown={message.text} />
