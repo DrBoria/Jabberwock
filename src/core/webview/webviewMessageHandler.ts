@@ -3054,13 +3054,13 @@ export const webviewMessageHandler = async (
 					TelemetryService.instance.captureTabShown(message.tab)
 				}
 
-				// Forward the message to webview but mark it as fromMCP to prevent loops
+				// Forward the message to webview — preserve original fromMCP state to prevent loops
 				await provider.postMessageToWebview({
 					type: "action",
 					action: "switchTab",
 					tab: message.tab,
 					values: message.values,
-					fromMCP: true, // Prevent webview from sending this back to extension host
+					fromMCP: message.fromMCP === true, // Preserve original fromMCP state (only true if MCP-originated)
 				})
 			}
 		},
