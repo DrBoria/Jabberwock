@@ -8,7 +8,7 @@
  *   </DevtoolProvider>
  *
  * The provider listens for VS Code message events and handles:
- * - getDom (DOM serialization with CSS selectors)
+ * - getDom (DOM serialization as hierarchical JSON tree)
  * - findElement (CSS selector + text content fallback)
  * - clickElement (5-strategy fallback: CSS selector → getElementById → data-testid → text search)
  * - typeText (input/textarea value setting)
@@ -33,52 +33,62 @@ import React, { useCallback, useEffect } from "react"
 
 // ── DOM Serialization Helpers ────────────────────────────────────────────
 
-function getCssPath(el: Element): string {
-	const parts: string[] = []
-	let current: Element | null = el
-	let genericCount = 0
+function getNodeKey(el: Element): string {
+	const tag = el.tagName.toLowerCase()
+	const id = el.getAttribute("id")
+	const testId = el.getAttribute("data-testid")
 
-	while (current && current !== document.body && current !== document.documentElement) {
-		const tag = current.tagName.toLowerCase()
-		const id = current.getAttribute("id")
-		const testId = current.getAttribute("data-testid")
+	if (id) return `#${id}`
 
-		const isGeneric = (tag === "div" || tag === "span") && !id && !testId
-
-		if (isGeneric) {
-			genericCount++
-		} else {
-			if (genericCount > 0) {
-				parts.unshift(`div^${genericCount}`)
-				genericCount = 0
+	if (testId) {
+		// Check for duplicate testid among siblings → add :nth-of-type(N)
+		const parent = el.parentElement
+		if (parent) {
+			const siblings = Array.from(parent.children).filter((s) => s.getAttribute("data-testid") === testId)
+			if (siblings.length > 1) {
+				const idx = siblings.indexOf(el) + 1
+				return `[data-testid="${testId}"]:nth-of-type(${idx})`
 			}
-
-			let selector = tag
-			if (id) {
-				selector = `#${id}`
-				parts.unshift(selector)
-				break
-			}
-			if (testId) {
-				selector = `[data-testid="${testId}"]`
-			} else {
-				const parent = current.parentElement
-				if (parent) {
-					const siblings = Array.from(parent.children).filter((s) => s.tagName === current!.tagName)
-					const idx = siblings.indexOf(current) + 1
-					if (siblings.length > 1) selector += `:nth-child(${idx})`
-				}
-			}
-			parts.unshift(selector)
 		}
-		current = current.parentElement
+		return `[data-testid="${testId}"]`
 	}
 
-	if (genericCount > 0) {
-		parts.unshift(`div^${genericCount}`)
+	const isGeneric = tag === "div" || tag === "span"
+	if (!isGeneric) {
+		const parent = el.parentElement
+		if (parent) {
+			const siblings = Array.from(parent.children).filter((s) => s.tagName === tag)
+			const idx = siblings.indexOf(el) + 1
+			if (siblings.length > 1) return `${tag}:nth-child(${idx})`
+		}
+		return tag
 	}
 
-	return parts.join(" > ")
+	return tag // generic div/span — will be collapsed by parent
+}
+
+/**
+ * Collapse consecutive generic (div/span) keys into div^N notation,
+ * leaving non-generic keys unchanged.
+ */
+function collapseGenericKeys(keys: string[]): string[] {
+	const result: string[] = []
+	let count = 0
+	for (const key of keys) {
+		if (key === "div" || key === "span") {
+			count++
+		} else {
+			if (count > 0) {
+				result.push(`div^${count}`)
+				count = 0
+			}
+			result.push(key)
+		}
+	}
+	if (count > 0) {
+		result.push(`div^${count}`)
+	}
+	return result
 }
 
 function getRelevantAttributes(el: Element): Record<string, string> {
@@ -92,6 +102,14 @@ function getRelevantAttributes(el: Element): Record<string, string> {
 		"checked",
 		"data-window-type",
 		"data-active",
+		"placeholder",
+		"href",
+		"src",
+		"type",
+		"aria-label",
+		"role",
+		"alt",
+		"title",
 	])
 	for (const attr of el.attributes) {
 		if (keep.has(attr.name)) {
@@ -111,6 +129,14 @@ function hasRelevantAttributes(el: Element): boolean {
 		"checked",
 		"data-window-type",
 		"data-active",
+		"placeholder",
+		"href",
+		"src",
+		"type",
+		"aria-label",
+		"role",
+		"alt",
+		"title",
 	])
 	for (const attr of el.attributes) {
 		if (keep.has(attr.name)) return true
@@ -135,73 +161,129 @@ function shouldSkipTag(tag: string): boolean {
 	return ["script", "style", "noscript", "link", "meta"].includes(tag)
 }
 
-function serializeDomToSelectors(root: Element, depth = 0, maxDepth?: number, maxChildren?: number): string[] {
-	if (maxDepth !== undefined && depth > maxDepth) return []
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function serializeDomToTree(root: Element, depth = 0, maxDepth?: number, maxChildren?: number): Record<string, any> {
+	if (maxDepth !== undefined && depth > maxDepth) return {}
 	const tag = root.tagName.toLowerCase()
-	if (shouldSkipTag(tag)) return []
+	if (shouldSkipTag(tag)) return {}
 
-	const lines: string[] = []
-	const path = getCssPath(root)
 	const text = getNodeText(root)
 	const attrs = getRelevantAttributes(root)
 
+	// SVG / path / canvas leaf
 	if (tag === "svg" || tag === "path" || tag === "canvas") {
 		const testId = root.getAttribute("data-testid")
-		const sel = testId ? `[data-testid="${testId}"]` : tag
-		lines.push(`${sel}`)
-		return lines
+		const key = testId ? `[data-testid="${testId}"]` : tag
+		const node: Record<string, any> = {}
+		if (Object.keys(attrs).length > 0) node._attrs = attrs
+		if (text && !["div", "span", "section", "article", "main", "nav", "header", "footer"].includes(tag)) {
+			node._text = text
+		}
+		return { [key]: node }
 	}
 
+	// iframe
 	if (tag === "iframe") {
 		try {
 			const iframe = root as HTMLIFrameElement
 			const innerDoc = iframe.contentDocument || iframe.contentWindow?.document
 			if (innerDoc?.body) {
-				const innerLines = serializeDomToSelectors(innerDoc.body, depth, maxDepth, maxChildren)
-				lines.push(...innerLines.map((l) => `[Webview] ${l}`))
+				const innerTree = serializeDomToTree(innerDoc.body, depth, maxDepth, maxChildren)
+				const wrapped: Record<string, any> = {}
+				for (const [k, v] of Object.entries(innerTree)) {
+					wrapped[`[Webview] ${k}`] = v
+				}
+				return wrapped
 			}
 		} catch {
 			// Cross-origin iframe, skip
 		}
-		return lines
+		return {}
 	}
 
+	// Collect children
 	const children = Array.from(root.children)
 	let nonCollapsibleChildren = children.filter((c) => !isCollapsible(c) && !shouldSkipTag(c.tagName.toLowerCase()))
 
 	if (maxChildren !== undefined && nonCollapsibleChildren.length > maxChildren) {
-		const truncated = nonCollapsibleChildren.slice(0, maxChildren)
-		truncated.push(`…and ${nonCollapsibleChildren.length - maxChildren} more` as unknown as Element)
-		nonCollapsibleChildren = truncated
+		nonCollapsibleChildren = nonCollapsibleChildren.slice(0, maxChildren)
 	}
 
+	// If collapsible and no interesting children, skip entirely
 	if (isCollapsible(root) && nonCollapsibleChildren.length === 0) {
-		return lines
+		return {}
 	}
 
-	let line = path
-	if (Object.keys(attrs).length > 0) {
-		const attrStr = Object.entries(attrs)
-			.map(([k, v]) => `${k}="${v}"`)
-			.join(" ")
-		line = path + `[${attrStr}]`
-	}
-	if (text && !["div", "span", "section", "article", "main", "nav", "header", "footer"].includes(tag)) {
-		line += ` "${text}"`
-	}
+	// Build child tree
+	const childKeys: string[] = nonCollapsibleChildren.map((c) => getNodeKey(c))
+	const collapsedKeys = collapseGenericKeys(childKeys)
 
-	if (line) lines.push(line)
+	// Map children to collapsed keys
+	// collapsedKeys like ["div^4", "button", "div^2"] mean:
+	//   - "div^4" → 4 consecutive generic divs — serialize each individually,
+	//                collecting them under positional keys div:0, div:1, etc.
+	//   - "button" → 1 specific child, serialize normally
+	const childTree: Record<string, any> = {}
+	let childIdx = 0
+	for (const key of collapsedKeys) {
+		if (childIdx >= nonCollapsibleChildren.length) break
+		const collapseMatch = key.match(/^div\^(\d+)$/)
+		const count = collapseMatch?.[1] ? parseInt(collapseMatch[1]) : 1
 
-	for (const child of nonCollapsibleChildren) {
-		if (typeof child === "string") {
-			lines.push(child)
+		if (count > 1) {
+			// Collapsed generic group (div^N): serialize ALL children, not just the first.
+			// They all have the same key "div"/"span" but may contain different content.
+			const group: Record<string, any> = {}
+			let hasContent = false
+			for (let i = 0; i < count && childIdx < nonCollapsibleChildren.length; i++) {
+				const child = nonCollapsibleChildren[childIdx]!
+				const subTree = serializeDomToTree(child, depth + 1, maxDepth, maxChildren)
+				if (Object.keys(subTree).length > 0) {
+					group[`div:${i}`] = subTree
+					hasContent = true
+				}
+				childIdx++
+			}
+			if (hasContent) {
+				childTree[key] = group
+			}
 		} else {
-			lines.push(...serializeDomToSelectors(child, depth + 1, maxDepth, maxChildren))
+			// Single specific child — serialize normally
+			const child = nonCollapsibleChildren[childIdx]!
+			const subTree = serializeDomToTree(child, depth + 1, maxDepth, maxChildren)
+			if (Object.keys(subTree).length > 0) {
+				childTree[key] = subTree
+			}
+			childIdx++
 		}
 	}
 
-	return lines
+	// ── Compact single-child generic containers ───────────────────────
+	// If this node is a generic div/span with no identity (no relevant attrs,
+	// no direct text of its own) and has exactly one child, lift the child's
+	// content up to this level. This eliminates deep chains of meaningless
+	// layout wrappers like div > div > div > button.
+	const hasOwnText = Array.from(root.childNodes).some((n) => n.nodeType === Node.TEXT_NODE && n.textContent?.trim())
+	const isGeneric = tag === "div" || tag === "span"
+	if (isGeneric && Object.keys(attrs).length === 0 && !hasOwnText && Object.keys(childTree).length === 1) {
+		return Object.values(childTree)[0] as Record<string, any>
+	}
+
+	const key = getNodeKey(root)
+
+	const result: Record<string, any> = {}
+	result[key] = childTree
+
+	if (Object.keys(attrs).length > 0) {
+		result[key]._attrs = attrs
+	}
+	if (text && !["div", "span", "section", "article", "main", "nav", "header", "footer"].includes(tag)) {
+		result[key]._text = text
+	}
+
+	return result
 }
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // ── DevtoolProvider Component ────────────────────────────────────────────
 
@@ -408,12 +490,12 @@ export const DevtoolProvider: React.FC<DevtoolProviderProps> = ({ children, post
 			// ── getDom ──
 			if (message.type === "getDom" && message.requestId) {
 				const req = message as { requestId: string; maxDepth?: number; maxChildren?: number }
-				const userMaxDepth = typeof req.maxDepth === "number" ? req.maxDepth : 5
-				const userMaxChildren = typeof req.maxChildren === "number" ? req.maxChildren : 10
+				const userMaxDepth = typeof req.maxDepth === "number" ? req.maxDepth : 20
+				const userMaxChildren = typeof req.maxChildren === "number" ? req.maxChildren : 20
 				try {
 					const rootEl = document.getElementById("root") || document.body
-					const selectorLines = serializeDomToSelectors(rootEl, 0, userMaxDepth, userMaxChildren)
-					const output = selectorLines.join("\n")
+					const tree = serializeDomToTree(rootEl, 0, userMaxDepth, userMaxChildren)
+					const output = JSON.stringify(tree, null, 2)
 					postMessage({ type: "domResponse", requestId: req.requestId, text: output })
 				} catch (err) {
 					postMessage({
@@ -440,7 +522,7 @@ export const DevtoolProvider: React.FC<DevtoolProviderProps> = ({ children, post
 						elementCounter++
 						const varName = `$${elementCounter}`
 						elementStore[elementCounter - 1] = el
-						const domLines = serializeDomToSelectors(el, 0, 3, 10).join("\n")
+						const domLines = JSON.stringify(serializeDomToTree(el, 0, 3, 10), null, 2)
 						postMessage({
 							type: "domResponse",
 							requestId,

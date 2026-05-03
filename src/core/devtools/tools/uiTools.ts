@@ -211,7 +211,7 @@ export function registerUiTools(mcpServer, provider) {
 		async ({ maxDepth, maxChildren }) => {
 			try {
 				const dom = await provider.getWebviewDom(maxDepth, maxChildren)
-				// The webview now returns CSS-selector format with aggressive compression.
+				// The webview now returns hierarchical JSON tree format.
 				// Prepend [Webview] marker for context.
 				const output = `[Webview]\n${dom}`
 				return { content: [{ type: "text", text: output }] }

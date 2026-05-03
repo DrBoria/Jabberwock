@@ -59,6 +59,7 @@ export const NavigationTriggers: React.FC<NavigationTriggersProps> = ({
 					title="Show Task Hierarchy"
 					icon={ListTree}
 					onClick={onOpenHierarchy}
+					data-testid="show-task-hierarchy-button"
 					className="bg-vscode-button-background text-vscode-button-foreground shadow-lg hover:bg-vscode-button-hoverBackground transition-all transform hover:scale-110 mb-2"
 				/>
 			)}
@@ -101,6 +102,7 @@ export const NavigationTriggers: React.FC<NavigationTriggersProps> = ({
 							</Container>
 						}>
 						<div
+							data-testid={`nav-trigger-${childId}`}
 							onClick={(e) => {
 								e.stopPropagation()
 								onNavigateToNode(childId)

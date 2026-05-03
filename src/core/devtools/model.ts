@@ -25,6 +25,7 @@ import { registerHistoryTools } from "./tools/taskTools/history"
 import { registerPollingTools } from "./tools/taskTools/polling"
 import { registerWorkspaceTools } from "./tools/taskTools/workspace"
 import { registerTodoTools } from "./tools/taskTools/todoTools"
+import { registerUiTools } from "./tools/uiTools"
 
 /**
  * Creates a DevtoolModel implementation for the given ClineProvider.
@@ -39,6 +40,7 @@ export function createDevtoolModel(provider: ClineProvider): DevtoolModel {
 			registerPollingTools(mcpServer, provider)
 			registerWorkspaceTools(mcpServer, provider)
 			registerTodoTools(mcpServer, provider)
+			registerUiTools(mcpServer, provider)
 
 			// Register _ping tool for health checks (used by smoke tests)
 			mcpServer.tool("_ping", {}, async () => {

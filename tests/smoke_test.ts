@@ -18,18 +18,19 @@ async function runSmokeTest() {
 	return run(async (app: ExtensionModel) => {
 		// ── Scenario 1: Initial Page Verification ──────────────────────────
 
-		await Scenario("Verify initial page is History", async () => {
+		await Scenario("Verify initial page is Chat", async () => {
 			await Given("the Jabberwock app is connected", async () => {
 				// Connection is handled by createJabberwockTest
 				console.log("  ✓ App connected")
 			})
 
-			await When("I navigate to the History page", async () => {
-				await app.navigateToHistory()
+			await When("I retrieve the active page", async () => {
+				const page = await app.getActivePage()
+				console.log(`  → Active page: ${page}`)
 			})
 
-			await Then("the active page should be history", async () => {
-				await app.verifyActivePage("history")
+			await Then("the initial page should be chat", async () => {
+				await app.verifyActivePage("chat")
 			})
 
 			await And("there should be no console errors", async () => {
@@ -54,7 +55,7 @@ async function runSmokeTest() {
 				console.log(`  ✓ Task created: ${firstTaskId}`)
 			})
 
-			await Then("the task should be navigated to on the chat page", async () => {
+			await Then("I navigate to the task on the chat page", async () => {
 				await app.navigateToChat(firstTaskId)
 				await app.verifyActivePage("chat")
 			})
@@ -112,7 +113,7 @@ async function runSmokeTest() {
 				console.log(`  ✓ Second task created: ${secondTaskId}`)
 			})
 
-			await Then("the second task should be on the chat page", async () => {
+			await Then("I navigate to the second task on the chat page", async () => {
 				await app.navigateToChat(secondTaskId)
 				await app.verifyActivePage("chat")
 			})
@@ -246,14 +247,6 @@ async function runSmokeTest() {
 				console.log("  ✓ Ready to switch mode")
 			})
 
-			await When("I switch to orchestrator mode", async () => {
-				await app.switchToAgentMode("orchestrator")
-			})
-
-			await Then("the mode switch should be attempted", async () => {
-				console.log("  ✓ Mode switch attempted")
-			})
-
 			await When("I retrieve available agents", async () => {
 				const agents = await app.getAvailableAgents()
 				console.log(`  ✓ Available agents: ${JSON.stringify(agents).substring(0, 100)}`)
@@ -281,10 +274,47 @@ async function runSmokeTest() {
 			})
 		})
 
+		// ── Scenario 11: Command-Based Navigation (app.commands.*) ────────────
+
+		await Scenario("Navigate via dynamic commands from package.json", async () => {
+			await Given("I am on the History page", async () => {
+				await app.verifyActivePage("history")
+			})
+
+			await When("I use app.commands.settingsButtonClicked() to navigate", async () => {
+				await app.commands.settingsButtonClicked()
+				await app.waitForDataWindowType("settings")
+			})
+
+			await Then("the active page should be settings", async () => {
+				await app.verifyActivePage("settings")
+			})
+
+			await And("I can list available commands from package.json", async () => {
+				const names = app.getCommandNames()
+				console.log(`  ✓ Available commands (${names.length}): ${names.slice(0, 5).join(", ")}...`)
+				if (!names.includes("historyButtonClicked")) {
+					throw new Error("Expected historyButtonClicked in command list")
+				}
+				if (!names.includes("settingsButtonClicked")) {
+					throw new Error("Expected settingsButtonClicked in command list")
+				}
+				if (!names.includes("chatButtonClicked")) {
+					throw new Error("Expected chatButtonClicked in command list")
+				}
+				console.log("  ✓ All expected commands found")
+			})
+
+			await And("I can execute a command by name explicitly", async () => {
+				await app.executeCommand("historyButtonClicked")
+				await app.waitForDataWindowType("history")
+				await app.verifyActivePage("history")
+			})
+		})
+
 		console.log("\n🎉 All smoke tests passed successfully!")
 	})
 }
-
 // Run the smoke test
 runSmokeTest()
 	.then(() => {

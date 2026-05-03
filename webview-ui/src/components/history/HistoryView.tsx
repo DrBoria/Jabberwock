@@ -1,4 +1,4 @@
-import React, { memo, useState, useMemo } from "react"
+import React, { memo, useState, useMemo, useCallback } from "react"
 import { ArrowLeft } from "lucide-react"
 import { DeleteTaskDialog } from "./DeleteTaskDialog"
 import { BatchDeleteTaskDialog } from "./BatchDeleteTaskDialog"
@@ -24,6 +24,10 @@ type HistoryViewProps = {
 }
 
 type SortOption = "newest" | "oldest" | "mostExpensive" | "mostTokens" | "mostRelevant"
+
+const VirtuosoList = React.forwardRef<HTMLDivElement>((props, ref) => (
+	<div {...props} ref={ref} data-testid="virtuoso-item-list" />
+)) as any
 
 const HistoryView = ({ onDone }: HistoryViewProps) => {
 	const {
@@ -57,10 +61,13 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 	}, [groups])
 
 	// Handle delete with subtask count
-	const handleDelete = (taskId: string) => {
-		setDeleteTaskId(taskId)
-		setDeleteSubtaskCount(getSubtaskCount(taskId))
-	}
+	const handleDelete = useCallback(
+		(taskId: string) => {
+			setDeleteTaskId(taskId)
+			setDeleteSubtaskCount(getSubtaskCount(taskId))
+		},
+		[getSubtaskCount],
+	)
 
 	// Toggle selection mode
 	const toggleSelectionMode = () => {
@@ -71,13 +78,13 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 	}
 
 	// Toggle selection for a single task
-	const toggleTaskSelection = (taskId: string, isSelected: boolean) => {
+	const toggleTaskSelection = useCallback((taskId: string, isSelected: boolean) => {
 		if (isSelected) {
 			setSelectedTaskIds((prev) => [...prev, taskId])
 		} else {
 			setSelectedTaskIds((prev) => prev.filter((id) => id !== taskId))
 		}
-	}
+	}, [])
 
 	// Toggle select all tasks
 	const toggleSelectAll = (selectAll: boolean) => {
@@ -95,9 +102,42 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 		}
 	}
 
-	const VirtuosoList = React.forwardRef<HTMLDivElement>((props, ref) => (
-		<div {...props} ref={ref} data-testid="virtuoso-item-list" />
-	)) as any
+	// Stable itemContent callbacks for Virtuoso to prevent re-render loops
+	const searchItemContent = useCallback(
+		(_index: number, item: any) => (
+			<TaskItem
+				key={item.id}
+				item={item}
+				variant="full"
+				showWorkspace={showAllWorkspaces}
+				isSelectionMode={isSelectionMode}
+				isSelected={selectedTaskIds.includes(item.id)}
+				onToggleSelection={toggleTaskSelection}
+				onDelete={handleDelete}
+				className="m-2"
+			/>
+		),
+		[showAllWorkspaces, isSelectionMode, selectedTaskIds, toggleTaskSelection, handleDelete],
+	)
+
+	const groupItemContent = useCallback(
+		(_index: number, group: any) => (
+			<TaskGroupItem
+				key={group.parent.id}
+				group={group}
+				variant="full"
+				showWorkspace={showAllWorkspaces}
+				isSelectionMode={isSelectionMode}
+				isSelected={selectedTaskIds.includes(group.parent.id)}
+				onToggleSelection={toggleTaskSelection}
+				onDelete={handleDelete}
+				onToggleExpand={() => toggleExpand(group.parent.id)}
+				onToggleSubtaskExpand={toggleExpand}
+				className="m-2"
+			/>
+		),
+		[showAllWorkspaces, isSelectionMode, selectedTaskIds, toggleTaskSelection, handleDelete, toggleExpand],
+	)
 
 	return (
 		<Tab data-testid="history-view">
@@ -260,19 +300,7 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 						components={{
 							List: VirtuosoList,
 						}}
-						itemContent={(_index, item) => (
-							<TaskItem
-								key={item.id}
-								item={item}
-								variant="full"
-								showWorkspace={showAllWorkspaces}
-								isSelectionMode={isSelectionMode}
-								isSelected={selectedTaskIds.includes(item.id)}
-								onToggleSelection={toggleTaskSelection}
-								onDelete={handleDelete}
-								className="m-2"
-							/>
-						)}
+						itemContent={searchItemContent}
 					/>
 				) : (
 					// Grouped mode: task groups with expandable subtasks
@@ -284,21 +312,7 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 						components={{
 							List: VirtuosoList,
 						}}
-						itemContent={(_index, group) => (
-							<TaskGroupItem
-								key={group.parent.id}
-								group={group}
-								variant="full"
-								showWorkspace={showAllWorkspaces}
-								isSelectionMode={isSelectionMode}
-								isSelected={selectedTaskIds.includes(group.parent.id)}
-								onToggleSelection={toggleTaskSelection}
-								onDelete={handleDelete}
-								onToggleExpand={() => toggleExpand(group.parent.id)}
-								onToggleSubtaskExpand={toggleExpand}
-								className="m-2"
-							/>
-						)}
+						itemContent={groupItemContent}
 					/>
 				)}
 			</TabContent>

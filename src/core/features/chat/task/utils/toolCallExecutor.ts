@@ -186,6 +186,44 @@ export async function waitForToolExecutionAndPrepareNextContent(
 					`Locked: ${tsk.presentAssistantMessageLocked}, ` +
 					`didAlreadyUseTool: ${tsk.didAlreadyUseTool}`,
 			)
+
+			// ── Retry-loop prevention ─────────────────────────────────────
+			// When tools are blocked on user approval (presentAssistantMessageLocked),
+			// force-continuing with empty userMessageContent causes:
+			//   1. runMainLoop → initiateTaskLoop retries with "no tools used"
+			//   2. Model re-issues identical tool call (no tool_result in history)
+			//   3. Tool blocks on ask again → repeat every 60s → infinite retry loop
+			//
+			// Fix: Push error tool_results for pending tool_use blocks so the
+			// conversation history gets proper tool_results, breaking the cycle.
+			if (tsk.presentAssistantMessageLocked && tsk.userMessageContent.length === 0) {
+				const pendingTools = tsk.assistantMessageContent.filter(
+					(block: any) =>
+						(block.type === "tool_use" || block.type === "mcp_tool_use") && !block.partial && block.id,
+				)
+				for (const toolUse of pendingTools) {
+					console.warn(
+						`[Task#${task.taskId}] Pushing error tool_result for timed-out tool: ${toolUse.name ?? "unknown"} (id: ${toolUse.id})`,
+					)
+					tsk.pushToolResultToUserContent({
+						type: "tool_result",
+						tool_use_id: toolUse.id,
+						content:
+							"[Error] Tool execution timed out after 60 seconds while waiting for approval. " +
+							"The task will continue without this tool's result. " +
+							"If you still want to run this tool, please create a new task.",
+						is_error: true,
+					})
+				}
+
+				// Release the presentAssistantMessage lock so subsequent iterations
+				// can process new tool_use blocks. The original presentAssistantMessage
+				// is still running (blocked on ask), but its pushToolResult calls will
+				// be guarded by the duplicate tool_result check in pushToolResultToUserContent.
+				tsk.presentAssistantMessageLocked = false
+				tsk.currentStreamingContentIndex = tsk.assistantMessageContent.length
+			}
+
 			// Force continuation as a fallback
 			tsk.userMessageContentReady = true
 		}

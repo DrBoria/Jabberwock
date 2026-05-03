@@ -15,12 +15,14 @@
  *   const client = new DevtoolClient()
  *   await client.connect()
  *   const page = new ExtensionModel(client)
- *   await page.navigateToHistory()
+ *   await app.commands.historyButtonClicked()
  *   await page.verifyActivePage("history")
  *   await client.disconnect()
  */
 
 import type { DevtoolClient } from "../packages/devtool/src/client"
+import { CommandRegistry } from "../packages/devtool/src/command-registry"
+import type { ExtensionCommand } from "../packages/devtool/src/command-registry"
 
 // ── Test Result Tracking ───────────────────────────────────────────────────
 
@@ -69,11 +71,105 @@ export function createExtensionTest(name: string) {
  */
 export class ExtensionModel {
 	private results: TestResult[] = []
+	private registry: CommandRegistry
+
+	/**
+	 * Dynamic command runner — automatically populated from package.json.
+	 *
+	 * Allows calling any VS Code command by its short name:
+	 *   await app.commands.historyButtonClicked()
+	 *   await app.commands.settingsButtonClicked()
+	 *   await app.commands.plusButtonClicked()
+	 *
+	 * Commands are discovered from `contributes.commands` in the extension's
+	 * package.json — no manual registration needed. Each call goes through
+	 * the `execute_vscode_command` MCP tool, which dispatches via the
+	 * extension host's command system.
+	 */
+	public readonly commands: Record<string, (...args: unknown[]) => Promise<void>>
 
 	/**
 	 * @param client The DevtoolClient instance (transport + primitives layer)
+	 * @param packageJsonPath Optional path to the extension's package.json
+	 *                        (default: "./src/package.json")
 	 */
-	constructor(public readonly client: DevtoolClient) {}
+	constructor(
+		public readonly client: DevtoolClient,
+		packageJsonPath?: string,
+	) {
+		// Load and register commands from package.json
+		this.registry = new CommandRegistry()
+		this.registry.load(packageJsonPath)
+
+		// Build the dynamic commands Proxy
+		const registry = this.registry
+		const extClient = this.client
+		this.commands = new Proxy(
+			{},
+			{
+				get(_target, prop: string) {
+					// Avoid Proxy pitfalls with Promise/JSON serialization
+					if (prop === "then" || prop === "toJSON" || typeof prop === "symbol") {
+						return undefined
+					}
+
+					// Return an async function that executes the command
+					return async (...args: unknown[]) => {
+						const cmdId = registry.resolveId(prop)
+						if (!cmdId) {
+							const available = registry.getCommandNames().join(", ")
+							throw new Error(
+								`Unknown command: "${prop}". ` +
+									`Use a short name like "historyButtonClicked" or full ID. ` +
+									`Available: ${available}`,
+							)
+						}
+						console.log(`  [Cmd] ${cmdId}${args.length > 0 ? ` (args: ${JSON.stringify(args)})` : ""}`)
+						await extClient.executeVscodeCommand(cmdId, args.length > 0 ? args : undefined)
+					}
+				},
+			},
+		) as Record<string, (...args: unknown[]) => Promise<void>>
+	}
+
+	// ══════════════════════════════════════════════════════════════════════
+	//  COMMAND DISCOVERY & EXECUTION
+	// ══════════════════════════════════════════════════════════════════════
+
+	/**
+	 * Get all available command names discovered from package.json.
+	 * Use these with `app.commands.<name>()` or `app.executeCommand("<name>")`.
+	 */
+	getCommandNames(): string[] {
+		return this.registry.getCommandNames()
+	}
+
+	/**
+	 * Get all available command descriptors (ID, name, title).
+	 */
+	getAvailableCommands(): ExtensionCommand[] {
+		return this.registry.getAll()
+	}
+
+	/**
+	 * Execute a VS Code command by its short name or full ID.
+	 *
+	 * This is the explicit alternative to the dynamic Proxy:
+	 *   await app.executeCommand("historyButtonClicked")
+	 *   await app.executeCommand("jabberwock.historyButtonClicked")
+	 *
+	 * @param idOrName - Short name (e.g., "historyButtonClicked") or full command ID
+	 * @param args - Optional arguments to pass to the command
+	 */
+	async executeCommand(idOrName: string, ...args: unknown[]): Promise<void> {
+		const cmdId = this.registry.resolveId(idOrName)
+		if (!cmdId) {
+			const available = this.registry.getCommandNames().join(", ")
+			throw new Error(`Unknown command: "${idOrName}". Available: ${available}`)
+		}
+		console.log(`  [Cmd] ${cmdId}`)
+		await this.client.executeVscodeCommand(cmdId, args.length > 0 ? args : undefined)
+	}
 
 	// ══════════════════════════════════════════════════════════════════════
 	//  CORE PRIMITIVES — delegated to client
@@ -166,103 +262,37 @@ export class ExtensionModel {
 	}
 
 	// ══════════════════════════════════════════════════════════════════════
-	//  DOM-BASED NAVIGATION
-	//  Each method: find element → click → wait for data-window-type → verify
+	//  COMMAND-BASED NAVIGATION
+	//  Uses the dynamic `this.commands.*` Proxy, which dispatches via
+	//  `execute_vscode_command` MCP tool → extension host command system.
 	// ══════════════════════════════════════════════════════════════════════
 
 	/**
-	 * Navigate to the History page via DOM interaction.
-	 * Opens the navigation menu, finds "History", clicks it, waits for load.
+	 * Navigate to the History page via VS Code command.
+	 * Dispatches "jabberwock.historyButtonClicked" → extension host → webview.
 	 */
 	async navigateToHistory(): Promise<void> {
 		console.log("  [Nav] Navigating to History...")
-
-		// Strategy 1: Find "History" by text
-		const found = await this.findElementByText("History")
-		if (found && found !== "null" && found !== "") {
-			const match = found.match(/#([a-zA-Z0-9_-]+)/)
-			if (match) {
-				await this.clickElement(match[1])
-				await this.waitForDataWindowType("history")
-				await this.verifyActivePage("history")
-				console.log("  ✓ Navigated to History via text click")
-				return
-			}
-		}
-
-		// Strategy 2: Try data-testid selector
-		const byTestId = await this.findElementBySelector('[data-testid="history-tab"]')
-		if (byTestId && byTestId !== "null" && byTestId !== "") {
-			const match = byTestId.match(/#([a-zA-Z0-9_-]+)/)
-			if (match) {
-				await this.clickElement(match[1])
-				await this.waitForDataWindowType("history")
-				await this.verifyActivePage("history")
-				console.log("  ✓ Navigated to History via data-testid")
-				return
-			}
-		}
-
-		// Strategy 3: Inspect DOM for navigation elements
-		const dom = await this.getDom(5)
-		console.log("  [Nav] History element not found by text, inspecting DOM...")
-		console.log(dom.slice(0, 500))
-		throw new Error("Could not navigate to History — element not found in DOM")
+		await this.commands.historyButtonClicked()
+		await this.waitForDataWindowType("history")
+		await this.verifyActivePage("history")
+		console.log("  ✓ Navigated to History")
 	}
 
 	/**
-	 * Navigate to the Settings page via DOM interaction.
+	 * Navigate to the Settings page via VS Code command.
+	 * Dispatches "jabberwock.settingsButtonClicked" → extension host → webview.
 	 */
 	async navigateToSettings(): Promise<void> {
 		console.log("  [Nav] Navigating to Settings...")
-
-		// Strategy 1: Find "Settings" by text
-		const found = await this.findElementByText("Settings")
-		if (found && found !== "null" && found !== "") {
-			const match = found.match(/#([a-zA-Z0-9_-]+)/)
-			if (match) {
-				await this.clickElement(match[1])
-				await this.waitForDataWindowType("settings")
-				await this.verifyActivePage("settings")
-				console.log("  ✓ Navigated to Settings via text click")
-				return
-			}
-		}
-
-		// Strategy 2: Try data-testid selector
-		const byTestId = await this.findElementBySelector('[data-testid="settings-tab"]')
-		if (byTestId && byTestId !== "null" && byTestId !== "") {
-			const match = byTestId.match(/#([a-zA-Z0-9_-]+)/)
-			if (match) {
-				await this.clickElement(match[1])
-				await this.waitForDataWindowType("settings")
-				await this.verifyActivePage("settings")
-				console.log("  ✓ Navigated to Settings via data-testid")
-				return
-			}
-		}
-
-		// Strategy 3: Try button with Settings text
-		const buttonParent = await this.findElementBySelector(`button:has(:text("Settings"))`)
-		if (buttonParent && buttonParent !== "null" && buttonParent !== "") {
-			const match = buttonParent.match(/#([a-zA-Z0-9_-]+)/)
-			if (match) {
-				await this.clickElement(match[1])
-				await this.waitForDataWindowType("settings")
-				await this.verifyActivePage("settings")
-				console.log("  ✓ Navigated to Settings via button click")
-				return
-			}
-		}
-
-		const dom = await this.getDom(5)
-		console.log("  [Nav] Settings element not found, inspecting DOM...")
-		console.log(dom.slice(0, 500))
-		throw new Error("Could not navigate to Settings — element not found in DOM")
+		await this.commands.settingsButtonClicked()
+		await this.waitForDataWindowType("settings")
+		await this.verifyActivePage("settings")
+		console.log("  ✓ Navigated to Settings")
 	}
 
 	/**
-	 * Navigate to the Chat page.
+	 * Navigate to the Chat page via VS Code command.
 	 * If taskId is provided, navigates directly to that task.
 	 */
 	async navigateToChat(taskId?: string): Promise<void> {
@@ -276,36 +306,10 @@ export class ExtensionModel {
 			return
 		}
 
-		// Strategy 1: Find "New Chat" by text
-		const found = await this.findElementByText("New Chat")
-		if (found && found !== "null" && found !== "") {
-			const match = found.match(/#([a-zA-Z0-9_-]+)/)
-			if (match) {
-				await this.clickElement(match[1])
-				await this.waitForDataWindowType("chat")
-				await this.verifyActivePage("chat")
-				console.log("  ✓ Navigated to Chat via text click")
-				return
-			}
-		}
-
-		// Strategy 2: Try data-testid
-		const byTestId = await this.findElementBySelector('[data-testid="chat-tab"]')
-		if (byTestId && byTestId !== "null" && byTestId !== "") {
-			const match = byTestId.match(/#([a-zA-Z0-9_-]+)/)
-			if (match) {
-				await this.clickElement(match[1])
-				await this.waitForDataWindowType("chat")
-				await this.verifyActivePage("chat")
-				console.log("  ✓ Navigated to Chat via data-testid")
-				return
-			}
-		}
-
-		const dom = await this.getDom(5)
-		console.log("  [Nav] Chat element not found, inspecting DOM...")
-		console.log(dom.slice(0, 500))
-		throw new Error("Could not navigate to Chat — element not found in DOM")
+		await this.commands.chatButtonClicked()
+		await this.waitForDataWindowType("chat")
+		await this.verifyActivePage("chat")
+		console.log("  ✓ Navigated to Chat")
 	}
 
 	/**
@@ -336,8 +340,8 @@ export class ExtensionModel {
 	 * Returns the task ID.
 	 */
 	async createNewTask(text: string, mode?: string): Promise<string> {
-		const result = await this.client.createNewTask(text, mode || "orchestrator", false)
-		return result.taskId || result
+		const result = (await this.client.createNewTask(text, mode || "orchestrator", false)) as Record<string, unknown>
+		return (result.taskId as string) || (result as unknown as string)
 	}
 
 	/**
@@ -589,26 +593,19 @@ export class ExtensionModel {
 	// ══════════════════════════════════════════════════════════════════════
 
 	/**
-	 * Switch the agent mode via DOM interaction.
+	 * Switch the agent mode via the `switch_agent_mode` MCP tool.
+	 * This dispatches through the extension host rather than DOM text search.
 	 */
 	async switchToAgentMode(mode: string): Promise<void> {
-		const found = await this.findElementByText(mode)
-		if (found && found !== "null" && found !== "") {
-			const match = found.match(/#([a-zA-Z0-9_-]+)/)
-			if (match) {
-				await this.clickElement(match[1])
-				console.log(`  ✓ Switched to agent mode: ${mode}`)
-				return
-			}
-		}
-		console.log(`  [Agent] Mode switch to "${mode}" attempted via DOM`)
+		await this.client.switchAgentMode(mode)
+		console.log(`  ✓ Switched to agent mode: ${mode}`)
 	}
 
 	/**
-	 * Get available agents/modes.
+	 * Get available agents/modes via the `get_available_agents` MCP tool.
 	 */
 	async getAvailableAgents(): Promise<any> {
-		return this.client.getAvailableNativeTools()
+		return this.client.getAvailableAgents()
 	}
 
 	/**
@@ -642,7 +639,7 @@ export class ExtensionModel {
 	 */
 	async verifyParentContext(visible: boolean): Promise<void> {
 		const state = await this.getCurrentState()
-		const hasParent = state && (state.parentTaskId || (state.taskId && state.taskId !== state.taskId))
+		const hasParent = state && !!state.parentTaskId
 		if (visible && !hasParent) {
 			console.warn("  ⚠ Expected parent context but none found")
 		} else {

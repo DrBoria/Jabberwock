@@ -54,6 +54,7 @@ export const WindowLayer: React.FC<WindowLayerProps> = ({
 		<div
 			className="window-layer"
 			data-window-type={id}
+			data-testid={`window-layer-${id}`}
 			data-active={isActive}
 			style={{
 				position: fullScreen ? "absolute" : "relative",
@@ -74,6 +75,7 @@ export const WindowLayer: React.FC<WindowLayerProps> = ({
 			{/* Side Stripe for underlying windows to allow clicking back */}
 			{!isActive && (
 				<div
+					data-testid={`window-layer-stripe-${id}`}
 					className="absolute left-0 top-0 w-[40px] h-full cursor-pointer hover:bg-vscode-toolbar-hoverBackground transition-colors pointer-events-auto flex flex-col items-center py-4 group"
 					onClick={(e) => {
 						e.stopPropagation()

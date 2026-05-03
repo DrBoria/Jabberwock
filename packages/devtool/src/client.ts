@@ -384,6 +384,14 @@ export class DevtoolClient {
 		}
 	}
 
+	/**
+	 * Execute a JavaScript command in the webview browser console.
+	 * Wraps the `run_command` MCP tool.
+	 */
+	async runCommand(command: string): Promise<string> {
+		return this.callTool("run_command", { command }) as Promise<string>
+	}
+
 	// ══════════════════════════════════════════════════════════════════════
 	//  CORE PRIMITIVES — Playwright-style DOM interaction
 	// ══════════════════════════════════════════════════════════════════════
@@ -391,6 +399,21 @@ export class DevtoolClient {
 	/**
 	 * Get the full DOM serialization of the webview.
 	 */
+	/**
+	 * Execute a VS Code command by its full command ID (e.g., "jabberwock.historyButtonClicked").
+	 * Uses the `execute_vscode_command` MCP tool which dispatches the command via the backend.
+	 *
+	 * This is the preferred way to trigger navigation and other extension actions
+	 * in tests — it goes through the actual command dispatch chain, unlike
+	 * window.postMessage which bypasses the extension host.
+	 *
+	 * @param command - Full VS Code command ID (e.g., "jabberwock.historyButtonClicked")
+	 * @param args - Optional arguments to pass to the command
+	 */
+	async executeVscodeCommand(command: string, args?: unknown[]): Promise<unknown> {
+		return this.callTool("execute_vscode_command", { command, args })
+	}
+
 	async getDom(maxDepth?: number, maxChildren?: number): Promise<string> {
 		return this.callTool("get_dom", { maxDepth, maxChildren }) as Promise<string>
 	}
@@ -634,6 +657,21 @@ export class DevtoolClient {
 	/**
 	 * Get available native tools (agents/modes).
 	 */
+	/**
+	 * Get available agent modes (orchestrator, code, architect, ask, debug, etc.).
+	 */
+	async getAvailableAgents(): Promise<unknown> {
+		return this.callTool("get_available_agents", {})
+	}
+
+	/**
+	 * Switch the active agent mode.
+	 * @param mode - The slug of the mode to switch to (e.g., "orchestrator", "code", "architect")
+	 */
+	async switchAgentMode(mode: string): Promise<unknown> {
+		return this.callTool("switch_agent_mode", { mode })
+	}
+
 	async getAvailableNativeTools(): Promise<unknown> {
 		return this.callTool("get_available_native_tools", {})
 	}

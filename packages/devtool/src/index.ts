@@ -30,6 +30,8 @@ import { registerStateTools } from "./tools/state.js"
  */
 export { DevtoolClient } from "./client.js"
 export type { DevtoolClientOptions } from "./client.js"
+export { CommandRegistry } from "./command-registry.js"
+export type { ExtensionCommand } from "./command-registry.js"
 
 export class Devtool {
 	private wsServer: WsMcpServer
