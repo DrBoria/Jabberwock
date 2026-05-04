@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { DiagnosticsManager } from "../core/devtools/DiagnosticsManager"
-import { Tracer } from "../core/devtools/Tracer"
+import { DiagnosticsManager, Tracer } from "@jabberwock/devtool"
 
 // Mock vscode and other node dependencies
 vi.mock("vscode", () => ({
@@ -53,9 +52,10 @@ describe("Diagnostics Structured Observability", () => {
 			})
 
 			const traces = tracer.getTraces()
-			expect(traces.toolTraces[toolId].params.apiKey).toBe("********")
-			expect(traces.toolTraces[toolId].params.nested.password).toBe("********")
-			expect(traces.toolTraces[toolId].params.normal).toBe("value")
+			const params = traces.toolTraces[toolId].params as Record<string, unknown>
+			expect(params.apiKey).toBe("********")
+			expect((params.nested as Record<string, unknown>).password).toBe("********")
+			expect(params.normal).toBe("value")
 		})
 
 		it("should truncate long strings in parameters", () => {
@@ -63,8 +63,9 @@ describe("Diagnostics Structured Observability", () => {
 			const toolId = tracer.recordToolStart("task-1", "write", { content: longStr })
 
 			const traces = tracer.getTraces()
-			expect(traces.toolTraces[toolId].params.content.length).toBeLessThan(1000)
-			expect(traces.toolTraces[toolId].params.content).toContain("[truncated]")
+			const params = traces.toolTraces[toolId].params as Record<string, unknown>
+			expect((params.content as string).length).toBeLessThan(1000)
+			expect(params.content).toContain("[truncated]")
 		})
 
 		it("should detect identical parameter cycles", () => {

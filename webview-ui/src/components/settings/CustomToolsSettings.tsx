@@ -7,7 +7,7 @@ import type { SerializedCustomToolDefinition } from "@jabberwock/types"
 
 import { useAppTranslation } from "@/i18n/TranslationContext"
 
-import { vscode } from "@/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 
 import { Button } from "../ui/button"
 

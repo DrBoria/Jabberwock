@@ -4,7 +4,7 @@ import { type ProviderSettings, openAiCodexDefaultModelId, openAiCodexModels } f
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { Button } from "@src/components/ui"
-import { vscode } from "@src/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 
 import { ModelPicker } from "../ModelPicker"
 import { OpenAICodexRateLimitDashboard } from "./OpenAICodexRateLimitDashboard"

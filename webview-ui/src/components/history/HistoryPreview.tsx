@@ -1,6 +1,6 @@
 import { memo } from "react"
 
-import { vscode } from "@src/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 
 import { useTaskSearch } from "./useTaskSearch"

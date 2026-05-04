@@ -22,6 +22,12 @@ export interface ExtensionBridge {
 	scrollElement(id: string, direction: string): Promise<string>
 	typeText(id: string, text: string): Promise<string>
 	selectOption(id: string, value: string): Promise<string>
+
+	/**
+	 * Execute a VS Code command in the extension host (not in the webview).
+	 * Uses vscode.commands.executeCommand() under the hood.
+	 */
+	executeVscodeCommand(command: string, args?: unknown): Promise<string>
 	runCommand(command: string): Promise<string>
 	getConsoleLogs(level?: string, limit?: number, offset?: number): Promise<string>
 	getLogs(lines?: number): Promise<string>
@@ -48,6 +54,7 @@ export interface ExtensionBridge {
 	getExtensionInfo(): Promise<string>
 	getCurrentState(): Promise<string>
 	getScreenshot(): Promise<string>
+	getActivePage(): Promise<string>
 	dragElement(selector: string, direction: string, pixels: number): Promise<string>
 	dragFromTo(
 		from: { l?: number; t?: number; r?: number; b?: number },

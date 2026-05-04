@@ -11,7 +11,7 @@ import {
 	AlertDialogTitle,
 } from "../ui/alert-dialog"
 import { Button } from "../ui/button"
-import { vscode } from "@/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 import { AlertDialogProps } from "@radix-ui/react-alert-dialog"
 
 interface BatchDeleteTaskDialogProps extends AlertDialogProps {

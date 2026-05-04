@@ -3,7 +3,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js"
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js"
 import WebSocket from "ws"
 import { WsMcpServer } from "@jabberwock/devtool"
-import { diagnosticsManager } from "../core/devtools/DiagnosticsManager"
+import { diagnosticsManager } from "@jabberwock/devtool"
 import { setTimeout } from "timers/promises"
 
 /**

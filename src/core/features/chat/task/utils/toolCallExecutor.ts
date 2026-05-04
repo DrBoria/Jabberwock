@@ -173,14 +173,45 @@ export async function waitForToolExecutionAndPrepareNextContent(
 	const tsk = task as any
 
 	// Wait for tool execution to complete
-	const waitStartTime = Date.now()
-	await pWaitFor(() => tsk.userMessageContentReady || task.abort, {
-		interval: 100,
-		timeout: 60_000, // 60s safety timeout to prevent permanent hangs
-	}).catch((err: any) => {
-		if (!task.abort) {
+	// Uses a custom loop instead of pWaitFor with timeout because:
+	// When presentAssistantMessage is blocked on an interactive_app ask
+	// (e.g., md-todo-mcp manage_todo_plan), the lock is held while waiting
+	// for user input. The inner pWaitFor in ask/store.ts has no timeout,
+	// so the user can take as long as they need. But a pWaitFor with a hard
+	// 60s timeout here would fire and push error tool_results, causing the
+	// LLM to retry in an infinite loop.
+	//
+	// Fix: Use a polling loop that checks for pending interactive_app asks
+	// and extends the wait instead of timing out.
+	let waitStartTime = Date.now()
+	let waitResolved = false
+	while (!waitResolved && !task.abort) {
+		if (tsk.userMessageContentReady) {
+			waitResolved = true
+			break
+		}
+
+		// Check for timeout (60s) — but only if there's no pending interactive_app ask
+		const elapsed = Date.now() - waitStartTime
+		if (elapsed >= 60_000) {
+			// Check if an interactive_app ask is still pending (user is interacting with iframe)
+			const lastMsg = tsk.clineMessages?.[tsk.clineMessages.length - 1]
+			const hasPendingInteractiveApp =
+				lastMsg?.type === "ask" && lastMsg?.ask === "interactive_app" && tsk.askResponse === undefined
+
+			if (hasPendingInteractiveApp) {
+				console.log(
+					`[Task#${task.taskId}] pWaitFor timeout suppressed: interactive_app ask pending (user is interacting with iframe). ` +
+						`Elapsed: ${elapsed}ms. Resuming wait...`,
+				)
+				// Reset the timer and keep waiting
+				waitStartTime = Date.now()
+				await new Promise((resolve) => setTimeout(resolve, 100))
+				continue
+			}
+
 			console.error(
-				`[Task#${task.taskId}] pWaitFor(userMessageContentReady) timed out after ${Date.now() - waitStartTime}ms. ` +
+				`[Task#${task.taskId}] pWaitFor(userMessageContentReady) timed out after ${elapsed}ms. ` +
 					`Current Index: ${tsk.currentStreamingContentIndex}, ` +
 					`Blocks: ${tsk.assistantMessageContent.length}, ` +
 					`Locked: ${tsk.presentAssistantMessageLocked}, ` +
@@ -226,8 +257,12 @@ export async function waitForToolExecutionAndPrepareNextContent(
 
 			// Force continuation as a fallback
 			tsk.userMessageContentReady = true
+			waitResolved = true
+			break
 		}
-	})
+
+		await new Promise((resolve) => setTimeout(resolve, 100))
+	}
 	console.log(`[Task#${task.taskId}] pWaitFor(userMessageContentReady) unblocked.`)
 
 	// If the model did not tool use, then we need to tell it to

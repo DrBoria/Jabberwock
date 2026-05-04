@@ -34,7 +34,7 @@ interface ExtensionState {
 }
 
 // Mock vscode API
-vi.mock("@src/features/devtools/utils/vscode", () => ({
+vi.mock("@jabberwock/devtool/react", () => ({
 	vscode: {
 		postMessage: vi.fn(),
 	},

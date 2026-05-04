@@ -4,7 +4,7 @@ import { TranslationProvider } from "@/i18n/__mocks__/TranslationContext"
 
 import { About } from "../About"
 
-vi.mock("@/features/devtools/utils/vscode", () => ({
+vi.mock("@jabberwock/devtool/react", () => ({
 	vscode: { postMessage: vi.fn() },
 }))
 

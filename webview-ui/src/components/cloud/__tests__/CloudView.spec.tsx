@@ -33,7 +33,7 @@ vi.mock("@src/i18n/TranslationContext", () => ({
 }))
 
 // Mock vscode utilities
-vi.mock("@src/features/devtools/utils/vscode", () => ({
+vi.mock("@jabberwock/devtool/react", () => ({
 	vscode: {
 		postMessage: vi.fn(),
 	},

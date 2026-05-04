@@ -10,7 +10,7 @@ import { mentionRegex, unescapeSpaces } from "@shared/context-mentions"
 import { WebviewMessage } from "@shared/WebviewMessage"
 import { Mode, getAllModes } from "@shared/modes"
 
-import { vscode } from "@src/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { useChatUI } from "@src/features/chat/ui/store"
@@ -867,6 +867,7 @@ const ChatTextAreaComponent = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>
 							/>
 							<DynamicTextArea
 								data-agent-action="chat-input"
+								data-testid="chat-input"
 								ref={(el) => {
 									if (typeof ref === "function") {
 										ref(el)
@@ -1002,6 +1003,7 @@ const ChatTextAreaComponent = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>
 										variant={isStreaming ? "stopButton" : "sendButton"}
 										size="icon"
 										data-agent-action={isStreaming ? "cancel-task" : "send-message"}
+										data-testid="submit-button"
 										aria-label={
 											isEditMode
 												? t("chat:pressToSend", { keyCombination: sendKeyCombination })

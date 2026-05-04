@@ -18,7 +18,7 @@ const sayVisibilityMap: Partial<Record<string, boolean>> = {
  * true = visible, false = hidden.
  */
 const askVisibilityMap: Partial<Record<string, boolean>> = {
-	interactive_app: false,
+	interactive_app: true,
 }
 
 /**

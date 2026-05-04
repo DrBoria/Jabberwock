@@ -1,6 +1,6 @@
 import React from "react"
 import { useTranslation } from "react-i18next"
-import { vscode } from "@src/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 import { StandardTooltip } from "../ui/standard-tooltip"
 
 interface CodebaseSearchResultProps {

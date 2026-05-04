@@ -1,7 +1,7 @@
 import { BaseTool, ToolCallbacks } from "./BaseTool"
 import { Task } from "../task/Task"
 import { agentStore } from "../state/AgentStore"
-import { DevToolsLogger } from "../devtools/DevToolsLogger"
+import { DevToolsLogger } from "@jabberwock/devtool"
 
 /**
  * ThinkTool provides specialized reasoning capabilities.

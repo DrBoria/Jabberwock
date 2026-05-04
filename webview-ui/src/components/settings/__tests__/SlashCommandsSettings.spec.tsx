@@ -5,12 +5,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import type { Command } from "@jabberwock/types"
 
 import { ExtensionStateContextProvider } from "@/context/ExtensionStateContext"
-import { vscode } from "@/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 
 import { SlashCommandsSettings } from "../SlashCommandsSettings"
 
 // Mock vscode
-vi.mock("@/features/devtools/utils/vscode", () => ({
+vi.mock("@jabberwock/devtool/react", () => ({
 	vscode: {
 		postMessage: vi.fn(),
 	},

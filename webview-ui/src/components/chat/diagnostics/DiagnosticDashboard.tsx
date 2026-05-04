@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { Activity, ChevronDown, ChevronUp, Cpu, Database, Terminal, Zap, Share, Trash2 } from "lucide-react"
 import { DiagnosticSnapshot } from "@jabberwock/types"
-import { vscode } from "../../../features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 import { useExtensionState } from "../../../context/ExtensionStateContext"
 import "./DiagnosticDashboard.css"
 

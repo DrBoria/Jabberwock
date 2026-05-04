@@ -11,7 +11,7 @@ import {
 } from "@jabberwock/types"
 import { CloudService, getJabberwockApiUrl } from "@jabberwock/cloud"
 
-import { diagnosticsManager } from "../../../devtools/DiagnosticsManager"
+import { diagnosticsManager } from "@jabberwock/devtool"
 import { Package } from "../../../../shared/package"
 import { defaultModeSlug } from "../../../../shared/modes"
 import { experimentDefault } from "../../../../shared/experiments"

@@ -135,6 +135,21 @@ export function clearWebviewResources(provider: ClineProvider): void {
  */
 export function postMessageToWebview(provider: ClineProvider, message: ExtensionMessage): void {
 	const p = provider as any
+
+	// Trace/intercept outgoing messages (backend→webview) via MessageInterceptor
+	const interceptor = (provider as any).interceptor
+	if (interceptor) {
+		const result = interceptor.onBeforeSend(message as any)
+		if (result.intercepted) {
+			console.log(
+				`[DEBUG: postMessageToWebview] INTERCEPTED type=${(message as any).type}, returning mock response`,
+			)
+			return
+		}
+		// Always trace the message
+		interceptor.sendMessage(message as any)
+	}
+
 	if (p._disposed) {
 		console.log(
 			`[DEBUG: postMessageToWebview] SKIPPING — provider._disposed is true, msg type=${(message as any).type}`,
@@ -426,8 +441,23 @@ export function setWebviewMessageListener(
 	marketplaceManager: MarketplaceManager,
 ): void {
 	const p = provider as any
-	const onReceiveMessage = async (message: WebviewMessage) =>
-		webviewMessageHandler(provider, message, marketplaceManager)
+	const onReceiveMessage = async (message: WebviewMessage) => {
+		// Trace/intercept incoming messages (webview→backend) via MessageInterceptor
+		const interceptor = (provider as any).interceptor
+		if (interceptor) {
+			const result = interceptor.onBeforeReceive(message as any)
+			if (result.intercepted) {
+				console.log(
+					`[DEBUG: setWebviewMessageListener] INTERCEPTED type=${(message as any).type}, action=${(message as any).action}, returning mock response`,
+				)
+				return
+			}
+			// Always trace the message
+			interceptor.receiveMessage(message as any)
+		}
+
+		return webviewMessageHandler(provider, message, marketplaceManager)
+	}
 
 	const messageDisposable = webview.onDidReceiveMessage(onReceiveMessage)
 	p.webviewDisposables.push(messageDisposable)

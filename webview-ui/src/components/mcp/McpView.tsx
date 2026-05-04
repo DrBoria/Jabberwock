@@ -4,7 +4,7 @@ import { VSCodeLink, VSCodePanels, VSCodePanelTab, VSCodePanelView } from "@vsco
 
 import type { McpServer } from "@jabberwock/types"
 
-import { vscode } from "@src/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { useTooManyTools } from "@src/hooks/useTooManyTools"

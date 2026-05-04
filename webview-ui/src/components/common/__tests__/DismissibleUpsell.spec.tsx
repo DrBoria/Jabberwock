@@ -5,7 +5,7 @@ import { TelemetryEventName } from "@jabberwock/types"
 
 // Mock the vscode API
 const mockPostMessage = vi.fn()
-vi.mock("@src/features/devtools/utils/vscode", () => ({
+vi.mock("@jabberwock/devtool/react", () => ({
 	vscode: {
 		postMessage: (message: any) => mockPostMessage(message),
 	},

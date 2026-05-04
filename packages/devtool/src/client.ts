@@ -196,7 +196,7 @@ export interface DevtoolClientOptions {
 export class DevtoolClient {
 	private transport: RawWsTransport | null = null
 	private connected = false
-	private pendingRequests: Map<number, { resolve: (val: unknown) => void; reject: (err: Error) => void }> = new Map()
+	private pendingRequests = new Map<number, { resolve: (value: unknown) => void; reject: (err: Error) => void }>()
 	private options: Required<DevtoolClientOptions>
 
 	constructor(options: DevtoolClientOptions = {}) {
@@ -384,6 +384,10 @@ export class DevtoolClient {
 		}
 	}
 
+	// ══════════════════════════════════════════════════════════════════════
+	//  CORE PRIMITIVES — Playwright-style DOM interaction
+	// ══════════════════════════════════════════════════════════════════════
+
 	/**
 	 * Execute a JavaScript command in the webview browser console.
 	 * Wraps the `run_command` MCP tool.
@@ -392,28 +396,17 @@ export class DevtoolClient {
 		return this.callTool("run_command", { command }) as Promise<string>
 	}
 
-	// ══════════════════════════════════════════════════════════════════════
-	//  CORE PRIMITIVES — Playwright-style DOM interaction
-	// ══════════════════════════════════════════════════════════════════════
+	/**
+	 * Execute a VS Code command in the extension host (not in the webview).
+	 * Calls the execute_vscode_command MCP tool.
+	 */
+	async executeVscodeCommand(command: string, args?: unknown): Promise<string> {
+		return this.callTool("execute_vscode_command", { command, args }) as Promise<string>
+	}
 
 	/**
 	 * Get the full DOM serialization of the webview.
 	 */
-	/**
-	 * Execute a VS Code command by its full command ID (e.g., "jabberwock.historyButtonClicked").
-	 * Uses the `execute_vscode_command` MCP tool which dispatches the command via the backend.
-	 *
-	 * This is the preferred way to trigger navigation and other extension actions
-	 * in tests — it goes through the actual command dispatch chain, unlike
-	 * window.postMessage which bypasses the extension host.
-	 *
-	 * @param command - Full VS Code command ID (e.g., "jabberwock.historyButtonClicked")
-	 * @param args - Optional arguments to pass to the command
-	 */
-	async executeVscodeCommand(command: string, args?: unknown[]): Promise<unknown> {
-		return this.callTool("execute_vscode_command", { command, args })
-	}
-
 	async getDom(maxDepth?: number, maxChildren?: number): Promise<string> {
 		return this.callTool("get_dom", { maxDepth, maxChildren }) as Promise<string>
 	}
@@ -528,155 +521,6 @@ export class DevtoolClient {
 	}
 
 	// ══════════════════════════════════════════════════════════════════════
-	//  TASK MANAGEMENT
-	// ══════════════════════════════════════════════════════════════════════
-
-	/**
-	 * Create a new task.
-	 */
-	async createNewTask(text: string, mode?: string, force?: boolean): Promise<unknown> {
-		return this.callTool("create_new_task", { text, mode, force })
-	}
-
-	/**
-	 * Start a task.
-	 */
-	async startTask(text: string, mode?: string, force?: boolean): Promise<unknown> {
-		return this.callTool("start_task", { text, mode, force })
-	}
-
-	/**
-	 * Clear the current task.
-	 */
-	async clearTask(): Promise<unknown> {
-		return this.callTool("clear_task", {})
-	}
-
-	/**
-	 * Pop the current window.
-	 */
-	async popWindow(): Promise<unknown> {
-		return this.callTool("pop_window", {})
-	}
-
-	/**
-	 * Navigate to a specific task.
-	 */
-	async navigateToTask(taskId: string): Promise<unknown> {
-		return this.callTool("navigate_to_task", { taskId })
-	}
-
-	/**
-	 * Get task status.
-	 */
-	async getTaskStatus(): Promise<unknown> {
-		return this.callTool("get_task_status", {})
-	}
-
-	/**
-	 * Get task hierarchy.
-	 */
-	async getTaskHierarchy(): Promise<unknown> {
-		return this.callTool("get_task_hierarchy", {})
-	}
-
-	/**
-	 * Get child tasks.
-	 */
-	async getChildTasks(): Promise<unknown> {
-		return this.callTool("get_child_tasks", {})
-	}
-
-	/**
-	 * Get task summary.
-	 */
-	async getTaskSummary(): Promise<unknown> {
-		return this.callTool("get_task_summary", {})
-	}
-
-	/**
-	 * Get todo list.
-	 */
-	async getTodoList(): Promise<unknown> {
-		return this.callTool("get_todo_list", {})
-	}
-
-	/**
-	 * Mark a task as async.
-	 */
-	async markTaskAsync(taskId: string): Promise<unknown> {
-		return this.callTool("mark_task_async", { taskId })
-	}
-
-	/**
-	 * Wait for a task to be idle.
-	 */
-	async waitForTaskIdle(timeoutMs?: number): Promise<unknown> {
-		return this.callTool("wait_for_task_idle", { timeoutMs })
-	}
-
-	/**
-	 * Wait for an ask response.
-	 */
-	async waitForAsk(timeoutMs?: number, askType?: string): Promise<unknown> {
-		return this.callTool("wait_for_ask", { timeoutMs, askType })
-	}
-
-	/**
-	 * Get workspace state.
-	 */
-	async getWorkspaceState(): Promise<unknown> {
-		return this.callTool("get_workspace_state", {})
-	}
-
-	/**
-	 * Get virtual files.
-	 */
-	async getVirtualFiles(): Promise<unknown> {
-		return this.callTool("get_virtual_files", {})
-	}
-
-	/**
-	 * Get checkpoint info.
-	 */
-	async getCheckpointInfo(): Promise<unknown> {
-		return this.callTool("get_checkpoint_info", {})
-	}
-
-	/**
-	 * Create child tasks.
-	 */
-	async createChildTasks(tasks: Array<{ message: string; mode?: string; todos?: string }>): Promise<unknown> {
-		return this.callTool("create_child_tasks", { tasks })
-	}
-
-	// ══════════════════════════════════════════════════════════════════════
-	//  AGENT / MODE
-	// ══════════════════════════════════════════════════════════════════════
-
-	/**
-	 * Get available native tools (agents/modes).
-	 */
-	/**
-	 * Get available agent modes (orchestrator, code, architect, ask, debug, etc.).
-	 */
-	async getAvailableAgents(): Promise<unknown> {
-		return this.callTool("get_available_agents", {})
-	}
-
-	/**
-	 * Switch the active agent mode.
-	 * @param mode - The slug of the mode to switch to (e.g., "orchestrator", "code", "architect")
-	 */
-	async switchAgentMode(mode: string): Promise<unknown> {
-		return this.callTool("switch_agent_mode", { mode })
-	}
-
-	async getAvailableNativeTools(): Promise<unknown> {
-		return this.callTool("get_available_native_tools", {})
-	}
-
-	// ══════════════════════════════════════════════════════════════════════
 	//  SCREENSHOT & DRAG
 	// ══════════════════════════════════════════════════════════════════════
 
@@ -708,5 +552,62 @@ export class DevtoolClient {
 		to: { l?: number; t?: number; r?: number; b?: number },
 	): Promise<string> {
 		return this.callTool("drag_from_to", { from, to }) as Promise<string>
+	}
+
+	// ══════════════════════════════════════════════════════════════════════
+	//  EVENT BUS — message interception, tracing, and sending
+	// ══════════════════════════════════════════════════════════════════════
+
+	/**
+	 * Send a message to the webview.
+	 * Wraps the `send_message_to_webview` MCP tool.
+	 */
+	async sendMessageToWebview(type: string, action: string, payload?: unknown): Promise<unknown> {
+		return this.callTool("send_message_to_webview", { type, action, ...(payload ? { payload } : {}) })
+	}
+
+	/**
+	 * Set a message interceptor to mock responses.
+	 * Wraps the `set_message_interceptor` MCP tool.
+	 */
+	async setMessageInterceptor(
+		direction: string,
+		type: string,
+		action: string | undefined,
+		response: unknown,
+	): Promise<unknown> {
+		return this.callTool("set_message_interceptor", { direction, type, action, response })
+	}
+
+	/**
+	 * Remove a message interceptor.
+	 * Wraps the `remove_message_interceptor` MCP tool.
+	 */
+	async removeMessageInterceptor(direction: string, type: string, action?: string): Promise<unknown> {
+		return this.callTool("remove_message_interceptor", { direction, type, action })
+	}
+
+	/**
+	 * Get all active interceptors.
+	 * Wraps the `get_active_interceptors` MCP tool.
+	 */
+	async getActiveInterceptors(): Promise<unknown> {
+		return this.callTool("get_active_interceptors", {})
+	}
+
+	/**
+	 * Get the message trace log.
+	 * Wraps the `get_message_trace` MCP tool.
+	 */
+	async getMessageTrace(direction?: string, type?: string, action?: string): Promise<unknown> {
+		return this.callTool("get_message_trace", { direction, type, action })
+	}
+
+	/**
+	 * Clear the message trace log.
+	 * Wraps the `clear_message_trace` MCP tool.
+	 */
+	async clearMessageTrace(): Promise<unknown> {
+		return this.callTool("clear_message_trace", {})
 	}
 }

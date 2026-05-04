@@ -15,7 +15,7 @@ import { getAllModes } from "@shared/modes"
 import { ProfileValidator } from "@shared/ProfileValidator"
 import { getLatestTodo } from "@shared/todo"
 
-import { vscode } from "@src/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { useChatTree } from "@src/features/chat/tree/store"

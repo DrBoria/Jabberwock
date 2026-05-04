@@ -14,8 +14,7 @@ interface WsGlobalState {
 
 const GLOBAL_KEY = "__jabberwock_ws_mcp_global_state"
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const globalState = globalThis as any
+const globalState = globalThis as Record<string, unknown>
 
 function getOrCreateGlobalState(): WsGlobalState {
 	if (!globalState[GLOBAL_KEY]) {

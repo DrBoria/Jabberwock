@@ -20,7 +20,7 @@ import { defaultModeSlug, getModeBySlug } from "../../../../../shared/modes"
 import { Task, getTimerQueue } from "../../../../task/Task"
 import { presentAssistantMessage } from "../../../../assistant-message"
 import { NativeToolCallParser } from "../../../../assistant-message/NativeToolCallParser"
-import { diagnosticsManager } from "../../../../devtools/DiagnosticsManager"
+import { diagnosticsManager } from "@jabberwock/devtool"
 import { getEnvironmentDetails } from "../../../../environment/getEnvironmentDetails"
 import { processUserContentMentions } from "../../../../mentions/processUserContentMentions"
 

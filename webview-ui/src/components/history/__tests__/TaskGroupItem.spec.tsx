@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from "@/utils/test-utils"
 import TaskGroupItem from "../TaskGroupItem"
 import type { TaskGroup, DisplayHistoryItem, SubtaskTreeNode } from "../types"
 
-vi.mock("@src/features/devtools/utils/vscode")
+vi.mock("@jabberwock/devtool/react")
 vi.mock("@src/i18n/TranslationContext", () => ({
 	useAppTranslation: () => ({
 		t: (key: string, options?: Record<string, unknown>) => {

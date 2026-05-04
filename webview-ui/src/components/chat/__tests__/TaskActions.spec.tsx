@@ -1,7 +1,7 @@
 import type { HistoryItem } from "@jabberwock/types"
 
 import { render, screen, fireEvent } from "@/utils/test-utils"
-import { vscode } from "@/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { useCopyToClipboard } from "@/features/chat/utils/clipboard"
 
@@ -14,7 +14,7 @@ Object.defineProperty(Element.prototype, "scrollIntoView", {
 })
 
 // Mock the vscode utility
-vi.mock("@/features/devtools/utils/vscode", () => ({
+vi.mock("@jabberwock/devtool/react", () => ({
 	vscode: {
 		postMessage: vi.fn(),
 	},

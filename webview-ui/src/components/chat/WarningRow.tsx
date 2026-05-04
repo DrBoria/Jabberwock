@@ -1,7 +1,7 @@
 import React from "react"
 import { TriangleAlert, BookOpenText } from "lucide-react"
 import { useAppTranslation } from "@/i18n/TranslationContext"
-import { vscode } from "@src/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 
 export interface WarningRowProps {
 	title: string

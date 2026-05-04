@@ -1,7 +1,7 @@
 import { useCallback, useRef } from "react"
 import type { ClineAsk, ClineMessage } from "@jabberwock/types"
 import { isRetiredProvider } from "@jabberwock/types"
-import { vscode } from "@src/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 
 export interface MessageActions {
 	handleSendMessage: (text: string, images: string[]) => void

@@ -93,7 +93,7 @@ describe("Phase 3: Tool Router and Model Routing", () => {
 
 describe("Phase 3: DevTools Logger Integration", () => {
 	it("DevToolsLogger.track measures execution time", async () => {
-		const { DevToolsLogger } = await import("../../devtools/DevToolsLogger")
+		const { DevToolsLogger } = await import("@jabberwock/devtool")
 
 		// Mock the track callback to capture data
 		const originalTrack = DevToolsLogger.track.bind(DevToolsLogger)
@@ -114,7 +114,7 @@ describe("Phase 3: DevTools Logger Integration", () => {
 	})
 
 	it("DevToolsLogger can track multiple concurrent operations", async () => {
-		const { DevToolsLogger } = await import("../../devtools/DevToolsLogger")
+		const { DevToolsLogger } = await import("@jabberwock/devtool")
 
 		const results: string[] = []
 

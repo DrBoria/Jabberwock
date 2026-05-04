@@ -2,7 +2,7 @@ import { render, screen } from "@/utils/test-utils"
 
 import MarkdownBlock from "../MarkdownBlock"
 
-vi.mock("@src/features/devtools/utils/vscode", () => ({
+vi.mock("@jabberwock/devtool/react", () => ({
 	vscode: {
 		postMessage: vi.fn(),
 	},

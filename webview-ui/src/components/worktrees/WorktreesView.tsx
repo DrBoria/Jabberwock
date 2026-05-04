@@ -5,7 +5,7 @@ import type { Worktree, WorktreeListResponse, WorktreeIncludeStatus } from "@jab
 import { Badge, Button, StandardTooltip, ToggleSwitch } from "@/components/ui"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { useAppTranslation } from "@/i18n/TranslationContext"
-import { vscode } from "@/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 
 import { SectionHeader } from "../settings/SectionHeader"
 

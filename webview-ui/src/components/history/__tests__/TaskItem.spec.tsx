@@ -2,7 +2,7 @@ import { render, screen, fireEvent } from "@/utils/test-utils"
 
 import TaskItem from "../TaskItem"
 
-vi.mock("@src/features/devtools/utils/vscode")
+vi.mock("@jabberwock/devtool/react")
 vi.mock("@src/i18n/TranslationContext", () => ({
 	useAppTranslation: () => ({
 		t: (key: string) => key,

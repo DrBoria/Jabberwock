@@ -67,7 +67,7 @@ function nullDefaultModule() {
 	return { default: () => null }
 }
 
-vi.mock("@src/features/devtools/utils/vscode", () => ({ vscode: { postMessage: vi.fn() } }))
+vi.mock("@jabberwock/devtool/react", () => ({ vscode: { postMessage: vi.fn() } }))
 vi.mock("use-sound", () => ({ default: vi.fn().mockImplementation(() => [vi.fn()]) }))
 vi.mock("@src/components/cloud/CloudUpsellDialog", () => ({ CloudUpsellDialog: () => null }))
 vi.mock("@src/hooks/useCloudUpsell", () => ({

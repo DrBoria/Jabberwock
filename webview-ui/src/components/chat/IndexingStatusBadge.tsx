@@ -4,7 +4,7 @@ import { Database } from "lucide-react"
 import type { IndexingStatus, IndexingStatusUpdateMessage } from "@jabberwock/types"
 
 import { cn } from "@src/lib/utils"
-import { vscode } from "@src/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 import { useAppTranslation } from "@/i18n/TranslationContext"
 
 import { useExtensionState } from "@src/context/ExtensionStateContext"

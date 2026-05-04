@@ -20,7 +20,7 @@ import { findLastIndex } from "../../../../shared/array"
 import { ClineAskResponse } from "../../../../shared/WebviewMessage"
 import { formatResponse } from "../../../prompts/responses"
 import { checkAutoApproval, type CheckAutoApprovalResult } from "../../../auto-approval"
-import { diagnosticsManager } from "../../../devtools/DiagnosticsManager"
+import { diagnosticsManager } from "@jabberwock/devtool"
 import { AskIgnoredError } from "../../../task/AskIgnoredError"
 import { Task } from "../../../task/Task"
 

@@ -1,7 +1,7 @@
 import type { ToolName } from "@jabberwock/types"
 
 import { Task } from "../task/Task"
-import { diagnosticsManager } from "../devtools/DiagnosticsManager"
+import { diagnosticsManager } from "@jabberwock/devtool"
 import type { ToolUse, HandleError, PushToolResult, AskApproval, NativeToolArgs } from "../../shared/tools"
 
 /**

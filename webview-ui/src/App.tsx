@@ -8,9 +8,9 @@ import TranslationProvider from "./i18n/TranslationContext"
 import { MarketplaceViewStateManager } from "./components/marketplace/MarketplaceViewStateManager"
 
 import { observer } from "mobx-react-lite"
-import { vscode } from "./features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 import { telemetryClient } from "./features/cloud/utils/TelemetryClient"
-import { initializeSourceMaps, exposeSourceMapsForDebugging } from "./features/devtools/utils/sourceMapInitializer"
+import { initializeSourceMaps, exposeSourceMapsForDebugging } from "@jabberwock/devtool/react"
 import { ExtensionStateContextProvider, useExtensionState } from "./context/ExtensionStateContext"
 import { ChatTreeProvider } from "./features/chat/tree/store"
 import {
@@ -35,11 +35,11 @@ import { TooltipProvider } from "./components/ui/tooltip"
 import { STANDARD_TOOLTIP_DELAY } from "./components/ui/standard-tooltip"
 import { McpIframeRenderer } from "./features/mcp-apps/McpIframeRenderer"
 import { getAllModes } from "@shared/modes"
-import { LocatorBridge } from "./features/devtools/utils/LocatorBridge"
+import { LocatorBridge } from "@jabberwock/devtool/react"
 import { ChatTreeViewer } from "./components/chat/ChatTreeViewer"
 import { chatTreeStore } from "./features/chat/tree/store"
 
-import { DevtoolProvider } from "../../packages/devtool/src/react-entry"
+import { DevtoolProvider } from "@jabberwock/devtool/react"
 
 interface DeleteMessageDialogState {
 	isOpen: boolean
@@ -119,9 +119,14 @@ const AppContent = observer(() => {
 			}
 
 			const doSwitch = () => {
-				console.log(`[App] Executing doSwitch to ${newTab}`)
+				console.log(`[App] Executing doSwitch to ${newTab}`, props)
 				if (newTab === "chat") {
-					switchToBaseWindow("chat")
+					if (props?.targetNodeId) {
+						// Child task: push a new chat window on top of the stack
+						pushWindow("chat", { targetNodeId: props.targetNodeId })
+					} else {
+						switchToBaseWindow("chat")
+					}
 				} else {
 					pushWindow(newTab, props)
 				}
@@ -160,7 +165,8 @@ const AppContent = observer(() => {
 					if (newTab) {
 						const section = message.values?.section as string | undefined
 						const marketplaceTab = message.values?.marketplaceTab as string | undefined
-						switchTab(newTab, { section, marketplaceTab })
+						const targetNodeId = message.values?.targetNodeId as string | undefined
+						switchTab(newTab, { section, marketplaceTab, targetNodeId })
 					}
 
 					// If the message has a requestId, respond with the active page after navigation

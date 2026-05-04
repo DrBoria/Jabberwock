@@ -43,7 +43,7 @@ import { thinkTool } from "../tools/ThinkTool"
 
 import { formatResponse } from "../prompts/responses"
 import { sanitizeToolUseId } from "../../utils/tool-id"
-import { diagnosticsManager } from "../devtools/DiagnosticsManager"
+import { diagnosticsManager } from "@jabberwock/devtool"
 import { agentStore } from "../state/AgentStore"
 
 /**
@@ -275,11 +275,22 @@ export async function presentAssistantMessage(cline: Task) {
 				},
 			}
 
-			await useMcpToolTool.handle(cline, syntheticToolUse, {
+			const mcpToolResult = await useMcpToolTool.handle(cline, syntheticToolUse, {
 				askApproval,
 				handleError,
 				pushToolResult,
 			})
+
+			// CRITICAL: Check for isDelegated signal from deterministic delegation (e.g., manage_todo_plan).
+			// Without this check, the orchestration loop continues running and the LLM may re-issue
+			// the same tool call, causing the spamming behavior observed with md-todo-mcp.
+			if ((mcpToolResult as { isDelegated?: boolean })?.isDelegated) {
+				console.log(
+					`[presentAssistantMessage] MCP tool ${mcpBlock.serverName}/${mcpBlock.toolName} triggered delegation. Aborting orchestration loop.`,
+				)
+				cline.abort = true
+				break
+			}
 			break
 		}
 		case "text": {

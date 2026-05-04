@@ -3,7 +3,7 @@ import { useCallback } from "react"
 import { Button } from "../ui/button"
 import { StandardTooltip } from "../ui/standard-tooltip"
 import { useAppTranslation } from "@/i18n/TranslationContext"
-import { vscode } from "@/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 
 type DeleteButtonProps = {
 	itemId: string

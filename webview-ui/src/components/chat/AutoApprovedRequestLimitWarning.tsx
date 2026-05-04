@@ -3,7 +3,7 @@ import { Trans } from "react-i18next"
 
 import type { ClineMessage } from "@jabberwock/types"
 
-import { vscode } from "@src/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 import { Button } from "@src/components/ui"
 
 type AutoApprovedRequestLimitWarningProps = {

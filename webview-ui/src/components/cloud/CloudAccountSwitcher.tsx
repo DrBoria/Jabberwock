@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { Building2, Plus } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectSeparator } from "@/components/ui/select"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { vscode } from "@src/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { cn } from "@src/lib/utils"
 

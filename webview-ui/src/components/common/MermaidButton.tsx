@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react"
 import { useCopyToClipboard } from "@src/features/chat/utils/clipboard"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { vscode } from "@src/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 import { MermaidActionButtons } from "./MermaidActionButtons"
 import { Modal } from "./Modal"
 import { TabButton } from "./TabButton"

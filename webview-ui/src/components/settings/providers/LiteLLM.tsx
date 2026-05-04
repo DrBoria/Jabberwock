@@ -13,7 +13,7 @@ import { RouterName } from "@shared/api"
 
 import { routerModelsStore } from "@src/features/router-models/store"
 
-import { vscode } from "@src/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { Button } from "@src/components/ui"

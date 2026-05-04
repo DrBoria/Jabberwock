@@ -36,7 +36,7 @@ import { t } from "../../i18n"
 
 import { ClineProvider } from "../../core/webview/ClineProvider"
 
-import { diagnosticsManager } from "../../core/devtools/DiagnosticsManager"
+import { diagnosticsManager } from "@jabberwock/devtool"
 
 import { GlobalFileNames } from "../../shared/globalFileNames"
 

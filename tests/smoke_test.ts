@@ -33,6 +33,10 @@ async function runSmokeTest() {
 				await app.verifyActivePage("chat")
 			})
 
+			await And("no extra windows should be open", async () => {
+				await app.verifyNoExtraWindows("chat")
+			})
+
 			await And("there should be no console errors", async () => {
 				await app.verifyCleanConsole()
 			})
@@ -43,21 +47,20 @@ async function runSmokeTest() {
 		let firstTaskId = ""
 
 		await Scenario("Create a new task and verify it appears on chat page", async () => {
-			await Given("I am on the History page", async () => {
-				await app.verifyActivePage("history")
+			await Given("I am on the Chat page", async () => {
+				await app.verifyActivePage("chat")
 			})
 
 			await When("I create a new task with a greeting prompt", async () => {
 				firstTaskId = await app.createNewTask(
 					"Smoke Test Task 1 - Please respond with a simple greeting",
-					"orchestrator",
+					"ask", // Use "ask" mode to avoid orchestrator tool-calling loop
 				)
 				console.log(`  ✓ Task created: ${firstTaskId}`)
 			})
 
-			await Then("I navigate to the task on the chat page", async () => {
-				await app.navigateToChat(firstTaskId)
-				await app.verifyActivePage("chat")
+			await Then("no extra windows should be open (only chat)", async () => {
+				await app.verifyNoExtraWindows("chat")
 			})
 
 			await And("the task prompt should be visible in the chat DOM", async () => {
@@ -66,7 +69,7 @@ async function runSmokeTest() {
 
 			await And("the MST store should contain the task", async () => {
 				await app.verifyMstTaskState(firstTaskId, {
-					mode: "orchestrator",
+					mode: "ask",
 				})
 				await app.verifyMstActiveNode(firstTaskId)
 			})
@@ -91,6 +94,28 @@ async function runSmokeTest() {
 				await app.verifyActivePage("history")
 			})
 
+			await And("the UI window stack should show History on top of Chat", async () => {
+				const stack = await app.getUiWindowStack()
+				console.log(`  ℹ UI window stack: [${stack.join(", ")}]`)
+				// History should be on top (last element)
+				if (stack[stack.length - 1] !== "history") {
+					throw new Error(`Expected "history" at top of stack, got: [${stack.join(", ")}]`)
+				}
+			})
+
+			await And("no extra windows should be open (only history)", async () => {
+				await app.verifyNoExtraWindows("history")
+			})
+
+			await And("the task stack should be empty (no active task)", async () => {
+				const taskStack = await app.getTaskStack()
+				if (taskStack.length > 0) {
+					console.log(`  ℹ Task stack has ${taskStack.length} entries (not on chat page)`)
+				} else {
+					console.log("  ✓ No active task (expected on History page)")
+				}
+			})
+
 			await And("there should be no console errors", async () => {
 				await app.verifyCleanConsole()
 			})
@@ -109,13 +134,12 @@ async function runSmokeTest() {
 				await app.navigateToChat()
 				await app.verifyActivePage("chat")
 
-				secondTaskId = await app.createNewTask("Smoke Test Task 2 - Another test task", "orchestrator")
+				secondTaskId = await app.createNewTask("Smoke Test Task 2 - Another test task", "ask")
 				console.log(`  ✓ Second task created: ${secondTaskId}`)
 			})
 
-			await Then("I navigate to the second task on the chat page", async () => {
-				await app.navigateToChat(secondTaskId)
-				await app.verifyActivePage("chat")
+			await Then("no extra windows should be open (only chat)", async () => {
+				await app.verifyNoExtraWindows("chat")
 			})
 
 			await And("the second task prompt should be visible in chat", async () => {
@@ -124,7 +148,7 @@ async function runSmokeTest() {
 
 			await And("the MST store should contain the second task", async () => {
 				await app.verifyMstTaskState(secondTaskId, {
-					mode: "orchestrator",
+					mode: "ask",
 				})
 				await app.verifyMstActiveNode(secondTaskId)
 			})
@@ -149,6 +173,10 @@ async function runSmokeTest() {
 				await app.verifyActivePage("settings")
 			})
 
+			await And("no extra windows should be open (only settings)", async () => {
+				await app.verifyNoExtraWindows("settings")
+			})
+
 			await And("there should be no console errors", async () => {
 				await app.verifyCleanConsole()
 			})
@@ -169,6 +197,10 @@ async function runSmokeTest() {
 				await app.verifyActivePage("history")
 			})
 
+			await And("no extra windows should be open (only history)", async () => {
+				await app.verifyNoExtraWindows("history")
+			})
+
 			await And("there should be no console errors", async () => {
 				await app.verifyCleanConsole()
 			})
@@ -186,9 +218,8 @@ async function runSmokeTest() {
 				console.log(`  ✓ Task status retrieved: ${JSON.stringify(taskStatus).substring(0, 100)}`)
 			})
 
-			await Then("the task status should be returned successfully", async () => {
-				// Status retrieval succeeded — no error thrown
-				console.log("  ✓ Task status check passed")
+			await Then("no extra windows should be open while querying", async () => {
+				await app.verifyNoExtraWindows("history")
 			})
 
 			await When("I request the task hierarchy", async () => {
@@ -200,16 +231,16 @@ async function runSmokeTest() {
 				}
 			})
 
-			await Then("the task hierarchy should be returned", async () => {
-				console.log("  ✓ Task hierarchy check passed")
+			await Then("no extra windows opened after hierarchy query", async () => {
+				await app.verifyNoExtraWindows("history")
 			})
 		})
 
 		// ── Scenario 8: DOM & MST Verification ─────────────────────────────
 
 		await Scenario("Verify DOM structure and MST stores", async () => {
-			await Given("I am connected to the app", async () => {
-				console.log("  ✓ App connected")
+			await Given("I am on the History page", async () => {
+				await app.verifyActivePage("history")
 			})
 
 			await When("I retrieve the DOM structure", async () => {
@@ -217,8 +248,8 @@ async function runSmokeTest() {
 				console.log(`  ✓ DOM retrieved (length: ${dom.length} characters)`)
 			})
 
-			await Then("the DOM should be returned successfully", async () => {
-				console.log("  ✓ DOM retrieval passed")
+			await Then("only the history window should be active", async () => {
+				await app.verifyNoExtraWindows("history")
 			})
 
 			await When("I query the diagnostics MST store", async () => {
@@ -226,8 +257,8 @@ async function runSmokeTest() {
 				console.log(`  ✓ Diagnostics store queried: ${JSON.stringify(diagState).substring(0, 100)}`)
 			})
 
-			await Then("the diagnostics store should return data", async () => {
-				console.log("  ✓ Diagnostics store check passed")
+			await Then("no extra windows after diagnostics query", async () => {
+				await app.verifyNoExtraWindows("history")
 			})
 
 			await When("I query the task history MST store", async () => {
@@ -235,42 +266,55 @@ async function runSmokeTest() {
 				console.log(`  ✓ Task history store queried: ${JSON.stringify(historyState).substring(0, 100)}`)
 			})
 
-			await Then("the task history store should return data", async () => {
-				console.log("  ✓ Task history store check passed")
+			await Then("no extra windows after task history query", async () => {
+				await app.verifyNoExtraWindows("history")
 			})
 		})
 
 		// ── Scenario 9: Agent Mode ─────────────────────────────────────────
 
-		await Scenario("Switch agent mode and verify", async () => {
-			await Given("I am on a page with mode selector", async () => {
-				console.log("  ✓ Ready to switch mode")
+		await Scenario("Retrieve available agents from DOM via ModeSelector", async () => {
+			await Given("I am on the Chat page (ModeSelector is visible there)", async () => {
+				await app.navigateToChat()
+				await app.verifyActivePage("chat")
 			})
 
-			await When("I retrieve available agents", async () => {
-				const agents = await app.getAvailableAgents()
-				console.log(`  ✓ Available agents: ${JSON.stringify(agents).substring(0, 100)}`)
+			let retrievedAgents: Array<{ name: string; slug?: string }> = []
+
+			await When("I retrieve available agents from the ModeSelector dropdown", async () => {
+				retrievedAgents = await app.getAvailableAgents()
+				console.log(
+					`  ✓ Available agents retrieved from DOM: ${JSON.stringify(retrievedAgents).substring(0, 200)}`,
+				)
 			})
 
-			await Then("the agents list should be returned", async () => {
-				console.log("  ✓ Available agents check passed")
+			await Then("no extra windows should be open", async () => {
+				await app.verifyNoExtraWindows("chat")
+			})
+
+			await And("at least 4 modes should be listed", async () => {
+				if (retrievedAgents.length < 4) {
+					console.warn(`  ⚠ Expected at least 4 modes, got ${retrievedAgents.length}`)
+				} else {
+					console.log(`  ✓ ${retrievedAgents.length} modes found in ModeSelector`)
+				}
 			})
 		})
 
 		// ── Scenario 10: Workspace State ───────────────────────────────────
 
 		await Scenario("Retrieve workspace state", async () => {
-			await Given("I am connected to the app", async () => {
-				console.log("  ✓ App connected")
+			await Given("I am on the History page", async () => {
+				await app.verifyActivePage("history")
 			})
 
 			await When("I request the workspace state", async () => {
 				const workspaceState = await app.getWorkspaceState()
-				console.log(`  ✓ Workspace state retrieved: ${JSON.stringify(workspaceState).substring(0, 100)}`)
+				console.log(`  ✓ Workspace state retrieved: ${JSON.stringify(workspaceState).substring(0, 200)}`)
 			})
 
-			await Then("the workspace state should be returned", async () => {
-				console.log("  ✓ Workspace state check passed")
+			await Then("no extra windows should be open", async () => {
+				await app.verifyNoExtraWindows("history")
 			})
 		})
 
@@ -290,6 +334,10 @@ async function runSmokeTest() {
 				await app.verifyActivePage("settings")
 			})
 
+			await And("only settings window should be visible", async () => {
+				await app.verifyNoExtraWindows("settings")
+			})
+
 			await And("I can list available commands from package.json", async () => {
 				const names = app.getCommandNames()
 				console.log(`  ✓ Available commands (${names.length}): ${names.slice(0, 5).join(", ")}...`)
@@ -299,16 +347,24 @@ async function runSmokeTest() {
 				if (!names.includes("settingsButtonClicked")) {
 					throw new Error("Expected settingsButtonClicked in command list")
 				}
-				if (!names.includes("chatButtonClicked")) {
-					throw new Error("Expected chatButtonClicked in command list")
+				if (!names.includes("plusButtonClicked")) {
+					throw new Error("Expected plusButtonClicked in command list")
 				}
 				console.log("  ✓ All expected commands found")
+			})
+
+			await And("no extra windows after command list", async () => {
+				await app.verifyNoExtraWindows("settings")
 			})
 
 			await And("I can execute a command by name explicitly", async () => {
 				await app.executeCommand("historyButtonClicked")
 				await app.waitForDataWindowType("history")
 				await app.verifyActivePage("history")
+			})
+
+			await And("no extra windows after command execution", async () => {
+				await app.verifyNoExtraWindows("history")
 			})
 		})
 

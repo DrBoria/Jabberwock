@@ -4,7 +4,7 @@ import { Share2Icon } from "lucide-react"
 
 import { type HistoryItem, type ShareVisibility, TelemetryEventName } from "@jabberwock/types"
 
-import { vscode } from "@/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 import { telemetryClient } from "@/features/cloud/utils/TelemetryClient"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { useCloudUpsell } from "@/hooks/useCloudUpsell"

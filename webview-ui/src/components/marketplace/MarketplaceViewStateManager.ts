@@ -13,8 +13,8 @@
 
 import { MarketplaceItem, MarketplaceInstalledMetadata } from "@jabberwock/types"
 
-import { vscode } from "../../features/devtools/utils/vscode"
-import { WebviewMessage } from "../../../../src/shared/WebviewMessage"
+import { vscode } from "@jabberwock/devtool/react"
+import { WebviewMessage } from "@jabberwock/types"
 
 export interface ViewState {
 	allItems: MarketplaceItem[]

@@ -1,7 +1,7 @@
 import React from "react"
 import { render, fireEvent, screen } from "@/utils/test-utils"
 
-import { vscode } from "@src/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 
 import McpToolRow from "../McpToolRow"
 
@@ -19,7 +19,7 @@ vi.mock("@src/i18n/TranslationContext", () => ({
 	}),
 }))
 
-vi.mock("@src/features/devtools/utils/vscode", () => ({
+vi.mock("@jabberwock/devtool/react", () => ({
 	vscode: {
 		postMessage: vi.fn(),
 	},

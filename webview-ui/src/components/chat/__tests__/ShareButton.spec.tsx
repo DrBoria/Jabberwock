@@ -1,12 +1,12 @@
 import { useTranslation } from "react-i18next"
 
 import { render, screen, fireEvent, waitFor } from "@/utils/test-utils"
-import { vscode } from "@/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 
 import { ShareButton } from "../ShareButton"
 
 // Mock the vscode utility
-vi.mock("@/features/devtools/utils/vscode", () => ({
+vi.mock("@jabberwock/devtool/react", () => ({
 	vscode: {
 		postMessage: vi.fn(),
 	},

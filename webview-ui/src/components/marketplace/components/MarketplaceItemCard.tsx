@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react"
 import { MarketplaceItem, TelemetryEventName } from "@jabberwock/types"
-import { vscode } from "@/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 import { telemetryClient } from "@/features/cloud/utils/TelemetryClient"
 import { ViewState } from "../MarketplaceViewStateManager"
 import { useAppTranslation } from "@/i18n/TranslationContext"

@@ -2,7 +2,7 @@ import { render, screen, fireEvent } from "@testing-library/react"
 
 import { MaxRequestsInput } from "../MaxRequestsInput"
 
-vi.mock("@/features/devtools/utils/vscode", () => ({
+vi.mock("@jabberwock/devtool/react", () => ({
 	vscode: { postMessage: vi.fn() },
 }))
 

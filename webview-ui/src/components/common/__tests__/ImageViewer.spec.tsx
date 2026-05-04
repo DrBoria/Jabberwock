@@ -5,14 +5,14 @@ import { describe, it, expect, vi } from "vitest"
 import { ImageViewer } from "../ImageViewer"
 
 // Mock vscode API
-vi.mock("@src/features/devtools/utils/vscode", () => ({
+vi.mock("@jabberwock/devtool/react", () => ({
 	vscode: {
 		postMessage: vi.fn(),
 	},
 }))
 
 // Import the mocked vscode after the mock is set up
-import { vscode } from "@src/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 
 describe("ImageViewer", () => {
 	it("should render image with webview URI", () => {

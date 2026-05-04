@@ -3,10 +3,10 @@
 import { render, screen, fireEvent, waitFor } from "@/utils/test-utils"
 import ModesView from "../ModesView"
 import { ExtensionStateContext } from "@src/context/ExtensionStateContext"
-import { vscode } from "@src/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 
 // Mock vscode API
-vitest.mock("@src/features/devtools/utils/vscode", () => ({
+vitest.mock("@jabberwock/devtool/react", () => ({
 	vscode: {
 		postMessage: vitest.fn(),
 	},

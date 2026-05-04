@@ -93,7 +93,7 @@ import { AutoApprovalHandler, checkAutoApproval } from "../../../../auto-approva
 import { MessageManager } from "../../../../message-manager"
 import { validateAndFixToolResultIds } from "../../../../task/validateToolResultIds"
 import { mergeConsecutiveApiMessages } from "../../../../task/mergeConsecutiveApiMessages"
-import { diagnosticsManager } from "../../../../devtools/DiagnosticsManager"
+import { diagnosticsManager } from "@jabberwock/devtool"
 
 import { overwriteApiConversationHistory as overwriteApiConversationHistoryAction } from "../actions/overwriteApiHistory"
 import { getSystemPrompt as getSystemPromptAction } from "./systemPrompt"

@@ -110,13 +110,31 @@ export async function getTaskWithAggregatedCosts(
 
 export async function showTaskWithId(provider: ClineProvider, id: string) {
 	const p = provider as any
+	let parentTaskId: string | undefined
+
 	if (id !== p.getCurrentTask()?.taskId) {
 		// Non-current task.
 		const { historyItem } = await getTaskWithId(provider, id)
+		parentTaskId = historyItem.parentTaskId
 		await p.createTaskWithHistoryItem(historyItem) // Clears existing task.
+	} else {
+		// Current task — check if it's a child via the current task's parentTaskId.
+		const currentTask = p.getCurrentTask()
+		parentTaskId = currentTask?.parentTaskId
 	}
 
-	await p.postMessageToWebview({ type: "action", action: "chatButtonClicked" })
+	if (parentTaskId) {
+		// Child task: push a new chat window on top of the parent, creating a nested overlay.
+		await p.postMessageToWebview({
+			type: "action",
+			action: "switchTab",
+			tab: "chat",
+			values: { targetNodeId: id },
+		})
+	} else {
+		// Root task: switch to base chat (clears stack).
+		await p.postMessageToWebview({ type: "action", action: "chatButtonClicked" })
+	}
 }
 
 export async function exportTaskWithId(provider: ClineProvider, id: string) {
@@ -330,8 +348,8 @@ export function log(provider: ClineProvider, message: string) {
 	console.log(message)
 	// diagnosticsManager is accessed via dynamic import to avoid circular dependencies
 	// during early extension initialization
-	import("../../../devtools/DiagnosticsManager")
-		.then(({ diagnosticsManager }) => {
+	import("@jabberwock/devtool")
+		.then(({ diagnosticsManager }: any) => {
 			diagnosticsManager.log(message, message.toLowerCase().includes("error") ? "error" : "info")
 		})
 		.catch(() => {

@@ -1,11 +1,11 @@
 import { render, screen, fireEvent } from "@/utils/test-utils"
 
-import { vscode } from "@src/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 
 import SubtaskRow from "../SubtaskRow"
 import type { SubtaskTreeNode, DisplayHistoryItem } from "../types"
 
-vi.mock("@src/features/devtools/utils/vscode")
+vi.mock("@jabberwock/devtool/react")
 vi.mock("@src/i18n/TranslationContext", () => ({
 	useAppTranslation: () => ({
 		t: (key: string, options?: Record<string, unknown>) => {

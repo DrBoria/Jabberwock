@@ -1,6 +1,6 @@
 import { Anthropic } from "@anthropic-ai/sdk"
 import { JabberwockEventName, type TodoItem } from "@jabberwock/types"
-import { diagnosticsManager } from "../../../../devtools/DiagnosticsManager"
+import { diagnosticsManager } from "@jabberwock/devtool"
 import { getEnvironmentDetails } from "../../../../environment/getEnvironmentDetails"
 import { initiateTaskLoop } from "./startTask"
 import type { Task } from "../../../../task/Task"

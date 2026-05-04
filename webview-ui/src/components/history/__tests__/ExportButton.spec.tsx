@@ -1,10 +1,10 @@
 import { render, screen, fireEvent } from "@/utils/test-utils"
 
-import { vscode } from "@src/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 
 import { ExportButton } from "../ExportButton"
 
-vi.mock("@src/features/devtools/utils/vscode")
+vi.mock("@jabberwock/devtool/react")
 
 vi.mock("@src/i18n/TranslationContext", () => ({
 	useAppTranslation: () => ({

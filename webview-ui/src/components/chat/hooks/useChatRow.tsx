@@ -6,7 +6,7 @@ import { safeJsonParse } from "@shared/core"
 import { getAllModes } from "@shared/modes"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { useSelectedModel } from "@src/components/ui/hooks/useSelectedModel"
-import { vscode } from "@src/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 import { appendImages } from "@src/features/chat/utils/imageUtils"
 import { MAX_IMAGES_PER_MESSAGE } from "../ChatView"
 import { useTranslation } from "react-i18next"
@@ -87,10 +87,12 @@ export function useChatRow(options: UseChatRowOptions): UseChatRowReturn {
 	}, [isNested, message.text, message.say])
 
 	const isAgentSaidSummary = useMemo(() => {
-		if (!isNested || !message.text || message.partial) return false
-		const agentSaidPattern = /^\w+(\s+\w+)?\s+said:?/i
-		return agentSaidPattern.test(message.text) && message.text.length < 100
-	}, [isNested, message.text, message.partial])
+		if (!message.text || message.partial) return false
+		// Match patterns like "Orchestrator said" or "🪃 Orchestrator said" (with optional emoji prefix)
+		// Increased limit from 100 to 500 to handle delegation summaries that include task descriptions.
+		const agentSaidPattern = /^(\p{So}|\p{S})?\s*\w+(\s+\w+)?\s+said:?/iu
+		return agentSaidPattern.test(message.text) && message.text.length < 500
+	}, [message.text, message.partial])
 
 	const isRedundantTodo = useMemo(() => {
 		if (message.type !== "ask" || message.ask !== "tool" || !message.text) return false

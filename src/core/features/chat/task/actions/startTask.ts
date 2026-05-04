@@ -9,7 +9,7 @@ import {
 	JabberwockEventName,
 } from "@jabberwock/types"
 import { formatResponse } from "../../../../prompts/responses"
-import { diagnosticsManager } from "../../../../devtools/DiagnosticsManager"
+import { diagnosticsManager } from "@jabberwock/devtool"
 import { getCheckpointService } from "../../../../checkpoints"
 import { getModeBySlug, defaultModeSlug } from "../../../../../shared/modes"
 import { Package } from "../../../../../shared/package"

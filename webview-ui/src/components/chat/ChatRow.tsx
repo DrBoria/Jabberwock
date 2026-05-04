@@ -20,7 +20,7 @@ import { safeJsonParse } from "@shared/core"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { useChatUI } from "@src/features/chat/ui/store"
 import { getAllModes } from "@shared/modes"
-import { vscode } from "@src/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 
 import { UserMessage, AssistantMessage, ToolRenderer, SayRenderer, AskRenderer } from "./ChatRow/index"
 
@@ -118,10 +118,13 @@ export const ChatRowContent = ({
 	}, [isNested, message.text, message.say])
 
 	const isAgentSaidSummary = useMemo(() => {
-		if (!isNested || !message.text || message.partial) return false
-		const agentSaidPattern = /^\w+(\s+\w+)?\s+said:?/i
-		return agentSaidPattern.test(message.text) && message.text.length < 100
-	}, [isNested, message.text, message.partial])
+		if (!message.text || message.partial) return false
+		// Match patterns like "Orchestrator said" or "🪃 Orchestrator said" (with optional emoji prefix)
+		// This works in both main chat view (isNested=false) and nested subtask views.
+		// Increased limit from 100 to 500 to handle delegation summaries that include task descriptions.
+		const agentSaidPattern = /^(\p{So}|\p{S})?\s*\w+(\s+\w+)?\s+said:?/iu
+		return agentSaidPattern.test(message.text) && message.text.length < 500
+	}, [message.text, message.partial])
 
 	const isRedundantTodo = useMemo(() => {
 		if (message.type !== "ask" || message.ask !== "tool" || !message.text) return false

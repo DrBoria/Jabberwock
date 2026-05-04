@@ -22,7 +22,7 @@ import {
 	SelectValue,
 	Textarea,
 } from "@/components/ui"
-import { vscode } from "@/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 
 interface CreateSkillDialogProps {
 	open: boolean

@@ -8,7 +8,7 @@ import { type CommandExecutionStatus } from "@jabberwock/types"
 import { COMMAND_OUTPUT_STRING } from "@shared/combineCommandSequences"
 import { parseCommand } from "@shared/parse-command"
 
-import { vscode } from "@src/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 import { extractPatternsFromCommand } from "@src/utils/extractCommand"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { commandExecutionStore } from "@src/features/chat/command-execution/store"

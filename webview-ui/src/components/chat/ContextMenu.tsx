@@ -13,7 +13,7 @@ import {
 	SearchResult,
 } from "@src/features/chat/utils/context-mentions"
 import { removeLeadingNonAlphanumeric } from "@src/utils/removeLeadingNonAlphanumeric"
-import { vscode } from "@src/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 
 import { buildDocLink } from "@/features/settings/utils/docLinks"
 

@@ -153,7 +153,7 @@ function isCollapsible(el: Element): boolean {
 
 function getNodeText(el: Element): string {
 	const text = el.textContent?.trim() || ""
-	if (text.length > 30) return text.slice(0, 30) + "..."
+	if (text.length > 150) return text.slice(0, 150) + "..."
 	return text
 }
 
@@ -161,22 +161,35 @@ function shouldSkipTag(tag: string): boolean {
 	return ["script", "style", "noscript", "link", "meta"].includes(tag)
 }
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-function serializeDomToTree(root: Element, depth = 0, maxDepth?: number, maxChildren?: number): Record<string, any> {
-	if (maxDepth !== undefined && depth > maxDepth) return {}
+function serializeDomToTree(
+	root: Element,
+	depth = 0,
+	maxDepth?: number,
+	maxChildren?: number,
+): Record<string, unknown> {
 	const tag = root.tagName.toLowerCase()
 	if (shouldSkipTag(tag)) return {}
 
 	const text = getNodeText(root)
 	const attrs = getRelevantAttributes(root)
 
+	// If depth exceeds maxDepth, show summary instead of empty {}
+	if (maxDepth !== undefined && depth > maxDepth) {
+		return {
+			__truncated: true,
+			__tag: tag,
+			__text: text || root.textContent?.trim()?.slice(0, 100) || "",
+			__children: root.children.length,
+		}
+	}
+
 	// SVG / path / canvas leaf
 	if (tag === "svg" || tag === "path" || tag === "canvas") {
 		const testId = root.getAttribute("data-testid")
 		const key = testId ? `[data-testid="${testId}"]` : tag
-		const node: Record<string, any> = {}
+		const node: Record<string, unknown> = {}
 		if (Object.keys(attrs).length > 0) node._attrs = attrs
-		if (text && !["div", "span", "section", "article", "main", "nav", "header", "footer"].includes(tag)) {
+		if (text) {
 			node._text = text
 		}
 		return { [key]: node }
@@ -189,7 +202,7 @@ function serializeDomToTree(root: Element, depth = 0, maxDepth?: number, maxChil
 			const innerDoc = iframe.contentDocument || iframe.contentWindow?.document
 			if (innerDoc?.body) {
 				const innerTree = serializeDomToTree(innerDoc.body, depth, maxDepth, maxChildren)
-				const wrapped: Record<string, any> = {}
+				const wrapped: Record<string, unknown> = {}
 				for (const [k, v] of Object.entries(innerTree)) {
 					wrapped[`[Webview] ${k}`] = v
 				}
@@ -198,7 +211,7 @@ function serializeDomToTree(root: Element, depth = 0, maxDepth?: number, maxChil
 		} catch {
 			// Cross-origin iframe, skip
 		}
-		return {}
+		return { __iframe: true, __src: root.getAttribute("src") || "", __tag: tag }
 	}
 
 	// Collect children
@@ -209,9 +222,14 @@ function serializeDomToTree(root: Element, depth = 0, maxDepth?: number, maxChil
 		nonCollapsibleChildren = nonCollapsibleChildren.slice(0, maxChildren)
 	}
 
-	// If collapsible and no interesting children, skip entirely
+	// If collapsible and no interesting children, show summary instead of empty {}
 	if (isCollapsible(root) && nonCollapsibleChildren.length === 0) {
-		return {}
+		return {
+			__collapsed: true,
+			__tag: tag,
+			__text: text || root.textContent?.trim()?.slice(0, 100) || "",
+			__children: children.length,
+		}
 	}
 
 	// Build child tree
@@ -223,7 +241,7 @@ function serializeDomToTree(root: Element, depth = 0, maxDepth?: number, maxChil
 	//   - "div^4" → 4 consecutive generic divs — serialize each individually,
 	//                collecting them under positional keys div:0, div:1, etc.
 	//   - "button" → 1 specific child, serialize normally
-	const childTree: Record<string, any> = {}
+	const childTree: Record<string, unknown> = {}
 	let childIdx = 0
 	for (const key of collapsedKeys) {
 		if (childIdx >= nonCollapsibleChildren.length) break
@@ -233,7 +251,7 @@ function serializeDomToTree(root: Element, depth = 0, maxDepth?: number, maxChil
 		if (count > 1) {
 			// Collapsed generic group (div^N): serialize ALL children, not just the first.
 			// They all have the same key "div"/"span" but may contain different content.
-			const group: Record<string, any> = {}
+			const group: Record<string, unknown> = {}
 			let hasContent = false
 			for (let i = 0; i < count && childIdx < nonCollapsibleChildren.length; i++) {
 				const child = nonCollapsibleChildren[childIdx]!
@@ -252,7 +270,10 @@ function serializeDomToTree(root: Element, depth = 0, maxDepth?: number, maxChil
 			const child = nonCollapsibleChildren[childIdx]!
 			const subTree = serializeDomToTree(child, depth + 1, maxDepth, maxChildren)
 			if (Object.keys(subTree).length > 0) {
-				childTree[key] = subTree
+				// Avoid redundant nesting: if child's own key matches the parent's
+				// childTree key, unwrap one level (e.g. "div": { "div": {...} } → "div": {...})
+				// This prevents duplicate keys at consecutive nesting levels.
+				childTree[key] = subTree[key] ?? subTree
 			}
 			childIdx++
 		}
@@ -266,24 +287,24 @@ function serializeDomToTree(root: Element, depth = 0, maxDepth?: number, maxChil
 	const hasOwnText = Array.from(root.childNodes).some((n) => n.nodeType === Node.TEXT_NODE && n.textContent?.trim())
 	const isGeneric = tag === "div" || tag === "span"
 	if (isGeneric && Object.keys(attrs).length === 0 && !hasOwnText && Object.keys(childTree).length === 1) {
-		return Object.values(childTree)[0] as Record<string, any>
+		return Object.values(childTree)[0] as Record<string, unknown>
 	}
 
 	const key = getNodeKey(root)
 
-	const result: Record<string, any> = {}
+	const result: Record<string, unknown> = {}
 	result[key] = childTree
 
+	const resultEntry = result[key] as Record<string, unknown>
 	if (Object.keys(attrs).length > 0) {
-		result[key]._attrs = attrs
+		resultEntry._attrs = attrs
 	}
-	if (text && !["div", "span", "section", "article", "main", "nav", "header", "footer"].includes(tag)) {
-		result[key]._text = text
+	if (text) {
+		resultEntry._text = text
 	}
 
 	return result
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // ── DevtoolProvider Component ────────────────────────────────────────────
 
@@ -326,8 +347,25 @@ export interface DevtoolProviderProps {
 // ── DOM Element Lookup Helpers ──────────────────────────────────────────────
 
 function findElementById(id: string): Element | null {
-	const el = document.querySelector(`[data-testid="${id}"]`)
+	// 1. Check element store ($N references from findElement)
+	const storeMatch = id.match(/^\$(\d+)$/)
+	if (storeMatch) {
+		const index = parseInt(storeMatch[1]!) - 1
+		if (index >= 0 && index < elementStore.length && elementStore[index]) {
+			return elementStore[index]!
+		}
+	}
+	// 2. Try data-testid lookup (the id param could be a data-testid value)
+	const el = document.querySelector(`[data-testid="${CSS.escape(id)}"]`)
 	if (el) return el
+	// 3. Try CSS selector (for cases like '[data-testid="foo"]' passed as id)
+	try {
+		const bySelector = document.querySelector(id)
+		if (bySelector) return bySelector
+	} catch {
+		// not a valid CSS selector, continue
+	}
+	// 4. Fallback to DOM id
 	return document.getElementById(id)
 }
 
@@ -566,20 +604,60 @@ export const DevtoolProvider: React.FC<DevtoolProviderProps> = ({ children, post
 					return
 				}
 				try {
-					;(el as HTMLElement).click()
-					postMessage({ type: "domResponse", requestId, text: `Clicked ${req.id} via .click()` })
-				} catch {
-					try {
-						const rect = el.getBoundingClientRect()
-						const x = rect.left + rect.width / 2
-						const y = rect.top + rect.height / 2
-						el.dispatchEvent(
-							new MouseEvent("click", { bubbles: true, cancelable: true, clientX: x, clientY: y }),
-						)
-						postMessage({ type: "domResponse", requestId, text: `Clicked ${req.id} at (${x},${y})` })
-					} catch (err2) {
-						postMessage({ type: "domResponse", requestId, text: `Error clicking ${req.id}: ${err2}` })
+					const tag = el.tagName.toLowerCase()
+
+					// Strategy 1: For standard interactive elements, use native .click()
+					if (
+						tag === "button" ||
+						tag === "a" ||
+						tag === "input" ||
+						tag === "select" ||
+						tag === "option" ||
+						tag === "summary" ||
+						tag === "label"
+					) {
+						;(el as HTMLElement).click()
+						postMessage({ type: "domResponse", requestId, text: `Clicked ${req.id} via .click()` })
+						return
 					}
+
+					// Strategy 2: Dispatch full pointer event chain (for Radix UI / ShadCN components)
+					// Radix UI Popover.Trigger listens for pointerdown, not click.
+					// Programmatic dispatchEvent events work with React's delegation system.
+					const rect = el.getBoundingClientRect()
+					const cx = rect.left + rect.width / 2
+					const cy = rect.top + rect.height / 2
+					const opts = { bubbles: true, cancelable: true, clientX: cx, clientY: cy }
+					el.dispatchEvent(new PointerEvent("pointerdown", opts))
+					el.dispatchEvent(new PointerEvent("pointerup", opts))
+					el.dispatchEvent(new MouseEvent("mousedown", opts))
+					el.dispatchEvent(new MouseEvent("mouseup", opts))
+					el.dispatchEvent(new MouseEvent("click", opts))
+
+					// Strategy 3: For Radix UI Popover triggers — also toggle via aria-controls
+					const ariaControls = el.getAttribute("aria-controls")
+					if (ariaControls) {
+						const content = document.getElementById(ariaControls)
+						if (content) {
+							const isExpanded = el.getAttribute("aria-expanded") === "true"
+							content.setAttribute("data-state", isExpanded ? "closed" : "open")
+							el.setAttribute("aria-expanded", String(!isExpanded))
+							postMessage({
+								type: "domResponse",
+								requestId,
+								text: `Clicked ${req.id}: dispatched pointer events + toggled popover "${ariaControls}"`,
+							})
+							return
+						}
+					}
+
+					postMessage({
+						type: "domResponse",
+						requestId,
+						text: `Clicked ${req.id}: dispatched pointer events on <${tag}>`,
+					})
+				} catch (err) {
+					postMessage({ type: "domResponse", requestId, text: `Error clicking ${req.id}: ${err}` })
 				}
 				return
 			}
@@ -628,10 +706,24 @@ export const DevtoolProvider: React.FC<DevtoolProviderProps> = ({ children, post
 						postMessage({ type: "domResponse", requestId, text: `Element not found: ${req.id}` })
 						return
 					}
+					// Focus the element first
+					if (typeof (el as HTMLElement).focus === "function") {
+						;(el as HTMLElement).focus()
+					}
 					if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
-						el.value = req.text
+						// Use native setter for React controlled inputs
+						const proto = Object.getPrototypeOf(el)
+						const nativeSetter = Object.getOwnPropertyDescriptor(proto.constructor.prototype, "value")?.set
+						if (nativeSetter) {
+							nativeSetter.call(el, req.text)
+						} else {
+							;(el as HTMLInputElement).value = req.text
+						}
 						el.dispatchEvent(new Event("input", { bubbles: true }))
 						el.dispatchEvent(new Event("change", { bubbles: true }))
+					} else if (el.getAttribute("contenteditable") === "true") {
+						el.textContent = req.text
+						el.dispatchEvent(new Event("input", { bubbles: true }))
 					} else {
 						el.textContent = req.text
 					}

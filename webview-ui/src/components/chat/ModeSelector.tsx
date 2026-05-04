@@ -6,7 +6,7 @@ import { type ModeConfig, type CustomModePrompts, TelemetryEventName } from "@ja
 
 import { type Mode, getAllModes, defaultModeSlug } from "@shared/modes"
 
-import { vscode } from "@/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 import { telemetryClient } from "@/features/cloud/utils/TelemetryClient"
 import { cn } from "@/lib/utils"
 import { useExtensionState } from "@/context/ExtensionStateContext"
@@ -292,7 +292,7 @@ export const ModeSelector = ({
 													? "bg-vscode-list-activeSelectionBackground text-vscode-list-activeSelectionForeground"
 													: "",
 											)}
-											data-testid="mode-selector-item">
+											data-testid={`mode-selector-item-${mode.slug}`}>
 											<div className="flex-1 min-w-0">
 												<div className="font-bold truncate">{mode.name}</div>
 												{mode.description && (

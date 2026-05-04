@@ -541,12 +541,12 @@ export const webviewMessageHandler = async (
 			await config.update("devtool", !current, vscode.ConfigurationTarget.Global)
 		},
 		clearDiagnostics: async (message) => {
-			const { diagnosticsManager } = await import("../devtools/DiagnosticsManager")
+			const { diagnosticsManager } = await import("@jabberwock/devtool")
 			diagnosticsManager.clear()
 			await provider.postDiagnosticsToWebview()
 		},
 		webviewLog: async (message) => {
-			const { diagnosticsManager } = await import("../devtools/DiagnosticsManager")
+			const { diagnosticsManager } = await import("@jabberwock/devtool")
 			diagnosticsManager.log(message.text || "")
 		},
 		domResponse: async (message) => {
@@ -572,7 +572,7 @@ export const webviewMessageHandler = async (
 		},
 		webviewError: async (message) => {
 			if (message.text) {
-				const { diagnosticsManager } = await import("../devtools/DiagnosticsManager")
+				const { diagnosticsManager } = await import("@jabberwock/devtool")
 				diagnosticsManager.log(`[WEBVIEW_ERROR] ${message.text}`, "error")
 				vscode.window.showErrorMessage(`Webview Error: ${message.text}`)
 			}
@@ -588,7 +588,7 @@ export const webviewMessageHandler = async (
 
 		// case "mstPatch":
 		// 	{
-		// 		const { diagnosticsManager } = await import("../devtools/DiagnosticsManager")
+		// 		const { diagnosticsManager } = await import("@jabberwock/devtool")
 		// 		diagnosticsManager.log(`[MST_PATCH] ${message.text || ""}`, "debug")
 		// 	}
 		// 	break

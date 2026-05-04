@@ -5,7 +5,7 @@ import { Package } from "@shared/package"
 
 import { useAppTranslation } from "@/i18n/TranslationContext"
 import { VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react"
-import { vscode } from "@/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 import { Button } from "../ui/button"
 import { Input } from "../ui/input"
 import { Slider } from "../ui/slider"

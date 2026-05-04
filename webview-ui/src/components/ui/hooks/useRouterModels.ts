@@ -3,7 +3,7 @@ import { onSnapshot } from "mobx-state-tree"
 
 import { type RouterModels } from "@jabberwock/types"
 
-import { vscode } from "@src/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 import { routerModelsStore } from "@src/features/router-models/store"
 
 type UseRouterModelsOptions = {

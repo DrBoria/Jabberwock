@@ -1,10 +1,10 @@
 import { render, screen, fireEvent } from "@/utils/test-utils"
 
-import { vscode } from "@/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 
 import { BatchDeleteTaskDialog } from "../BatchDeleteTaskDialog"
 
-vi.mock("@/features/devtools/utils/vscode")
+vi.mock("@jabberwock/devtool/react")
 
 vi.mock("@/i18n/TranslationContext", () => ({
 	useAppTranslation: () => ({

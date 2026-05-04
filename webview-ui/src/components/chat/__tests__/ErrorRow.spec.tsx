@@ -1,12 +1,12 @@
 import React from "react"
 
 import { render, screen, fireEvent } from "@/utils/test-utils"
-import { vscode } from "@/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 
 import { ErrorRow } from "../ErrorRow"
 
 // Mock vscode webview messaging
-vi.mock("@/features/devtools/utils/vscode", () => ({
+vi.mock("@jabberwock/devtool/react", () => ({
 	vscode: {
 		postMessage: vi.fn(),
 	},

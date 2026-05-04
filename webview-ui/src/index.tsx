@@ -1,7 +1,7 @@
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 
-import { initWebviewConsoleBridge } from "./features/devtools/utils/webviewConsoleBridge"
+import { initWebviewConsoleBridge } from "@jabberwock/devtool/react"
 
 // Must be called before any other code to capture all console output
 initWebviewConsoleBridge()
@@ -13,7 +13,7 @@ import "../node_modules/@vscode/codicons/dist/codicon.css"
 import { getHighlighter } from "./utils/highlighter"
 import { createMstBridge } from "./features/foundation/mst-bridge/bridge"
 import { settingsStore } from "./features/settings/store"
-import { devToolsStore } from "./features/devtools/store"
+import { devToolsStore } from "@jabberwock/devtool/react"
 import { windowManagerStore } from "./features/foundation/window-manager/store"
 import { commandExecutionStore } from "./features/chat/command-execution/store"
 import { mcpExecutionStore } from "./features/chat/mcp-execution/store"

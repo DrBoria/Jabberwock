@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 
 import type { ExtensionMessage } from "@jabberwock/types"
 
-import { vscode } from "@src/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 
 /**
  * Hook to fetch Jabberwock Cloud credit balance

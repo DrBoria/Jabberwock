@@ -8,7 +8,7 @@ import type { TelemetrySetting } from "@jabberwock/types"
 
 import { Package } from "@shared/package"
 
-import { vscode } from "@/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 import { cn } from "@/lib/utils"
 import { Button } from "../ui/button"
 

@@ -6,7 +6,7 @@ import type { ProviderSettings, ExtensionMessage, ModelRecord } from "@jabberwoc
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { useRouterModels } from "@src/components/ui/hooks/useRouterModels"
-import { vscode } from "@src/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 
 import { inputEventTransform } from "../transforms"
 import { ModelPicker } from "../ModelPicker"

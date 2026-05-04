@@ -4,12 +4,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import type { SkillMetadata } from "@jabberwock/types"
 
 import { ExtensionStateContextProvider } from "@/context/ExtensionStateContext"
-import { vscode } from "@/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 
 import { SkillsSettings } from "../SkillsSettings"
 
 // Mock vscode
-vi.mock("@/features/devtools/utils/vscode", () => ({
+vi.mock("@jabberwock/devtool/react", () => ({
 	vscode: {
 		postMessage: vi.fn(),
 	},

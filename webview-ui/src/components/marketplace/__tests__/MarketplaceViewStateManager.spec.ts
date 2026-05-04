@@ -2,7 +2,7 @@ import { MarketplaceViewStateManager, ViewStateTransition } from "../Marketplace
 import { MarketplaceItem } from "@jabberwock/types"
 
 // Mock vscode module
-vi.mock("@/features/devtools/utils/vscode", () => ({
+vi.mock("@jabberwock/devtool/react", () => ({
 	vscode: {
 		postMessage: vi.fn(),
 	},

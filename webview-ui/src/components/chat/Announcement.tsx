@@ -5,7 +5,7 @@ import { VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 
 import { Package } from "@shared/package"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { vscode } from "@src/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@src/components/ui"
 
 interface AnnouncementProps {

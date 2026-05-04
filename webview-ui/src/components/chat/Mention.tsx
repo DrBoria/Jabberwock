@@ -1,6 +1,6 @@
 import { mentionRegexGlobal } from "@shared/context-mentions"
 
-import { vscode } from "../../features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 
 interface MentionProps {
 	text?: string

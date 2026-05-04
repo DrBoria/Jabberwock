@@ -1,7 +1,7 @@
 import React, { memo } from "react"
 import { SquareArrowOutUpRight } from "lucide-react"
 
-import { vscode } from "@src/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 import { hasComplexMarkdown } from "@src/utils/markdown"
 import { StandardTooltip } from "@src/components/ui"
 

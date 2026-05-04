@@ -2,6 +2,8 @@ export { WsMcpServer } from "./ws-mcp-server.js"
 export { WebSocketServerTransport } from "./transport.js"
 export type { DevtoolModel } from "./model.js"
 export type { ExtensionBridge } from "./bridge.js"
+export { createDevtoolBridge } from "./bridge-factory.js"
+export type { DevtoolBridgeProvider } from "./bridge-factory.js"
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import { WsMcpServer } from "./ws-mcp-server.js"
@@ -11,6 +13,9 @@ import { registerDomTools } from "./tools/dom.js"
 import { registerConsoleTools } from "./tools/console.js"
 import { registerDiagnosticTools } from "./tools/diagnostics.js"
 import { registerStateTools } from "./tools/state.js"
+import { registerEventBusTools } from "./tools/eventBus.js"
+import { registerCommandTools } from "./tools/commands.js"
+import { MessageInterceptor } from "./interceptor.js"
 
 /**
  * Devtool is the main wrapper class that combines a WebSocket MCP server with
@@ -33,15 +38,46 @@ export type { DevtoolClientOptions } from "./client.js"
 export { CommandRegistry } from "./command-registry.js"
 export type { ExtensionCommand } from "./command-registry.js"
 
+// Diagnostics module (moved from src/core/devtools/)
+export {
+	DiagnosticsManager,
+	diagnosticsManager,
+	DevToolsLogger,
+	Tracer,
+	ResourceMonitor,
+	TimelineTracker,
+	LifecycleManager,
+	LogFileManager,
+} from "./diagnostics/index.js"
+export type {
+	ToolTrace,
+	TaskTrace,
+	SnapshotFilters,
+	ExtendedDiagnosticSnapshot,
+	TimelineEvent,
+	TimelineEventType,
+	TimelineFilters,
+} from "./diagnostics/types.js"
+
+export { MessageInterceptor } from "./interceptor.js"
+export type { InterceptorConfig, TraceEntry, TraceFilter } from "./interceptor.js"
+
 export class Devtool {
 	private wsServer: WsMcpServer
 	private bridge?: ExtensionBridge
 	private model?: DevtoolModel
+	private interceptor?: MessageInterceptor
 
-	constructor(bridge?: ExtensionBridge, model?: DevtoolModel, port: number = 60060) {
+	constructor(
+		bridge?: ExtensionBridge,
+		model?: DevtoolModel,
+		port: number = 60060,
+		interceptor?: MessageInterceptor,
+	) {
 		this.wsServer = new WsMcpServer(port)
 		this.bridge = bridge
 		this.model = model
+		this.interceptor = interceptor
 	}
 
 	/**
@@ -52,9 +88,14 @@ export class Devtool {
 		await this.wsServer.start()
 		const mcpServer = this.wsServer.getMcpServer()
 
-		// Register generic tools (dom, console, diagnostics, state, settings)
+		// Register generic tools (dom, console, diagnostics, state, eventBus)
 		if (this.bridge) {
 			this.registerGenericTools(mcpServer)
+		}
+
+		// Register event bus tools (interceptor-based)
+		if (this.interceptor) {
+			registerEventBusTools(mcpServer, this.interceptor)
 		}
 
 		// Register domain-specific tools from the model
@@ -79,6 +120,7 @@ export class Devtool {
 		registerConsoleTools(mcpServer, this.bridge)
 		registerDiagnosticTools(mcpServer, this.bridge)
 		registerStateTools(mcpServer, this.bridge)
+		registerCommandTools(mcpServer, this.bridge)
 	}
 
 	/**

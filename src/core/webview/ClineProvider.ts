@@ -99,7 +99,7 @@ import { Task } from "../task/Task"
 import { ChatStore } from "../state/ChatTreeStore"
 import { agentStore } from "../state/AgentStore"
 import { onSnapshot, onPatch, applySnapshot, getSnapshot } from "mobx-state-tree"
-import { diagnosticsManager } from "../devtools/DiagnosticsManager"
+import { diagnosticsManager } from "@jabberwock/devtool"
 
 import { webviewMessageHandler } from "./webviewMessageHandler"
 import type { ClineMessage, TodoItem } from "@jabberwock/types"
@@ -214,6 +214,7 @@ export class ClineProvider
 	public readonly taskHistoryStore: TaskHistoryStore
 	private devtoolEnabled = false
 	private devtool?: import("@jabberwock/devtool").Devtool
+	private interceptor?: import("@jabberwock/devtool").MessageInterceptor
 	private taskHistoryStoreInitialized = false
 
 	public workspaceStore = WorkspaceStore.create({})
@@ -241,6 +242,22 @@ export class ClineProvider
 	private clineMessagesSeq = 0
 	private pendingDomRequests = new Map<string, (dom: string) => void>()
 	private pendingActivePageRequests = new Map<string, (activePage: string) => void>()
+
+	/**
+	 * Register a pending DOM request callback (implements DevtoolBridgeProvider).
+	 * The bridge factory calls this instead of accessing the private map directly.
+	 */
+	public setDomRequestCallback(requestId: string, callback: (result: string) => void): void {
+		this.pendingDomRequests.set(requestId, callback)
+	}
+
+	/**
+	 * Register a pending active page request callback (implements DevtoolBridgeProvider).
+	 * The bridge factory calls this instead of accessing the private map directly.
+	 */
+	public setActivePageRequestCallback(requestId: string, callback: (result: string) => void): void {
+		this.pendingActivePageRequests.set(requestId, callback)
+	}
 
 	public isViewLaunched = false
 	public settingsImportedAt?: number
@@ -329,7 +346,7 @@ export class ClineProvider
 		})
 
 		// Initialize diagnostic log file so agents can read it from disk
-		import("../devtools/DiagnosticsManager")
+		import("@jabberwock/devtool")
 			.then(async ({ diagnosticsManager }) => {
 				const logPath = path.join(this.contextProxy.globalStorageUri.fsPath, "jabberwock.diagnostics.log")
 				diagnosticsManager.setLogFilePath(logPath)
@@ -368,10 +385,28 @@ export class ClineProvider
 						// and registers generic tools (UI, diagnostics, state, settings, agent, prompt, provider).
 						// The extension-specific model tools (task management, etc.) are registered
 						// via createDevtoolModel().
-						const { Devtool } = await import("@jabberwock/devtool")
-						const { createDevtoolModel } = await import("../devtools/model")
-						const { createDevtoolBridge } = await import("../devtools/devtoolBridge")
-						const devtool = new Devtool(createDevtoolBridge(this), createDevtoolModel(this))
+						const { Devtool, MessageInterceptor, createDevtoolBridge } = await import("@jabberwock/devtool")
+						type DevtoolBridgeProvider = import("@jabberwock/devtool").DevtoolBridgeProvider
+						// Create MessageInterceptor for event tracing and command interception.
+						// This is stored on the provider so store.ts hooks can access it.
+						this.interceptor = new MessageInterceptor()
+						// Store registry — maps MCP store names to provider property names.
+						// This is passed to the bridge so getMstState can resolve stores
+						// without hardcoding them in the generic devtool package.
+						const storeRegistry: Record<string, string> = {
+							chatStore: "chatStore",
+							commandExecutionStore: "commandExecutionStore",
+							mcpExecutionStore: "mcpExecutionStore",
+							diagnosticsStoreMst: "diagnosticsStoreMst",
+							checkpointStore: "checkpointStore",
+							taskHistoryStoreMst: "taskHistoryStoreMst",
+						}
+						const devtool = new Devtool(
+							createDevtoolBridge(this as unknown as DevtoolBridgeProvider, storeRegistry),
+							undefined,
+							60060,
+							this.interceptor,
+						)
 						await devtool.start()
 						this.devtool = devtool
 
@@ -1065,8 +1100,7 @@ export class ClineProvider
 				if (this.devtoolEnabled) {
 					if (!this.devtool) {
 						const { Devtool } = await import("@jabberwock/devtool")
-						const { createDevtoolModel } = await import("../devtools/model")
-						this.devtool = new Devtool(/* bridge */ undefined, createDevtoolModel(this))
+						this.devtool = new Devtool(/* bridge */ undefined, undefined)
 						await this.devtool.start()
 					}
 				} else {

@@ -602,15 +602,27 @@ importers:
 
   packages/devtool:
     dependencies:
+      '@jabberwock/types':
+        specifier: workspace:^
+        version: link:../types
       '@modelcontextprotocol/sdk':
         specifier: 1.12.0
         version: 1.12.0
+      '@types/vscode-webview':
+        specifier: ^1.57.5
+        version: 1.57.5
+      mobx-state-tree:
+        specifier: ^5.4.2
+        version: 5.4.2(mobx@6.15.0)
       react:
         specifier: ^18.3.1
         version: 18.3.1
       react-use:
         specifier: ^17.5.1
         version: 17.6.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      stacktrace-js:
+        specifier: ^2.0.2
+        version: 2.0.2
       ws:
         specifier: ^8.18.0
         version: 8.18.3
@@ -630,6 +642,12 @@ importers:
       '@types/react':
         specifier: ^18.3.23
         version: 18.3.23
+      '@types/stacktrace-js':
+        specifier: ^0.0.33
+        version: 0.0.33
+      '@types/vscode':
+        specifier: ^1.84.0
+        version: 1.103.0
       '@types/ws':
         specifier: ^8.5.10
         version: 8.18.1
@@ -5352,6 +5370,9 @@ packages:
 
   '@types/stack-utils@2.0.3':
     resolution: {integrity: sha512-9aEbYZ3TbYMznPdcdr3SmIrLXwC/AKZXQeCf9Pgao5CKb8CyHuEX5jzWPTkvregvhRJHcpRO6BFoGW9ycaOkYw==}
+
+  '@types/stacktrace-js@0.0.33':
+    resolution: {integrity: sha512-aqJ6QM9QThNL4dHBhwl1f9B0oDqiREkYLn9RldghUKsGeFWWGlCsqsRWxbh+hDvvmptMFqc4aIfFIGz9BBu8Qg==}
 
   '@types/stacktrace-js@2.0.3':
     resolution: {integrity: sha512-B6JnMic4NAZ4mLWmRi4RvayCN2HZQvpcVF0MkoqubtuZx1AQB0/kRlrngGiocEPyO7R+TFocTEoLKQ0HzmEOPw==}
@@ -16476,6 +16497,8 @@ snapshots:
 
   '@types/stack-utils@2.0.3': {}
 
+  '@types/stacktrace-js@0.0.33': {}
+
   '@types/stacktrace-js@2.0.3':
     dependencies:
       stacktrace-js: 2.0.2
@@ -16725,7 +16748,7 @@ snapshots:
       sirv: 3.0.1
       tinyglobby: 0.2.14
       tinyrainbow: 2.0.0
-      vitest: 3.2.4(@types/debug@4.1.12)(@types/node@20.17.57)(@vitest/ui@3.2.4)(jiti@2.4.2)(jsdom@26.1.0)(lightningcss@1.30.1)(tsx@4.19.4)(yaml@2.8.0)
+      vitest: 3.2.4(@types/debug@4.1.12)(@types/node@24.2.1)(@vitest/ui@3.2.4)(jiti@2.4.2)(jsdom@26.1.0)(lightningcss@1.30.1)(tsx@4.19.4)(yaml@2.8.0)
 
   '@vitest/utils@3.2.4':
     dependencies:

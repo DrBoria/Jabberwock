@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react"
 import { TelemetryEventName } from "@jabberwock/types"
-import { vscode } from "@/features/devtools/utils/vscode"
+import { vscode } from "@jabberwock/devtool/react"
 import { telemetryClient } from "@/features/cloud/utils/TelemetryClient"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 

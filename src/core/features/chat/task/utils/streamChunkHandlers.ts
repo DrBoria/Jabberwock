@@ -17,7 +17,7 @@ import { t } from "../../../../../i18n"
 import { type AssistantMessageContent, presentAssistantMessage } from "../../../../assistant-message"
 import { NativeToolCallParser } from "../../../../assistant-message/NativeToolCallParser"
 // ToolName imported from @jabberwock/types
-import { diagnosticsManager } from "../../../../devtools/DiagnosticsManager"
+import { diagnosticsManager } from "@jabberwock/devtool"
 import { Task } from "../../../../task/Task"
 
 /**

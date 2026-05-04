@@ -133,7 +133,7 @@ import { AutoApprovalHandler, checkAutoApproval } from "../auto-approval"
 import { MessageManager } from "../message-manager"
 import { validateAndFixToolResultIds } from "./validateToolResultIds"
 import { mergeConsecutiveApiMessages } from "./mergeConsecutiveApiMessages"
-import { diagnosticsManager } from "../devtools/DiagnosticsManager"
+import { diagnosticsManager } from "@jabberwock/devtool"
 import { createTimerQueueStore } from "../features/foundation/timer-queue/store"
 
 import { overwriteApiConversationHistory as overwriteApiConversationHistoryAction } from "../features/chat/task/actions/overwriteApiHistory"

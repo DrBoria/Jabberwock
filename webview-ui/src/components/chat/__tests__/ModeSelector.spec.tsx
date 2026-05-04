@@ -6,7 +6,7 @@ import type { Mode } from "@shared/modes"
 
 import { ModeSelector } from "../ModeSelector"
 
-vi.mock("@/features/devtools/utils/vscode", () => ({
+vi.mock("@jabberwock/devtool/react", () => ({
 	vscode: {
 		postMessage: vi.fn(),
 	},
