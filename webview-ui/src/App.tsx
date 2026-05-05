@@ -208,7 +208,7 @@ const AppContent = observer(() => {
 				chatViewRef.current?.acceptInput()
 			}
 
-			// Note: getActivePage, getDom, findElement, clickElement, typeText,
+			// Note: getActivePage, findElement, clickElement, typeText,
 			// scrollElement, selectOption, getScreenshot, dragElement, and dragFromTo
 			// are handled by <DevtoolProvider> which wraps the app.
 		},

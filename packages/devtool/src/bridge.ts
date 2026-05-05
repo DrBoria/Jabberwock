@@ -16,8 +16,7 @@
  * - Settings
  */
 export interface ExtensionBridge {
-	getDom(maxDepth?: number, maxChildren?: number): Promise<string>
-	findElement(selector: string): Promise<string>
+	findElement(selector: string, depth?: number, maxChildren?: number, command?: string): Promise<string>
 	clickElement(id: string): Promise<string>
 	scrollElement(id: string, direction: string): Promise<string>
 	typeText(id: string, text: string): Promise<string>

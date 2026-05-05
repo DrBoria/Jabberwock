@@ -88,7 +88,7 @@ export class ChatModel {
 	async verifyChatContainsMessage(expectedText: string, timeoutMs: number = 10000): Promise<void> {
 		const startTime = Date.now()
 		while (Date.now() - startTime < timeoutMs) {
-			const dom = await this.dom.getDom()
+			const dom = await this.dom.findElementBySelector("*")
 			if (dom.includes(expectedText)) {
 				console.log(`  ✓ Message found in chat: "${expectedText}"`)
 				return
@@ -157,7 +157,7 @@ export class ChatModel {
 		await new Promise((r) => setTimeout(r, 500))
 
 		// 3. Get the DOM and parse mode items from it
-		const dom = await this.dom.getDom(5, 50)
+		const dom = await this.dom.findElementBySelector("*", 5, 50)
 		const modes: Array<{ name: string; slug?: string }> = []
 
 		// Parse mode names from DOM text content

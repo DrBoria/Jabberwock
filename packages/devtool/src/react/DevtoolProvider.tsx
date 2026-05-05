@@ -8,8 +8,7 @@
  *   </DevtoolProvider>
  *
  * The provider listens for VS Code message events and handles:
- * - getDom (DOM serialization as hierarchical JSON tree)
- * - findElement (CSS selector + text content fallback)
+ * - findElement (CSS selector + text content fallback, with depth/maxChildren/command)
  * - clickElement (5-strategy fallback: CSS selector → getElementById → data-testid → text search)
  * - typeText (input/textarea value setting)
  * - scrollElement (scroll by direction)
@@ -18,6 +17,7 @@
  * - dragElement (drag element by selector in direction by pixels)
  * - dragFromTo (drag from one coordinate to another)
  * - getActivePage (DOM-based active page detection via data-window-type)
+ * - runCommand (browser console eval — no element store)
  *
  * This component is self-contained and does NOT depend on any Jabberwock
  * internal stores or modules — it only uses the VS Code API for message passing.
@@ -347,25 +347,17 @@ export interface DevtoolProviderProps {
 // ── DOM Element Lookup Helpers ──────────────────────────────────────────────
 
 function findElementById(id: string): Element | null {
-	// 1. Check element store ($N references from findElement)
-	const storeMatch = id.match(/^\$(\d+)$/)
-	if (storeMatch) {
-		const index = parseInt(storeMatch[1]!) - 1
-		if (index >= 0 && index < elementStore.length && elementStore[index]) {
-			return elementStore[index]!
-		}
-	}
-	// 2. Try data-testid lookup (the id param could be a data-testid value)
+	// 1. Try data-testid lookup (the id param could be a data-testid value)
 	const el = document.querySelector(`[data-testid="${CSS.escape(id)}"]`)
 	if (el) return el
-	// 3. Try CSS selector (for cases like '[data-testid="foo"]' passed as id)
+	// 2. Try CSS selector (for cases like '[data-testid="foo"]' passed as id)
 	try {
 		const bySelector = document.querySelector(id)
 		if (bySelector) return bySelector
 	} catch {
 		// not a valid CSS selector, continue
 	}
-	// 4. Fallback to DOM id
+	// 3. Fallback to DOM id
 	return document.getElementById(id)
 }
 
@@ -375,133 +367,6 @@ function findElementBySelector(selector: string): Element | null {
 	} catch {
 		return null
 	}
-}
-
-// ── Element Store for $1, $2, $3 variable system ─────────────────────────
-// Each findElement call stores the found element and returns its $N index.
-// Users can then reference $1, $2, etc. via runCommand (e.g., "$1.click()").
-const elementStore: Element[] = []
-let elementCounter = 0
-
-// ── Element Command Executor ($1.click(), $2.textContent, etc.) ──────────
-// Parses and executes commands like "$1.click()", "$2.textContent",
-// "$1.scrollIntoView()", "$3.value", "$1.focus()", "$2.style.color = 'red'"
-function executeElementCommand(command: string): string {
-	const trimmed = command.trim()
-
-	// Match patterns: $N.methodName(args) or $N.property or $N.property = value
-	const match = trimmed.match(/^\$(\d+)(?:\.(.+))?$/)
-	if (match) {
-		const index = parseInt(match[1]!) - 1
-		const accessor = match[2] || ""
-
-		if (index < 0 || index >= elementStore.length || !elementStore[index]) {
-			return `Element $${match[1]} not found in store. Available: ${listElementStore()}`
-		}
-
-		const el = elementStore[index]!
-
-		if (!accessor) {
-			return `Element $${match[1]} is stored. Use $${match[1]}.method() or $${match[1]}.property`
-		}
-
-		// Handle assignment: $N.property = value
-		const assignMatch = accessor.match(/^(\w+)\s*=\s*(.+)$/)
-		if (assignMatch) {
-			const prop = assignMatch[1]!
-			const value = assignMatch[2]!.replace(/^["']|["']$/g, "")
-			;(el as unknown as Record<string, unknown>)[prop] = value
-			return `Set $${match[1]}.${prop} = "${value}"`
-		}
-
-		// Handle method calls: $N.methodName(args)
-		const methodMatch = accessor.match(/^(\w+)\(([^)]*)\)$/)
-		if (methodMatch) {
-			const methodName = methodMatch[1]!
-			const argsStr = methodMatch[2]!.trim()
-			const method = (el as unknown as Record<string, unknown>)[methodName]
-			if (typeof method !== "function") {
-				return `Method '${methodName}' not found on element $${match[1]}. Available: click, focus, blur, scrollIntoView, scrollBy, getBoundingClientRect, etc.`
-			}
-			const args = argsStr ? argsStr.split(",").map((a) => a.trim().replace(/^["']|["']$/g, "")) : []
-			const result = method.apply(el, args)
-			const resultStr = result !== undefined ? String(result) : "void"
-			return `Called $${match[1]}.${methodName}(${argsStr}) → ${resultStr}`
-		}
-
-		// Handle property access: $N.propertyName
-		const propMatch = accessor.match(/^(\w+)$/)
-		if (propMatch) {
-			const propName = propMatch[1]!
-			const value = (el as unknown as Record<string, unknown>)[propName]
-			if (value === undefined) {
-				return `Property '${propName}' not found on element $${match[1]}`
-			}
-			if (value instanceof Element) {
-				return `$${match[1]}.${propName} = <${value.tagName.toLowerCase()}>`
-			}
-			if (typeof value === "object") {
-				return `$${match[1]}.${propName} = ${JSON.stringify(value)}`
-			}
-			return `$${match[1]}.${propName} = ${String(value)}`
-		}
-
-		return `Unrecognized command: ${trimmed}. Use $N.method() or $N.property`
-	}
-
-	// ── General-purpose JavaScript evaluation (browser console) ──
-	// If the command doesn't start with $N, treat it as arbitrary JS code
-	// to be evaluated in the webview context, like a browser DevTools console.
-	try {
-		// Use indirect eval to get global scope
-		const result = (0, eval)(trimmed)
-		if (result === undefined) {
-			return "undefined"
-		}
-		if (result === null) {
-			return "null"
-		}
-		if (result instanceof Element) {
-			const tag = result.tagName.toLowerCase()
-			const id = result.getAttribute("id")
-			const cls = result.getAttribute("class")
-			return `<${tag}>${id ? ` #${id}` : ""}${cls ? ` .${cls.split(" ").join(".")}` : ""}`
-		}
-		if (result instanceof NodeList || result instanceof HTMLCollection) {
-			const arr = Array.from(result)
-			return `[${arr
-				.map((el, i) => {
-					const tag = (el as Element).tagName?.toLowerCase() || "?"
-					return `${i}: <${tag}>${(el as Element).id ? `#${(el as Element).id}` : ""}`
-				})
-				.join(", ")}] (${arr.length} elements)`
-		}
-		if (Array.isArray(result)) {
-			return JSON.stringify(result)
-		}
-		if (typeof result === "object") {
-			try {
-				return JSON.stringify(result, null, 2)
-			} catch {
-				return String(result)
-			}
-		}
-		return String(result)
-	} catch (err) {
-		return `Error: ${err instanceof Error ? err.message : String(err)}`
-	}
-}
-
-function listElementStore(): string {
-	if (elementStore.length === 0) return "(empty)"
-	return elementStore
-		.map((el, i) => {
-			const tag = el?.tagName?.toLowerCase() || "unknown"
-			const id = el?.getAttribute?.("id") || ""
-			const text = el?.textContent?.trim()?.slice(0, 30) || ""
-			return `$${i + 1} = <${tag}>${id ? ` #${id}` : ""}${text ? ` "${text}"` : ""}`
-		})
-		.join("\n")
 }
 
 export const DevtoolProvider: React.FC<DevtoolProviderProps> = ({ children, postMessage, storeSubscriptions }) => {
@@ -525,26 +390,6 @@ export const DevtoolProvider: React.FC<DevtoolProviderProps> = ({ children, post
 				return
 			}
 
-			// ── getDom ──
-			if (message.type === "getDom" && message.requestId) {
-				const req = message as { requestId: string; maxDepth?: number; maxChildren?: number }
-				const userMaxDepth = typeof req.maxDepth === "number" ? req.maxDepth : 20
-				const userMaxChildren = typeof req.maxChildren === "number" ? req.maxChildren : 20
-				try {
-					const rootEl = document.getElementById("root") || document.body
-					const tree = serializeDomToTree(rootEl, 0, userMaxDepth, userMaxChildren)
-					const output = JSON.stringify(tree, null, 2)
-					postMessage({ type: "domResponse", requestId: req.requestId, text: output })
-				} catch (err) {
-					postMessage({
-						type: "domResponse",
-						requestId: req.requestId,
-						text: `Error serializing DOM: ${err instanceof Error ? err.message : String(err)}`,
-					})
-				}
-				return
-			}
-
 			// ── Other DOM actions (sent as { type: "action", action: "xxx", ... }) ──
 			if (message.type !== "action" || !message.requestId) return
 
@@ -553,22 +398,63 @@ export const DevtoolProvider: React.FC<DevtoolProviderProps> = ({ children, post
 
 			// ── findElement ──
 			if (action === "findElement") {
-				const req = message as { requestId: string; selector: string }
+				const req = message as {
+					requestId: string
+					selector: string
+					depth?: number
+					maxChildren?: number
+					command?: string
+				}
 				try {
-					const el = findElementBySelector(req.selector)
-					if (el) {
-						elementCounter++
-						const varName = `$${elementCounter}`
-						elementStore[elementCounter - 1] = el
-						const domLines = JSON.stringify(serializeDomToTree(el, 0, 3, 10), null, 2)
-						postMessage({
-							type: "domResponse",
-							requestId,
-							text: `Element found: ${varName}\n${domLines}`,
-						})
-					} else {
+					// Use "*" to get full DOM tree (replaces old get_dom)
+					const el =
+						req.selector === "*"
+							? document.getElementById("root") || document.body
+							: findElementBySelector(req.selector)
+
+					if (!el) {
 						postMessage({ type: "domResponse", requestId, text: `Element not found: ${req.selector}` })
+						return
 					}
+
+					// Serialize DOM subtree with configurable depth/maxChildren
+					const domDepth = req.depth ?? (req.selector === "*" ? 20 : 3)
+					const domMaxChildren = req.maxChildren ?? 20
+					const tree = serializeDomToTree(el, 0, domDepth, domMaxChildren)
+					let output = JSON.stringify(tree, null, 2)
+
+					// Execute command if provided (use $0 to reference the found element)
+					// Uses new Function with an implicit return wrapper so expressions
+					// return their value (like run_command's eval behavior).
+					if (req.command) {
+						try {
+							const fn = new Function("$0", `return (${req.command})`)
+							const commandResult = fn(el)
+							const resultStr =
+								commandResult === undefined
+									? "undefined"
+									: commandResult === null
+										? "null"
+										: commandResult instanceof Element
+											? `<${commandResult.tagName.toLowerCase()}>`
+											: commandResult instanceof NodeList ||
+												  commandResult instanceof HTMLCollection
+												? `[${Array.from(commandResult)
+														.map((el2, i) => {
+															const tag = (el2 as Element).tagName?.toLowerCase() || "?"
+															return `${i}: <${tag}>${(el2 as Element).id ? `#${(el2 as Element).id}` : ""}`
+														})
+														.join(", ")}] (${commandResult.length} elements)`
+												: typeof commandResult === "object"
+													? JSON.stringify(commandResult, null, 2)
+													: String(commandResult)
+							output += `\n\nCommand result:\n${resultStr}`
+						} catch (cmdErr) {
+							output += `\n\nCommand error: ${cmdErr instanceof Error ? cmdErr.message : String(cmdErr)}`
+						}
+					}
+
+					postMessage({ type: "domResponse", requestId, text: output })
 				} catch (err) {
 					postMessage({
 						type: "domResponse",
@@ -583,8 +469,28 @@ export const DevtoolProvider: React.FC<DevtoolProviderProps> = ({ children, post
 			if (action === "runCommand") {
 				const req = message as { requestId: string; command: string }
 				try {
-					const result = executeElementCommand(req.command)
-					postMessage({ type: "domResponse", requestId, text: result })
+					// Use indirect eval to get global scope
+					const result = (0, eval)(req.command)
+					const output =
+						result === undefined
+							? "undefined"
+							: result === null
+								? "null"
+								: result instanceof Element
+									? `<${result.tagName.toLowerCase()}>`
+									: result instanceof NodeList || result instanceof HTMLCollection
+										? `[${Array.from(result)
+												.map((el, i) => {
+													const tag = (el as Element).tagName?.toLowerCase() || "?"
+													return `${i}: <${tag}>${(el as Element).id ? `#${(el as Element).id}` : ""}`
+												})
+												.join(", ")}] (${result.length} elements)`
+										: Array.isArray(result)
+											? JSON.stringify(result)
+											: typeof result === "object"
+												? JSON.stringify(result, null, 2)
+												: String(result)
+					postMessage({ type: "domResponse", requestId, text: output })
 				} catch (err) {
 					postMessage({
 						type: "domResponse",

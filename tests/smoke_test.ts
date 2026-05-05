@@ -244,7 +244,7 @@ async function runSmokeTest() {
 			})
 
 			await When("I retrieve the DOM structure", async () => {
-				const dom = await app.getDom()
+				const dom = await app.findElementBySelector("*")
 				console.log(`  ✓ DOM retrieved (length: ${dom.length} characters)`)
 			})
 

@@ -1,7 +1,7 @@
 /**
  * DOM Model — Core DOM interaction primitives.
  *
- * All methods are implemented via DevtoolClient primitives (getDom, findElement,
+ * All methods are implemented via DevtoolClient primitives (findElement,
  * clickElement, typeText, runCommand) — NO interceptor usage.
  *
  * This is the lowest-level model; all other models build on top of it.
@@ -13,31 +13,35 @@ export class DomModel {
 	constructor(public readonly client: DevtoolClient) {}
 
 	/**
-	 * Get the DOM structure of the webview.
-	 */
-	async getDom(maxDepth?: number, maxChildren?: number): Promise<string> {
-		return this.client.getDom(maxDepth, maxChildren)
-	}
-
-	/**
 	 * Find a DOM element by its text content.
+	 * Optionally accepts depth/maxChildren for DOM tree depth control,
+	 * and a command to execute on the found element (use $0 as the element reference).
 	 */
-	async findElementByText(text: string): Promise<string> {
-		return this.client.findElement(text)
+	async findElementByText(text: string, depth?: number, maxChildren?: number, command?: string): Promise<string> {
+		return this.client.findElement(text, depth, maxChildren, command)
 	}
 
 	/**
 	 * Find a DOM element by CSS selector.
+	 * Optionally accepts depth/maxChildren for DOM tree depth control,
+	 * and a command to execute on the found element (use $0 as the element reference).
 	 */
-	async findElementBySelector(selector: string): Promise<string> {
-		return this.client.findElement(selector)
+	async findElementBySelector(
+		selector: string,
+		depth?: number,
+		maxChildren?: number,
+		command?: string,
+	): Promise<string> {
+		return this.client.findElement(selector, depth, maxChildren, command)
 	}
 
 	/**
 	 * Find a DOM element by its ID.
+	 * Optionally accepts depth/maxChildren for DOM tree depth control,
+	 * and a command to execute on the found element (use $0 as the element reference).
 	 */
-	async findElementById(id: string): Promise<string> {
-		return this.client.findElement(id)
+	async findElementById(id: string, depth?: number, maxChildren?: number, command?: string): Promise<string> {
+		return this.client.findElement(id, depth, maxChildren, command)
 	}
 
 	/**

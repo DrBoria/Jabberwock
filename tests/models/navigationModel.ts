@@ -22,7 +22,7 @@ export class NavigationModel {
 	 * Get the currently active page by inspecting the DOM for data-window-type elements.
 	 */
 	async getActivePage(): Promise<string> {
-		const dom = await this.dom.getDom(10)
+		const dom = await this.dom.findElementBySelector("*", 10)
 		const lines = dom.split("\n")
 		const windowTypes: string[] = []
 		for (const line of lines) {
@@ -55,7 +55,7 @@ export class NavigationModel {
 	 * in document order. The "App" base layer is filtered out.
 	 */
 	async getUiWindowStack(): Promise<string[]> {
-		const dom = await this.dom.getDom(10)
+		const dom = await this.dom.findElementBySelector("*", 10)
 		const lines = dom.split("\n")
 		const windowTypes: string[] = []
 		for (const line of lines) {

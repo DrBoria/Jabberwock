@@ -195,38 +195,6 @@ function getTimerQueue(): ReturnType<typeof createTimerQueueStore> {
 	return _timerQueue
 }
 
-export function getWebviewDom(provider: ClineProvider, maxDepth?: number, maxChildren?: number): Promise<string> {
-	const p = provider as any
-	const requestId = Math.random().toString(36).substring(7)
-	console.log(`[DEBUG: DOM] Extension: Sending getDom request ${requestId}`)
-	return new Promise((resolve, reject) => {
-		p.pendingDomRequests.set(requestId, resolve)
-
-		postMessageToWebview(provider, {
-			type: "getDom",
-			requestId,
-			maxDepth,
-			maxChildren,
-		} as any)
-
-		const domTimeoutId = `dom-request-${requestId}`
-		getTimerQueue().schedule({
-			id: domTimeoutId,
-			label: "DOM request timeout",
-			timeoutMs: 10000,
-		})
-		getTimerQueue()
-			.createAbortPromise(domTimeoutId)
-			.then(() => {
-				if (p.pendingDomRequests.has(requestId)) {
-					console.log(`[DEBUG: DOM] Extension: TIMEOUT for request ${requestId}`)
-					p.pendingDomRequests.delete(requestId)
-					reject(new Error(`Timeout requesting webview DOM (req: ${requestId})`))
-				}
-			})
-	})
-}
-
 /**
  * Resolve a pending DOM request.
  */

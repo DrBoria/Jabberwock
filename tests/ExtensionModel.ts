@@ -82,7 +82,7 @@ export class ExtensionModel {
 
 	// ── Sub-models ───────────────────────────────────────────────────────
 
-	/** Core DOM primitives (getDom, findElement, clickElement, etc.) */
+	/** Core DOM primitives (findElement, clickElement, typeText, etc.) */
 	public readonly dom: DomModel
 	/** Page navigation (navigateTo*, verifyActivePage, etc.) */
 	public readonly nav: NavigationModel
@@ -154,20 +154,21 @@ export class ExtensionModel {
 	//  CORE DOM PRIMITIVES
 	// ══════════════════════════════════════════════════════════════════════
 
-	async getDom(maxDepth?: number, maxChildren?: number): Promise<string> {
-		return this.dom.getDom(maxDepth, maxChildren)
+	async findElementByText(text: string, depth?: number, maxChildren?: number, command?: string): Promise<string> {
+		return this.dom.findElementByText(text, depth, maxChildren, command)
 	}
 
-	async findElementByText(text: string): Promise<string> {
-		return this.dom.findElementByText(text)
+	async findElementBySelector(
+		selector: string,
+		depth?: number,
+		maxChildren?: number,
+		command?: string,
+	): Promise<string> {
+		return this.dom.findElementBySelector(selector, depth, maxChildren, command)
 	}
 
-	async findElementBySelector(selector: string): Promise<string> {
-		return this.dom.findElementBySelector(selector)
-	}
-
-	async findElementById(id: string): Promise<string> {
-		return this.dom.findElementById(id)
+	async findElementById(id: string, depth?: number, maxChildren?: number, command?: string): Promise<string> {
+		return this.dom.findElementById(id, depth, maxChildren, command)
 	}
 
 	async clickElement(id: string): Promise<string> {

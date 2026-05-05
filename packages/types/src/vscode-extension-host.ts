@@ -109,7 +109,6 @@ export interface ExtensionMessage {
 		| "diagnostics"
 		| "chatTreeSnapshot"
 		| "chatTreePatch"
-		| "getDom"
 
 	text?: string
 	snapshot?: any // eslint-disable-line @typescript-eslint/no-explicit-any

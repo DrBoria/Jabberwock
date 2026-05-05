@@ -15,7 +15,7 @@ export function registerDomTools(mcpServer: McpServer, bridge: ExtensionBridge) 
 			command: z
 				.string()
 				.describe(
-					'Browser console in the webview. Execute arbitrary JavaScript in the extension UI context (like Chrome DevTools console). Examples: document.querySelector(".btn"), window.innerWidth, localStorage.getItem("key"), document.title, navigator.userAgent. Also supports $1.click(), $2.textContent on elements stored by find_element.',
+					'Browser console in the webview. Execute arbitrary JavaScript in the extension UI context (like Chrome DevTools console). Examples: document.querySelector(".btn"), window.innerWidth, localStorage.getItem("key"), document.title, navigator.userAgent.',
 				),
 		},
 		async ({ command }) => {
@@ -34,44 +34,33 @@ export function registerDomTools(mcpServer: McpServer, bridge: ExtensionBridge) 
 	)
 
 	mcpServer.tool(
-		"get_dom",
-		{
-			maxDepth: z
-				.number()
-				.optional()
-				.describe("Maximum DOM depth to return (default: unlimited). Use lower values for a shallow overview."),
-			maxChildren: z
-				.number()
-				.optional()
-				.describe("Max children per node to show (default: all). Truncates wide nodes."),
-		},
-		async ({ maxDepth, maxChildren }) => {
-			try {
-				const dom = await bridge.getDom(maxDepth, maxChildren)
-				return { content: [{ type: "text", text: dom }] }
-			} catch (error) {
-				return {
-					content: [
-						{ type: "text", text: `Error: ${error instanceof Error ? error.message : String(error)}` },
-					],
-					isError: true,
-				}
-			}
-		},
-	)
-
-	mcpServer.tool(
 		"find_element",
 		{
 			selector: z
 				.string()
 				.describe(
-					'CSS selector or text to find. Supports all CSS selectors: #id, .class, [data-testid="x"], [name="y"], button, input, etc. Also falls back to text content search if the selector doesn\'t match a DOM element.',
+					'CSS selector or text to find. Use "*" to get the full DOM tree (replaces old get_dom). Supports all CSS selectors: #id, .class, [data-testid="x"], [name="y"], button, input, etc. Falls back to text content search if the selector doesn\'t match a DOM element.',
+				),
+			depth: z
+				.number()
+				.optional()
+				.describe(
+					"Maximum DOM depth to serialize (default: unlimited for '*', 3 for specific selectors). Use lower values for a shallow overview.",
+				),
+			maxChildren: z
+				.number()
+				.optional()
+				.describe("Max children per node to show (default: all). Truncates wide nodes."),
+			command: z
+				.string()
+				.optional()
+				.describe(
+					"JavaScript command to execute on the found element. Use '$0' to reference the found DOM element. Examples: '$0.click()', '$0.value = \"hello\"', 'Array.from($0.querySelectorAll(\"div\")).map(el => el.innerText)'",
 				),
 		},
-		async ({ selector }) => {
+		async ({ selector, depth, maxChildren, command }) => {
 			try {
-				const result = await bridge.findElement(selector)
+				const result = await bridge.findElement(selector, depth, maxChildren, command)
 				return { content: [{ type: "text", text: result }] }
 			} catch (error) {
 				return {

@@ -22,7 +22,7 @@ import { diagnosticsManager } from "./diagnostics/index.js"
  */
 export interface DevtoolBridgeProvider {
 	/** Get the webview DOM as a serialized tree string */
-	getWebviewDom(maxDepth?: number, maxChildren?: number): Promise<string>
+	findElement(selector: string, depth?: number, maxChildren?: number, command?: string): Promise<string>
 
 	/** Post a message to the webview */
 	postMessageToWebview(message: Record<string, unknown>): void
@@ -87,12 +87,8 @@ export function createDevtoolBridge(
 	return {
 		// ── DOM Interaction ──────────────────────────────────────────────────
 
-		async getDom(maxDepth?: number, maxChildren?: number): Promise<string> {
-			return provider.getWebviewDom(maxDepth, maxChildren)
-		},
-
-		async findElement(selector: string): Promise<string> {
-			return sendDomQuery(provider, "findElement", { selector })
+		async findElement(selector: string, depth?: number, maxChildren?: number, command?: string): Promise<string> {
+			return sendDomQuery(provider, "findElement", { selector, depth, maxChildren, command })
 		},
 
 		async clickElement(id: string): Promise<string> {

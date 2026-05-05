@@ -897,11 +897,6 @@ export class ClineProvider
 		return false
 	}
 
-	public async getWebviewDom(maxDepth?: number, maxChildren?: number): Promise<string> {
-		const { getWebviewDom } = await import("../features/foundation/window-manager/store")
-		return getWebviewDom(this, maxDepth, maxChildren)
-	}
-
 	public resolveDomRequest(requestId: string, dom: string) {
 		const { resolveDomRequest } = require("../features/foundation/window-manager/store")
 		return resolveDomRequest(this, requestId, dom)

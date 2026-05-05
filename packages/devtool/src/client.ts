@@ -5,7 +5,7 @@
  * - Reading the WebSocket URL from mcp_settings.json
  * - WebSocket connection management (connect, disconnect, reconnect)
  * - JSON-RPC message passing (initialize, tools/call)
- * - Exposing raw primitives (getDom, clickElement, findElement, etc.)
+ * - Exposing raw primitives (findElement, clickElement, runCommand, etc.)
  *
  * Tests should NOT use this directly. Instead, use ExtensionModel (Page Model)
  * which composes these primitives into declarative, domain-specific methods.
@@ -13,7 +13,7 @@
  * Usage:
  *   const client = new DevtoolClient()
  *   await client.connect()
- *   const dom = await client.getDom()
+ *   const dom = await client.findElement("*")
  *   await client.clickElement("#some-id")
  *   await client.disconnect()
  */
@@ -405,17 +405,12 @@ export class DevtoolClient {
 	}
 
 	/**
-	 * Get the full DOM serialization of the webview.
-	 */
-	async getDom(maxDepth?: number, maxChildren?: number): Promise<string> {
-		return this.callTool("get_dom", { maxDepth, maxChildren }) as Promise<string>
-	}
-
-	/**
 	 * Find a DOM element by selector (text, CSS, or data-testid).
+	 * Optionally accepts depth/maxChildren for DOM tree depth control,
+	 * and a command to execute on the found element (use $0 as the element reference).
 	 */
-	async findElement(selector: string): Promise<string> {
-		return this.callTool("find_element", { selector }) as Promise<string>
+	async findElement(selector: string, depth?: number, maxChildren?: number, command?: string): Promise<string> {
+		return this.callTool("find_element", { selector, depth, maxChildren, command }) as Promise<string>
 	}
 
 	/**
