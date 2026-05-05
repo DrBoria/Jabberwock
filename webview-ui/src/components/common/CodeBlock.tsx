@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef, useCallback, useState } from "react"
 import styled from "styled-components"
-import { useCopyToClipboard } from "@src/features/chat/utils/clipboard"
+import { useCopyToClipboard } from "@src/features/chat/text-area/utils/clipboard"
 import { getHighlighter, isLanguageLoaded, normalizeLanguage } from "@src/utils/highlighter"
 import type { ShikiTransformer } from "shiki"
 import { toJsxRuntime } from "hast-util-to-jsx-runtime"

@@ -25,7 +25,7 @@ vi.mock("@src/features/cloud/utils/TelemetryClient", () => ({
 	},
 }))
 
-vi.mock("@src/components/chat/ChatView", () => ({
+vi.mock("@src/features/chat/ChatView", () => ({
 	__esModule: true,
 	default: function ChatView({ isHidden }: { isHidden: boolean }) {
 		return (

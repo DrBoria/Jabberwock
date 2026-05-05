@@ -1,4 +1,4 @@
-import { batchConsecutive } from "../../features/foundation/utils/batchConsecutive"
+import { batchConsecutive } from "../../features/foundation/agent-state/mode-selector/utils/batchConsecutive"
 
 interface TestItem {
 	ts: number

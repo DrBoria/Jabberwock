@@ -21,7 +21,7 @@ export default [
 		},
 	},
 	{
-		files: ["src/components/chat/ChatRow.tsx", "src/components/settings/ModelInfoView.tsx"],
+		files: ["src/components/chat/ChatRow.tsx", "src/components/settings/ModelInfoView.tsx", "src/features/chat/messages-list/row/view.tsx"],
 		rules: {
 			"react/jsx-key": "off",
 		},
@@ -32,6 +32,7 @@ export default [
 			"src/components/chat/ChatView.tsx",
 			"src/components/chat/BrowserSessionRow.tsx",
 			"src/components/history/useTaskSearch.ts",
+			"src/features/chat/messages-list/row/view.tsx",
 		],
 		rules: {
 			"no-case-declarations": "off",

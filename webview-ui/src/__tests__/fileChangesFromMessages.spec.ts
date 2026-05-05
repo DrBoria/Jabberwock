@@ -1,5 +1,5 @@
 import type { ClineMessage } from "@jabberwock/types"
-import { fileChangesFromMessages } from "../components/chat/utils/fileChangesFromMessages"
+import { fileChangesFromMessages } from "../features/chat/messages-list/utils/file-changes-from-messages"
 
 function msg(overrides: Partial<ClineMessage> & { text: string }): ClineMessage {
 	return {

@@ -2,7 +2,7 @@ import React from "react"
 import { fireEvent, render, screen } from "@/utils/test-utils"
 import type { ClineMessage } from "@jabberwock/types"
 import { TranslationProvider } from "@/i18n/__mocks__/TranslationContext"
-import FileChangesPanel from "../components/chat/FileChangesPanel"
+import FileChangesPanel from "../features/chat/messages-list/file-changes-panel"
 
 const mockPostMessage = vi.fn()
 

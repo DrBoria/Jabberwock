@@ -82,7 +82,7 @@ vi.mock("../../../utils/highlighter", () => {
 })
 
 // Mock clipboard utility
-vi.mock("../../../features/chat/utils/clipboard", () => ({
+vi.mock("../../../features/chat/text-area/utils/clipboard", () => ({
 	useCopyToClipboard: () => ({
 		showCopyFeedback: false,
 		copyWithFeedback: vi.fn(),

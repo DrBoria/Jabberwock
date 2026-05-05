@@ -11,7 +11,7 @@ import {
 
 import { RouterName } from "@shared/api"
 
-import { routerModelsStore } from "@src/features/router-models/store"
+import { routerModelsStore } from "@src/features/settings/models/store"
 
 import { vscode } from "@jabberwock/devtool/react"
 import { useExtensionState } from "@src/context/ExtensionStateContext"

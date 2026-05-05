@@ -25,8 +25,18 @@ export const WindowManagerStore = types
 	})
 	.actions((self) => ({
 		pushWindow(type: WindowTypeValue, props?: any) {
-			// Avoid duplicates of the same exact type at the top of the stack
-			if (self.activeWindows.length > 0 && self.activeWindows[self.activeWindows.length - 1].type === type) return
+			const top = self.activeWindows[self.activeWindows.length - 1]
+			if (top) {
+				// Allow multiple chat windows if they are for different task nodes
+				if (type === "chat" && top.type === "chat") {
+					const topTargetId = top.props?.targetNodeId
+					const newTargetId = props?.targetNodeId
+					if (topTargetId === newTargetId) return // Same task, skip
+					// Different targetNodeId → push on top (creates overlay)
+				} else if (top.type === type) {
+					return // Same non-chat type → skip
+				}
+			}
 			self.activeWindows.push({ type, props })
 		},
 		popWindow(index?: number) {

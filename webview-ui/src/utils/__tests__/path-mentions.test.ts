@@ -1,4 +1,4 @@
-import { escapeSpaces, convertToMentionPath } from "../../features/chat/utils/path-mentions"
+import { escapeSpaces, convertToMentionPath } from "../../features/chat/text-area/utils/path-mentions"
 
 describe("Path Mentions Utilities", () => {
 	describe("escapeSpaces", () => {

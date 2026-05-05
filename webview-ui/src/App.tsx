@@ -12,32 +12,35 @@ import { vscode } from "@jabberwock/devtool/react"
 import { telemetryClient } from "./features/cloud/utils/TelemetryClient"
 import { initializeSourceMaps, exposeSourceMapsForDebugging } from "@jabberwock/devtool/react"
 import { ExtensionStateContextProvider, useExtensionState } from "./context/ExtensionStateContext"
-import { ChatTreeProvider } from "./features/chat/tree/store"
+import { ChatTreeProvider } from "./features/chat/messages-list/store"
 import {
 	WindowManagerProvider,
 	useWindowManager,
 	type WindowTypeValue,
 } from "./features/foundation/window-manager/store"
-import { WindowLayer } from "./components/layout/WindowLayer"
+import { WindowLayer } from "./features/foundation/window-manager/window-layer"
 
-import ChatView, { ChatViewRef } from "./components/chat/ChatView"
-import { ChatUIProvider } from "./features/chat/ui/store"
+import ChatView, { ChatViewRef } from "./features/chat/messages-list/view"
+import { ChatUIProvider } from "./features/chat/store"
 import HistoryView from "./components/history/HistoryView"
 import SettingsView, { SettingsViewRef } from "./components/settings/SettingsView"
 import WelcomeView from "./components/welcome/WelcomeViewProvider"
 import { MarketplaceView } from "./components/marketplace/MarketplaceView"
-import { CheckpointRestoreDialog } from "./components/chat/CheckpointRestoreDialog"
-import { DeleteMessageDialog, EditMessageDialog } from "./components/chat/MessageModificationConfirmationDialog"
+import { CheckpointRestoreDialog } from "./features/chat/notifications/checkpoint/checkpoint-restore-dialog"
+import {
+	DeleteMessageDialog,
+	EditMessageDialog,
+} from "./features/chat/notifications/message-modification-confirmation-dialog"
 import ErrorBoundary from "./components/ErrorBoundary"
 import { CloudView } from "./components/cloud/CloudView"
 import { useAddNonInteractiveClickListener } from "./components/ui/hooks/useNonInteractiveClick"
 import { TooltipProvider } from "./components/ui/tooltip"
 import { STANDARD_TOOLTIP_DELAY } from "./components/ui/standard-tooltip"
-import { McpIframeRenderer } from "./features/mcp-apps/McpIframeRenderer"
+import { McpIframeRenderer } from "./features/settings/mcp/McpIframeRenderer"
 import { getAllModes } from "@shared/modes"
 import { LocatorBridge } from "@jabberwock/devtool/react"
-import { ChatTreeViewer } from "./components/chat/ChatTreeViewer"
-import { chatTreeStore } from "./features/chat/tree/store"
+import { ChatTreeViewer } from "./features/chat/messages-list/sidebar"
+import { chatTreeStore } from "./features/chat/messages-list/store"
 
 import { DevtoolProvider } from "@jabberwock/devtool/react"
 

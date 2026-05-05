@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react"
 import mermaid from "mermaid"
 import styled from "styled-components"
-import { useDebounceEffect } from "@src/features/foundation/utils/useDebounceEffect"
+import { useDebounceEffect } from "@/features/foundation/agent-state/mode-selector/utils/useDebounceEffect"
 import { vscode } from "@jabberwock/devtool/react"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { useCopyToClipboard } from "@src/features/chat/utils/clipboard"
+import { useCopyToClipboard } from "@src/features/chat/text-area/utils/clipboard"
 import CodeBlock from "./CodeBlock"
 import { MermaidButton } from "@/components/common/MermaidButton"
 

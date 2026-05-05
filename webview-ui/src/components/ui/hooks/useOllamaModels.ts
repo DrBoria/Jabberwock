@@ -4,7 +4,7 @@ import { onSnapshot } from "mobx-state-tree"
 import { type ModelRecord } from "@jabberwock/types"
 
 import { vscode } from "@jabberwock/devtool/react"
-import { routerModelsStore } from "@src/features/router-models/store"
+import { routerModelsStore } from "@src/features/settings/models/store"
 
 const getOllamaModels = async () =>
 	new Promise<ModelRecord>((resolve, reject) => {

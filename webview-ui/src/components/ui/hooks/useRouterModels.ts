@@ -4,7 +4,7 @@ import { onSnapshot } from "mobx-state-tree"
 import { type RouterModels } from "@jabberwock/types"
 
 import { vscode } from "@jabberwock/devtool/react"
-import { routerModelsStore } from "@src/features/router-models/store"
+import { routerModelsStore } from "@src/features/settings/models/store"
 
 type UseRouterModelsOptions = {
 	provider?: string // single provider filter (e.g. "jabberwock")

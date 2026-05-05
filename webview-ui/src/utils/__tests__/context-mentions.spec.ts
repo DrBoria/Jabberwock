@@ -6,7 +6,7 @@ import {
 	ContextMenuOptionType,
 	ContextMenuQueryItem,
 	SearchResult,
-} from "@src/features/chat/utils/context-mentions"
+} from "@src/features/chat/text-area/utils/context-mentions"
 
 describe("insertMention", () => {
 	it("should insert mention at cursor position when no @ symbol exists", () => {
