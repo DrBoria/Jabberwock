@@ -146,7 +146,6 @@ export async function handleFindElement(ctx: DomHandlerContext, req: Record<stri
 		// its serialized DOM. The iframe content must handle "dom-query" messages.
 		try {
 			const iframes = document.querySelectorAll<HTMLIFrameElement>("iframe[src]")
-			const iframeResults: string[] = []
 			for (const iframe of iframes) {
 				const src = iframe.getAttribute("src") || ""
 				if (!src.startsWith("http://") && !src.startsWith("https://")) continue
@@ -175,9 +174,7 @@ export async function handleFindElement(ctx: DomHandlerContext, req: Record<stri
 								if (parsedDoc.body) {
 									const iframeTree = serializeDomToTree(parsedDoc.body, 0, domDepth, domMaxChildren)
 									if (Object.keys(iframeTree).length > 0) {
-										iframeResults.push(
-											`\n\n=== Iframe content (${src}) ===\n${JSON.stringify(iframeTree, null, 2)}`,
-										)
+										output += `\n\n=== Iframe content (${src}) ===\n${JSON.stringify(iframeTree, null, 2)}`
 									}
 								}
 							}
@@ -186,9 +183,6 @@ export async function handleFindElement(ctx: DomHandlerContext, req: Record<stri
 						output += `\n\n=== Iframe content (${src}) ===\nError: ${fetchErr instanceof Error ? fetchErr.message : String(fetchErr)}`
 					}
 				}
-			}
-			if (iframeResults.length > 0) {
-				output += iframeResults.join("")
 			}
 		} catch {
 			// Ignore iframe query errors

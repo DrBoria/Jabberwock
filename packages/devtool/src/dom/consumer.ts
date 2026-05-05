@@ -118,7 +118,19 @@ function handleClick(event: MessageEvent, req: Record<string, unknown>): void {
 		el.dispatchEvent(new MouseEvent("click", opts))
 	}
 
-	respond(event, { result: { success: true, message: `Clicked ${req.selector}` } })
+	// Build a descriptive label for the clicked element
+	const tag = el.tagName.toLowerCase()
+	const text = (el.textContent || "").trim().slice(0, 80)
+	const id = el.getAttribute("id")
+	const testId = el.getAttribute("data-testid")
+	const ariaLabel = el.getAttribute("aria-label")
+	const labelParts: string[] = [`<${tag}>`]
+	if (id) labelParts.push(`#${id}`)
+	if (testId) labelParts.push(`[data-testid="${testId}"]`)
+	if (ariaLabel) labelParts.push(`aria-label="${ariaLabel}"`)
+	if (text) labelParts.push(`"${text}"`)
+
+	respond(event, { result: { success: true, message: `Clicked ${labelParts.join(" ")}` } })
 }
 
 function handleType(event: MessageEvent, req: Record<string, unknown>): void {
