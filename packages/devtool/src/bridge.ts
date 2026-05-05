@@ -17,9 +17,9 @@
  */
 export interface ExtensionBridge {
 	findElement(selector: string, depth?: number, maxChildren?: number, command?: string): Promise<string>
-	clickElement(id: string): Promise<string>
-	scrollElement(id: string, direction: string): Promise<string>
-	typeText(id: string, text: string): Promise<string>
+	clickElement(id?: string, selector?: string): Promise<string>
+	scrollElement(id?: string, direction?: string, selector?: string): Promise<string>
+	typeText(id?: string, selector?: string, text?: string, submit?: boolean): Promise<string>
 	selectOption(id: string, value: string): Promise<string>
 
 	/**

@@ -91,16 +91,16 @@ export function createDevtoolBridge(
 			return sendDomQuery(provider, "findElement", { selector, depth, maxChildren, command })
 		},
 
-		async clickElement(id: string): Promise<string> {
-			return sendDomQuery(provider, "clickElement", { id })
+		async clickElement(id?: string, selector?: string): Promise<string> {
+			return sendDomQuery(provider, "clickElement", { id, selector })
 		},
 
-		async scrollElement(id: string, direction: "up" | "down" | "left" | "right"): Promise<string> {
-			return sendDomQuery(provider, "scrollElement", { id, direction })
+		async scrollElement(id?: string, direction?: string, selector?: string): Promise<string> {
+			return sendDomQuery(provider, "scrollElement", { id, direction, selector })
 		},
 
-		async typeText(id: string, text: string): Promise<string> {
-			return sendDomQuery(provider, "typeText", { id, text })
+		async typeText(id?: string, selector?: string, text?: string, submit?: boolean): Promise<string> {
+			return sendDomQuery(provider, "typeText", { id, selector, text, submit })
 		},
 
 		async selectOption(id: string, value: string): Promise<string> {

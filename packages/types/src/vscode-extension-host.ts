@@ -109,6 +109,7 @@ export interface ExtensionMessage {
 		| "diagnostics"
 		| "chatTreeSnapshot"
 		| "chatTreePatch"
+		| "fetchUrlResponse"
 
 	text?: string
 	snapshot?: any // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -615,6 +616,7 @@ export interface WebviewMessage {
 		| "domResponse"
 		| "activePageResponse"
 		| "webviewError"
+		| "fetchUrl"
 	text?: string
 	taskId?: string
 	editedMessageContent?: string

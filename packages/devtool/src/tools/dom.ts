@@ -76,11 +76,12 @@ export function registerDomTools(mcpServer: McpServer, bridge: ExtensionBridge) 
 	mcpServer.tool(
 		"click_element",
 		{
-			id: z.string().describe("The DOM element ID to click"),
+			id: z.string().optional().describe("The DOM element ID to click (alternative to selector)"),
+			selector: z.string().optional().describe("CSS selector of the element to click (preferred over id)"),
 		},
-		async ({ id }) => {
+		async ({ id, selector }) => {
 			try {
-				const result = await bridge.clickElement(id)
+				const result = await bridge.clickElement(id, selector)
 				return { content: [{ type: "text", text: result }] }
 			} catch (error) {
 				return {
@@ -96,14 +97,20 @@ export function registerDomTools(mcpServer: McpServer, bridge: ExtensionBridge) 
 	mcpServer.tool(
 		"scroll_element",
 		{
-			id: z.string().describe("The DOM element ID to scroll"),
+			id: z.string().optional().describe("The DOM element ID to scroll (alternative to selector)"),
 			direction: z
 				.enum(["up", "down", "left", "right"])
 				.describe("Direction to scroll: up, down, left, or right"),
+			selector: z
+				.string()
+				.optional()
+				.describe(
+					"CSS selector of the element to scroll (preferred over id). Supports iframe-targeted selectors like 'iframe[src*=\"...\"] .content'",
+				),
 		},
-		async ({ id, direction }) => {
+		async ({ id, direction, selector }) => {
 			try {
-				const result = await bridge.scrollElement(id, direction)
+				const result = await bridge.scrollElement(id, direction, selector)
 				return { content: [{ type: "text", text: result }] }
 			} catch (error) {
 				return {
@@ -119,12 +126,17 @@ export function registerDomTools(mcpServer: McpServer, bridge: ExtensionBridge) 
 	mcpServer.tool(
 		"type_text",
 		{
-			id: z.string().describe("The DOM element ID to type into (e.g. input, textarea)"),
+			id: z.string().optional().describe("The DOM element ID to type into (alternative to selector)"),
+			selector: z.string().optional().describe("CSS selector of the element to type into (preferred over id)"),
 			text: z.string().describe("The text to type into the element"),
+			submit: z
+				.boolean()
+				.optional()
+				.describe("If true, dispatch Enter keydown/keyup after typing (for form submission)"),
 		},
-		async ({ id, text }) => {
+		async ({ id, selector, text, submit }) => {
 			try {
-				const result = await bridge.typeText(id, text)
+				const result = await bridge.typeText(id, selector, text, submit)
 				return { content: [{ type: "text", text: result }] }
 			} catch (error) {
 				return {

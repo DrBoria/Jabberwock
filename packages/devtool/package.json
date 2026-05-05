@@ -5,7 +5,8 @@
 	"type": "module",
 	"exports": {
 		".": "./src/index.ts",
-		"./react": "./src/react-entry.ts"
+		"./react": "./src/react-entry.ts",
+		"./dom/consumer": "./src/dom/consumer.ts"
 	},
 	"scripts": {
 		"lint": "eslint src --ext=ts --max-warnings=0",

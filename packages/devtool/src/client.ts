@@ -415,16 +415,22 @@ export class DevtoolClient {
 
 	/**
 	 * Click a DOM element by its id or CSS selector.
+	 * @param id - The DOM element ID to click (alternative to selector)
+	 * @param selector - CSS selector of the element to click (preferred over id)
 	 */
-	async clickElement(id: string): Promise<string> {
-		return this.callTool("click_element", { id }) as Promise<string>
+	async clickElement(id?: string, selector?: string): Promise<string> {
+		return this.callTool("click_element", { id, selector }) as Promise<string>
 	}
 
 	/**
-	 * Type text into an input/textarea element by its id.
+	 * Type text into an input/textarea element by its id or CSS selector.
+	 * @param id - The DOM element ID to type into (alternative to selector)
+	 * @param selector - CSS selector of the element to type into (preferred over id)
+	 * @param text - The text to type
+	 * @param submit - If true, dispatch Enter keydown/keyup after typing
 	 */
-	async typeText(id: string, text: string): Promise<string> {
-		return this.callTool("type_text", { id, text }) as Promise<string>
+	async typeText(id?: string, selector?: string, text?: string, submit?: boolean): Promise<string> {
+		return this.callTool("type_text", { id, selector, text, submit }) as Promise<string>
 	}
 
 	/**

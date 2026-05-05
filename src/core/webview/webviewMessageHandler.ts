@@ -15,6 +15,7 @@ import {
 	type ModelRecord,
 	type Command as SlashCommand,
 	type WebviewMessage,
+	type ExtensionMessage,
 	type EditQueuedMessagePayload,
 	TelemetryEventName,
 	JabberwockSettings,
@@ -575,6 +576,34 @@ export const webviewMessageHandler = async (
 				const { diagnosticsManager } = await import("@jabberwock/devtool")
 				diagnosticsManager.log(`[WEBVIEW_ERROR] ${message.text}`, "error")
 				vscode.window.showErrorMessage(`Webview Error: ${message.text}`)
+			}
+		},
+
+		/**
+		 * Handles fetchUrl requests from the webview DevTools.
+		 * The webview's browser `fetch()` is blocked by CORS for cross-origin URLs,
+		 * but the extension host (Node.js) has no CORS restrictions.
+		 * We fetch the URL here and return the HTML content back to the webview.
+		 */
+		fetchUrl: async (message) => {
+			const url = (message as any).url
+			const requestId = (message as any).requestId
+			if (!url || !requestId) return
+			try {
+				const response = await fetch(url)
+				const html = await response.text()
+				await provider.postMessageToWebview({
+					type: "fetchUrlResponse",
+					requestId,
+					text: html,
+				} as ExtensionMessage)
+			} catch (err) {
+				await provider.postMessageToWebview({
+					type: "fetchUrlResponse",
+					requestId,
+					text: "",
+					error: `fetchUrl error: ${err instanceof Error ? err.message : String(err)}`,
+				} as ExtensionMessage)
 			}
 		},
 
