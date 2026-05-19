@@ -5,8 +5,8 @@
  * iframes embedded in the webview. The iframe content must handle "dom-query"
  * (for reading DOM) and "dom-action" (for triggering interactions) messages.
  */
-import type { DomHandlerContext, DomIframeResponse } from "./types.js"
-import { findElementBySelector } from "./lookup.js"
+import type { DomHandlerContext } from "./types.js"
+import { findAllElementsBySelector } from "./lookup.js"
 
 // ── Context Factory ──────────────────────────────────────────────────────
 
@@ -55,7 +55,7 @@ export function createIframeContext(postMessage: (msg: unknown) => void): DomHan
 		if (iframeMatch) {
 			const iframeSelector = iframeMatch[1]!
 			const innerSelector = iframeMatch[2]!
-			const iframeEl = findElementBySelector(iframeSelector) as HTMLIFrameElement | null
+			const iframeEl = findAllElementsBySelector(iframeSelector)[0] as HTMLIFrameElement | undefined
 			if (iframeEl && iframeEl.tagName?.toLowerCase() === "iframe") {
 				return { iframe: iframeEl, innerSelector }
 			}
@@ -75,14 +75,14 @@ export function createIframeContext(postMessage: (msg: unknown) => void): DomHan
  * `queryIframe` callers get their result.
  */
 export function handleDomResponse(ctx: DomHandlerContext, message: Record<string, unknown>): void {
-	const resp = message as unknown as DomIframeResponse
-	const pending = ctx.pendingIframeRequests.get(resp.requestId)
+	const requestId = String(message.requestId ?? "")
+	const pending = ctx.pendingIframeRequests.get(requestId)
 	if (pending) {
-		if (resp.error) {
-			pending.reject(new Error(resp.error))
+		if (message.error) {
+			pending.reject(new Error(String(message.error)))
 		} else {
-			pending.resolve(resp.result)
+			pending.resolve(message.result)
 		}
-		ctx.pendingIframeRequests.delete(resp.requestId)
+		ctx.pendingIframeRequests.delete(requestId)
 	}
 }

@@ -504,7 +504,24 @@ export class DevtoolClient {
 		nodeId?: string
 		fields?: string
 	}): Promise<unknown> {
-		return this.callTool("get_mst_state", params)
+		// The server tool is named "get_mst_state" (registered in tools/state.ts).
+		// The bridge's getMstState() implementation handles:
+		//   - mode: "graph" (structural traversal with depth control)
+		//   - mode: "query" with path (dot-separated path resolution on MST proxies)
+		//   - mode: "query" with nodeId (lookup in nodes map)
+		// Store names like "chatStore", "diagnosticsStoreMst", "taskHistoryStoreMst"
+		// map to provider properties (extension-host MST stores).
+		const rawResult = await this.callTool("get_mst_state", params as Record<string, unknown>)
+		return rawResult
+	}
+
+	/**
+	 * Get state from the frontend (webview) or backend store via get_store_state MCP tool.
+	 * Frontend store paths use dot notation, e.g. "chat.tree.activeNodeId".
+	 * Returns a paginated response: { items: [{ path, value } | { key, value }], total, cursor, ... }
+	 */
+	async getStoreState(params: { store?: string; path?: string; limit?: number; cursor?: number }): Promise<unknown> {
+		return this.callTool("get_store_state", params as Record<string, unknown>)
 	}
 
 	/**

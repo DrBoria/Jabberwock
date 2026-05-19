@@ -27,7 +27,7 @@ import {
 	MAX_PENDING_BATCHES,
 } from "../constants"
 import { isPathInIgnoredDirectory } from "../../glob/ignore-utils"
-import { TelemetryService } from "@jabberwock/telemetry"
+import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 import { TelemetryEventName } from "@jabberwock/types"
 import { sanitizeErrorMessage } from "../shared/validation-helpers"
 import { Package } from "../../../shared/package"
@@ -258,7 +258,7 @@ export class DirectoryScanner implements IDirectoryScanner {
 						throw error
 					}
 					console.error(`Error processing file ${filePath} in workspace ${scanWorkspace}:`, error)
-					TelemetryService.instance.captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
+					getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
 						error: sanitizeErrorMessage(error instanceof Error ? error.message : String(error)),
 						stack: error instanceof Error ? sanitizeErrorMessage(error.stack || "") : undefined,
 						location: "scanDirectory:processFile",
@@ -345,8 +345,12 @@ export class DirectoryScanner implements IDirectoryScanner {
 					try {
 						await this.qdrantClient.deletePointsByFilePath(cachedFilePath)
 						await this.cacheManager.deleteHash(cachedFilePath)
-					} catch (error: any) {
-						const errorStatus = error?.status || error?.response?.status || error?.statusCode
+					} catch (error) {
+						const err = error as Record<string, unknown>
+						const errorStatus =
+							(err?.status as string) ||
+							((err?.response as Record<string, unknown>)?.status as string) ||
+							(err?.statusCode as string)
 						const errorMessage = error instanceof Error ? error.message : String(error)
 
 						console.error(
@@ -354,7 +358,7 @@ export class DirectoryScanner implements IDirectoryScanner {
 							error,
 						)
 
-						TelemetryService.instance.captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
+						getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
 							error: sanitizeErrorMessage(errorMessage),
 							stack: error instanceof Error ? sanitizeErrorMessage(error.stack || "") : undefined,
 							location: "scanDirectory:deleteRemovedFiles",
@@ -419,9 +423,12 @@ export class DirectoryScanner implements IDirectoryScanner {
 				if (uniqueFilePaths.length > 0) {
 					try {
 						await this.qdrantClient.deletePointsByMultipleFilePaths(uniqueFilePaths)
-					} catch (deleteError: any) {
+					} catch (deleteError) {
+						const delErr = deleteError as Record<string, unknown>
 						const errorStatus =
-							deleteError?.status || deleteError?.response?.status || deleteError?.statusCode
+							(delErr?.status as string) ||
+							((delErr?.response as Record<string, unknown>)?.status as string) ||
+							(delErr?.statusCode as string)
 						const errorMessage = deleteError instanceof Error ? deleteError.message : String(deleteError)
 
 						console.error(
@@ -429,7 +436,7 @@ export class DirectoryScanner implements IDirectoryScanner {
 							deleteError,
 						)
 
-						TelemetryService.instance.captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
+						getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
 							error: sanitizeErrorMessage(errorMessage),
 							stack:
 								deleteError instanceof Error
@@ -487,7 +494,7 @@ export class DirectoryScanner implements IDirectoryScanner {
 					`[DirectoryScanner] Error processing batch (attempt ${attempts}) in workspace ${scanWorkspace}:`,
 					error,
 				)
-				TelemetryService.instance.captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
+				getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
 					error: sanitizeErrorMessage(error instanceof Error ? error.message : String(error)),
 					stack: error instanceof Error ? sanitizeErrorMessage(error.stack || "") : undefined,
 					location: "processBatch:retry",

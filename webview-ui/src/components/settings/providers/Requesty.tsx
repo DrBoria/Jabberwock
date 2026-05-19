@@ -8,7 +8,7 @@ import {
 	requestyDefaultModelId,
 } from "@jabberwock/types"
 
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { Button } from "@src/components/ui"
 
@@ -48,12 +48,14 @@ export const Requesty = ({
 	}, [apiConfiguration?.requestyBaseUrl])
 
 	const handleInputChange = useCallback(
-		<K extends keyof ProviderSettings, E>(
-			field: K,
-			transform: (event: E) => ProviderSettings[K] = inputEventTransform,
-		) =>
+		<K extends keyof ProviderSettings, E>(field: K, transform?: (event: E) => ProviderSettings[K]) =>
 			(event: E | Event) => {
-				setApiConfigurationField(field, transform(event as E))
+				setApiConfigurationField(
+					field,
+					transform
+						? transform(event as E)
+						: (inputEventTransform(event as { target: HTMLInputElement }) as ProviderSettings[K]),
+				)
 			},
 		[setApiConfigurationField],
 	)
@@ -104,8 +106,8 @@ export const Requesty = ({
 
 			<VSCodeCheckbox
 				checked={requestyEndpointSelected}
-				onChange={(e: any) => {
-					const isChecked = e.target.checked === true
+				onChange={(e) => {
+					const isChecked = (e.target as HTMLInputElement).checked === true
 					if (!isChecked) {
 						setApiConfigurationField("requestyBaseUrl", undefined)
 					}
@@ -129,7 +131,7 @@ export const Requesty = ({
 			<Button
 				variant="outline"
 				onClick={() => {
-					vscode.postMessage({ type: "requestRouterModels", values: { provider: "requesty", refresh: true } })
+					rootStore.settings.requestRouterModels({ provider: "requesty", refresh: true })
 				}}>
 				<div className="flex items-center gap-2">
 					<span className="codicon codicon-refresh" />

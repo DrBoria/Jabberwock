@@ -1,6 +1,8 @@
 import { useCallback, useEffect } from "react"
 import { getAllModes } from "@shared/modes"
 
+import type { ModeConfig } from "@jabberwock/types"
+
 /**
  * Handles mode-switching keyboard shortcuts:
  * - Cmd/Ctrl + . → next mode
@@ -9,7 +11,7 @@ import { getAllModes } from "@shared/modes"
  * Scroll-intent keyboard events (PageUp, Home, ArrowUp) are handled
  * separately by useScrollLifecycle.
  */
-export function useKeyboardShortcuts(mode: string, customModes: any[], switchToMode: (slug: string) => void) {
+export function useKeyboardShortcuts(mode: string, customModes: ModeConfig[], switchToMode: (slug: string) => void) {
 	const switchToNextMode = useCallback(() => {
 		const allModes = getAllModes(customModes)
 		const currentIndex = allModes.findIndex((m) => m.slug === mode)

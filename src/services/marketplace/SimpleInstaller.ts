@@ -32,7 +32,7 @@ export class SimpleInstaller {
 			case "mcp":
 				return await this.installMcp(item, target, options)
 			default:
-				throw new Error(`Unsupported item type: ${(item as any).type}`)
+				throw new Error(`Unsupported item type: ${(item as { type: string }).type}`)
 		}
 	}
 
@@ -95,17 +95,18 @@ export class SimpleInstaller {
 		const modeData = yaml.parse(item.content)
 
 		// Read existing file or create new structure
-		let existingData: any = { customModes: [] }
+		let existingData: { customModes: { slug: string }[] } = { customModes: [] }
 		try {
 			const existing = await fs.readFile(filePath, "utf-8")
 			const parsed = yaml.parse(existing)
 			// Ensure we have a valid object with customModes array
 			existingData = parsed && typeof parsed === "object" ? parsed : { customModes: [] }
-		} catch (error: any) {
-			if (error.code === "ENOENT") {
+		} catch (error) {
+			const nodeErr = error as NodeJS.ErrnoException & Error
+			if (nodeErr.code === "ENOENT") {
 				// File doesn't exist, use default structure - this is fine
 				existingData = { customModes: [] }
-			} else if (error.name === "YAMLParseError" || error.message?.includes("YAML")) {
+			} else if (nodeErr.name === "YAMLParseError" || nodeErr.message?.includes("YAML")) {
 				// YAML parsing error - don't overwrite the file!
 				const fileName = target === "project" ? ".jabberwockmodes" : "custom-modes.yaml"
 				throw new Error(
@@ -129,7 +130,9 @@ export class SimpleInstaller {
 		}
 
 		// Remove existing mode with same slug if it exists
-		existingData.customModes = existingData.customModes.filter((mode: any) => mode.slug !== modeData.slug)
+		existingData.customModes = existingData.customModes.filter(
+			(mode: { slug: string }) => mode.slug !== modeData.slug,
+		)
 
 		// Add the new mode
 		existingData.customModes.push(modeData)
@@ -232,12 +235,12 @@ export class SimpleInstaller {
 		const mcpData = JSON.parse(contentToUse)
 
 		// Read existing file or create new structure
-		let existingData: any = { mcpServers: {} }
+		let existingData: Record<string, unknown> = { mcpServers: {} }
 		try {
 			const existing = await fs.readFile(filePath, "utf-8")
 			existingData = JSON.parse(existing) || { mcpServers: {} }
-		} catch (error: any) {
-			if (error.code === "ENOENT") {
+		} catch (error) {
+			if ((error as NodeJS.ErrnoException).code === "ENOENT") {
 				// File doesn't exist, use default structure
 				existingData = { mcpServers: {} }
 			} else if (error instanceof SyntaxError) {
@@ -258,11 +261,9 @@ export class SimpleInstaller {
 			existingData.mcpServers = {}
 		}
 
-		// Use the item id as the server name
-		const serverName = item.id
-
 		// Add or update the single server
-		existingData.mcpServers[serverName] = mcpData
+		const mcpServers = existingData.mcpServers as Record<string, unknown>
+		mcpServers[item.id] = mcpData as Record<string, unknown>
 
 		// Write back to file
 		await fs.mkdir(path.dirname(filePath), { recursive: true })
@@ -271,10 +272,10 @@ export class SimpleInstaller {
 
 		// Calculate approximate line number where the new server was added
 		let line: number | undefined
-		if (serverName) {
+		if (item.id) {
 			const lines = jsonContent.split("\n")
 			// Find the line containing the server name
-			const serverLineIndex = lines.findIndex((l) => l.includes(`"${serverName}"`))
+			const serverLineIndex = lines.findIndex((l) => l.includes(`"${item.id}"`))
 			if (serverLineIndex >= 0) {
 				line = serverLineIndex + 1 // Convert to 1-based line number
 			}
@@ -294,7 +295,7 @@ export class SimpleInstaller {
 				await this.removeMcp(item, target)
 				break
 			default:
-				throw new Error(`Unsupported item type: ${(item as any).type}`)
+				throw new Error(`Unsupported item type: ${(item as { type: string }).type}`)
 		}
 	}
 
@@ -350,8 +351,8 @@ export class SimpleInstaller {
 					content = item.content
 				}
 
-				const serverName = item.id
-				delete existingData.mcpServers[serverName]
+				const removeItemId = item.id
+				delete (existingData.mcpServers as Record<string, unknown>)[removeItemId]
 
 				// Always write back the file, even if empty
 				await fs.writeFile(filePath, JSON.stringify(existingData, null, 2), "utf-8")

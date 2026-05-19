@@ -1,7 +1,7 @@
 import * as vscode from "vscode"
 import * as path from "path"
 import * as fs from "fs/promises"
-import { convertTheme } from "monaco-vscode-textmate-theme-converter/lib/cjs"
+import { convertTheme, IVSCodeTheme } from "monaco-vscode-textmate-theme-converter/lib/cjs"
 
 import { Package } from "../../shared/package"
 
@@ -22,7 +22,7 @@ const defaultThemes: Record<string, string> = {
 	"Visual Studio Light": "light_vs",
 }
 
-function parseThemeString(themeString: string | undefined): any {
+function parseThemeString(themeString: string | undefined): Record<string, unknown> {
 	themeString = themeString
 		?.split("\n")
 		.filter((line) => {
@@ -64,16 +64,17 @@ export async function getTheme() {
 		// Strip comments from theme
 		let parsed = parseThemeString(currentTheme)
 
-		if (parsed.include) {
+		const includePath = parsed.include
+		if (includePath) {
 			const includeThemeString = await fs.readFile(
-				path.join(getExtensionUri().fsPath, "integrations", "theme", "default-themes", parsed.include),
+				path.join(getExtensionUri().fsPath, "integrations", "theme", "default-themes", includePath as string),
 				"utf-8",
 			)
 			const includeTheme = parseThemeString(includeThemeString)
 			parsed = mergeJson(parsed, includeTheme)
 		}
 
-		const converted = convertTheme(parsed)
+		const converted = convertTheme(parsed as IVSCodeTheme & Record<string, unknown>)
 
 		converted.base = (
 			["vs", "hc-black"].includes(converted.base)
@@ -81,7 +82,7 @@ export async function getTheme() {
 				: colorTheme.includes("Light")
 					? "vs"
 					: "vs-dark"
-		) as any
+		) as vscode.ColorThemeKind
 
 		return converted
 	} catch (e) {
@@ -90,13 +91,13 @@ export async function getTheme() {
 	return undefined
 }
 
-type JsonObject = { [key: string]: any }
+type JsonObject = { [key: string]: unknown }
 export function mergeJson(
 	first: JsonObject,
 	second: JsonObject,
 	mergeBehavior?: "merge" | "overwrite",
-	mergeKeys?: { [key: string]: (a: any, b: any) => boolean },
-): any {
+	mergeKeys?: { [key: string]: (a: unknown, b: unknown) => boolean },
+): JsonObject {
 	const copyOfFirst = JSON.parse(JSON.stringify(first))
 
 	try {
@@ -114,9 +115,9 @@ export function mergeJson(
 				// Array
 				if (mergeKeys?.[key]) {
 					// Merge keys are used to determine whether an item form the second object should override one from the first
-					const keptFromFirst: any[] = []
-					firstValue.forEach((item: any) => {
-						if (!secondValue.some((item2: any) => mergeKeys[key](item, item2))) {
+					const keptFromFirst: unknown[] = []
+					firstValue.forEach((item: unknown) => {
+						if (!secondValue.some((item2: unknown) => mergeKeys[key](item, item2))) {
 							keptFromFirst.push(item)
 						}
 					})
@@ -126,7 +127,7 @@ export function mergeJson(
 				}
 			} else if (typeof secondValue === "object" && typeof firstValue === "object") {
 				// Object
-				copyOfFirst[key] = mergeJson(firstValue, secondValue, mergeBehavior)
+				copyOfFirst[key] = mergeJson(firstValue as JsonObject, secondValue as JsonObject, mergeBehavior)
 			} else {
 				// Other (boolean, number, string)
 				copyOfFirst[key] = secondValue

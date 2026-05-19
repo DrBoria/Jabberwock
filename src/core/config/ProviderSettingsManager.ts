@@ -14,7 +14,7 @@ import {
 	isProviderName,
 	isRetiredProvider,
 } from "@jabberwock/types"
-import { TelemetryService } from "@jabberwock/telemetry"
+import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 
 import { Mode, modes } from "../../shared/modes"
 import { buildApiHandler } from "../../api"
@@ -178,7 +178,7 @@ export class ProviderSettingsManager {
 						// Cast to string for comparison since "claude-code" is no longer a valid ProviderName
 						if ((apiConfig.apiProvider as string) !== "claude-code") continue
 
-						const config = apiConfig as unknown as Record<string, unknown>
+						const config = apiConfig as Record<string, unknown>
 						if ("claudeCodePath" in config) {
 							delete config.claudeCodePath
 							isDirty = true
@@ -231,19 +231,20 @@ export class ProviderSettingsManager {
 		try {
 			for (const [_name, apiConfig] of Object.entries(providerProfiles.apiConfigs)) {
 				// Use type assertion to access the deprecated property safely
-				const configAny = apiConfig as any
+				const configAny = apiConfig as Record<string, unknown>
 
 				// Check if openAiHostHeader exists but openAiHeaders doesn't
+				const configRecord = configAny as Record<string, unknown>
 				if (
-					configAny.openAiHostHeader &&
+					configRecord.openAiHostHeader &&
 					(!apiConfig.openAiHeaders || Object.keys(apiConfig.openAiHeaders || {}).length === 0)
 				) {
 					// Create the headers object with the Host value
-					apiConfig.openAiHeaders = { Host: configAny.openAiHostHeader }
+					apiConfig.openAiHeaders = { Host: configRecord.openAiHostHeader as string }
 
 					// Delete the old property to prevent re-migration
 					// This prevents the header from reappearing after deletion
-					configAny.openAiHostHeader = undefined
+					delete configRecord.openAiHostHeader
 				}
 			}
 		} catch (error) {
@@ -587,7 +588,7 @@ export class ProviderSettingsManager {
 
 			const providerProfiles = providerProfilesSchema
 				.extend({
-					apiConfigs: z.record(z.string(), z.any()),
+					apiConfigs: z.record(z.string(), z.unknown()),
 				})
 				.parse(JSON.parse(content))
 
@@ -624,7 +625,7 @@ export class ProviderSettingsManager {
 			}
 		} catch (error) {
 			if (error instanceof ZodError) {
-				TelemetryService.instance.captureSchemaValidationError({
+				getTelemetryService().captureSchemaValidationError({
 					schemaName: "ProviderProfiles",
 					error,
 				})
@@ -756,7 +757,7 @@ export class ProviderSettingsManager {
 						const updatedProfile: ProviderSettingsWithId = { ...cloudProfile }
 						for (const [key, value] of Object.entries(existingProfile)) {
 							if (isSecretStateKey(key) && value !== undefined) {
-								;(updatedProfile as any)[key] = value
+								;(updatedProfile as Record<string, unknown>)[key] = value
 							}
 						}
 
@@ -834,7 +835,7 @@ export class ProviderSettingsManager {
 						// Remove any secret keys from cloud profile
 						for (const key of Object.keys(newProfile)) {
 							if (isSecretStateKey(key)) {
-								delete (newProfile as any)[key]
+								delete (newProfile as Record<string, unknown>)[key]
 							}
 						}
 

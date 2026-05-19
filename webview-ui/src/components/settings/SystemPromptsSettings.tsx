@@ -1,7 +1,9 @@
 import { useState } from "react"
 import { VSCodeTextArea } from "@vscode/webview-ui-toolkit/react"
 
-import { vscode } from "@jabberwock/devtool/react"
+import { AGENT_STATE_UPDATE_SYSTEM_PROMPT_TEMPLATE as _AGENT_STATE_UPDATE_SYSTEM_PROMPT_TEMPLATE } from "@jabberwock/types"
+import { getEventValue } from "@src/utils/getEventValue"
+import { rootStore } from "@src/features/store"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import {
@@ -43,11 +45,7 @@ export const SystemPromptsSettings = () => {
 
 		setSystemPromptTemplates(newTemplates)
 
-		vscode.postMessage({
-			type: "updateSystemPromptTemplate",
-			systemPromptTemplateKey: activeSection,
-			systemPromptTemplate: value,
-		})
+		rootStore.settings.updateSystemPromptTemplate(activeSection, value ?? "")
 	}
 
 	const handleReset = () => {
@@ -92,9 +90,7 @@ export const SystemPromptsSettings = () => {
 						resize="vertical"
 						value={currentValue}
 						onInput={(e) => {
-							const value =
-								(e as unknown as CustomEvent)?.detail?.target?.value ??
-								((e as any).target as HTMLTextAreaElement).value
+							const value = getEventValue(e) ?? ""
 							handleUpdateTemplate(value)
 						}}
 						rows={15}

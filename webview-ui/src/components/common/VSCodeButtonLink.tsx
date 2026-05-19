@@ -5,7 +5,7 @@ interface VSCodeButtonLinkProps {
 	href: string
 	children: React.ReactNode
 	appearance?: "primary" | "secondary"
-	[key: string]: any
+	[key: string]: unknown
 }
 
 export const VSCodeButtonLink = ({ href, children, appearance, ...props }: VSCodeButtonLinkProps) => {

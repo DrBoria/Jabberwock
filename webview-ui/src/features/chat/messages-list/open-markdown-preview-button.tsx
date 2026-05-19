@@ -1,9 +1,9 @@
 import React, { memo } from "react"
 import { SquareArrowOutUpRight } from "lucide-react"
 
-import { vscode } from "@jabberwock/devtool/react"
 import { hasComplexMarkdown } from "@src/utils/markdown"
 import { StandardTooltip } from "@src/components/ui"
+import { rootStore } from "@src/features/store"
 
 interface OpenMarkdownPreviewButtonProps {
 	markdown: string | undefined
@@ -18,10 +18,7 @@ export const OpenMarkdownPreviewButton = memo(({ markdown, className }: OpenMark
 	const handleClick = (e: React.MouseEvent) => {
 		e.stopPropagation()
 		if (markdown) {
-			vscode.postMessage({
-				type: "openMarkdownPreview",
-				text: markdown,
-			})
+			rootStore.settings.openMarkdownPreview(markdown)
 		}
 	}
 

@@ -15,11 +15,11 @@ export type ApiMessage = Anthropic.MessageParam & {
 	id?: string
 	// For reasoning items stored in API history
 	type?: "reasoning"
-	summary?: any[]
+	summary?: Anthropic.Messages.ContentBlockParam[]
 	encrypted_content?: string
 	text?: string
 	// For OpenRouter reasoning_details array format (used by Gemini 3, etc.)
-	reasoning_details?: any[]
+	reasoning_details?: Record<string, unknown>[]
 	// For DeepSeek/Z.ai interleaved thinking: reasoning_content that must be preserved during tool call sequences
 	// See: https://api-docs.deepseek.com/guides/thinking_mode#tool-calls
 	reasoning_content?: string

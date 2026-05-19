@@ -44,9 +44,18 @@ export function SearchableSelect({
 	const searchInputRef = React.useRef<HTMLInputElement>(null)
 	const searchResetTimeoutRef = React.useRef<NodeJS.Timeout | null>(null)
 	const isMountedRef = React.useRef(true)
+	// Track the last selected value optimistically to display it immediately
+	// before the async parent state update (e.g. VS Code round-trip) completes.
+	const [optimisticValue, setOptimisticValue] = React.useState(value)
+	// Keep optimistic value in sync when the actual value changes externally.
+	if (value !== optimisticValue && options.some((o) => o.value === value)) {
+		// Intentionally set state during render to keep optimistic value in sync
+		setOptimisticValue(value)
+	}
 
-	// Find the selected option
-	const selectedOption = options.find((option) => option.value === value)
+	// Find the selected option, falling back to the optimistic value
+	const effectiveValue = value && options.some((o) => o.value === value) ? value : optimisticValue
+	const selectedOption = options.find((option) => option.value === effectiveValue)
 
 	// Filter options based on search, always limit for performance.
 	// Ensure the selected option remains visible even when truncating.
@@ -112,6 +121,7 @@ export function SearchableSelect({
 	}
 
 	const handleSelect = (selectedValue: string) => {
+		setOptimisticValue(selectedValue)
 		setOpen(false)
 		onValueChange(selectedValue)
 	}
@@ -183,7 +193,7 @@ export function SearchableSelect({
 									<Check
 										className={cn(
 											"ml-auto h-4 w-4 p-0.5",
-											value === option.value ? "opacity-100" : "opacity-0",
+											effectiveValue === option.value ? "opacity-100" : "opacity-0",
 										)}
 									/>
 								</CommandItem>

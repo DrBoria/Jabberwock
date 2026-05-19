@@ -3,7 +3,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import type { ExtensionBridge } from "../bridge.js"
 
 /**
- * Register command-related tools that are generic (not tied to ClineProvider).
+ * Register command-related tools that are generic (not tied to EventBridge).
  *
  * These tools use the ExtensionBridge to execute VS Code commands and query
  * the active page — they don't need direct access to the extension internals.

@@ -32,7 +32,7 @@ const results = await regexSearchFiles('/path/to/cwd', '/path/to/search', 'TODO:
 
 rel/path/to/app.ts
 │----
-│function processData(data: any) {
+│function processData(data: unknown) {
 │  // Some processing logic here
 │  // TODO: Implement error handling
 │  return processedData;

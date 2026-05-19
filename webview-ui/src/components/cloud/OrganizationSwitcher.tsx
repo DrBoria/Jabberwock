@@ -2,9 +2,10 @@ import { useState, useEffect } from "react"
 import { Building2, User, Plus } from "lucide-react"
 
 import { type CloudUserInfo, type CloudOrganizationMembership, type ExtensionMessage } from "@jabberwock/types"
+import { SETTINGS_OPEN_EXTERNAL as _SETTINGS_OPEN_EXTERNAL } from "@jabberwock/types"
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectSeparator } from "@/components/ui/select"
 
@@ -57,7 +58,7 @@ export const OrganizationSwitcher = ({
 		if (value === "create-team") {
 			if (cloudApiUrl) {
 				const billingUrl = `${cloudApiUrl}/billing`
-				vscode.postMessage({ type: "openExternal", url: billingUrl })
+				rootStore.settings.openExternal(billingUrl)
 			}
 			return
 		}
@@ -72,10 +73,7 @@ export const OrganizationSwitcher = ({
 		setIsLoading(true)
 
 		// Send message to switch organization
-		vscode.postMessage({
-			type: "switchOrganization",
-			organizationId: newOrgId,
-		})
+		rootStore.cloud.switchOrganization(newOrgId)
 
 		// Update local state optimistically
 		setSelectedOrgId(newOrgId)

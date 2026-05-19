@@ -25,7 +25,7 @@ interface ToolRendererProps {
 	effectiveHistory: ClineMessage[]
 	onToggleExpand: () => void
 	onBatchFileResponse?: (response: { [key: string]: boolean }) => void
-	t: (key: string, options?: any) => string
+	t: (key: string, options?: Record<string, unknown>) => string
 }
 
 /** Main ToolRenderer - dispatches to sub-renderers via object-literal pattern */
@@ -44,7 +44,7 @@ export const ToolRenderer: React.FC<ToolRendererProps> = (props) => {
 		apply_patch: () => <FileEditRenderer {...props} />,
 		apply_diff: () => <FileEditRenderer {...props} />,
 		insertContent: () => <InsertContentRenderer {...props} />,
-		codebaseSearch: () => <CodebaseSearchRenderer tool={tool} t={props.t as any} />,
+		codebaseSearch: () => <CodebaseSearchRenderer tool={tool} />,
 		updateTodoList: () => <UpdateTodoListRenderer {...props} />,
 		readFile: () => <ReadFileRenderer {...props} />,
 		skill: () => <SkillRenderer {...props} />,
@@ -53,7 +53,7 @@ export const ToolRenderer: React.FC<ToolRendererProps> = (props) => {
 		searchFiles: () => <SearchFilesRenderer {...props} />,
 		switchMode: () => <SwitchModeRenderer {...props} />,
 		newTask: () => <NewTaskRenderer {...props} />,
-		finishTask: () => <FinishTaskRenderer t={props.t as any} />,
+		finishTask: () => <FinishTaskRenderer t={props.t} />,
 		runSlashCommand: () => <SlashCommandRenderer {...props} />,
 		generateImage: () => <GenerateImageRenderer {...props} />,
 	}

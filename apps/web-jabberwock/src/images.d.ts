@@ -14,8 +14,7 @@ declare module "*.jpeg" {
 }
 
 declare module "*.svg" {
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- matches Next.js built-in SVG type to avoid conflicts with @svgr/webpack
-	const content: any
+	const content: string
 	export default content
 }
 

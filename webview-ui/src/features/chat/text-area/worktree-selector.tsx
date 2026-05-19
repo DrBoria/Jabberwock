@@ -9,7 +9,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@src/components/ui/popo
 import { StandardTooltip } from "@src/components/ui/standard-tooltip"
 import { Button } from "@src/components/ui/button"
 import { useAppTranslation } from "@/i18n/TranslationContext"
-import { vscode } from "@jabberwock/devtool/react"
 
 import { CreateWorktreeModal } from "@src/components/worktrees/CreateWorktreeModal"
 import { IconButton } from "@src/components/ui"
@@ -18,6 +17,7 @@ interface WorktreeSelectorProps {
 	disabled?: boolean
 }
 
+import { rootStore } from "@src/features/store"
 export const WorktreeSelector = ({ disabled = false }: WorktreeSelectorProps) => {
 	const { t } = useAppTranslation()
 	const [open, setOpen] = useState(false)
@@ -31,7 +31,7 @@ export const WorktreeSelector = ({ disabled = false }: WorktreeSelectorProps) =>
 
 	// Fetch worktrees when popover opens
 	const fetchWorktrees = useCallback(() => {
-		vscode.postMessage({ type: "listWorktrees" })
+		rootStore.settings.listWorktrees()
 	}, [])
 
 	// Handle messages from extension
@@ -61,20 +61,12 @@ export const WorktreeSelector = ({ disabled = false }: WorktreeSelectorProps) =>
 	}, [open, fetchWorktrees])
 
 	const handleSelect = useCallback((worktreePath: string) => {
-		vscode.postMessage({
-			type: "switchWorktree",
-			worktreePath: worktreePath,
-			worktreeNewWindow: false,
-		})
+		rootStore.settings.switchWorktree(worktreePath)
 		setOpen(false)
 	}, [])
 
 	const handleSettingsClick = useCallback(() => {
-		vscode.postMessage({
-			type: "switchTab",
-			tab: "settings",
-			values: { section: "worktrees" },
-		})
+		rootStore.windowManager.switchTab("settings", { section: "worktrees" })
 		setOpen(false)
 	}, [])
 

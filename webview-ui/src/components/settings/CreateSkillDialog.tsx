@@ -22,7 +22,8 @@ import {
 	SelectValue,
 	Textarea,
 } from "@/components/ui"
-import { vscode } from "@jabberwock/devtool/react"
+import { MARKETPLACE_CREATE_SKILL as _MARKETPLACE_CREATE_SKILL } from "@jabberwock/types"
+import { rootStore } from "@src/features/store"
 
 interface CreateSkillDialogProps {
 	open: boolean
@@ -163,18 +164,12 @@ export const CreateSkillDialog: React.FC<CreateSkillDialogProps> = ({
 		// Send message to create skill
 		// Convert to modeSlugs: undefined for "Any mode", or array of selected modes
 		const modeSlugs = isAnyMode ? undefined : selectedModes.length > 0 ? selectedModes : undefined
-		vscode.postMessage({
-			type: "createSkill",
-			skillName: name,
-			source,
-			skillDescription: description,
-			skillModeSlugs: modeSlugs,
-		})
+		rootStore.marketplace.createSkill(name, description, modeSlugs)
 
 		// Close dialog and notify parent
 		handleClose()
 		onSkillCreated()
-	}, [name, description, source, isAnyMode, selectedModes, handleClose, onSkillCreated])
+	}, [name, description, isAnyMode, selectedModes, handleClose, onSkillCreated])
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>

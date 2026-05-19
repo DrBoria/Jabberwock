@@ -9,15 +9,20 @@
  * so they can be sent to the API again.
  */
 
-import { TelemetryService } from "@jabberwock/telemetry"
+import {
+	TelemetryService,
+	getTelemetryService,
+	hasTelemetryService,
+	createTelemetryService,
+} from "@jabberwock/telemetry"
 
 import { getEffectiveApiHistory, cleanupAfterTruncation } from "../index"
 import { ApiMessage } from "../../task-persistence/apiMessages"
 
 describe("Rewind After Condense - Issue #8295", () => {
 	beforeEach(() => {
-		if (!TelemetryService.hasInstance()) {
-			TelemetryService.createInstance([])
+		if (!hasTelemetryService()) {
+			createTelemetryService([])
 		}
 	})
 

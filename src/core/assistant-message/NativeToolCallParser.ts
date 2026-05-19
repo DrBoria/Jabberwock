@@ -338,9 +338,10 @@ export class NativeToolCallParser {
 		return files.map((file: unknown) => {
 			const f = file as Record<string, unknown>
 			const entry: FileEntry = { path: f.path as string }
-			if (f.line_ranges && Array.isArray(f.line_ranges)) {
-				entry.lineRanges = (f.line_ranges as unknown[])
-					.map((range: unknown) => {
+			const lineRanges = f.line_ranges
+			if (Array.isArray(lineRanges)) {
+				entry.lineRanges = lineRanges
+					.map((range) => {
 						// Handle tuple format: [start, end]
 						if (Array.isArray(range) && range.length >= 2) {
 							return { start: Number(range[0]), end: Number(range[1]) }
@@ -373,7 +374,7 @@ export class NativeToolCallParser {
 	private static createPartialToolUse(
 		id: string,
 		name: ToolName,
-		partialArgs: Record<string, any>,
+		partialArgs: Record<string, unknown>,
 		partial: boolean,
 		originalName?: string,
 	): ToolUse | null {
@@ -389,7 +390,7 @@ export class NativeToolCallParser {
 		}
 
 		// Build partial nativeArgs based on what we have so far
-		let nativeArgs: any = undefined
+		let nativeArgs: Record<string, unknown> | undefined = undefined
 
 		// Track if legacy format was used (for telemetry)
 		let usedLegacyFormat = false
@@ -433,14 +434,20 @@ export class NativeToolCallParser {
 						indentation:
 							partialArgs.indentation && typeof partialArgs.indentation === "object"
 								? {
-										anchor_line: this.coerceOptionalNumber(partialArgs.indentation.anchor_line),
-										max_levels: this.coerceOptionalNumber(partialArgs.indentation.max_levels),
-										max_lines: this.coerceOptionalNumber(partialArgs.indentation.max_lines),
+										anchor_line: this.coerceOptionalNumber(
+											(partialArgs.indentation as Record<string, unknown>).anchor_line,
+										),
+										max_levels: this.coerceOptionalNumber(
+											(partialArgs.indentation as Record<string, unknown>).max_levels,
+										),
+										max_lines: this.coerceOptionalNumber(
+											(partialArgs.indentation as Record<string, unknown>).max_lines,
+										),
 										include_siblings: this.coerceOptionalBoolean(
-											partialArgs.indentation.include_siblings,
+											(partialArgs.indentation as Record<string, unknown>).include_siblings,
 										),
 										include_header: this.coerceOptionalBoolean(
-											partialArgs.indentation.include_header,
+											(partialArgs.indentation as Record<string, unknown>).include_header,
 										),
 									}
 								: undefined,
@@ -670,7 +677,7 @@ export class NativeToolCallParser {
 			name,
 			params,
 			partial,
-			nativeArgs,
+			nativeArgs: nativeArgs as ToolUse["nativeArgs"],
 		}
 
 		// Preserve original name for API history when an alias was used
@@ -865,7 +872,7 @@ export class NativeToolCallParser {
 						nativeArgs = {
 							prompt: args.prompt,
 							path: args.path,
-						} as any // TS bypass matching rules
+						} as NativeArgsFor<TName>
 					}
 					break
 

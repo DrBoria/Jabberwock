@@ -42,5 +42,8 @@ export type { EnhancedError } from "./react/sourceMapUtils.js"
 // Source map initializer
 export { initializeSourceMaps, exposeSourceMapsForDebugging } from "./react/sourceMapInitializer.js"
 
+// DOM message handler for direct initialization (bypasses DevtoolProvider)
+export { createDomMessageHandler } from "./dom/index.js"
+
 // DiagnosticDashboard — webview diagnostic panel
 export { default as DiagnosticDashboard } from "./react/diagnostic-dashboard/diagnostic-dashboard.js"

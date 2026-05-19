@@ -20,8 +20,8 @@ export class TelemetryService {
 	}
 
 	/**
-	 * Sets the ClineProvider reference to use for global properties
-	 * @param provider A ClineProvider instance to use
+	 * Sets the EventBridge reference to use for global properties
+	 * @param provider A EventBridge instance to use
 	 */
 	public setProvider(provider: TelemetryPropertiesProvider): void {
 		// If client is initialized, pass the provider reference.
@@ -265,27 +265,35 @@ export class TelemetryService {
 
 		this.clients.forEach((client) => client.shutdown())
 	}
-
-	private static _instance: TelemetryService | null = null
-
-	static createInstance(clients: TelemetryClient[] = []) {
-		if (this._instance) {
-			throw new Error("TelemetryService instance already created")
-		}
-
-		this._instance = new TelemetryService(clients)
-		return this._instance
-	}
-
-	static get instance() {
-		if (!this._instance) {
-			throw new Error("TelemetryService not initialized")
-		}
-
-		return this._instance
-	}
-
-	static hasInstance(): boolean {
-		return this._instance !== null
-	}
 }
+
+// --- Module-level accessor functions (replaces static singleton) ---
+
+let _globalTelemetryService: TelemetryService | null = null
+
+export function createTelemetryService(clients: TelemetryClient[] = []): TelemetryService {
+	if (_globalTelemetryService) {
+		throw new Error("TelemetryService instance already created")
+	}
+
+	_globalTelemetryService = new TelemetryService(clients)
+	return _globalTelemetryService
+}
+
+export function getTelemetryService(): TelemetryService {
+	if (!_globalTelemetryService) {
+		throw new Error("TelemetryService not initialized")
+	}
+
+	return _globalTelemetryService
+}
+
+export function hasTelemetryService(): boolean {
+	return _globalTelemetryService !== null
+}
+
+export function resetTelemetryService(): void {
+	_globalTelemetryService = null
+}
+
+export type { TelemetryService as TelemetryServiceType }

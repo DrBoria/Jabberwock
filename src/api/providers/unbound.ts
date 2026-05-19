@@ -89,7 +89,7 @@ export class UnboundHandler extends BaseProvider implements SingleCompletionHand
 		return { id, info, ...params }
 	}
 
-	protected processUsageMetrics(usage: any, modelInfo?: ModelInfo): ApiStreamUsageChunk {
+	protected processUsageMetrics(usage: OpenAI.CompletionUsage, modelInfo?: ModelInfo): ApiStreamUsageChunk {
 		const unboundUsage = usage as UnboundUsage
 		const inputTokens = unboundUsage?.prompt_tokens || 0
 		const outputTokens = unboundUsage?.completion_tokens || 0
@@ -129,9 +129,10 @@ export class UnboundHandler extends BaseProvider implements SingleCompletionHand
 		]
 
 		// Map extended efforts to OpenAI Chat Completions-accepted values (omit unsupported)
-		const allowedEffort = (["low", "medium", "high"] as const).includes(reasoning_effort as any)
-			? (reasoning_effort as OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming["reasoning_effort"])
-			: undefined
+		const allowedEffort: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming["reasoning_effort"] =
+			reasoning_effort === "low" || reasoning_effort === "medium" || reasoning_effort === "high"
+				? reasoning_effort
+				: undefined
 
 		const completionParams: UnboundChatCompletionParamsStreaming = {
 			messages: openAiMessages,
@@ -153,7 +154,7 @@ export class UnboundHandler extends BaseProvider implements SingleCompletionHand
 		} catch (error) {
 			throw handleOpenAIError(error, this.providerName)
 		}
-		let lastUsage: any = undefined
+		let lastUsage: OpenAI.CompletionUsage | undefined = undefined
 
 		for await (const chunk of stream) {
 			const delta = chunk.choices[0]?.delta

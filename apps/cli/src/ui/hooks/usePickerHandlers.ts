@@ -4,6 +4,7 @@ import type { WebviewMessage } from "@jabberwock/types"
 import type {
 	AutocompletePickerState,
 	AutocompleteInputHandle,
+	AutocompleteItem,
 	ModeResult,
 	HistoryResult,
 } from "../components/autocomplete/index.js"
@@ -11,10 +12,8 @@ import { useCLIStore } from "../store.js"
 import { useUIStateStore } from "../stores/uiStateStore.js"
 
 export interface UsePickerHandlersOptions {
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	autocompleteRef: React.RefObject<AutocompleteInputHandle<any>>
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	followupAutocompleteRef: React.RefObject<AutocompleteInputHandle<any>>
+	autocompleteRef: React.RefObject<AutocompleteInputHandle>
+	followupAutocompleteRef: React.RefObject<AutocompleteInputHandle>
 	sendToExtension: ((msg: WebviewMessage) => void) | null
 	showInfo: (msg: string, duration?: number) => void
 	seenMessageIds: React.MutableRefObject<Set<string>>
@@ -22,10 +21,8 @@ export interface UsePickerHandlersOptions {
 }
 
 export interface UsePickerHandlersReturn {
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	handlePickerStateChange: (state: AutocompletePickerState<any>) => void
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	handlePickerSelect: (item: any) => void
+	handlePickerStateChange: (state: AutocompletePickerState) => void
+	handlePickerSelect: (item: AutocompleteItem) => void
 	handlePickerClose: () => void
 	handlePickerIndexChange: (index: number) => void
 }
@@ -55,8 +52,7 @@ export function usePickerHandlers({
 	 * Handle picker state changes from AutocompleteInput
 	 */
 	const handlePickerStateChange = useCallback(
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		(state: AutocompletePickerState<any>) => {
+		(state: AutocompletePickerState) => {
 			setPickerState(state)
 		},
 		[setPickerState],
@@ -66,8 +62,7 @@ export function usePickerHandlers({
 	 * Handle item selection from external PickerSelect
 	 */
 	const handlePickerSelect = useCallback(
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		(item: any) => {
+		(item: AutocompleteItem) => {
 			// Check if this is a mode selection.
 			if (pickerState.activeTrigger?.id === "mode" && item && typeof item === "object" && "slug" in item) {
 				const modeItem = item as ModeResult

@@ -2,11 +2,6 @@ import { cn } from "@/lib/utils"
 import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
 import { forwardRef, useCallback, useRef, ReactNode, ComponentRef, ComponentProps } from "react"
 
-// Type for web components that have shadow DOM
-interface WebComponentWithShadowRoot extends HTMLElement {
-	shadowRoot: ShadowRoot | null
-}
-
 export interface VSCodeTextFieldWithNodesProps extends ComponentProps<typeof VSCodeTextField> {
 	leftNodes?: ReactNode[]
 	rightNodes?: ReactNode[]
@@ -26,9 +21,10 @@ function VSCodeTextFieldWithNodesInner(
 		(element: ComponentRef<typeof VSCodeTextField>) => {
 			if (!element) return
 
-			const webComponent = element as unknown as WebComponentWithShadowRoot
 			const inputElement =
-				webComponent.shadowRoot?.querySelector?.("input") || webComponent.querySelector?.("input")
+				element instanceof HTMLElement
+					? element.shadowRoot?.querySelector?.("input") || element.querySelector?.("input")
+					: null
 			if (inputElement && inputElement instanceof HTMLInputElement) {
 				inputRef.current = inputElement
 				if (typeof forwardedRef === "function") {

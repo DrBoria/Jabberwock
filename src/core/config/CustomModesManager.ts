@@ -113,8 +113,7 @@ export class CustomModesManager {
 	 * - \u201C-\u201D: Smart double quotes
 	 */
 	private static readonly PROBLEMATIC_CHARS_REGEX =
-		// eslint-disable-next-line no-misleading-character-class
-		/[\u00A0\u200B\u200C\u200D\u2010\u2011\u2012\u2013\u2014\u2015\u2212\u2018\u2019\u201C\u201D]/g
+		/[\u00A0\u2010\u2011\u2012\u2013\u2014\u2015\u2212\u2018\u2019\u201C\u201D]|[\u200B\u200C\u200D]/gu
 
 	/**
 	 * Clean invisible and problematic characters from YAML content
@@ -144,7 +143,7 @@ export class CustomModesManager {
 	/**
 	 * Parse YAML content with enhanced error handling and preprocessing
 	 */
-	private parseYamlSafely(content: string, filePath: string): any {
+	private parseYamlSafely(content: string, filePath: string): unknown {
 		// Clean the content
 		let cleanedContent = stripBom(content)
 		cleanedContent = this.cleanInvisibleCharacters(cleanedContent)
@@ -186,7 +185,11 @@ export class CustomModesManager {
 			const settings = this.parseYamlSafely(content, filePath)
 
 			// Ensure settings has customModes property
-			if (!settings || typeof settings !== "object" || !settings.customModes) {
+			if (
+				!settings ||
+				typeof settings !== "object" ||
+				!("customModes" in (settings as Record<string, unknown>))
+			) {
 				return []
 			}
 
@@ -215,7 +218,7 @@ export class CustomModesManager {
 			return result.data.customModes.map((mode) => ({ ...mode, source }))
 		} catch (error) {
 			// Only log if the error wasn't already handled in parseYamlSafely
-			if (!(error as any).alreadyHandled) {
+			if (!(error as Record<string, unknown>).alreadyHandled) {
 				const errorMsg = `Failed to load modes from ${filePath}: ${error instanceof Error ? error.message : String(error)}`
 				console.error(`[CustomModesManager] ${errorMsg}`)
 			}
@@ -277,7 +280,7 @@ export class CustomModesManager {
 
 				const errorMessage = t("common:customModes.errors.invalidFormat")
 
-				let config: any
+				let config: unknown
 
 				try {
 					config = this.parseYamlSafely(content, settingsPath)
@@ -386,19 +389,19 @@ export class CustomModesManager {
 		}
 
 		// Combine modes in the correct order: project modes first, then global modes.
-		const mergedModes = [
-			...roomodesModes.map((mode: any) => ({ ...mode, source: "project" as const })),
+		const mergedModes: ModeConfig[] = [
+			...roomodesModes.map((mode: ModeConfig) => ({ ...mode, source: "project" as const })),
 			...settingsModes
-				.filter((mode) => !projectModes.has(mode.slug))
-				.map((mode) => ({ ...mode, source: "global" as const })),
+				.filter((mode: ModeConfig) => !projectModes.has(mode.slug))
+				.map((mode: ModeConfig) => ({ ...mode, source: "global" as const })),
 		]
 
 		await this.context.globalState.update("customModes", mergedModes)
 
-		this.cachedModes = mergedModes
+		this.cachedModes = mergedModes as ModeConfig[]
 		this.cachedAt = now
 
-		return mergedModes
+		return mergedModes as ModeConfig[]
 	}
 
 	public async updateCustomMode(slug: string, config: ModeConfig): Promise<void> {
@@ -485,11 +488,12 @@ export class CustomModesManager {
 		if (!settings || typeof settings !== "object") {
 			settings = { customModes: [] }
 		}
-		if (!settings.customModes) {
-			settings.customModes = []
+		const settingsObj = settings as Record<string, unknown>
+		if (!settingsObj.customModes) {
+			settingsObj.customModes = []
 		}
 
-		settings.customModes = operation(settings.customModes)
+		settingsObj.customModes = operation(settingsObj.customModes as ModeConfig[])
 		await fs.writeFile(filePath, yaml.stringify(settings, { lineWidth: 0 }), "utf-8")
 	}
 
@@ -641,7 +645,7 @@ export class CustomModesManager {
 						const roomodesModes = roomodesData?.customModes || []
 
 						// Check if this specific mode exists in .jabberwockmodes
-						const modeInRoomodes = roomodesModes.find((m: any) => m.slug === slug)
+						const modeInRoomodes = roomodesModes.find((m: { slug: string }) => m.slug === slug)
 						if (!modeInRoomodes) {
 							return false // Mode not found anywhere
 						}
@@ -736,7 +740,7 @@ export class CustomModesManager {
 							const roomodesModes = roomodesData?.customModes || []
 
 							// Find the mode in .jabberwockmodes
-							mode = roomodesModes.find((m: any) => m.slug === slug)
+							mode = roomodesModes.find((m: { slug: string }) => m.slug === slug)
 						}
 					} catch (error) {
 						// Continue to check built-in modes

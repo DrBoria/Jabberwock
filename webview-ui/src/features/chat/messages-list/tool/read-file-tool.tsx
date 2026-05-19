@@ -1,7 +1,7 @@
 import React from "react"
 import { Eye, FileCode2 } from "lucide-react"
 import type { ClineMessage, ClineSayTool } from "@jabberwock/types"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { formatPathTooltip } from "@src/utils/formatPathTooltip"
 import { headerStyle } from "@src/components/ui"
 import { ToolUseBlock, ToolUseBlockHeader } from "@src/components/common/ToolUseBlock"
@@ -12,7 +12,7 @@ interface ToolRendererProps {
 	message: ClineMessage
 	tool: ClineSayTool
 	onBatchFileResponse?: (response: { [key: string]: boolean }) => void
-	t: (key: string, options?: any) => string
+	t: (key: string, options?: Record<string, unknown>) => string
 }
 
 /** Renders readFile tool */
@@ -58,11 +58,10 @@ export const ReadFileRenderer: React.FC<ToolRendererProps> = ({ message, tool, o
 					<ToolUseBlockHeader
 						className="group"
 						onClick={() =>
-							vscode.postMessage({
-								type: "openFile",
-								text: tool.content,
-								values: tool.startLine ? { line: tool.startLine } : undefined,
-							})
+							rootStore.settings.openFile(
+								tool.content ?? "",
+								tool.startLine ? { line: tool.startLine } : undefined,
+							)
 						}>
 						{tool.path?.startsWith(".") && <span>.</span>}
 						<PathTooltip content={formatPathTooltip(tool.path, tool.reason)}>

@@ -1,7 +1,7 @@
 import { memo } from "react"
 
 import { ToolUseBlock, ToolUseBlockHeader } from "@src/components/common/ToolUseBlock"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { formatPathTooltip } from "@src/utils/formatPathTooltip"
 import { PathTooltip } from "@src/components/ui/PathTooltip"
 
@@ -34,7 +34,7 @@ export const BatchFilePermission = memo(({ files = [], onPermissionResponse, ts 
 						<div key={`${file.path}-${index}-${ts}`} className="flex items-center gap-2">
 							<ToolUseBlock className="flex-1">
 								<ToolUseBlockHeader
-									onClick={() => vscode.postMessage({ type: "openFile", text: file.content })}>
+									onClick={() => file.content && rootStore.settings.openFile(file.content)}>
 									{file.path?.startsWith(".") && <span>.</span>}
 									<PathTooltip
 										content={formatPathTooltip(

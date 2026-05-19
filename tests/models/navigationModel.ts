@@ -19,18 +19,33 @@ export class NavigationModel {
 	}
 
 	/**
-	 * Get the currently active page by inspecting the DOM for data-window-type elements.
+	 * Get the currently active page by inspecting the DOM for
+	 * data-window-type elements with data-active="true".
+	 * Falls back to the last data-window-type in DOM order if data-active is not found.
 	 */
 	async getActivePage(): Promise<string> {
 		const dom = await this.dom.findElementBySelector("*", 10)
 		const lines = dom.split("\n")
 		const windowTypes: string[] = []
 		for (const line of lines) {
-			const match = line.match(/data-window-type="(\w+)"/)
+			const match = line.match(/"?data-window-type"?[=:]\s*"?(\w+)"?/)
 			if (match) {
 				windowTypes.push(match[1].toLowerCase())
 			}
 		}
+
+		// Prefer the window with data-active="true" (set by React based on MST state)
+		for (const line of lines) {
+			const lowerLine = line.toLowerCase()
+			if (lowerLine.includes('data-active="true"') || lowerLine.includes("data-active={true}")) {
+				const match = line.match(/"?data-window-type"?[=:]\s*"?(\w+)"?/)
+				if (match) {
+					return match[1].toLowerCase()
+				}
+			}
+		}
+
+		// Fallback: return the last window type found in DOM order (original behavior)
 		if (windowTypes.length > 0) {
 			return windowTypes[windowTypes.length - 1]
 		}
@@ -59,7 +74,7 @@ export class NavigationModel {
 		const lines = dom.split("\n")
 		const windowTypes: string[] = []
 		for (const line of lines) {
-			const match = line.match(/data-window-type="(\w+)"/)
+			const match = line.match(/"?data-window-type"?[=:]\s*"?(\w+)"?/)
 			if (match) {
 				const type = match[1].toLowerCase()
 				if (type !== "app") {

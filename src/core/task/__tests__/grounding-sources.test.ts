@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import type { ClineProvider } from "../../webview/ClineProvider"
+import type { EventBridge } from "../../webview/EventBridge"
 import type { ProviderSettings } from "@jabberwock/types"
 
 // All vi.mock() calls are hoisted to the top of the file by Vitest
@@ -152,17 +152,15 @@ vi.mock("../../../utils/fs", () => ({
 }))
 
 // Import Task AFTER all vi.mock() calls - Vitest hoists mocks so this works
-import { Task } from "../Task"
+import { Task } from "../../../features/chat/task/Task"
 
 describe("Task grounding sources handling", () => {
-	let mockProvider: Partial<ClineProvider>
+	let mockProvider: Partial<EventBridge>
 	let mockApiConfiguration: ProviderSettings
 
 	beforeEach(() => {
 		// Mock provider with necessary methods
 		mockProvider = {
-			postStateToWebview: vi.fn().mockResolvedValue(undefined),
-			postStateToWebviewWithoutTaskHistory: vi.fn().mockResolvedValue(undefined),
 			getState: vi.fn().mockResolvedValue({
 				mode: "code",
 				experiments: {},
@@ -172,7 +170,6 @@ describe("Task grounding sources handling", () => {
 				extensionPath: "/test/extension",
 			} as any,
 			log: vi.fn(),
-			updateTaskHistory: vi.fn().mockResolvedValue(undefined),
 			postMessageToWebview: vi.fn().mockResolvedValue(undefined),
 		}
 
@@ -185,7 +182,7 @@ describe("Task grounding sources handling", () => {
 	it("should strip grounding sources from assistant message before persisting to API history", async () => {
 		// Create a task instance
 		const task = new Task({
-			provider: mockProvider as ClineProvider,
+			provider: mockProvider as EventBridge,
 			apiConfiguration: mockApiConfiguration,
 			task: "Test task",
 			startTask: false,
@@ -243,7 +240,7 @@ Sources: [1](https://example.com), [2](https://another.com)
 
 	it("should not modify assistant message when no grounding sources are present", async () => {
 		const task = new Task({
-			provider: mockProvider as ClineProvider,
+			provider: mockProvider as EventBridge,
 			apiConfiguration: mockApiConfiguration,
 			task: "Test task",
 			startTask: false,

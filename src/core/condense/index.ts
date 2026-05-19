@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk"
 import crypto from "crypto"
 
-import { TelemetryService } from "@jabberwock/telemetry"
+import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 
 import { t } from "../../i18n"
 import { ApiHandler, ApiHandlerCreateMessageMetadata } from "../../api"
@@ -267,11 +267,7 @@ export async function summarizeConversation(options: SummarizeConversationOption
 		cwd,
 		jabberwockIgnoreController,
 	} = options
-	TelemetryService.instance.captureContextCondensed(
-		taskId,
-		isAutomaticTrigger ?? false,
-		!!customCondensingPrompt?.trim(),
-	)
+	getTelemetryService().captureContextCondensed(taskId, isAutomaticTrigger ?? false, !!customCondensingPrompt?.trim())
 
 	const response: SummarizeResponse = { messages, cost: 0, summary: "" }
 
@@ -352,7 +348,7 @@ export async function summarizeConversation(options: SummarizeConversationOption
 		if (error instanceof Error) {
 			errorDetails = `Error: ${error.message}`
 			// Capture any additional API error properties
-			const anyError = error as unknown as Record<string, unknown>
+			const anyError = error as Error & { status?: unknown; code?: unknown; response?: unknown; body?: unknown }
 			if (anyError.status) {
 				errorDetails += `\n\nHTTP Status: ${anyError.status}`
 			}

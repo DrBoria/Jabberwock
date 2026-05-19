@@ -16,7 +16,8 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui"
-import { vscode } from "@jabberwock/devtool/react"
+import { SETTINGS_CREATE_COMMAND as _SETTINGS_CREATE_COMMAND } from "@jabberwock/types"
+import { rootStore } from "@src/features/store"
 
 interface CreateSlashCommandDialogProps {
 	open: boolean
@@ -81,16 +82,12 @@ export const CreateSlashCommandDialog: React.FC<CreateSlashCommandDialogProps> =
 		const fileName = name.trim().endsWith(".md") ? name.trim() : `${name.trim()}.md`
 
 		// Send message to create command
-		vscode.postMessage({
-			type: "createCommand",
-			text: fileName,
-			values: { source },
-		})
+		rootStore.settings.createCommand(fileName)
 
 		// Close dialog and notify parent
 		handleClose()
 		onCommandCreated()
-	}, [name, source, handleClose, onCommandCreated])
+	}, [name, handleClose, onCommandCreated])
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>

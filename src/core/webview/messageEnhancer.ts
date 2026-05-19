@@ -1,14 +1,14 @@
 import { ProviderSettings, ClineMessage, GlobalState, TelemetryEventName } from "@jabberwock/types"
-import { TelemetryService } from "@jabberwock/telemetry"
+import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 import { supportPrompt } from "../../shared/support-prompt"
 import { singleCompletionHandler } from "../../utils/single-completion-handler"
 import { ProviderSettingsManager } from "../config/ProviderSettingsManager"
-import { ClineProvider } from "./ClineProvider"
+import { EventBridge } from "./EventBridge"
 
 export interface MessageEnhancerOptions {
 	text: string
 	apiConfiguration: ProviderSettings
-	customSupportPrompts?: Record<string, any>
+	customSupportPrompts?: Record<string, unknown>
 	listApiConfigMeta: Array<{ id: string; name?: string }>
 	enhancementApiConfigId?: string
 	includeTaskHistoryInEnhance?: boolean
@@ -73,7 +73,7 @@ export class MessageEnhancer {
 			const enhancementPrompt = supportPrompt.create(
 				"ENHANCE",
 				{ userInput: promptToEnhance },
-				customSupportPrompts,
+				customSupportPrompts as Record<string, string | undefined> | undefined,
 			)
 
 			// Call the single completion handler to get the enhanced prompt
@@ -132,9 +132,9 @@ export class MessageEnhancer {
 	 * @param includeTaskHistory Whether task history was included in the enhancement
 	 */
 	static captureTelemetry(taskId?: string, includeTaskHistory?: boolean): void {
-		if (TelemetryService.hasInstance()) {
+		if (hasTelemetryService()) {
 			// Use captureEvent directly to include the includeTaskHistory property
-			TelemetryService.instance.captureEvent(TelemetryEventName.PROMPT_ENHANCED, {
+			getTelemetryService().captureEvent(TelemetryEventName.PROMPT_ENHANCED, {
 				...(taskId && { taskId }),
 				includeTaskHistory: includeTaskHistory ?? false,
 			})

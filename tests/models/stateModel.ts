@@ -7,6 +7,13 @@
 
 import type { DevtoolClient } from "../../packages/devtool/src/client"
 
+interface TaskNode {
+	id?: { value: string }
+	mode?: { value: string }
+	title?: { value: string }
+	children?: TaskNode[]
+}
+
 export class StateModel {
 	constructor(public readonly client: DevtoolClient) {}
 
@@ -36,7 +43,7 @@ export class StateModel {
 			mode: "graph",
 			depth: 2,
 		})
-		return state?.activeNodeId || state || null
+		return (state as { activeNodeId?: unknown })?.activeNodeId || state || null
 	}
 
 	/**
@@ -68,7 +75,7 @@ export class StateModel {
 					})
 					// Walk children if present
 					if (activeNode.children && Array.isArray(activeNode.children)) {
-						const walk = (node: any) => {
+						const walk = (node: TaskNode) => {
 							if (node.id?.value) {
 								stack.push({
 									taskId: node.id.value,
@@ -98,7 +105,7 @@ export class StateModel {
 			const idState = await this.client.getMstState({
 				store: "chatStore",
 				mode: "query",
-				path: "activeNodeId.id",
+				path: "activeNodeId",
 			})
 			if (typeof idState === "string") {
 				stack.push({
@@ -131,9 +138,14 @@ export class StateModel {
 	 * Queries chatStore and checks if the taskId and expected key-value pairs exist.
 	 */
 	async verifyMstTaskState(taskId: string, expected: Record<string, unknown>): Promise<void> {
-		const state = await this.client.getMstState({ store: "chatStore", mode: "graph", depth: 2 })
-		if (state) {
-			const stateStr = JSON.stringify(state)
+		const state = await this.client.getStoreState({
+			store: "frontend",
+			path: `chat.tree.nodes.${taskId}`,
+		})
+		if (state && typeof state === "object") {
+			const record = state as Record<string, unknown>
+			const items = record.items as Array<Record<string, unknown>> | undefined
+			const stateStr = JSON.stringify(items || record)
 			if (!stateStr.includes(taskId)) {
 				throw new Error(`Task ${taskId} not found in MST store`)
 			}
@@ -144,6 +156,8 @@ export class StateModel {
 					console.warn(`  ⚠ Could not verify MST state: ${key}=${val} in store`)
 				}
 			}
+		} else {
+			throw new Error(`Task ${taskId} not found in MST store`)
 		}
 	}
 
@@ -153,15 +167,19 @@ export class StateModel {
 	 */
 	async verifyMstActiveNode(taskId: string): Promise<void> {
 		try {
-			const activeId = await this.client.getMstState({
-				store: "chatStore",
-				mode: "query",
-				path: "activeNodeId.id",
+			const activeIdResult = await this.client.getStoreState({
+				store: "frontend",
+				path: "chat.tree.activeNodeId",
 			})
-			if (activeId === taskId) {
-				console.log(`  ✓ Task ${taskId} is active`)
-			} else {
-				console.warn(`  ⚠ Task ${taskId} may not be the active task (active: ${activeId})`)
+			if (activeIdResult && typeof activeIdResult === "object") {
+				const record = activeIdResult as Record<string, unknown>
+				const items = record.items as Array<Record<string, unknown>> | undefined
+				const activeId = items?.[0]?.value
+				if (activeId === taskId) {
+					console.log(`  ✓ Task ${taskId} is active`)
+				} else {
+					console.warn(`  ⚠ Task ${taskId} may not be the active task (active: ${activeId})`)
+				}
 			}
 		} catch {
 			console.warn(`  ⚠ Could not verify active node for task ${taskId}`)

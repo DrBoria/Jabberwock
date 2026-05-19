@@ -1,6 +1,6 @@
 import { render } from "@/utils/test-utils"
 
-import TranslationProvider, { useAppTranslation } from "../TranslationContext"
+import { useAppTranslation } from "../TranslationContext"
 
 vi.mock("@/context/ExtensionStateContext", () => ({
 	useExtensionState: () => ({
@@ -51,22 +51,14 @@ const TestComponent = () => {
 
 describe("TranslationContext", () => {
 	it("should provide translations via context", () => {
-		const { getByTestId } = render(
-			<TranslationProvider>
-				<TestComponent />
-			</TranslationProvider>,
-		)
+		const { getByTestId } = render(<TestComponent />)
 
 		// Check if translation is provided correctly
 		expect(getByTestId("translation-test")).toHaveTextContent("Auto-Approve")
 	})
 
 	it("should handle interpolation correctly", () => {
-		const { getByTestId } = render(
-			<TranslationProvider>
-				<TestComponent />
-			</TranslationProvider>,
-		)
+		const { getByTestId } = render(<TestComponent />)
 
 		// Check if interpolation works
 		expect(getByTestId("translation-interpolation")).toHaveTextContent("Operation failed: Test error")

@@ -13,7 +13,7 @@ interface ApiReqStartedProps {
 	lastModifiedMessage?: ClineMessage
 	icon: React.ReactNode
 	title: React.ReactNode
-	t: any
+	t: (key: string, options?: Record<string, unknown>) => string
 }
 
 /** Renders api_req_started say messages */
@@ -81,8 +81,8 @@ export const ApiReqStartedSay: React.FC<ApiReqStartedProps> = ({
 
 interface ApiReqRetryDelayedProps {
 	message: ClineMessage
-	t: any
-	i18n: any
+	t: (key: string, options?: Record<string, unknown>) => string
+	i18n: { exists: (key: string) => boolean }
 }
 
 /** Renders api_req_retry_delayed say messages */
@@ -130,7 +130,7 @@ export const ApiReqRetryDelayedSay: React.FC<ApiReqRetryDelayedProps> = ({ messa
 
 interface ApiReqRateLimitWaitProps {
 	message: ClineMessage
-	t: any
+	t: (key: string, options?: Record<string, unknown>) => string
 }
 
 /** Renders api_req_rate_limit_wait say messages */

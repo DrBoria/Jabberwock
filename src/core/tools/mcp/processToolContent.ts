@@ -1,12 +1,16 @@
 import type { McpExecutionStatus } from "@jabberwock/types"
 
-import { Task } from "../../task/Task"
+import { Task } from "../../../features/chat/task/Task"
+import { getMstState } from "../../../features/foundation/mst/store"
 
 /**
  * Processes the raw tool result from an MCP call into text and images.
  * Handles text, resource, and image content types.
  */
-export function processToolContent(toolResult: any): { text: string; images: string[] } {
+export function processToolContent(toolResult: { content: Array<Record<string, unknown>> }): {
+	text: string
+	images: string[]
+} {
 	if (!toolResult?.content || toolResult.content.length === 0) {
 		return { text: "", images: [] }
 	}
@@ -14,21 +18,27 @@ export function processToolContent(toolResult: any): { text: string; images: str
 	const images: string[] = []
 
 	const textContent = toolResult.content
-		.map((item: any) => {
+		.map((item: Record<string, unknown>) => {
 			if (item.type === "text") {
-				return item.text
+				const text = item.text
+				return typeof text === "string" ? text : JSON.stringify(text)
 			}
 			if (item.type === "resource") {
-				const { blob: _, ...rest } = item.resource
-				return JSON.stringify(rest, null, 2)
+				const resource = item.resource
+				if (resource != null && typeof resource === "object") {
+					const { blob: _, ...rest } = resource as Record<string, unknown> & { blob?: unknown }
+					return JSON.stringify(rest, null, 2)
+				}
+				return ""
 			}
 			if (item.type === "image") {
-				// Handle image content (MCP image content has mimeType and data properties)
-				if (item.mimeType && item.data) {
-					if (item.data.startsWith("data:")) {
-						images.push(item.data)
+				const mimeType = item.mimeType
+				const data = item.data
+				if (typeof mimeType === "string" && typeof data === "string") {
+					if (data.startsWith("data:")) {
+						images.push(data)
 					} else {
-						images.push(`data:${item.mimeType};base64,${item.data}`)
+						images.push(`data:${mimeType};base64,${data}`)
 					}
 				}
 				return ""
@@ -52,5 +62,7 @@ export async function sendExecutionStatus(task: Task, status: McpExecutionStatus
 		type: "mcpExecutionStatus",
 		text: JSON.stringify(status),
 	})
-	clineProvider?.mcpExecutionStore?.addOrUpdateExecution(status)
+	if (clineProvider) {
+		getMstState(clineProvider).mcpExecutionStore?.addOrUpdateExecution(status)
+	}
 }

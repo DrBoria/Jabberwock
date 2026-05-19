@@ -4,7 +4,7 @@ import { VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 
 import type { TelemetrySetting } from "@jabberwock/types"
 
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 
 const TelemetryBanner = () => {
@@ -13,7 +13,7 @@ const TelemetryBanner = () => {
 
 	const handleClose = () => {
 		setIsDismissed(true)
-		vscode.postMessage({ type: "telemetrySetting", text: "enabled" satisfies TelemetrySetting })
+		rootStore.settings.setTelemetry("enabled" satisfies TelemetrySetting)
 	}
 
 	const handleOpenSettings = () => {

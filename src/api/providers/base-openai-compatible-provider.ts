@@ -23,6 +23,13 @@ type BaseOpenAiCompatibleProviderOptions<ModelName extends string> = ApiHandlerO
 	defaultTemperature?: number
 }
 
+type UsageMetrics = OpenAI.CompletionUsage & {
+	prompt_tokens_details?: {
+		cache_write_tokens?: number
+		cached_tokens?: number
+	}
+}
+
 export abstract class BaseOpenAiCompatibleProvider<ModelName extends string>
 	extends BaseProvider
 	implements SingleCompletionHandler
@@ -100,7 +107,7 @@ export abstract class BaseOpenAiCompatibleProvider<ModelName extends string>
 
 		// Add thinking parameter if reasoning is enabled and model supports it
 		if (this.options.enableReasoningEffort && info.supportsReasoningBinary) {
-			;(params as any).thinking = { type: "enabled" }
+			;(params as { thinking?: { type: string } }).thinking = { type: "enabled" }
 		}
 
 		try {
@@ -131,7 +138,7 @@ export abstract class BaseOpenAiCompatibleProvider<ModelName extends string>
 
 		for await (const chunk of stream) {
 			// Check for provider-specific error responses (e.g., MiniMax base_resp)
-			const chunkAny = chunk as any
+			const chunkAny = chunk as { base_resp?: { status_code?: number; status_msg?: string } }
 			if (chunkAny.base_resp?.status_code && chunkAny.base_resp.status_code !== 0) {
 				throw new Error(
 					`${this.providerName} API Error (${chunkAny.base_resp.status_code}): ${chunkAny.base_resp.status_msg || "Unknown error"}`,
@@ -150,7 +157,7 @@ export abstract class BaseOpenAiCompatibleProvider<ModelName extends string>
 			if (delta) {
 				for (const key of ["reasoning_content", "reasoning"] as const) {
 					if (key in delta) {
-						const reasoning_content = ((delta as any)[key] as string | undefined) || ""
+						const reasoning_content = ((delta as Record<string, unknown>)[key] as string | undefined) || ""
 						if (reasoning_content?.trim()) {
 							yield { type: "reasoning", text: reasoning_content }
 						}
@@ -190,7 +197,7 @@ export abstract class BaseOpenAiCompatibleProvider<ModelName extends string>
 		}
 
 		if (lastUsage) {
-			yield this.processUsageMetrics(lastUsage, this.getModel(metadata?.modelId).info)
+			yield this.processUsageMetrics(lastUsage as UsageMetrics, this.getModel(metadata?.modelId).info)
 		}
 
 		// Process any remaining content
@@ -199,7 +206,7 @@ export abstract class BaseOpenAiCompatibleProvider<ModelName extends string>
 		}
 	}
 
-	protected processUsageMetrics(usage: any, modelInfo?: any): ApiStreamUsageChunk {
+	protected processUsageMetrics(usage: UsageMetrics, modelInfo?: ModelInfo): ApiStreamUsageChunk {
 		const inputTokens = usage?.prompt_tokens || 0
 		const outputTokens = usage?.completion_tokens || 0
 		const cacheWriteTokens = usage?.prompt_tokens_details?.cache_write_tokens || 0
@@ -229,14 +236,14 @@ export abstract class BaseOpenAiCompatibleProvider<ModelName extends string>
 
 		// Add thinking parameter if reasoning is enabled and model supports it
 		if (this.options.enableReasoningEffort && modelInfo.supportsReasoningBinary) {
-			;(params as any).thinking = { type: "enabled" }
+			;(params as { thinking?: { type: string } }).thinking = { type: "enabled" }
 		}
 
 		try {
 			const response = await this.client.chat.completions.create(params)
 
 			// Check for provider-specific error responses (e.g., MiniMax base_resp)
-			const responseAny = response as any
+			const responseAny = response as { base_resp?: { status_code?: number; status_msg?: string } }
 			if (responseAny.base_resp?.status_code && responseAny.base_resp.status_code !== 0) {
 				throw new Error(
 					`${this.providerName} API Error (${responseAny.base_resp.status_code}): ${responseAny.base_resp.status_msg || "Unknown error"}`,

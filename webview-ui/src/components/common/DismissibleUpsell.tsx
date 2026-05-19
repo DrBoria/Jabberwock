@@ -1,5 +1,5 @@
 import { memo, ReactNode, useEffect, useState, useRef } from "react"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { telemetryClient } from "@src/features/cloud/utils/TelemetryClient"
 import { TelemetryEventName } from "@jabberwock/types"
@@ -54,7 +54,7 @@ const DismissibleUpsell = memo(
 			isMountedRef.current = true
 
 			// Request the current list of dismissed upsells from the extension
-			vscode.postMessage({ type: "getDismissedUpsells" })
+			rootStore.marketplace.getDismissedUpsells()
 
 			// Listen for the response
 			const handleMessage = (event: MessageEvent) => {
@@ -86,10 +86,7 @@ const DismissibleUpsell = memo(
 
 			// First notify the extension to persist the dismissal
 			// This ensures the message is sent even if the component unmounts quickly
-			vscode.postMessage({
-				type: "dismissUpsell",
-				upsellId: upsellId,
-			})
+			rootStore.marketplace.dismissUpsell(upsellId)
 
 			// Then hide the upsell
 			setIsVisible(false)

@@ -10,7 +10,7 @@ import { createDirectoriesForFile } from "../../utils/fs"
 import { arePathsEqual, getReadablePath } from "../../utils/path"
 import { formatResponse } from "../../core/prompts/responses"
 import { diagnosticsToProblemsString, getNewDiagnostics } from "../diagnostics"
-import { Task } from "../../core/task/Task"
+import { Task } from "../../features/chat/task/Task"
 
 import { DecorationController } from "./DecorationController"
 
@@ -590,9 +590,13 @@ export class DiffViewProvider {
 					() => {
 						// Command executed successfully, now wait for the editor to appear
 					},
-					(err: any) => {
+					(err: unknown) => {
 						cleanup()
-						reject(new Error(`Failed to execute diff command for ${uri.fsPath}: ${err.message}`))
+						reject(
+							new Error(
+								`Failed to execute diff command for ${uri.fsPath}: ${err instanceof Error ? err.message : String(err)}`,
+							),
+						)
 					},
 				)
 		})

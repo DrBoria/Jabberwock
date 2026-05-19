@@ -31,8 +31,8 @@ export const TemperatureControl = ({ value, onChange, maxValue = 1, defaultValue
 			<div>
 				<VSCodeCheckbox
 					checked={isCustomTemperature}
-					onChange={(e: any) => {
-						const isChecked = e.target.checked
+					onChange={(e) => {
+						const isChecked = (e.target as HTMLInputElement).checked
 						setIsCustomTemperature(isChecked)
 
 						if (!isChecked) {

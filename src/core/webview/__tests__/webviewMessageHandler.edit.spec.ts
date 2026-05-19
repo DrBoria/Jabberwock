@@ -38,13 +38,13 @@ vi.mock("../checkpointRestoreHandler", () => ({
 
 // Import after mocks
 import { webviewMessageHandler } from "../webviewMessageHandler"
-import type { ClineProvider } from "../ClineProvider"
+import type { EventBridge } from "../EventBridge"
 import type { ClineMessage } from "@jabberwock/types"
 import type { ApiMessage } from "../../task-persistence/apiMessages"
 import { MessageManager } from "../../message-manager"
 
 describe("webviewMessageHandler - Edit Message with Timestamp Fallback", () => {
-	let mockClineProvider: ClineProvider
+	let mockEventBridge: EventBridge
 	let mockCurrentTask: any
 
 	beforeEach(() => {
@@ -62,7 +62,7 @@ describe("webviewMessageHandler - Edit Message with Timestamp Fallback", () => {
 		mockCurrentTask.messageManager = new MessageManager(mockCurrentTask)
 
 		// Create mock provider
-		mockClineProvider = {
+		mockEventBridge = {
 			getCurrentTask: vi.fn().mockReturnValue(mockCurrentTask),
 			postMessageToWebview: vi.fn(),
 			contextProxy: {
@@ -75,7 +75,7 @@ describe("webviewMessageHandler - Edit Message with Timestamp Fallback", () => {
 				maxImageFileSize: 5,
 				maxTotalImageSize: 20,
 			}),
-		} as unknown as ClineProvider
+		} as unknown as EventBridge
 	})
 
 	it("should not modify API history when apiConversationHistoryIndex is -1", async () => {
@@ -129,7 +129,7 @@ describe("webviewMessageHandler - Edit Message with Timestamp Fallback", () => {
 		] as ApiMessage[]
 
 		// Trigger edit confirmation
-		await webviewMessageHandler(mockClineProvider, {
+		await webviewMessageHandler(mockEventBridge, {
 			type: "editMessageConfirm",
 			messageTs: userMessageTs,
 			text: "Hello World", // edited content
@@ -186,7 +186,7 @@ describe("webviewMessageHandler - Edit Message with Timestamp Fallback", () => {
 			},
 		] as ApiMessage[]
 
-		await webviewMessageHandler(mockClineProvider, {
+		await webviewMessageHandler(mockEventBridge, {
 			type: "editMessageConfirm",
 			messageTs: userMessageTs,
 			text: "Hello World",
@@ -246,7 +246,7 @@ describe("webviewMessageHandler - Edit Message with Timestamp Fallback", () => {
 			},
 		] as ApiMessage[]
 
-		await webviewMessageHandler(mockClineProvider, {
+		await webviewMessageHandler(mockEventBridge, {
 			type: "editMessageConfirm",
 			messageTs: userMessageTs,
 			text: "Hello World",
@@ -284,7 +284,7 @@ describe("webviewMessageHandler - Edit Message with Timestamp Fallback", () => {
 			},
 		] as ApiMessage[]
 
-		await webviewMessageHandler(mockClineProvider, {
+		await webviewMessageHandler(mockEventBridge, {
 			type: "editMessageConfirm",
 			messageTs: userMessageTs,
 			text: "Hello World",
@@ -312,7 +312,7 @@ describe("webviewMessageHandler - Edit Message with Timestamp Fallback", () => {
 
 		mockCurrentTask.apiConversationHistory = []
 
-		await webviewMessageHandler(mockClineProvider, {
+		await webviewMessageHandler(mockEventBridge, {
 			type: "editMessageConfirm",
 			messageTs: userMessageTs,
 			text: "Hello World",
@@ -381,7 +381,7 @@ describe("webviewMessageHandler - Edit Message with Timestamp Fallback", () => {
 		] as ApiMessage[]
 
 		// Edit the first user message
-		await webviewMessageHandler(mockClineProvider, {
+		await webviewMessageHandler(mockEventBridge, {
 			type: "editMessageConfirm",
 			messageTs: userMessageTs,
 			text: "Do something else",

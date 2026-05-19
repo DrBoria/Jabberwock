@@ -11,7 +11,7 @@ import {
 	AlertDialogTitle,
 } from "../ui/alert-dialog"
 import { Button } from "../ui/button"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { AlertDialogProps } from "@radix-ui/react-alert-dialog"
 
 interface BatchDeleteTaskDialogProps extends AlertDialogProps {
@@ -24,7 +24,7 @@ export const BatchDeleteTaskDialog = ({ taskIds, ...props }: BatchDeleteTaskDial
 
 	const onDelete = useCallback(() => {
 		if (taskIds.length > 0) {
-			vscode.postMessage({ type: "deleteMultipleTasksWithIds", ids: taskIds })
+			rootStore.history.deleteMultipleTasksWithIds(taskIds)
 			onOpenChange?.(false)
 		}
 	}, [taskIds, onOpenChange])

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import mermaid from "mermaid"
 import styled from "styled-components"
 import { useDebounceEffect } from "@/features/foundation/agent-state/mode-selector/utils/useDebounceEffect"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { useCopyToClipboard } from "@src/features/chat/text-area/utils/clipboard"
 import CodeBlock from "./CodeBlock"
@@ -142,10 +142,7 @@ export default function MermaidBlock({ code }: MermaidBlockProps) {
 
 		try {
 			const pngDataUrl = await svgToPng(svgEl)
-			vscode.postMessage({
-				type: "openImage",
-				text: pngDataUrl,
-			})
+			rootStore.settings.openImage(pngDataUrl)
 		} catch (err) {
 			console.error("Error converting SVG to PNG:", err)
 		}

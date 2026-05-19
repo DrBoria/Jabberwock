@@ -1,5 +1,7 @@
 import { types, Instance } from "mobx-state-tree"
 
+import type { McpExecutionStatus } from "@jabberwock/types"
+
 /**
  * McpExecutionStore — holds MCP execution status snapshots pushed
  * from the extension via MstBridge.
@@ -9,11 +11,11 @@ import { types, Instance } from "mobx-state-tree"
  */
 export const McpExecutionStore = types
 	.model("McpExecutionStore", {
-		executions: types.optional(types.array(types.frozen<any>()), []),
+		executions: types.array(types.frozen<McpExecutionStatus>()),
 	})
 	.actions((self) => ({
 		/** Replace the entire executions array from a snapshot. */
-		setExecutions(executions: any[]) {
+		setExecutions(executions: McpExecutionStatus[]) {
 			self.executions.replace(executions)
 		},
 	}))

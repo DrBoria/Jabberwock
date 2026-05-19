@@ -19,12 +19,14 @@ export const Moonshot = ({ apiConfiguration, setApiConfigurationField }: Moonsho
 	const { t } = useAppTranslation()
 
 	const handleInputChange = useCallback(
-		<K extends keyof ProviderSettings, E>(
-			field: K,
-			transform: (event: E) => ProviderSettings[K] = inputEventTransform,
-		) =>
+		<K extends keyof ProviderSettings, E>(field: K, transform?: (event: E) => ProviderSettings[K]) =>
 			(event: E | Event) => {
-				setApiConfigurationField(field, transform(event as E))
+				setApiConfigurationField(
+					field,
+					transform
+						? transform(event as E)
+						: (inputEventTransform(event as { target: HTMLInputElement }) as ProviderSettings[K]),
+				)
 			},
 		[setApiConfigurationField],
 	)

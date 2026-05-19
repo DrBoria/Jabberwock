@@ -99,12 +99,14 @@ export const OpenAICompatible = ({
 	}, [customHeaders, setApiConfigurationField])
 
 	const handleInputChange = useCallback(
-		<K extends keyof ProviderSettings, E>(
-			field: K,
-			transform: (event: E) => ProviderSettings[K] = inputEventTransform,
-		) =>
+		<K extends keyof ProviderSettings, E>(field: K, transform?: (event: E) => ProviderSettings[K]) =>
 			(event: E | Event) => {
-				setApiConfigurationField(field, transform(event as E))
+				setApiConfigurationField(
+					field,
+					transform
+						? transform(event as E)
+						: (inputEventTransform(event as { target: HTMLInputElement }) as ProviderSettings[K]),
+				)
 			},
 		[setApiConfigurationField],
 	)
@@ -220,13 +222,13 @@ export const OpenAICompatible = ({
 								value={key}
 								className="flex-1 mr-2"
 								placeholder={t("settings:providers.headerName")}
-								onInput={(e: any) => handleUpdateHeaderKey(index, e.target.value)}
+								onInput={(e) => handleUpdateHeaderKey(index, (e.target as HTMLInputElement).value)}
 							/>
 							<VSCodeTextField
 								value={value}
 								className="flex-1 mr-2"
 								placeholder={t("settings:providers.headerValue")}
-								onInput={(e: any) => handleUpdateHeaderValue(index, e.target.value)}
+								onInput={(e) => handleUpdateHeaderValue(index, (e.target as HTMLInputElement).value)}
 							/>
 							<StandardTooltip content={t("settings:common.remove")}>
 								<VSCodeButton appearance="icon" onClick={() => handleRemoveCustomHeader(index)}>

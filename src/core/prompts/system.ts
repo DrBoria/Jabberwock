@@ -8,7 +8,7 @@ import { formatLanguage } from "../../shared/language"
 import { isEmpty } from "../../utils/object"
 
 import { McpHub } from "../../services/mcp/McpHub"
-import { CodeIndexManager } from "../../services/code-index/manager"
+import { CodeIndexManager, getCodeIndexManager } from "../../services/code-index/manager"
 import { SkillsManager } from "../../services/skills/SkillsManager"
 
 import type { SystemPromptSettings } from "./types"
@@ -83,7 +83,7 @@ async function generatePrompt(
 	const hasMcpServers = mcpHub && mcpHub.getServers().length > 0
 	const shouldIncludeMcp = hasMcpGroup && hasMcpServers
 
-	const codeIndexManager = CodeIndexManager.getInstance(context, cwd)
+	const codeIndexManager = getCodeIndexManager(context, cwd)
 
 	const effectiveProtocol = "native"
 

@@ -18,6 +18,16 @@ import type { WindowAPI } from "./WindowAPI.ts"
 /**
  * Commands API mock for CLI mode
  */
+/**
+ * Global augmentation for VSCode shim APIs accessible via globalThis.
+ */
+interface GlobalWithVscode {
+	vscode?: {
+		workspace?: WorkspaceAPI
+		window?: WindowAPI
+	}
+}
+
 export class CommandsAPI {
 	private commands: Map<string, (...args: unknown[]) => unknown> = new Map()
 
@@ -83,8 +93,8 @@ export class CommandsAPI {
 		}
 
 		// Get the workspace API to open the document
-		const workspace = (global as unknown as { vscode?: { workspace?: WorkspaceAPI } }).vscode?.workspace
-		const window = (global as unknown as { vscode?: { window?: WindowAPI } }).vscode?.window
+		const workspace = (globalThis as GlobalWithVscode).vscode?.workspace
+		const window = (globalThis as GlobalWithVscode).vscode?.window
 
 		if (!workspace || !window) {
 			logs.warn("[DIFF] VSCode APIs not available for diff command", "VSCode.Commands")

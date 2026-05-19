@@ -25,7 +25,7 @@ type ZAiChatCompletionParams = OpenAI.Chat.ChatCompletionCreateParamsStreaming &
 export class ZAiHandler extends BaseOpenAiCompatibleProvider<string> {
 	constructor(options: ApiHandlerOptions) {
 		const isChina = zaiApiLineConfigs[options.zaiApiLine ?? "international_coding"].isChina
-		const models = (isChina ? mainlandZAiModels : internationalZAiModels) as unknown as Record<string, ModelInfo>
+		const models = (isChina ? mainlandZAiModels : internationalZAiModels) as Record<string, ModelInfo>
 		const defaultModelId = (isChina ? mainlandZAiDefaultModelId : internationalZAiDefaultModelId) as string
 
 		super({

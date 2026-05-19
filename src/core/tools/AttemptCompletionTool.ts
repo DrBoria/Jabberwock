@@ -1,15 +1,18 @@
 import * as vscode from "vscode"
 
 import { JabberwockEventName, type HistoryItem } from "@jabberwock/types"
-import { TelemetryService } from "@jabberwock/telemetry"
+import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 
-import { Task } from "../task/Task"
+import { Task } from "../../features/chat/task/Task"
 import { formatResponse } from "../prompts/responses"
 import { Package } from "../../shared/package"
 import type { ToolUse } from "../../shared/tools"
 import { t } from "../../i18n"
 
 import { BaseTool, ToolCallbacks } from "./BaseTool"
+import type { EventBridge } from "../webview/EventBridge"
+import { getTaskWithId } from "../../features/history/store"
+import { reopenParentFromDelegation } from "../../features/chat/task/actions/delegation"
 
 interface AttemptCompletionParams {
 	result: string
@@ -19,18 +22,6 @@ interface AttemptCompletionParams {
 export interface AttemptCompletionCallbacks extends ToolCallbacks {
 	askFinishSubTaskApproval: () => Promise<boolean>
 	toolDescription: () => string
-}
-
-/**
- * Interface for provider methods needed by AttemptCompletionTool for delegation handling.
- */
-interface DelegationProvider {
-	getTaskWithId(id: string): Promise<{ historyItem: HistoryItem }>
-	reopenParentFromDelegation(params: {
-		parentTaskId: string
-		childTaskId: string
-		completionResultSummary: string
-	}): Promise<void>
 }
 
 export class AttemptCompletionTool extends BaseTool<"attempt_completion"> {
@@ -96,10 +87,10 @@ export class AttemptCompletionTool extends BaseTool<"attempt_completion"> {
 			if (task.parentTaskId) {
 				// Check if this subtask has already completed and returned to parent
 				// to prevent duplicate tool_results when user revisits from history
-				const provider = task.providerRef.deref() as DelegationProvider | undefined
+				const provider = task.providerRef.deref()
 				if (provider) {
 					try {
-						const { historyItem } = await provider.getTaskWithId(task.taskId)
+						const { historyItem } = await getTaskWithId(provider, task.taskId)
 						const status = historyItem?.status
 
 						if (status === "completed") {
@@ -177,7 +168,7 @@ export class AttemptCompletionTool extends BaseTool<"attempt_completion"> {
 	private async delegateToParent(
 		task: Task,
 		result: string,
-		provider: DelegationProvider,
+		provider: EventBridge,
 		askFinishSubTaskApproval: () => Promise<boolean>,
 		pushToolResult: (result: string) => void,
 	): Promise<"delegated" | "denied" | "continue"> {
@@ -190,7 +181,7 @@ export class AttemptCompletionTool extends BaseTool<"attempt_completion"> {
 
 		pushToolResult("")
 
-		await provider.reopenParentFromDelegation({
+		await reopenParentFromDelegation(provider, {
 			parentTaskId: task.parentTaskId!,
 			childTaskId: task.taskId,
 			completionResultSummary: result,
@@ -222,7 +213,7 @@ export class AttemptCompletionTool extends BaseTool<"attempt_completion"> {
 		// This ensures the latest stats are captured regardless of throttle timer.
 		task.emitFinalTokenUsageUpdate()
 
-		TelemetryService.instance.captureTaskCompleted(task.taskId)
+		getTelemetryService().captureTaskCompleted(task.taskId)
 		task.emit(JabberwockEventName.TaskCompleted, task.taskId, task.getTokenUsage(), task.toolUsage)
 	}
 }

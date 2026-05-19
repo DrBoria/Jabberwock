@@ -128,6 +128,39 @@ function validateModelsAndKeysProvided(apiConfiguration: ProviderSettings): stri
 				return i18next.t("settings:validation.apiKey")
 			}
 			break
+		case "deepseek":
+			if (!apiConfiguration.deepSeekApiKey) {
+				return i18next.t("settings:validation.apiKey")
+			}
+			break
+		case "moonshot":
+			if (!apiConfiguration.moonshotApiKey) {
+				return i18next.t("settings:validation.apiKey")
+			}
+			break
+		case "minimax":
+			if (!apiConfiguration.minimaxApiKey) {
+				return i18next.t("settings:validation.apiKey")
+			}
+			break
+		case "xai":
+			if (!apiConfiguration.xaiApiKey) {
+				return i18next.t("settings:validation.apiKey")
+			}
+			break
+		case "sambanova":
+			if (!apiConfiguration.sambaNovaApiKey) {
+				return i18next.t("settings:validation.apiKey")
+			}
+			break
+		case "zai":
+			if (!apiConfiguration.zaiApiKey) {
+				return i18next.t("settings:validation.apiKey")
+			}
+			break
+		case "jabberwock":
+			// Cloud-managed provider, no local API key needed
+			break
 	}
 
 	return undefined

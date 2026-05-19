@@ -3,10 +3,10 @@
 import { describe, it, expect, beforeEach, vi } from "vitest"
 import { Anthropic } from "@anthropic-ai/sdk"
 import { presentAssistantMessage } from "../presentAssistantMessage"
-import { Task } from "../../task/Task"
+import { Task } from "../../../features/chat/task/Task"
 
 // Mock dependencies
-vi.mock("../../task/Task")
+vi.mock("../../../features/chat/task/Task")
 vi.mock("../../tools/validateToolUse", () => ({
 	validateToolUse: vi.fn(),
 	isValidToolName: vi.fn((toolName: string) =>

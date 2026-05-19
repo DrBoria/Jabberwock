@@ -12,7 +12,7 @@ import {
 	type ReasoningEffortExtended,
 	ApiProviderError,
 } from "@jabberwock/types"
-import { TelemetryService } from "@jabberwock/telemetry"
+import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 
 import { Package } from "../../shared/package"
 import type { ApiHandlerOptions } from "../../shared/api"
@@ -45,12 +45,32 @@ const CODEX_API_BASE_URL = "https://chatgpt.com/backend-api/codex"
  * - Limited model subset
  * - Custom headers for Codex backend
  */
+interface ResponsesRequestBody {
+	model: string
+	input: Array<{ role: "user" | "assistant"; content: Record<string, unknown>[] } | { type: string; content: string }>
+	stream: boolean
+	reasoning?: { effort?: ReasoningEffortExtended; summary?: "auto" }
+	temperature?: number
+	store?: boolean
+	instructions?: string
+	include?: string[]
+	tools?: Array<{
+		type: "function"
+		name: string
+		description?: string
+		parameters?: Record<string, unknown>
+		strict?: boolean
+	}>
+	tool_choice?: unknown
+	parallel_tool_calls?: boolean
+}
+
 export class OpenAiCodexHandler extends BaseProvider implements SingleCompletionHandler {
 	protected options: ApiHandlerOptions
 	private readonly providerName = "OpenAI Codex"
 	private client?: OpenAI
 	// Complete response output array
-	private lastResponseOutput: any[] | undefined
+	private lastResponseOutput: Record<string, unknown>[] | undefined
 	// Last top-level response id
 	private lastResponseId: string | undefined
 	// Abort controller for cancelling ongoing requests
@@ -101,29 +121,35 @@ export class OpenAiCodexHandler extends BaseProvider implements SingleCompletion
 		this.sessionId = uuidv7()
 	}
 
-	private normalizeUsage(usage: any, model: OpenAiCodexModel): ApiStreamUsageChunk | undefined {
+	private normalizeUsage(usage: Record<string, unknown>, model: OpenAiCodexModel): ApiStreamUsageChunk | undefined {
 		if (!usage) return undefined
 
-		const inputDetails = usage.input_tokens_details ?? usage.prompt_tokens_details
+		const inputDetails = (usage.input_tokens_details ?? usage.prompt_tokens_details) as
+			| Record<string, unknown>
+			| undefined
 
 		const hasCachedTokens = typeof inputDetails?.cached_tokens === "number"
 		const hasCacheMissTokens = typeof inputDetails?.cache_miss_tokens === "number"
-		const cachedFromDetails = hasCachedTokens ? inputDetails.cached_tokens : 0
-		const missFromDetails = hasCacheMissTokens ? inputDetails.cache_miss_tokens : 0
+		const cachedFromDetails = hasCachedTokens ? (inputDetails.cached_tokens as number) : 0
+		const missFromDetails = hasCacheMissTokens ? (inputDetails.cache_miss_tokens as number) : 0
 
-		let totalInputTokens = usage.input_tokens ?? usage.prompt_tokens ?? 0
+		let totalInputTokens: number = (usage.input_tokens ?? usage.prompt_tokens ?? 0) as number
 		if (totalInputTokens === 0 && inputDetails && (cachedFromDetails > 0 || missFromDetails > 0)) {
 			totalInputTokens = cachedFromDetails + missFromDetails
 		}
 
-		const totalOutputTokens = usage.output_tokens ?? usage.completion_tokens ?? 0
-		const cacheWriteTokens = usage.cache_creation_input_tokens ?? usage.cache_write_tokens ?? 0
-		const cacheReadTokens =
-			usage.cache_read_input_tokens ?? usage.cache_read_tokens ?? usage.cached_tokens ?? cachedFromDetails ?? 0
+		const totalOutputTokens: number = (usage.output_tokens ?? usage.completion_tokens ?? 0) as number
+		const cacheWriteTokens: number = (usage.cache_creation_input_tokens ?? usage.cache_write_tokens ?? 0) as number
+		const cacheReadTokens: number = (usage.cache_read_input_tokens ??
+			usage.cache_read_tokens ??
+			usage.cached_tokens ??
+			cachedFromDetails ??
+			0) as number
 
+		const outputTokensDetails = usage.output_tokens_details as Record<string, unknown> | undefined
 		const reasoningTokens =
-			typeof usage.output_tokens_details?.reasoning_tokens === "number"
-				? usage.output_tokens_details.reasoning_tokens
+			typeof outputTokensDetails?.reasoning_tokens === "number"
+				? (outputTokensDetails.reasoning_tokens as number)
 				: undefined
 
 		// Subscription-based: no per-token costs
@@ -215,12 +241,12 @@ export class OpenAiCodexHandler extends BaseProvider implements SingleCompletion
 
 	private buildRequestBody(
 		model: OpenAiCodexModel,
-		formattedInput: any,
+		formattedInput: ResponsesRequestBody["input"],
 		systemPrompt: string,
 		reasoningEffort: ReasoningEffortExtended | undefined,
 		metadata?: ApiHandlerCreateMessageMetadata,
-	): any {
-		const ensureAllRequired = (schema: any): any => {
+	): ResponsesRequestBody {
+		const ensureAllRequired = (schema: Record<string, unknown>): Record<string, unknown> => {
 			if (!schema || typeof schema !== "object" || schema.type !== "object") {
 				return schema
 			}
@@ -234,15 +260,18 @@ export class OpenAiCodexHandler extends BaseProvider implements SingleCompletion
 				const allKeys = Object.keys(result.properties)
 				result.required = allKeys
 
-				const newProps = { ...result.properties }
+				const newProps: Record<string, unknown> = { ...result.properties }
 				for (const key of allKeys) {
-					const prop = newProps[key]
-					if (prop.type === "object") {
+					const prop = newProps[key] as Record<string, unknown> | undefined
+					if (prop?.type === "object") {
 						newProps[key] = ensureAllRequired(prop)
-					} else if (prop.type === "array" && prop.items?.type === "object") {
+					} else if (
+						prop?.type === "array" &&
+						(prop.items as Record<string, unknown> | undefined)?.type === "object"
+					) {
 						newProps[key] = {
 							...prop,
-							items: ensureAllRequired(prop.items),
+							items: ensureAllRequired(prop.items as Record<string, unknown>),
 						}
 					}
 				}
@@ -252,7 +281,7 @@ export class OpenAiCodexHandler extends BaseProvider implements SingleCompletion
 			return result
 		}
 
-		const ensureAdditionalPropertiesFalse = (schema: any): any => {
+		const ensureAdditionalPropertiesFalse = (schema: Record<string, unknown>): Record<string, unknown> => {
 			if (!schema || typeof schema !== "object" || schema.type !== "object") {
 				return schema
 			}
@@ -263,15 +292,18 @@ export class OpenAiCodexHandler extends BaseProvider implements SingleCompletion
 			}
 
 			if (result.properties) {
-				const newProps = { ...result.properties }
+				const newProps: Record<string, unknown> = { ...result.properties }
 				for (const key of Object.keys(result.properties)) {
-					const prop = newProps[key]
-					if (prop && prop.type === "object") {
+					const prop = newProps[key] as Record<string, unknown> | undefined
+					if (prop?.type === "object") {
 						newProps[key] = ensureAdditionalPropertiesFalse(prop)
-					} else if (prop && prop.type === "array" && prop.items?.type === "object") {
+					} else if (
+						prop?.type === "array" &&
+						(prop.items as Record<string, unknown> | undefined)?.type === "object"
+					) {
 						newProps[key] = {
 							...prop,
-							items: ensureAdditionalPropertiesFalse(prop.items),
+							items: ensureAdditionalPropertiesFalse(prop.items as Record<string, unknown>),
 						}
 					}
 				}
@@ -279,26 +311,6 @@ export class OpenAiCodexHandler extends BaseProvider implements SingleCompletion
 			}
 
 			return result
-		}
-
-		interface ResponsesRequestBody {
-			model: string
-			input: Array<{ role: "user" | "assistant"; content: any[] } | { type: string; content: string }>
-			stream: boolean
-			reasoning?: { effort?: ReasoningEffortExtended; summary?: "auto" }
-			temperature?: number
-			store?: boolean
-			instructions?: string
-			include?: string[]
-			tools?: Array<{
-				type: "function"
-				name: string
-				description?: string
-				parameters?: any
-				strict?: boolean
-			}>
-			tool_choice?: any
-			parallel_tool_calls?: boolean
 		}
 
 		// Per the implementation guide: Codex backend may reject max_output_tokens
@@ -328,8 +340,8 @@ export class OpenAiCodexHandler extends BaseProvider implements SingleCompletion
 						name: tool.function.name,
 						description: tool.function.description,
 						parameters: isMcp
-							? ensureAdditionalPropertiesFalse(tool.function.parameters)
-							: ensureAllRequired(tool.function.parameters),
+							? ensureAdditionalPropertiesFalse(tool.function.parameters ?? {})
+							: ensureAllRequired(tool.function.parameters ?? {}),
 						strict: !isMcp,
 					}
 				}),
@@ -341,7 +353,7 @@ export class OpenAiCodexHandler extends BaseProvider implements SingleCompletion
 	}
 
 	private async *executeRequest(
-		requestBody: any,
+		requestBody: ResponsesRequestBody,
 		model: OpenAiCodexModel,
 		accessToken: string,
 		taskId?: string,
@@ -373,13 +385,14 @@ export class OpenAiCodexHandler extends BaseProvider implements SingleCompletion
 						defaultHeaders: codexHeaders,
 					})
 
-				const stream = (await (client as any).responses.create(requestBody, {
+				const responsesClient = client as { responses: { create: (...args: unknown[]) => unknown } }
+				const stream = (await responsesClient.responses.create(requestBody, {
 					signal: this.abortController.signal,
 					// If the SDK supports per-request overrides, ensure headers are present.
 					headers: codexHeaders,
-				})) as AsyncIterable<any>
+				})) as AsyncIterable<unknown>
 
-				if (typeof (stream as any)?.[Symbol.asyncIterator] !== "function") {
+				if (typeof (stream as AsyncIterable<unknown>)?.[Symbol.asyncIterator] !== "function") {
 					throw new Error(
 						"OpenAI SDK did not return an AsyncIterable for Responses API streaming. Falling back to SSE.",
 					)
@@ -390,7 +403,7 @@ export class OpenAiCodexHandler extends BaseProvider implements SingleCompletion
 						break
 					}
 
-					for await (const outChunk of this.processEvent(event, model)) {
+					for await (const outChunk of this.processEvent(event as Record<string, unknown>, model)) {
 						if (outChunk.type === "text") {
 							this.sawTextOutputInCurrentResponse = true
 						}
@@ -406,19 +419,23 @@ export class OpenAiCodexHandler extends BaseProvider implements SingleCompletion
 		}
 	}
 
-	private formatFullConversation(systemPrompt: string, messages: Anthropic.Messages.MessageParam[]): any {
-		const formattedInput: any[] = []
+	private formatFullConversation(
+		systemPrompt: string,
+		messages: Anthropic.Messages.MessageParam[],
+	): ResponsesRequestBody["input"] {
+		const formattedInput: ResponsesRequestBody["input"] = []
 
 		for (const message of messages) {
 			// Check if this is a reasoning item
-			if ((message as any).type === "reasoning") {
-				formattedInput.push(message)
+			const extendedMsg = message as Anthropic.Messages.MessageParam & { type?: string }
+			if (extendedMsg.type === "reasoning") {
+				formattedInput.push(extendedMsg as (typeof formattedInput)[number])
 				continue
 			}
 
 			if (message.role === "user") {
-				const content: any[] = []
-				const toolResults: any[] = []
+				const content: Record<string, unknown>[] = []
+				const toolResults: Record<string, unknown>[] = []
 
 				if (typeof message.content === "string") {
 					content.push({ type: "input_text", text: message.content })
@@ -450,11 +467,13 @@ export class OpenAiCodexHandler extends BaseProvider implements SingleCompletion
 				}
 
 				if (toolResults.length > 0) {
-					formattedInput.push(...toolResults)
+					for (const tr of toolResults) {
+						formattedInput.push(tr as (typeof formattedInput)[number])
+					}
 				}
 			} else if (message.role === "assistant") {
-				const content: any[] = []
-				const toolCalls: any[] = []
+				const content: Record<string, unknown>[] = []
+				const toolCalls: Record<string, unknown>[] = []
 
 				if (typeof message.content === "string") {
 					content.push({ type: "output_text", text: message.content })
@@ -479,7 +498,9 @@ export class OpenAiCodexHandler extends BaseProvider implements SingleCompletion
 				}
 
 				if (toolCalls.length > 0) {
-					formattedInput.push(...toolCalls)
+					for (const tc of toolCalls) {
+						formattedInput.push(tc as (typeof formattedInput)[number])
+					}
 				}
 			}
 		}
@@ -488,7 +509,7 @@ export class OpenAiCodexHandler extends BaseProvider implements SingleCompletion
 	}
 
 	private async *makeCodexRequest(
-		requestBody: any,
+		requestBody: ResponsesRequestBody,
 		model: OpenAiCodexModel,
 		accessToken: string,
 		taskId?: string,
@@ -582,7 +603,7 @@ export class OpenAiCodexHandler extends BaseProvider implements SingleCompletion
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
 			const apiError = new ApiProviderError(errorMessage, this.providerName, model.id, "createMessage")
-			TelemetryService.instance.captureException(apiError)
+			getTelemetryService().captureException(apiError)
 
 			if (error instanceof Error) {
 				if (error.message.includes("Codex API")) {
@@ -859,7 +880,7 @@ export class OpenAiCodexHandler extends BaseProvider implements SingleCompletion
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
 			const apiError = new ApiProviderError(errorMessage, this.providerName, model.id, "createMessage")
-			TelemetryService.instance.captureException(apiError)
+			getTelemetryService().captureException(apiError)
 
 			if (error instanceof Error) {
 				throw new Error(t("common:errors.openAiCodex.streamProcessingError", { message: error.message }))
@@ -870,32 +891,36 @@ export class OpenAiCodexHandler extends BaseProvider implements SingleCompletion
 		}
 	}
 
-	private async *processEvent(event: any, model: OpenAiCodexModel): ApiStream {
-		if (event?.response?.output && Array.isArray(event.response.output)) {
-			this.lastResponseOutput = event.response.output
+	private async *processEvent(event: Record<string, unknown>, model: OpenAiCodexModel): ApiStream {
+		const evResponse = event.response as { output?: unknown[]; id?: string } | undefined
+		if (evResponse?.output && Array.isArray(evResponse.output)) {
+			this.lastResponseOutput = evResponse.output as Record<string, unknown>[]
 		}
-		if (event?.response?.id) {
-			this.lastResponseId = event.response.id as string
+		if (evResponse?.id) {
+			this.lastResponseId = evResponse.id as string
 		}
 
+		const eventType = event.type as string | undefined
+
 		// Handle text deltas
-		if (event?.type === "response.text.delta" || event?.type === "response.output_text.delta") {
-			if (event?.delta) {
+		if (eventType === "response.text.delta" || eventType === "response.output_text.delta") {
+			const delta = event.delta as string | undefined
+			if (delta) {
 				this.sawTextDeltaInCurrentResponse = true
 				this.sawTextOutputInCurrentResponse = true
-				yield { type: "text", text: event.delta }
+				yield { type: "text", text: delta }
 			}
 			return
 		}
 
-		if (event?.type === "response.text.done" || event?.type === "response.output_text.done") {
+		if (eventType === "response.text.done" || eventType === "response.output_text.done") {
 			const doneText =
-				typeof event?.text === "string"
-					? event.text
-					: typeof event?.output_text === "string"
-						? event.output_text
-						: typeof event?.delta === "string"
-							? event.delta
+				typeof event.text === "string"
+					? (event.text as string)
+					: typeof event.output_text === "string"
+						? (event.output_text as string)
+						: typeof event.delta === "string"
+							? (event.delta as string)
 							: undefined
 			if (!this.sawTextOutputInCurrentResponse && doneText) {
 				this.sawTextOutputInCurrentResponse = true
@@ -904,14 +929,15 @@ export class OpenAiCodexHandler extends BaseProvider implements SingleCompletion
 			return
 		}
 
-		if (event?.type === "response.content_part.added" || event?.type === "response.content_part.done") {
-			const part = event?.part
+		if (eventType === "response.content_part.added" || eventType === "response.content_part.done") {
+			const part = event.part as { type?: string; text?: string | { value?: string } } | undefined
 			if (
 				!this.sawTextDeltaInCurrentResponse &&
 				(part?.type === "text" || part?.type === "output_text") &&
-				(typeof part?.text === "string" || typeof part?.text?.value === "string")
+				(typeof part?.text === "string" ||
+					typeof (part?.text as { value?: string } | undefined)?.value === "string")
 			) {
-				const partText = typeof part.text === "string" ? part.text : part.text.value
+				const partText = typeof part.text === "string" ? part.text : (part.text as { value: string }).value
 				if (partText) {
 					this.sawTextOutputInCurrentResponse = true
 					yield { type: "text", text: partText }
@@ -922,43 +948,47 @@ export class OpenAiCodexHandler extends BaseProvider implements SingleCompletion
 
 		// Handle reasoning deltas
 		if (
-			event?.type === "response.reasoning.delta" ||
-			event?.type === "response.reasoning_text.delta" ||
-			event?.type === "response.reasoning_summary.delta" ||
-			event?.type === "response.reasoning_summary_text.delta"
+			eventType === "response.reasoning.delta" ||
+			eventType === "response.reasoning_text.delta" ||
+			eventType === "response.reasoning_summary.delta" ||
+			eventType === "response.reasoning_summary_text.delta"
 		) {
-			if (event?.delta) {
-				yield { type: "reasoning", text: event.delta }
+			const delta = event.delta as string | undefined
+			if (delta) {
+				yield { type: "reasoning", text: delta }
 			}
 			return
 		}
 
 		// Handle refusal deltas
-		if (event?.type === "response.refusal.delta") {
-			if (event?.delta) {
+		if (eventType === "response.refusal.delta") {
+			const delta = event.delta as string | undefined
+			if (delta) {
 				this.sawTextOutputInCurrentResponse = true
-				yield { type: "text", text: `[Refusal] ${event.delta}` }
+				yield { type: "text", text: `[Refusal] ${delta}` }
 			}
 			return
 		}
 
 		// Handle tool/function call deltas
 		if (
-			event?.type === "response.tool_call_arguments.delta" ||
-			event?.type === "response.function_call_arguments.delta"
+			eventType === "response.tool_call_arguments.delta" ||
+			eventType === "response.function_call_arguments.delta"
 		) {
-			const callId = event.call_id || event.tool_call_id || event.id || this.pendingToolCallId
-			const name = event.name || event.function_name || this.pendingToolCallName
-			const args = event.delta || event.arguments
+			const callId = (event.call_id ?? event.tool_call_id ?? event.id ?? this.pendingToolCallId) as
+				| string
+				| undefined
+			const name = (event.name ?? event.function_name ?? this.pendingToolCallName) as string | undefined
+			const args = (event.delta ?? event.arguments) as string | undefined
 
 			// Codex/Responses may stream tool-call arguments, but these delta events are not guaranteed
 			// to include a stable id/name. Avoid emitting incomplete tool_call_partial chunks because
 			// NativeToolCallParser requires a name to start a call.
-			if (typeof callId === "string" && callId.length > 0 && typeof name === "string" && name.length > 0) {
+			if (callId && callId.length > 0 && name && name.length > 0) {
 				this.streamedToolCallIds.add(callId)
 				yield {
 					type: "tool_call_partial",
-					index: event.index ?? 0,
+					index: (event.index ?? 0) as number,
 					id: callId,
 					name,
 					arguments: typeof args === "string" ? args : "",
@@ -969,20 +999,21 @@ export class OpenAiCodexHandler extends BaseProvider implements SingleCompletion
 
 		// Handle tool/function call completion
 		if (
-			event?.type === "response.tool_call_arguments.done" ||
-			event?.type === "response.function_call_arguments.done"
+			eventType === "response.tool_call_arguments.done" ||
+			eventType === "response.function_call_arguments.done"
 		) {
 			return
 		}
 
 		// Handle output item events
-		if (event?.type === "response.output_item.added" || event?.type === "response.output_item.done") {
-			const item = event?.item
+		if (eventType === "response.output_item.added" || eventType === "response.output_item.done") {
+			const item = event.item as Record<string, unknown> | undefined
 			if (item) {
 				// Capture tool identity so subsequent argument deltas can be attributed.
 				if (item.type === "function_call" || item.type === "tool_call") {
-					const callId = item.call_id || item.tool_call_id || item.id
-					const name = item.name || item.function?.name || item.function_name
+					const callId = (item.call_id ?? item.tool_call_id ?? item.id) as string | undefined
+					const fn = item.function as Record<string, unknown> | undefined
+					const name = (item.name ?? fn?.name ?? item.function_name) as string | undefined
 					if (typeof callId === "string" && callId.length > 0) {
 						this.pendingToolCallId = callId
 						this.pendingToolCallName = typeof name === "string" ? name : undefined
@@ -993,29 +1024,41 @@ export class OpenAiCodexHandler extends BaseProvider implements SingleCompletion
 				// For "done" events, normally text was already streamed via deltas, but some models
 				// only provide assistant text on done events. Emit fallback text only if none was emitted yet.
 				if (event.type === "response.output_item.added") {
-					if (item.type === "text" && item.text) {
+					const itemType = item.type as string | undefined
+					if (itemType === "text" && item.text) {
 						this.sawTextOutputInCurrentResponse = true
-						yield { type: "text", text: item.text }
-					} else if (item.type === "output_text" && item.text) {
+						yield { type: "text", text: item.text as string }
+					} else if (itemType === "output_text" && item.text) {
 						this.sawTextOutputInCurrentResponse = true
-						yield { type: "text", text: item.text }
-					} else if (item.type === "reasoning" && item.text) {
-						yield { type: "reasoning", text: item.text }
-					} else if (item.type === "message" && Array.isArray(item.content)) {
-						for (const content of item.content) {
-							if ((content?.type === "text" || content?.type === "output_text") && content?.text) {
-								this.sawTextOutputInCurrentResponse = true
-								yield { type: "text", text: content.text }
+						yield { type: "text", text: item.text as string }
+					} else if (itemType === "reasoning" && item.text) {
+						yield { type: "reasoning", text: item.text as string }
+					} else if (itemType === "message") {
+						const itemContent = item.content as Record<string, unknown>[] | undefined
+						if (Array.isArray(itemContent)) {
+							for (const content of itemContent) {
+								if (
+									((content.type as string) === "text" ||
+										(content.type as string) === "output_text") &&
+									content.text
+								) {
+									this.sawTextOutputInCurrentResponse = true
+									yield { type: "text", text: content.text as string }
+								}
 							}
 						}
 					}
 				} else if (
 					event.type === "response.output_item.done" &&
-					(item.type === "function_call" || item.type === "tool_call")
+					((item.type as string) === "function_call" || (item.type as string) === "tool_call")
 				) {
-					const callId = item.call_id || item.tool_call_id || item.id
-					const name = item.name || item.function?.name || item.function_name
-					const argsRaw = item.arguments || item.function?.arguments || item.input
+					const callId = (item.call_id ?? item.tool_call_id ?? item.id) as string | undefined
+					const fn = item.function as Record<string, unknown> | undefined
+					const name = (item.name ?? fn?.name ?? item.function_name) as string | undefined
+					const argsRaw = (item.arguments ?? fn?.arguments ?? item.input) as
+						| string
+						| Record<string, unknown>
+						| undefined
 					const args =
 						typeof argsRaw === "string"
 							? argsRaw
@@ -1040,14 +1083,22 @@ export class OpenAiCodexHandler extends BaseProvider implements SingleCompletion
 						}
 					}
 				} else if (!this.sawTextOutputInCurrentResponse) {
-					if ((item.type === "text" || item.type === "output_text") && item.text) {
+					const itemType = item.type as string | undefined
+					if ((itemType === "text" || itemType === "output_text") && item.text) {
 						this.sawTextOutputInCurrentResponse = true
-						yield { type: "text", text: item.text }
-					} else if (item.type === "message" && Array.isArray(item.content)) {
-						for (const content of item.content) {
-							if ((content?.type === "text" || content?.type === "output_text") && content?.text) {
-								this.sawTextOutputInCurrentResponse = true
-								yield { type: "text", text: content.text }
+						yield { type: "text", text: item.text as string }
+					} else if (itemType === "message") {
+						const itemContent = item.content as Record<string, unknown>[] | undefined
+						if (Array.isArray(itemContent)) {
+							for (const content of itemContent) {
+								if (
+									((content.type as string) === "text" ||
+										(content.type as string) === "output_text") &&
+									content.text
+								) {
+									this.sawTextOutputInCurrentResponse = true
+									yield { type: "text", text: content.text as string }
+								}
 							}
 						}
 					}
@@ -1064,29 +1115,38 @@ export class OpenAiCodexHandler extends BaseProvider implements SingleCompletion
 		}
 
 		// Handle completion events
-		if (event?.type === "response.done" || event?.type === "response.completed") {
+		if (eventType === "response.done" || eventType === "response.completed") {
 			// Some Codex variants only provide assistant text in the final completed payload.
-			if (!this.sawTextOutputInCurrentResponse && Array.isArray(event?.response?.output)) {
-				for (const outputItem of event.response.output) {
-					if ((outputItem?.type === "text" || outputItem?.type === "output_text") && outputItem?.text) {
+			const response = event.response as { output?: unknown[]; usage?: Record<string, unknown> } | undefined
+			if (!this.sawTextOutputInCurrentResponse && Array.isArray(response?.output)) {
+				for (const outputItem of response.output as Record<string, unknown>[]) {
+					const outputType = outputItem.type as string | undefined
+					if ((outputType === "text" || outputType === "output_text") && outputItem.text) {
 						this.sawTextOutputInCurrentResponse = true
-						yield { type: "text", text: outputItem.text }
+						yield { type: "text", text: outputItem.text as string }
 						continue
 					}
 
-					if (outputItem?.type === "message" && Array.isArray(outputItem.content)) {
-						for (const content of outputItem.content) {
-							if ((content?.type === "text" || content?.type === "output_text") && content?.text) {
-								this.sawTextOutputInCurrentResponse = true
-								yield { type: "text", text: content.text }
+					if (outputType === "message") {
+						const outputContent = outputItem.content as Record<string, unknown>[] | undefined
+						if (Array.isArray(outputContent)) {
+							for (const content of outputContent) {
+								if (
+									((content.type as string) === "text" ||
+										(content.type as string) === "output_text") &&
+									content.text
+								) {
+									this.sawTextOutputInCurrentResponse = true
+									yield { type: "text", text: content.text as string }
+								}
 							}
 						}
 					}
 				}
 			}
 
-			const usage = event?.response?.usage || event?.usage || undefined
-			const usageData = this.normalizeUsage(usage, model)
+			const usage = (response?.usage ?? event.usage) as Record<string, unknown> | undefined
+			const usageData = this.normalizeUsage(usage ?? ({} as Record<string, unknown>), model)
 			if (usageData) {
 				yield usageData
 			}
@@ -1094,15 +1154,17 @@ export class OpenAiCodexHandler extends BaseProvider implements SingleCompletion
 		}
 
 		// Fallbacks
-		if (event?.choices?.[0]?.delta?.content) {
+		const choices = event.choices as Array<{ delta?: { content?: string } }> | undefined
+		if (choices?.[0]?.delta?.content) {
 			this.sawTextDeltaInCurrentResponse = true
 			this.sawTextOutputInCurrentResponse = true
-			yield { type: "text", text: event.choices[0].delta.content }
+			yield { type: "text", text: choices[0].delta.content }
 			return
 		}
 
-		if (event?.usage) {
-			const usageData = this.normalizeUsage(event.usage, model)
+		const eventUsage = event.usage as Record<string, unknown> | undefined
+		if (eventUsage) {
+			const usageData = this.normalizeUsage(eventUsage, model)
 			if (usageData) {
 				yield usageData
 			}
@@ -1110,8 +1172,8 @@ export class OpenAiCodexHandler extends BaseProvider implements SingleCompletion
 	}
 
 	private getReasoningEffort(model: OpenAiCodexModel): ReasoningEffortExtended | undefined {
-		const selected = (this.options.reasoningEffort as any) ?? (model.info.reasoningEffort as any)
-		return selected && selected !== "disable" && selected !== "none" ? (selected as any) : undefined
+		const selected = this.options.reasoningEffort ?? model.info.reasoningEffort
+		return selected && selected !== "disable" && selected !== "none" ? selected : undefined
 	}
 
 	override getModel() {
@@ -1142,8 +1204,8 @@ export class OpenAiCodexHandler extends BaseProvider implements SingleCompletion
 		if (!reasoningItem?.encrypted_content) return undefined
 
 		return {
-			encrypted_content: reasoningItem.encrypted_content,
-			...(reasoningItem.id ? { id: reasoningItem.id } : {}),
+			encrypted_content: reasoningItem.encrypted_content as string,
+			...(reasoningItem.id ? { id: reasoningItem.id as string } : {}),
 		}
 	}
 
@@ -1170,7 +1232,7 @@ export class OpenAiCodexHandler extends BaseProvider implements SingleCompletion
 
 			const reasoningEffort = this.getReasoningEffort(model)
 
-			const requestBody: any = {
+			const requestBody: Record<string, unknown> = {
 				model: model.id,
 				input: [
 					{
@@ -1247,7 +1309,7 @@ export class OpenAiCodexHandler extends BaseProvider implements SingleCompletion
 			const errorModel = this.getModel()
 			const errorMessage = error instanceof Error ? error.message : String(error)
 			const apiError = new ApiProviderError(errorMessage, this.providerName, errorModel.id, "completePrompt")
-			TelemetryService.instance.captureException(apiError)
+			getTelemetryService().captureException(apiError)
 
 			if (error instanceof Error) {
 				throw new Error(t("common:errors.openAiCodex.completionError", { message: error.message }))

@@ -4,7 +4,7 @@ import { type ProviderSettings, openAiCodexDefaultModelId, openAiCodexModels } f
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { Button } from "@src/components/ui"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 
 import { ModelPicker } from "../ModelPicker"
 import { OpenAICodexRateLimitDashboard } from "./OpenAICodexRateLimitDashboard"
@@ -30,20 +30,14 @@ export const OpenAICodex: React.FC<OpenAICodexProps> = ({
 			<div className="flex flex-col gap-2">
 				{openAiCodexIsAuthenticated ? (
 					<div className="flex justify-end">
-						<Button
-							variant="secondary"
-							size="sm"
-							onClick={() => vscode.postMessage({ type: "openAiCodexSignOut" })}>
+						<Button variant="secondary" size="sm" onClick={() => rootStore.cloud.openaiCodexSignOut()}>
 							{t("settings:providers.openAiCodex.signOutButton", {
 								defaultValue: "Sign Out",
 							})}
 						</Button>
 					</div>
 				) : (
-					<Button
-						variant="primary"
-						onClick={() => vscode.postMessage({ type: "openAiCodexSignIn" })}
-						className="w-fit">
+					<Button variant="primary" onClick={() => rootStore.cloud.openaiCodexSignIn()} className="w-fit">
 						{t("settings:providers.openAiCodex.signInButton", {
 							defaultValue: "Sign in to OpenAI Codex",
 						})}

@@ -1,6 +1,6 @@
 import type { ClineAskUseMcpServer } from "@jabberwock/types"
 
-import { Task } from "../../task/Task"
+import { Task } from "../../../features/chat/task/Task"
 import { formatResponse } from "../../prompts/responses"
 import { t } from "../../../i18n"
 import { toolNamesMatch } from "../../../utils/mcp-name"
@@ -81,7 +81,7 @@ export async function validateToolExists(
 	try {
 		// Get the MCP hub to access server information
 		const provider = task.providerRef.deref()
-		const mcpHub = provider?.getMcpHub()
+		const mcpHub = await provider?.getMcpHub()
 
 		if (!mcpHub) {
 			// If we can't get the MCP hub, we can't validate, so proceed with caution

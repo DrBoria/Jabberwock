@@ -11,7 +11,7 @@ import {
 	ANTHROPIC_DEFAULT_MAX_TOKENS,
 	ApiProviderError,
 } from "@jabberwock/types"
-import { TelemetryService } from "@jabberwock/telemetry"
+import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 
 import type { ApiHandlerOptions } from "../../shared/api"
 
@@ -168,7 +168,7 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 						})(),
 					)
 				} catch (error) {
-					TelemetryService.instance.captureException(
+					getTelemetryService().captureException(
 						new ApiProviderError(
 							error instanceof Error ? error.message : String(error),
 							this.providerName,
@@ -190,9 +190,9 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 						messages: sanitizedMessages,
 						stream: true,
 						...nativeToolParams,
-					})) as any
+					})) as AnthropicStream<Anthropic.Messages.RawMessageStreamEvent>
 				} catch (error) {
-					TelemetryService.instance.captureException(
+					getTelemetryService().captureException(
 						new ApiProviderError(
 							error instanceof Error ? error.message : String(error),
 							this.providerName,
@@ -393,7 +393,7 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 				stream: false,
 			})
 		} catch (error) {
-			TelemetryService.instance.captureException(
+			getTelemetryService().captureException(
 				new ApiProviderError(
 					error instanceof Error ? error.message : String(error),
 					this.providerName,

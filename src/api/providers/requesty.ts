@@ -95,7 +95,7 @@ export class RequestyHandler extends BaseProvider implements SingleCompletionHan
 		return { id, info, ...params }
 	}
 
-	protected processUsageMetrics(usage: any, modelInfo?: ModelInfo): ApiStreamUsageChunk {
+	protected processUsageMetrics(usage: OpenAI.CompletionUsage, modelInfo?: ModelInfo): ApiStreamUsageChunk {
 		const requestyUsage = usage as RequestyUsage
 		const inputTokens = requestyUsage?.prompt_tokens || 0
 		const outputTokens = requestyUsage?.completion_tokens || 0
@@ -135,9 +135,10 @@ export class RequestyHandler extends BaseProvider implements SingleCompletionHan
 		]
 
 		// Map extended efforts to OpenAI Chat Completions-accepted values (omit unsupported)
-		const allowedEffort = (["low", "medium", "high"] as const).includes(reasoning_effort as any)
-			? (reasoning_effort as OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming["reasoning_effort"])
-			: undefined
+		const allowedEffort: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming["reasoning_effort"] =
+			reasoning_effort === "low" || reasoning_effort === "medium" || reasoning_effort === "high"
+				? reasoning_effort
+				: undefined
 
 		const completionParams: RequestyChatCompletionParamsStreaming = {
 			messages: openAiMessages,
@@ -160,7 +161,7 @@ export class RequestyHandler extends BaseProvider implements SingleCompletionHan
 		} catch (error) {
 			throw handleOpenAIError(error, this.providerName)
 		}
-		let lastUsage: any = undefined
+		let lastUsage: OpenAI.CompletionUsage | undefined = undefined
 
 		for await (const chunk of stream) {
 			const delta = chunk.choices[0]?.delta

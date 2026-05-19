@@ -24,7 +24,8 @@ import {
 } from "@shared/modes"
 import { TOOL_GROUPS } from "@shared/tools"
 
-import { vscode } from "@jabberwock/devtool/react"
+import { getEventValue } from "@src/utils/getEventValue"
+import { rootStore } from "@src/features/store"
 import { buildDocLink } from "@src/features/settings/utils/docLinks"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
@@ -139,11 +140,7 @@ const ModesView = () => {
 				delete updatedPrompt.whenToUse
 			}
 
-			vscode.postMessage({
-				type: "updatePrompt",
-				promptMode: mode,
-				customPrompt: updatedPrompt,
-			})
+			rootStore.settings.updatePrompt(mode, updatedPrompt)
 		},
 		[customModePrompts],
 	)
@@ -151,13 +148,9 @@ const ModesView = () => {
 	const updateCustomMode = useCallback((slug: string, modeConfig: ModeConfig) => {
 		const source = modeConfig.source || "global"
 
-		vscode.postMessage({
-			type: "updateCustomMode",
-			slug,
-			modeConfig: {
-				...modeConfig,
-				source, // Ensure source is set
-			},
+		rootStore.settings.updateCustomMode(slug, {
+			...modeConfig,
+			source, // Ensure source is set
 		})
 	}, [])
 
@@ -170,10 +163,7 @@ const ModesView = () => {
 	)
 
 	const switchMode = useCallback((slug: string) => {
-		vscode.postMessage({
-			type: "mode",
-			text: slug,
-		})
+		rootStore.chat.switchMode(slug)
 	}, [])
 
 	// Handle mode switching with explicit state initialization
@@ -288,10 +278,7 @@ const ModesView = () => {
 
 	// Check if the current mode has rules to export
 	const checkRulesDirectory = useCallback((slug: string) => {
-		vscode.postMessage({
-			type: "checkRulesDirectory",
-			slug: slug,
-		})
+		rootStore.settings.checkRulesDirectory(slug)
 	}, [])
 
 	// Check rules directory when mode changes
@@ -582,11 +569,7 @@ const ModesView = () => {
 		const updatedPrompt = { ...existingPrompt }
 		delete updatedPrompt[type] // Remove the field entirely to ensure it reloads from defaults
 
-		vscode.postMessage({
-			type: "updatePrompt",
-			promptMode: modeSlug,
-			customPrompt: updatedPrompt,
-		})
+		rootStore.settings.updatePrompt(modeSlug, updatedPrompt)
 	}
 
 	return (
@@ -625,9 +608,7 @@ const ModesView = () => {
 											className="p-2 cursor-pointer text-vscode-foreground text-sm"
 											onMouseDown={(e) => {
 												e.preventDefault() // Prevent blur
-												vscode.postMessage({
-													type: "openCustomModesSettings",
-												})
+												rootStore.settings.openCustomModesSettings()
 												setShowConfigMenu(false)
 											}}
 											onClick={(e) => e.preventDefault()}>
@@ -637,13 +618,9 @@ const ModesView = () => {
 											className="p-2 cursor-pointer text-vscode-foreground text-sm border-t border-vscode-input-border"
 											onMouseDown={(e) => {
 												e.preventDefault() // Prevent blur
-												vscode.postMessage({
-													type: "openFile",
-													text: "./.jabberwockmodes",
-													values: {
-														create: true,
-														content: JSON.stringify({ customModes: [] }, null, 2),
-													},
+												rootStore.settings.openFile("./.jabberwockmodes", {
+													create: true,
+													content: JSON.stringify({ customModes: [] }, null, 2),
 												})
 												setShowConfigMenu(false)
 											}}
@@ -865,11 +842,7 @@ const ModesView = () => {
 													name: customMode.name,
 													source: customMode.source || "global",
 												})
-												vscode.postMessage({
-													type: "deleteCustomMode",
-													slug: customMode.slug,
-													checkOnly: true,
-												})
+												rootStore.settings.deleteCustomMode(customMode.slug, true)
 											}
 										}}
 										data-testid="delete-mode-button"
@@ -887,10 +860,7 @@ const ModesView = () => {
 											const currentMode = getCurrentMode()
 											if (currentMode?.slug && !isExporting) {
 												setIsExporting(true)
-												vscode.postMessage({
-													type: "exportMode",
-													slug: currentMode.slug,
-												})
+												rootStore.settings.exportMode(currentMode.slug)
 											}
 										}}
 										disabled={isExporting}
@@ -913,10 +883,7 @@ const ModesView = () => {
 							<Select
 								value={currentApiConfigName}
 								onValueChange={(value) => {
-									vscode.postMessage({
-										type: "loadApiConfiguration",
-										text: value,
-									})
+									rootStore.settings.loadApiConfig(value)
 								}}>
 								<SelectTrigger className="w-full">
 									<SelectValue placeholder={t("settings:common.select")} />
@@ -965,9 +932,7 @@ const ModesView = () => {
 							return customMode?.roleDefinition ?? prompt?.roleDefinition ?? getRoleDefinition(visualMode)
 						})()}
 						onChange={(e) => {
-							const value =
-								(e as unknown as CustomEvent)?.detail?.target?.value ??
-								((e as any).target as HTMLTextAreaElement).value
+							const value = getEventValue(e) ?? ""
 							const customMode = findModeBySlug(visualMode, customModes)
 							if (customMode) {
 								// For custom modes, update the JSON file
@@ -1020,9 +985,7 @@ const ModesView = () => {
 							return customMode?.description ?? prompt?.description ?? getDescription(visualMode)
 						})()}
 						onChange={(e) => {
-							const value =
-								(e as unknown as CustomEvent)?.detail?.target?.value ??
-								((e as any).target as HTMLTextAreaElement).value
+							const value = getEventValue(e) ?? ""
 							const customMode = findModeBySlug(visualMode, customModes)
 							if (customMode) {
 								// For custom modes, update the JSON file
@@ -1075,9 +1038,7 @@ const ModesView = () => {
 							return customMode?.whenToUse ?? prompt?.whenToUse ?? getWhenToUse(visualMode)
 						})()}
 						onChange={(e) => {
-							const value =
-								(e as unknown as CustomEvent)?.detail?.target?.value ??
-								((e as any).target as HTMLTextAreaElement).value
+							const value = getEventValue(e) ?? ""
 							const customMode = findModeBySlug(visualMode, customModes)
 							if (customMode) {
 								// For custom modes, update the JSON file
@@ -1226,9 +1187,7 @@ const ModesView = () => {
 							)
 						})()}
 						onChange={(e) => {
-							const value =
-								(e as unknown as CustomEvent)?.detail?.target?.value ??
-								((e as any).target as HTMLTextAreaElement).value
+							const value = getEventValue(e) ?? ""
 							const customMode = findModeBySlug(visualMode, customModes)
 							if (customMode) {
 								// For custom modes, update the JSON file
@@ -1267,14 +1226,13 @@ const ModesView = () => {
 											if (!currentMode) return
 
 											// Open or create an empty file
-											vscode.postMessage({
-												type: "openFile",
-												text: `./.jabberwock/rules-${currentMode.slug}/rules.md`,
-												values: {
+											rootStore.settings.openFile(
+												`./.jabberwock/rules-${currentMode.slug}/rules.md`,
+												{
 													create: true,
 													content: "",
 												},
-											})
+											)
 										}}
 									/>
 								),
@@ -1300,10 +1258,7 @@ const ModesView = () => {
 							onClick={() => {
 								const currentMode = getCurrentMode()
 								if (currentMode) {
-									vscode.postMessage({
-										type: "getSystemPrompt",
-										mode: currentMode.slug,
-									})
+									rootStore.settings.getSystemPrompt(currentMode.slug)
 								}
 							}}
 							data-testid="preview-prompt-button">
@@ -1316,10 +1271,7 @@ const ModesView = () => {
 								onClick={() => {
 									const currentMode = getCurrentMode()
 									if (currentMode) {
-										vscode.postMessage({
-											type: "copySystemPrompt",
-											mode: currentMode.slug,
-										})
+										rootStore.settings.copySystemPrompt(currentMode.slug)
 									}
 								}}
 								data-testid="copy-prompt-button">
@@ -1347,14 +1299,9 @@ const ModesView = () => {
 						resize="vertical"
 						value={customInstructions || ""}
 						onChange={(e) => {
-							const value =
-								(e as unknown as CustomEvent)?.detail?.target?.value ??
-								((e as any).target as HTMLTextAreaElement).value
+							const value = getEventValue(e) ?? ""
 							setCustomInstructions(value ?? undefined)
-							vscode.postMessage({
-								type: "customInstructions",
-								text: value ?? undefined,
-							})
+							rootStore.settings.customInstructions(value ?? undefined)
 						}}
 						rows={4}
 						className="w-full"
@@ -1368,13 +1315,9 @@ const ModesView = () => {
 									<span
 										className="text-vscode-textLink-foreground cursor-pointer underline"
 										onClick={() =>
-											vscode.postMessage({
-												type: "openFile",
-												text: "./.jabberwock/rules/rules.md",
-												values: {
-													create: true,
-													content: "",
-												},
+											rootStore.settings.openFile("./.jabberwock/rules/rules.md", {
+												create: true,
+												content: "",
 											})
 										}
 									/>
@@ -1666,10 +1609,7 @@ const ModesView = () => {
 								onClick={() => {
 									if (!isImporting) {
 										setIsImporting(true)
-										vscode.postMessage({
-											type: "importMode",
-											source: importLevel,
-										})
+										rootStore.settings.importMode(importLevel)
 									}
 								}}
 								disabled={isImporting}>
@@ -1687,10 +1627,7 @@ const ModesView = () => {
 				modeToDelete={modeToDelete}
 				onConfirm={() => {
 					if (modeToDelete) {
-						vscode.postMessage({
-							type: "deleteCustomMode",
-							slug: modeToDelete.slug,
-						})
+						rootStore.settings.deleteCustomMode(modeToDelete.slug)
 						setShowDeleteConfirm(false)
 						setModeToDelete(null)
 					}

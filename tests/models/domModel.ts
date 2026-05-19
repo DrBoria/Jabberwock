@@ -18,7 +18,8 @@ export class DomModel {
 	 * and a command to execute on the found element (use $0 as the element reference).
 	 */
 	async findElementByText(text: string, depth?: number, maxChildren?: number, command?: string): Promise<string> {
-		return this.client.findElement(text, depth, maxChildren, command)
+		const result = await this.client.findElement(text, depth, maxChildren, command)
+		return typeof result === "string" ? result : JSON.stringify(result, null, 2)
 	}
 
 	/**
@@ -32,7 +33,8 @@ export class DomModel {
 		maxChildren?: number,
 		command?: string,
 	): Promise<string> {
-		return this.client.findElement(selector, depth, maxChildren, command)
+		const result = await this.client.findElement(selector, depth, maxChildren, command)
+		return typeof result === "string" ? result : JSON.stringify(result, null, 2)
 	}
 
 	/**
@@ -41,7 +43,8 @@ export class DomModel {
 	 * and a command to execute on the found element (use $0 as the element reference).
 	 */
 	async findElementById(id: string, depth?: number, maxChildren?: number, command?: string): Promise<string> {
-		return this.client.findElement(id, depth, maxChildren, command)
+		const result = await this.client.findElement(id, depth, maxChildren, command)
+		return typeof result === "string" ? result : JSON.stringify(result, null, 2)
 	}
 
 	/**
@@ -67,20 +70,24 @@ export class DomModel {
 	 * - contenteditable elements
 	 */
 	async typeText(id: string, text: string): Promise<string> {
-		return this.client.typeText(id, text)
+		return this.client.typeText(id, undefined, text)
 	}
 
 	/**
-	 * Get the active task ID from MST chatStore via getMstState.
+	 * Get the active task ID from the frontend (webview) MST store via getStoreState.
 	 */
 	async getMstActiveTaskId(): Promise<string | null> {
-		const state = await this.client.getMstState({
-			store: "chatStore",
-			mode: "query",
-			path: "activeNodeId.id",
+		const state = await this.client.getStoreState({
+			store: "frontend",
+			path: "chat.tree.activeNodeId",
 		})
-		if (typeof state === "string") {
-			return state
+		if (state && typeof state === "object") {
+			const record = state as Record<string, unknown>
+			const items = record.items as Array<Record<string, unknown>> | undefined
+			const value = items?.[0]?.value
+			if (typeof value === "string") {
+				return value
+			}
 		}
 		return null
 	}
@@ -89,27 +96,40 @@ export class DomModel {
 	 * Get the active task's mode from MST chatStore.
 	 */
 	async getMstActiveTaskMode(): Promise<string | null> {
-		const state = await this.client.getMstState({
-			store: "chatStore",
-			mode: "query",
-			path: "activeNodeId.mode",
+		const activeTaskId = await this.getMstActiveTaskId()
+		if (!activeTaskId) return null
+
+		const state = await this.client.getStoreState({
+			store: "frontend",
+			path: `chat.tree.nodes.${activeTaskId}.mode`,
 		})
-		if (typeof state === "string") {
-			return state
+		if (state && typeof state === "object") {
+			const record = state as Record<string, unknown>
+			const items = record.items as Array<Record<string, unknown>> | undefined
+			const value = items?.[0]?.value
+			if (typeof value === "string") {
+				return value
+			}
 		}
 		return null
 	}
 
 	/**
-	 * Get the count of task nodes in MST chatStore.
+	 * Get the count of task nodes from the frontend (webview) MST store via getStoreState.
 	 */
 	async getMstTaskCount(): Promise<number> {
-		const count = await this.client.getMstState({
-			store: "chatStore",
-			mode: "query",
-			path: "nodes.size",
+		const state = await this.client.getStoreState({
+			store: "frontend",
+			path: "chat.tree.nodes",
 		})
-		return typeof count === "number" ? count : 0
+		if (state && typeof state === "object") {
+			const record = state as Record<string, unknown>
+			const total = record.total as number | undefined
+			if (typeof total === "number") {
+				return total
+			}
+		}
+		return 0
 	}
 
 	/**

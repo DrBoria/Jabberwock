@@ -1,7 +1,8 @@
-import { Task } from "../task/Task"
+import { Task } from "../../features/chat/task/Task"
 import { formatResponse } from "../prompts/responses"
 import { BaseTool, ToolCallbacks } from "./BaseTool"
 import type { ToolUse } from "../../shared/tools"
+import { getSkillsManager } from "../../features/settings/skills/store"
 import {
 	buildSkillApprovalMessage,
 	buildSkillResult,
@@ -34,7 +35,7 @@ export class SkillTool extends BaseTool<"skill"> {
 
 			// Get SkillsManager from provider
 			const provider = task.providerRef.deref()
-			const skillsManager = provider?.getSkillsManager()
+			const skillsManager = provider ? getSkillsManager(provider) : undefined
 
 			if (!skillsManager) {
 				task.recordToolError("skill")

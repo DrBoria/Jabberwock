@@ -3,7 +3,12 @@
 import { Anthropic } from "@anthropic-ai/sdk"
 
 import type { ModelInfo } from "@jabberwock/types"
-import { TelemetryService } from "@jabberwock/telemetry"
+import {
+	TelemetryService,
+	getTelemetryService,
+	hasTelemetryService,
+	createTelemetryService,
+} from "@jabberwock/telemetry"
 
 import { BaseProvider } from "../../../api/providers/base-provider"
 import { ApiMessage } from "../../task-persistence/apiMessages"
@@ -52,8 +57,8 @@ const taskId = "test-task-id"
 
 describe("Context Management", () => {
 	beforeEach(() => {
-		if (!TelemetryService.hasInstance()) {
-			TelemetryService.createInstance([])
+		if (!hasTelemetryService()) {
+			createTelemetryService([])
 		}
 	})
 	/**
@@ -180,8 +185,7 @@ describe("Context Management", () => {
 	describe("estimateTokenCount", () => {
 		it("should return 0 for empty or undefined content", async () => {
 			expect(await estimateTokenCount([], mockApiHandler)).toBe(0)
-			// @ts-ignore - Testing with undefined
-			expect(await estimateTokenCount(undefined, mockApiHandler)).toBe(0)
+			expect(await estimateTokenCount(undefined as any, mockApiHandler)).toBe(0)
 		})
 
 		it("should estimate tokens for text blocks", async () => {

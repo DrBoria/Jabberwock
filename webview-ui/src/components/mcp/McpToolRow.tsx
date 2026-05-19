@@ -3,7 +3,7 @@ import { VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react"
 import type { McpTool } from "@jabberwock/types"
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { StandardTooltip, ToggleSwitch } from "@/components/ui"
 
 type McpToolRowProps = {
@@ -20,24 +20,17 @@ const McpToolRow = ({ tool, serverName, serverSource, alwaysAllowMcp, isInChatCo
 
 	const handleAlwaysAllowChange = () => {
 		if (!serverName) return
-		vscode.postMessage({
-			type: "toggleToolAlwaysAllow",
-			serverName,
-			source: serverSource || "global",
-			toolName: tool.name,
-			alwaysAllow: !tool.alwaysAllow,
-		})
+		rootStore.settings.toggleToolAlwaysAllow(serverName, serverSource || "global", tool.name, !tool.alwaysAllow)
 	}
 
 	const handleEnabledForPromptChange = () => {
 		if (!serverName) return
-		vscode.postMessage({
-			type: "toggleToolEnabledForPrompt",
+		rootStore.settings.toggleToolEnabledForPrompt(
 			serverName,
-			source: serverSource || "global",
-			toolName: tool.name,
-			isEnabled: !tool.enabledForPrompt,
-		})
+			serverSource || "global",
+			tool.name,
+			!tool.enabledForPrompt,
+		)
 	}
 
 	return (

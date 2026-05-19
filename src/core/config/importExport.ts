@@ -12,7 +12,7 @@ import {
 	isProviderName,
 	type ProviderSettingsWithId,
 } from "@jabberwock/types"
-import { TelemetryService } from "@jabberwock/telemetry"
+import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 
 import { ProviderSettingsManager, providerProfilesSchema } from "./ProviderSettingsManager"
 import { ContextProxy } from "./ContextProxy"
@@ -30,11 +30,10 @@ type ExportOptions = {
 	providerSettingsManager: ProviderSettingsManager
 	contextProxy: ContextProxy
 }
+import { postStateToWebview } from "../../features/foundation/window-manager/store"
+
 type ImportWithProviderOptions = ImportOptions & {
-	provider: {
-		settingsImportedAt?: number
-		postStateToWebview: () => Promise<void>
-	}
+	provider: import("../webview/EventBridge").EventBridge
 }
 
 /**
@@ -78,7 +77,7 @@ export async function importSettingsFromPath(
 ) {
 	// Use a lenient schema that accepts any apiConfigs, then validate each individually
 	const lenientProviderProfilesSchema = providerProfilesSchema.extend({
-		apiConfigs: z.record(z.string(), z.any()),
+		apiConfigs: z.record(z.string(), z.unknown()),
 	})
 
 	const lenientSchema = z.object({
@@ -188,7 +187,7 @@ export async function importSettingsFromPath(
 
 		if (e instanceof ZodError) {
 			error = e.issues.map((issue) => `[${issue.path.join(".")}]: ${issue.message}`).join("\n")
-			TelemetryService.instance.captureSchemaValidationError({ schemaName: "ImportExport", error: e })
+			getTelemetryService().captureSchemaValidationError({ schemaName: "ImportExport", error: e })
 		} else if (e instanceof Error) {
 			error = e.message
 		}
@@ -294,7 +293,8 @@ export const importSettingsWithFeedback = async (
 	{ providerSettingsManager, contextProxy, customModesManager, provider }: ImportWithProviderOptions,
 	filePath?: string,
 ) => {
-	let result
+	type ImportResult = Awaited<ReturnType<typeof importSettingsFromPath>>
+	let result: ImportResult
 
 	if (filePath) {
 		// Validate file path and check if file exists
@@ -318,7 +318,7 @@ export const importSettingsWithFeedback = async (
 
 	if (result.success) {
 		provider.settingsImportedAt = Date.now()
-		await provider.postStateToWebview()
+		await postStateToWebview(provider)
 
 		// Show warnings if any profiles had issues but were still imported (with modifications)
 		if (result.warnings && result.warnings.length > 0) {

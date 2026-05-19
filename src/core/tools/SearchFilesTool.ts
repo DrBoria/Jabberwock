@@ -2,7 +2,7 @@ import path from "path"
 
 import { type ClineSayTool } from "@jabberwock/types"
 
-import { Task } from "../task/Task"
+import { Task } from "../../features/chat/task/Task"
 import { getReadablePath } from "../../utils/path"
 import { isPathOutsideWorkspace } from "../../utils/pathUtils"
 import { regexSearchFiles } from "../../services/ripgrep"

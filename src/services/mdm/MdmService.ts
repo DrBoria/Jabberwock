@@ -3,7 +3,7 @@ import * as path from "path"
 import * as os from "os"
 import { z } from "zod"
 
-import { CloudService, getClerkBaseUrl, PRODUCTION_CLERK_BASE_URL } from "@jabberwock/cloud"
+import { getCloudService, hasCloudService, getClerkBaseUrl, PRODUCTION_CLERK_BASE_URL } from "@jabberwock/cloud"
 
 import { t } from "../../i18n"
 
@@ -18,11 +18,10 @@ export type MdmConfig = z.infer<typeof mdmConfigSchema>
 export type ComplianceResult = { compliant: true } | { compliant: false; reason: string }
 
 export class MdmService {
-	private static _instance: MdmService | null = null
 	private mdmConfig: MdmConfig | null = null
 	private log: (...args: unknown[]) => void
 
-	private constructor(log?: (...args: unknown[]) => void) {
+	constructor(log?: (...args: unknown[]) => void) {
 		this.log = log || console.log
 	}
 
@@ -66,7 +65,7 @@ export class MdmService {
 		}
 
 		// Check if cloud service is available and has active or attempting session
-		if (!CloudService.hasInstance() || !CloudService.instance.hasOrIsAcquiringActiveSession()) {
+		if (!hasCloudService() || !getCloudService().hasOrIsAcquiringActiveSession()) {
 			return {
 				compliant: false,
 				reason: t("mdm.errors.cloud_auth_required"),
@@ -78,11 +77,11 @@ export class MdmService {
 		if (requiredOrgId) {
 			try {
 				// First try to get from active session
-				let currentOrgId = CloudService.instance.getOrganizationId()
+				let currentOrgId = getCloudService().getOrganizationId()
 
 				// If no active session, check stored credentials
 				if (!currentOrgId) {
-					const storedOrgId = CloudService.instance.getStoredOrganizationId()
+					const storedOrgId = getCloudService().getStoredOrganizationId()
 
 					// null means personal account, which is not compliant for org requirements
 					if (storedOrgId === null || storedOrgId !== requiredOrgId) {
@@ -162,41 +161,31 @@ export class MdmService {
 				return `/etc/jabberwock/${configFileName}`
 		}
 	}
+}
 
-	/**
-	 * Get the singleton instance
-	 */
-	public static getInstance(): MdmService {
-		if (!this._instance) {
-			throw new Error("MdmService not initialized. Call createInstance() first.")
-		}
-		return this._instance
+// ── Module-level accessor functions ──────────────────────────────────────
+
+let _globalMdmService: MdmService | null = null
+
+export function createMdmService(log?: (...args: unknown[]) => void): MdmService {
+	if (_globalMdmService) {
+		throw new Error("MdmService instance already created")
 	}
+	_globalMdmService = new MdmService(log)
+	return _globalMdmService
+}
 
-	/**
-	 * Create and initialize the singleton instance
-	 */
-	public static async createInstance(log?: (...args: unknown[]) => void): Promise<MdmService> {
-		if (this._instance) {
-			throw new Error("MdmService instance already exists")
-		}
-
-		this._instance = new MdmService(log)
-		await this._instance.initialize()
-		return this._instance
+export function getMdmService(): MdmService {
+	if (!_globalMdmService) {
+		throw new Error("MdmService not initialized")
 	}
+	return _globalMdmService
+}
 
-	/**
-	 * Check if instance exists
-	 */
-	public static hasInstance(): boolean {
-		return this._instance !== null
-	}
+export function hasMdmService(): boolean {
+	return _globalMdmService !== null
+}
 
-	/**
-	 * Reset the instance (for testing)
-	 */
-	public static resetInstance(): void {
-		this._instance = null
-	}
+export function resetMdmService(): void {
+	_globalMdmService = null
 }

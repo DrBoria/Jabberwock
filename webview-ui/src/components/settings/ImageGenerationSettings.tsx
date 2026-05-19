@@ -94,7 +94,9 @@ export const ImageGenerationSettings = ({
 		<div className="space-y-4">
 			<div>
 				<div className="flex items-center gap-2">
-					<VSCodeCheckbox checked={enabled} onChange={(e: any) => onChange(e.target.checked)}>
+					<VSCodeCheckbox
+						checked={enabled}
+						onChange={(e) => onChange((e.target as HTMLInputElement).checked)}>
 						<span className="font-medium">{t("settings:experimental.IMAGE_GENERATION.name")}</span>
 					</VSCodeCheckbox>
 				</div>
@@ -112,7 +114,7 @@ export const ImageGenerationSettings = ({
 						</label>
 						<VSCodeDropdown
 							value={currentProvider}
-							onChange={(e: any) => handleProviderChange(e.target.value)}
+							onChange={(e) => handleProviderChange((e.target as HTMLInputElement).value)}
 							className="w-full">
 							<VSCodeOption value="jabberwock" className="py-2 px-3">
 								Jabberwock Cloud
@@ -134,7 +136,7 @@ export const ImageGenerationSettings = ({
 							</label>
 							<VSCodeTextField
 								value={openRouterImageApiKey || ""}
-								onInput={(e: any) => handleApiKeyChange(e.target.value)}
+								onInput={(e) => handleApiKeyChange((e.target as HTMLInputElement).value)}
 								placeholder={t("settings:experimental.IMAGE_GENERATION.openRouterApiKeyPlaceholder")}
 								className="w-full"
 								type="password"
@@ -159,7 +161,7 @@ export const ImageGenerationSettings = ({
 						</label>
 						<VSCodeDropdown
 							value={currentModel}
-							onChange={(e: any) => handleModelChange(e.target.value)}
+							onChange={(e) => handleModelChange((e.target as HTMLInputElement).value)}
 							className="w-full">
 							{availableModels.map((model) => (
 								<VSCodeOption key={model.value} value={model.value} className="py-2 px-3">

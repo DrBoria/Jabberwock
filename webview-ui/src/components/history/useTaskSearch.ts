@@ -25,7 +25,7 @@ export const useTaskSearch = () => {
 
 	const presentableTasks = useMemo(() => {
 		let tasks = taskHistory.filter((item) => item.ts && item.task)
-		if (!showAllWorkspaces) {
+		if (!showAllWorkspaces && cwd) {
 			tasks = tasks.filter((item) => item.workspace === cwd)
 		}
 		return tasks

@@ -60,20 +60,17 @@ const mockHasInstance = vitest.fn()
 const mockGetSessionTokenFn = vitest.fn()
 const mockHasInstanceFn = vitest.fn()
 const mockOnFn = vitest.fn()
+let mockCloudServiceAuthService: object | undefined = {
+	getSessionToken: () => mockGetSessionTokenFn(),
+}
 
 vitest.mock("@jabberwock/cloud", () => ({
-	CloudService: {
-		hasInstance: () => mockHasInstanceFn(),
-		get instance() {
-			return {
-				authService: {
-					getSessionToken: () => mockGetSessionTokenFn(),
-				},
-				on: vitest.fn(),
-				off: vitest.fn(),
-			}
-		},
-	},
+	hasCloudService: () => mockHasInstanceFn(),
+	getCloudService: () => ({
+		authService: mockCloudServiceAuthService,
+		on: vitest.fn(),
+		off: vitest.fn(),
+	}),
 }))
 
 // Mock i18n
@@ -126,7 +123,7 @@ vitest.mock("../../providers/fetchers/modelCache", () => ({
 
 // Import after mocks are set up
 import { RooHandler } from "../jabberwock"
-import { CloudService } from "@jabberwock/cloud"
+import { getCloudService, hasCloudService } from "@jabberwock/cloud"
 
 describe("RooHandler", () => {
 	let handler: RooHandler
@@ -497,22 +494,10 @@ describe("RooHandler", () => {
 
 		it("should handle undefined auth service gracefully", () => {
 			mockHasInstanceFn.mockReturnValue(true)
-			// Mock CloudService with undefined authService
-			const originalGetSessionToken = mockGetSessionTokenFn.getMockImplementation()
-
-			// Temporarily make authService return undefined
-			mockGetSessionTokenFn.mockImplementation(() => undefined)
+			const defaultAuthService = mockCloudServiceAuthService
+			mockCloudServiceAuthService = undefined
 
 			try {
-				Object.defineProperty(CloudService, "instance", {
-					get: () => ({
-						authService: undefined,
-						on: vitest.fn(),
-						off: vitest.fn(),
-					}),
-					configurable: true,
-				})
-
 				expect(() => {
 					new RooHandler(mockOptions)
 				}).not.toThrow()
@@ -520,12 +505,7 @@ describe("RooHandler", () => {
 				const handler = new RooHandler(mockOptions)
 				expect(handler).toBeInstanceOf(RooHandler)
 			} finally {
-				// Restore original mock implementation
-				if (originalGetSessionToken) {
-					mockGetSessionTokenFn.mockImplementation(originalGetSessionToken)
-				} else {
-					mockGetSessionTokenFn.mockReturnValue("test-session-token")
-				}
+				mockCloudServiceAuthService = defaultAuthService
 			}
 		})
 

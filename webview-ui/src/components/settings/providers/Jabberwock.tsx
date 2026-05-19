@@ -6,7 +6,7 @@ import {
 } from "@jabberwock/types"
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { Button } from "@src/components/ui"
 
 import { ModelPicker } from "../ModelPicker"
@@ -42,10 +42,7 @@ export const Jabberwock = ({
 				</div>
 			) : (
 				<div className="flex flex-col gap-2">
-					<Button
-						variant="primary"
-						onClick={() => vscode.postMessage({ type: "jabberwockCloudSignIn" })}
-						className="w-fit">
+					<Button variant="primary" onClick={() => rootStore.cloud.cloudSignIn()} className="w-fit">
 						{t("settings:providers.jabberwock.connectButton")}
 					</Button>
 				</div>

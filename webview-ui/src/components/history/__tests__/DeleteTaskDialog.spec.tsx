@@ -1,10 +1,16 @@
 import { render, screen, fireEvent } from "@/utils/test-utils"
 
-import { vscode } from "@jabberwock/devtool/react"
-
 import { DeleteTaskDialog } from "../DeleteTaskDialog"
 
-vi.mock("@jabberwock/devtool/react")
+const mockDeleteTaskWithId = vi.fn()
+
+vi.mock("@src/features/store", () => ({
+	rootStore: {
+		history: {
+			deleteTaskWithId: mockDeleteTaskWithId,
+		},
+	},
+}))
 
 vi.mock("@/i18n/TranslationContext", () => ({
 	useAppTranslation: () => ({
@@ -52,16 +58,13 @@ describe("DeleteTaskDialog", () => {
 		expect(screen.getByText("Delete")).toBeInTheDocument()
 	})
 
-	it("calls vscode.postMessage when delete is confirmed", () => {
+	it("calls chatStore.deleteTaskWithId when delete is confirmed", () => {
 		render(<DeleteTaskDialog taskId={mockTaskId} open={true} onOpenChange={mockOnOpenChange} />)
 
 		const deleteButton = screen.getByText("Delete")
 		fireEvent.click(deleteButton)
 
-		expect(vscode.postMessage).toHaveBeenCalledWith({
-			type: "deleteTaskWithId",
-			text: mockTaskId,
-		})
+		expect(mockDeleteTaskWithId).toHaveBeenCalledWith(mockTaskId)
 		expect(mockOnOpenChange).toHaveBeenCalledWith(false)
 	})
 
@@ -71,17 +74,17 @@ describe("DeleteTaskDialog", () => {
 		const cancelButton = screen.getByText("Cancel")
 		fireEvent.click(cancelButton)
 
-		expect(vscode.postMessage).not.toHaveBeenCalled()
+		expect(mockDeleteTaskWithId).not.toHaveBeenCalled()
 		expect(mockOnOpenChange).toHaveBeenCalledWith(false)
 	})
 
-	it("does not call vscode.postMessage when taskId is empty", () => {
+	it("does not call chatStore.deleteTaskWithId when taskId is empty", () => {
 		render(<DeleteTaskDialog taskId="" open={true} onOpenChange={mockOnOpenChange} />)
 
 		const deleteButton = screen.getByText("Delete")
 		fireEvent.click(deleteButton)
 
-		expect(vscode.postMessage).not.toHaveBeenCalled()
+		expect(mockDeleteTaskWithId).not.toHaveBeenCalled()
 		expect(mockOnOpenChange).toHaveBeenCalledWith(false)
 	})
 
@@ -91,10 +94,7 @@ describe("DeleteTaskDialog", () => {
 
 		render(<DeleteTaskDialog taskId={mockTaskId} open={true} onOpenChange={mockOnOpenChange} />)
 
-		expect(vscode.postMessage).toHaveBeenCalledWith({
-			type: "deleteTaskWithId",
-			text: mockTaskId,
-		})
+		expect(mockDeleteTaskWithId).toHaveBeenCalledWith(mockTaskId)
 		expect(mockOnOpenChange).toHaveBeenCalledWith(false)
 	})
 
@@ -104,7 +104,7 @@ describe("DeleteTaskDialog", () => {
 
 		render(<DeleteTaskDialog taskId="" open={true} onOpenChange={mockOnOpenChange} />)
 
-		expect(vscode.postMessage).not.toHaveBeenCalled()
+		expect(mockDeleteTaskWithId).not.toHaveBeenCalled()
 		expect(mockOnOpenChange).not.toHaveBeenCalled()
 	})
 
@@ -135,17 +135,14 @@ describe("DeleteTaskDialog", () => {
 			<DeleteTaskDialog taskId={mockTaskId} open={true} onOpenChange={mockOnOpenChange} />,
 		)
 
-		expect(vscode.postMessage).not.toHaveBeenCalled()
+		expect(mockDeleteTaskWithId).not.toHaveBeenCalled()
 
 		// Then simulate Enter key press
 		mockUseKeyPress.mockReturnValue([true, null])
 		rerender(<DeleteTaskDialog taskId={mockTaskId} open={true} onOpenChange={mockOnOpenChange} />)
 
-		expect(vscode.postMessage).toHaveBeenCalledTimes(1)
-		expect(vscode.postMessage).toHaveBeenCalledWith({
-			type: "deleteTaskWithId",
-			text: mockTaskId,
-		})
+		expect(mockDeleteTaskWithId).toHaveBeenCalledTimes(1)
+		expect(mockDeleteTaskWithId).toHaveBeenCalledWith(mockTaskId)
 	})
 
 	describe("cascade delete warning", () => {
@@ -191,10 +188,7 @@ describe("DeleteTaskDialog", () => {
 			const deleteButton = screen.getByText("Delete")
 			fireEvent.click(deleteButton)
 
-			expect(vscode.postMessage).toHaveBeenCalledWith({
-				type: "deleteTaskWithId",
-				text: mockTaskId,
-			})
+			expect(mockDeleteTaskWithId).toHaveBeenCalledWith(mockTaskId)
 			expect(mockOnOpenChange).toHaveBeenCalledWith(false)
 		})
 	})

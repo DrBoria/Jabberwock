@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react"
 
-import type { ExtensionMessage } from "@jabberwock/types"
+import { type ExtensionMessage } from "@jabberwock/types"
 
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 
 /**
  * Hook to fetch Jabberwock Cloud credit balance
@@ -25,10 +25,10 @@ export const useJabberwockCreditBalance = () => {
 				clearTimeout(timeout)
 
 				if (message.values?.balance !== undefined) {
-					setBalance(message.values.balance)
+					setBalance(message.values.balance as number)
 					setError(null)
 				} else if (message.values?.error) {
-					setError(message.values.error)
+					setError(message.values.error as string)
 					setBalance(null)
 				}
 
@@ -44,7 +44,7 @@ export const useJabberwockCreditBalance = () => {
 
 		window.addEventListener("message", handleMessage)
 
-		vscode.postMessage({ type: "requestRooCreditBalance", requestId })
+		rootStore.settings.requestRooCreditBalance()
 
 		return () => {
 			window.removeEventListener("message", handleMessage)

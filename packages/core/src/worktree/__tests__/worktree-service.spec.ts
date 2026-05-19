@@ -10,10 +10,8 @@ describe("WorktreeService", () => {
 			service = new WorktreeService()
 		})
 
-		// Access private method for testing
 		const callNormalizePath = (service: WorktreeService, p: string): string => {
-			// @ts-expect-error - accessing private method for testing
-			return service.normalizePath(p)
+			return (service as { normalizePath(p: string): string }).normalizePath(p)
 		}
 
 		it("should normalize paths with trailing slashes", () => {
@@ -70,8 +68,14 @@ describe("WorktreeService", () => {
 			output: string,
 			currentCwd: string,
 		): ReturnType<WorktreeService["parseWorktreeOutput"]> => {
-			// @ts-expect-error - accessing private method for testing
-			return service.parseWorktreeOutput(output, currentCwd)
+			return (
+				service as {
+					parseWorktreeOutput(
+						output: string,
+						currentCwd: string,
+					): ReturnType<WorktreeService["parseWorktreeOutput"]>
+				}
+			).parseWorktreeOutput(output, currentCwd)
 		}
 
 		it("should parse porcelain output correctly", () => {

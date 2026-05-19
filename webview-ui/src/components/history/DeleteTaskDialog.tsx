@@ -15,7 +15,7 @@ import {
 import { Button } from "../ui/button"
 import { useAppTranslation } from "@/i18n/TranslationContext"
 
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 
 interface DeleteTaskDialogProps extends AlertDialogProps {
 	taskId: string
@@ -31,7 +31,7 @@ export const DeleteTaskDialog = ({ taskId, subtaskCount = 0, ...props }: DeleteT
 
 	const onDelete = useCallback(() => {
 		if (taskId) {
-			vscode.postMessage({ type: "deleteTaskWithId", text: taskId })
+			rootStore.history.deleteTaskWithId(taskId)
 			onOpenChange?.(false)
 		}
 	}, [taskId, onOpenChange])

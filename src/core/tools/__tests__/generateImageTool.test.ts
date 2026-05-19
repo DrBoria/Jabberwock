@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { generateImageTool } from "../GenerateImageTool"
 import { ToolUse } from "../../../shared/tools"
-import { Task } from "../../task/Task"
+import { Task } from "../../../features/chat/task/Task"
 import * as fs from "fs/promises"
 import * as pathUtils from "../../../utils/pathUtils"
 import * as fileUtils from "../../../utils/fs"

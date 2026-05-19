@@ -195,8 +195,9 @@ export class QdrantVectorStore implements IVectorStore {
 			// Create payload indexes
 			await this._createPayloadIndexes()
 			return created
-		} catch (error: any) {
-			const errorMessage = error?.message || error
+		} catch (error) {
+			const err = error as Record<string, unknown>
+			const errorMessage = (err?.message as string) || String(error)
 			console.error(
 				`[QdrantVectorStore] Failed to initialize Qdrant collection "${this.collectionName}":`,
 				errorMessage,
@@ -302,12 +303,13 @@ export class QdrantVectorStore implements IVectorStore {
 				field_name: "type",
 				field_schema: "keyword",
 			})
-		} catch (indexError: any) {
-			const errorMessage = (indexError?.message || "").toLowerCase()
+		} catch (indexError) {
+			const idxErr = indexError as Record<string, unknown>
+			const errorMessage = ((idxErr?.message as string) || "").toLowerCase()
 			if (!errorMessage.includes("already exists")) {
 				console.warn(
 					`[QdrantVectorStore] Could not create payload index for type on ${this.collectionName}. Details:`,
-					indexError?.message || indexError,
+					idxErr?.message || indexError,
 				)
 			}
 		}
@@ -319,12 +321,13 @@ export class QdrantVectorStore implements IVectorStore {
 					field_name: `pathSegments.${i}`,
 					field_schema: "keyword",
 				})
-			} catch (indexError: any) {
-				const errorMessage = (indexError?.message || "").toLowerCase()
+			} catch (indexError: unknown) {
+				const err = indexError as Record<string, unknown>
+				const errorMessage = (typeof err?.message === "string" ? err.message : "").toLowerCase()
 				if (!errorMessage.includes("already exists")) {
 					console.warn(
 						`[QdrantVectorStore] Could not create payload index for pathSegments.${i} on ${this.collectionName}. Details:`,
-						indexError?.message || indexError,
+						err?.message || indexError,
 					)
 				}
 			}
@@ -339,13 +342,13 @@ export class QdrantVectorStore implements IVectorStore {
 		points: Array<{
 			id: string
 			vector: number[]
-			payload: Record<string, any>
+			payload: Record<string, unknown>
 		}>,
 	): Promise<void> {
 		try {
 			const processedPoints = points.map((point) => {
 				if (point.payload?.filePath) {
-					const segments = point.payload.filePath.split(path.sep).filter(Boolean)
+					const segments = (point.payload.filePath as string).split(path.sep).filter(Boolean)
 					const pathSegments = segments.reduce(
 						(acc: Record<string, string>, segment: string, index: number) => {
 							acc[index.toString()] = segment
@@ -463,7 +466,7 @@ export class QdrantVectorStore implements IVectorStore {
 			return filteredPoints.map((p) => ({
 				id: p.id,
 				score: p.score,
-				payload: p.payload as any, // isPayloadValid already checked this, but need to satisfy compiler
+				payload: p.payload as Record<string, unknown>, // isPayloadValid already checked this, but need to satisfy compiler
 			})) as VectorStoreSearchResult[]
 		} catch (error) {
 			console.error("Failed to search points:", error)
@@ -525,11 +528,14 @@ export class QdrantVectorStore implements IVectorStore {
 				filter,
 				wait: true,
 			})
-		} catch (error: any) {
+		} catch (error) {
 			// Extract more detailed error information
-			const errorMessage = error?.message || String(error)
-			const errorStatus = error?.status || error?.response?.status || error?.statusCode
-			const errorDetails = error?.response?.data || error?.data || ""
+			const err = error as Record<string, unknown>
+			const errResponse = err?.response as Record<string, unknown> | undefined
+			const errorMessage = (err?.message as string) || String(error)
+			const errorStatus =
+				(err?.status as string) || (errResponse?.status as string) || (err?.statusCode as string)
+			const errorDetails = (errResponse?.data as string) || (err?.data as string) || ""
 
 			console.error(`[QdrantVectorStore] Failed to delete points by file paths:`, {
 				error: errorMessage,

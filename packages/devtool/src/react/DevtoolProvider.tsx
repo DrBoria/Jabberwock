@@ -67,11 +67,17 @@ export interface DevtoolProviderProps {
 // ── Component ──────────────────────────────────────────────────────────────
 
 export const DevtoolProvider: React.FC<DevtoolProviderProps> = ({ children, postMessage, storeSubscriptions }) => {
+	const renderCount = React.useRef(0)
+	renderCount.current++
+	console.log(`[DEBUG:DEVTOOL] DevtoolProvider RENDER #${renderCount.current}`)
+
 	// ── Store Subscriptions ──────────────────────────────────────────────
 	useEffect(() => {
 		if (!storeSubscriptions) return
+		console.log(`[DEBUG:DEVTOOL] storeSubscriptions EFFECT setup (render #${renderCount.current})`)
 		const cleanup = storeSubscriptions((msg: unknown) => postMessage(msg))
 		return () => {
+			console.log(`[DEBUG:DEVTOOL] storeSubscriptions EFFECT cleanup`)
 			if (typeof cleanup === "function") cleanup()
 		}
 	}, [storeSubscriptions])
@@ -80,13 +86,20 @@ export const DevtoolProvider: React.FC<DevtoolProviderProps> = ({ children, post
 	// Create the handler once per postMessage change. The handler delegates
 	// to the dom/ module which contains all DOM interaction logic separated
 	// by concern (findElement, clickElement, typeText, etc.).
-	const onMessage = useMemo(() => createDomMessageHandler(postMessage), [postMessage])
+	const onMessage = useMemo(() => {
+		console.log(
+			`[DEBUG:DEVTOOL] RECREATING onMessage handler (render #${renderCount.current}) — postMessage ref changed!`,
+		)
+		return createDomMessageHandler(postMessage)
+	}, [postMessage])
 
 	// Use useEffect + addEventListener instead of useEvent to ensure
 	// the handler is properly attached to window message events from VS Code.
 	useEffect(() => {
+		console.log(`[DEBUG:DEVTOOL] Adding message listener (render #${renderCount.current})`)
 		window.addEventListener("message", onMessage)
 		return () => {
+			console.log(`[DEBUG:DEVTOOL] Removing message listener — handler was recreated!`)
 			window.removeEventListener("message", onMessage)
 		}
 	}, [onMessage])

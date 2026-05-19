@@ -4,7 +4,7 @@ import { ErrorRow } from "../../messages-list/row/error-row"
 
 interface ErrorSayProps {
 	message: ClineMessage
-	t: any
+	t: (key: string, options?: Record<string, unknown>) => string
 }
 
 /** Renders error say messages with object-lookup for known error types */

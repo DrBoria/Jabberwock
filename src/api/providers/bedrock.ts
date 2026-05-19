@@ -32,16 +32,17 @@ import {
 	BEDROCK_SERVICE_TIER_PRICING,
 	ApiProviderError,
 } from "@jabberwock/types"
-import { TelemetryService } from "@jabberwock/telemetry"
+import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 
-import { ApiStream } from "../transform/stream"
+import { ApiStream, ApiStreamChunk } from "../transform/stream"
 import { BaseProvider } from "./base-provider"
 import { logger } from "../../utils/logging"
 import { Package } from "../../shared/package"
 import { MultiPointStrategy } from "../transform/cache-strategy/multi-point-strategy"
-import { ModelInfo as CacheModelInfo } from "../transform/cache-strategy/types"
+import { ModelInfo as CacheModelInfo, CachePointPlacement } from "../transform/cache-strategy/types"
 import { convertToBedrockConverseMessages as sharedConverter } from "../transform/bedrock-converse-format"
 import { getModelParams } from "../transform/model-params"
+import type { AnthropicReasoningParams } from "../transform/reasoning"
 import { shouldUseReasoningBudget } from "../../shared/api"
 import { normalizeToolSchema } from "../../utils/json-schema"
 import type { SingleCompletionHandler, ApiHandlerCreateMessageMetadata } from "../index"
@@ -66,7 +67,7 @@ interface BedrockAdditionalModelFields {
 		budget_tokens: number
 	}
 	anthropic_beta?: string[]
-	[key: string]: any // Add index signature to be compatible with DocumentType
+	[key: string]: unknown // Add index signature to be compatible with DocumentType
 }
 
 // Define interface for Bedrock payload
@@ -190,6 +191,19 @@ export type UsageType = {
 	cacheWriteInputTokenCount?: number
 }
 
+// Metadata that may be present on Bedrock SDK errors (status, $metadata)
+interface BedrockErrorMetadata {
+	status?: number
+	$metadata?: { httpStatusCode?: number }
+	name?: string
+	__type?: string
+}
+
+// Extended ModelInfo with optional cachableFields for AWS prompt cache
+interface ModelInfoWithCacheFields extends ModelInfo {
+	cachableFields?: string[]
+}
+
 /************************************************************************************
  *
  *     PROVIDER
@@ -199,7 +213,15 @@ export type UsageType = {
 export class AwsBedrockHandler extends BaseProvider implements SingleCompletionHandler {
 	protected options: ProviderSettings
 	private client: BedrockRuntimeClient
-	private arnInfo: any
+	private arnInfo!: {
+		isValid: boolean
+		region?: string
+		modelType?: string
+		modelId?: string
+		errorMessage?: string
+		crossRegionInference: boolean
+		awsUseCrossRegionInference?: boolean
+	}
 	private readonly providerName = "Bedrock"
 
 	constructor(options: ProviderSettings) {
@@ -232,7 +254,7 @@ export class AwsBedrockHandler extends BaseProvider implements SingleCompletionH
 				// We will use the ARNs region, so execution can continue, but log an info statement.
 				// Log a warning if there's a region mismatch between the ARN and the region selected by the user
 				// We will use the ARNs region, so execution can continue, but log an info statement.
-				logger.info(this.arnInfo.errorMessage, {
+				logger.info(this.arnInfo.errorMessage ?? "", {
 					ctx: "bedrock",
 					selectedRegion: this.options.awsRegion,
 					arnRegion: this.arnInfo.region,
@@ -414,11 +436,13 @@ export class AwsBedrockHandler extends BaseProvider implements SingleCompletionH
 		// Use parseBaseModelId to handle cross-region inference prefixes
 		const baseModelId = this.parseBaseModelId(modelConfig.id)
 		const is1MContextEnabled =
-			BEDROCK_1M_CONTEXT_MODEL_IDS.includes(baseModelId as any) && this.options.awsBedrock1MContext
+			BEDROCK_1M_CONTEXT_MODEL_IDS.includes(baseModelId as (typeof BEDROCK_1M_CONTEXT_MODEL_IDS)[number]) &&
+			this.options.awsBedrock1MContext
 
 		// Determine if service tier should be applied (checked later when building payload)
 		const useServiceTier =
-			this.options.awsBedrockServiceTier && BEDROCK_SERVICE_TIER_MODEL_IDS.includes(baseModelId as any)
+			this.options.awsBedrockServiceTier &&
+			BEDROCK_SERVICE_TIER_MODEL_IDS.includes(baseModelId as (typeof BEDROCK_SERVICE_TIER_MODEL_IDS)[number])
 		if (useServiceTier) {
 			logger.info("Service tier specified for Bedrock request", {
 				ctx: "bedrock",
@@ -463,7 +487,9 @@ export class AwsBedrockHandler extends BaseProvider implements SingleCompletionH
 			messages: formatted.messages,
 			system: formatted.system,
 			inferenceConfig,
-			...(additionalModelRequestFields && { additionalModelRequestFields }),
+			...(additionalModelRequestFields && {
+				additionalModelRequestFields,
+			}),
 			// Add anthropic_version at top level when using thinking features
 			...(thinkingEnabled && { anthropic_version: "bedrock-2023-05-31" }),
 			toolConfig,
@@ -483,7 +509,7 @@ export class AwsBedrockHandler extends BaseProvider implements SingleCompletionH
 				10 * 60 * 1000,
 			)
 
-			const command = new ConverseStreamCommand(payload)
+			const command = new ConverseStreamCommand(payload as ConstructorParameters<typeof ConverseStreamCommand>[0])
 			const response = await this.client.send(command, {
 				abortSignal: controller.signal,
 			})
@@ -497,7 +523,8 @@ export class AwsBedrockHandler extends BaseProvider implements SingleCompletionH
 				// Parse the chunk as JSON if it's a string (for tests)
 				let streamEvent: StreamEvent
 				try {
-					streamEvent = typeof chunk === "string" ? JSON.parse(chunk) : (chunk as unknown as StreamEvent)
+					streamEvent =
+						typeof chunk === "string" ? (JSON.parse(chunk) as StreamEvent) : (chunk as StreamEvent)
 				} catch (e) {
 					logger.error("Failed to parse stream event", {
 						ctx: "bedrock",
@@ -562,10 +589,8 @@ export class AwsBedrockHandler extends BaseProvider implements SingleCompletionH
 							ctx: "bedrock",
 							error: error instanceof Error ? error : String(error),
 						})
-					} finally {
-						// eslint-disable-next-line no-unsafe-finally
-						continue
 					}
+					continue
 				}
 
 				// Handle message start
@@ -685,7 +710,7 @@ export class AwsBedrockHandler extends BaseProvider implements SingleCompletionH
 			// Capture error in telemetry before processing
 			const errorMessage = error instanceof Error ? error.message : String(error)
 			const apiError = new ApiProviderError(errorMessage, this.providerName, modelConfig.id, "createMessage")
-			TelemetryService.instance.captureException(apiError)
+			getTelemetryService().captureException(apiError)
 
 			// Check if this is a throttling error that should trigger retry logic
 			const errorType = this.getErrorType(error)
@@ -706,7 +731,7 @@ export class AwsBedrockHandler extends BaseProvider implements SingleCompletionH
 			const errorChunks = this.handleBedrockError(error, true) // true for streaming context
 			// Yield each chunk individually to ensure type compatibility
 			for (const chunk of errorChunks) {
-				yield chunk as any // Cast to any to bypass type checking since we know the structure is correct
+				yield chunk as ApiStreamChunk // Cast to bypass type checking since we know the structure is correct
 			}
 
 			// Re-throw with enhanced error message for retry system
@@ -716,16 +741,17 @@ export class AwsBedrockHandler extends BaseProvider implements SingleCompletionH
 				// Preserve important properties from the original error
 				enhancedError.name = error.name
 				// Validate and preserve status property
-				if ("status" in error && typeof (error as any).status === "number") {
-					;(enhancedError as any).status = (error as any).status
+				const errorRecord = error as BedrockErrorMetadata
+				if ("status" in error && typeof errorRecord.status === "number") {
+					Object.assign(enhancedError, { status: errorRecord.status })
 				}
 				// Validate and preserve $metadata property
 				if (
 					"$metadata" in error &&
-					typeof (error as any).$metadata === "object" &&
-					(error as any).$metadata !== null
+					typeof errorRecord.$metadata === "object" &&
+					errorRecord.$metadata !== null
 				) {
-					;(enhancedError as any).$metadata = (error as any).$metadata
+					Object.assign(enhancedError, { $metadata: errorRecord.$metadata })
 				}
 				throw enhancedError
 			} else {
@@ -794,7 +820,7 @@ export class AwsBedrockHandler extends BaseProvider implements SingleCompletionH
 			const model = this.getModel()
 			const telemetryErrorMessage = error instanceof Error ? error.message : String(error)
 			const apiError = new ApiProviderError(telemetryErrorMessage, this.providerName, model.id, "completePrompt")
-			TelemetryService.instance.captureException(apiError)
+			getTelemetryService().captureException(apiError)
 
 			// Use the extracted error handling method for all errors
 			const errorResult = this.handleBedrockError(error, false) // false for non-streaming context
@@ -806,17 +832,18 @@ export class AwsBedrockHandler extends BaseProvider implements SingleCompletionH
 			if (error instanceof Error) {
 				// Preserve important properties from the original error
 				enhancedError.name = error.name
+				const errorRecord = error as BedrockErrorMetadata
 				// Validate and preserve status property
-				if ("status" in error && typeof (error as any).status === "number") {
-					;(enhancedError as any).status = (error as any).status
+				if ("status" in error && typeof errorRecord.status === "number") {
+					Object.assign(enhancedError, { status: errorRecord.status })
 				}
 				// Validate and preserve $metadata property
 				if (
 					"$metadata" in error &&
-					typeof (error as any).$metadata === "object" &&
-					(error as any).$metadata !== null
+					typeof errorRecord.$metadata === "object" &&
+					errorRecord.$metadata !== null
 				) {
-					;(enhancedError as any).$metadata = (error as any).$metadata
+					Object.assign(enhancedError, { $metadata: errorRecord.$metadata })
 				}
 			}
 			throw enhancedError
@@ -830,7 +857,7 @@ export class AwsBedrockHandler extends BaseProvider implements SingleCompletionH
 		anthropicMessages: Anthropic.Messages.MessageParam[] | { role: string; content: string }[],
 		systemMessage?: string,
 		usePromptCache: boolean = false,
-		modelInfo?: any,
+		modelInfo?: Record<string, unknown>,
 		conversationId?: string, // Optional conversation ID to track cache points across messages
 	): { system: SystemContentBlock[]; messages: Message[] } {
 		// First convert messages using shared converter for proper image handling
@@ -846,12 +873,12 @@ export class AwsBedrockHandler extends BaseProvider implements SingleCompletionH
 
 		// Convert model info to expected format for cache strategy
 		const cacheModelInfo: CacheModelInfo = {
-			maxTokens: modelInfo?.maxTokens || 8192,
-			contextWindow: modelInfo?.contextWindow || 200_000,
-			supportsPromptCache: modelInfo?.supportsPromptCache || false,
-			maxCachePoints: modelInfo?.maxCachePoints || 0,
-			minTokensPerCachePoint: modelInfo?.minTokensPerCachePoint || 50,
-			cachableFields: modelInfo?.cachableFields || [],
+			maxTokens: (modelInfo?.maxTokens as number) || 8192,
+			contextWindow: (modelInfo?.contextWindow as number) || 200_000,
+			supportsPromptCache: (modelInfo?.supportsPromptCache as boolean) || false,
+			maxCachePoints: (modelInfo?.maxCachePoints as number) || 0,
+			minTokensPerCachePoint: (modelInfo?.minTokensPerCachePoint as number) || 50,
+			cachableFields: (modelInfo?.cachableFields as Array<"system" | "messages" | "tools">) || [],
 		}
 
 		// Get previous cache point placements for this conversation if available
@@ -1053,7 +1080,7 @@ export class AwsBedrockHandler extends BaseProvider implements SingleCompletionH
 		info: ModelInfo
 		maxTokens?: number
 		temperature?: number
-		reasoning?: any
+		reasoning?: AnthropicReasoningParams
 		reasoningBudget?: number
 	} {
 		if (this.costModelConfig?.id?.trim().length > 0) {
@@ -1072,7 +1099,7 @@ export class AwsBedrockHandler extends BaseProvider implements SingleCompletionH
 
 		// If custom ARN is provided, use it
 		if (this.options.awsCustomArn) {
-			modelConfig = this.getModelById(this.arnInfo.modelId, this.arnInfo.modelType)
+			modelConfig = this.getModelById(this.arnInfo.modelId ?? "", this.arnInfo.modelType)
 
 			//If the user entered an ARN for a foundation-model they've done the same thing as picking from our list of options.
 			//We leave the model data matching the same as if a drop-down input method was used by not overwriting the model ID with the user input ARN
@@ -1086,7 +1113,9 @@ export class AwsBedrockHandler extends BaseProvider implements SingleCompletionH
 			const baseIdForGlobal = this.parseBaseModelId(modelConfig.id)
 			if (
 				this.options.awsUseGlobalInference &&
-				BEDROCK_GLOBAL_INFERENCE_MODEL_IDS.includes(baseIdForGlobal as any)
+				BEDROCK_GLOBAL_INFERENCE_MODEL_IDS.includes(
+					baseIdForGlobal as (typeof BEDROCK_GLOBAL_INFERENCE_MODEL_IDS)[number],
+				)
 			) {
 				modelConfig.id = `global.${baseIdForGlobal}`
 			}
@@ -1102,7 +1131,10 @@ export class AwsBedrockHandler extends BaseProvider implements SingleCompletionH
 		// Check if 1M context is enabled for supported Claude 4 models
 		// Use parseBaseModelId to handle cross-region inference prefixes
 		const baseModelId = this.parseBaseModelId(modelConfig.id)
-		if (BEDROCK_1M_CONTEXT_MODEL_IDS.includes(baseModelId as any) && this.options.awsBedrock1MContext) {
+		if (
+			BEDROCK_1M_CONTEXT_MODEL_IDS.includes(baseModelId as (typeof BEDROCK_1M_CONTEXT_MODEL_IDS)[number]) &&
+			this.options.awsBedrock1MContext
+		) {
 			// Update context window and pricing to 1M tier when 1M context beta is enabled
 			const tier = modelConfig.info.tiers?.[0]
 			modelConfig.info = {
@@ -1126,7 +1158,12 @@ export class AwsBedrockHandler extends BaseProvider implements SingleCompletionH
 
 		// Apply service tier pricing if specified and model supports it
 		const baseModelIdForTier = this.parseBaseModelId(modelConfig.id)
-		if (this.options.awsBedrockServiceTier && BEDROCK_SERVICE_TIER_MODEL_IDS.includes(baseModelIdForTier as any)) {
+		if (
+			this.options.awsBedrockServiceTier &&
+			BEDROCK_SERVICE_TIER_MODEL_IDS.includes(
+				baseModelIdForTier as (typeof BEDROCK_SERVICE_TIER_MODEL_IDS)[number],
+			)
+		) {
 			const pricingMultiplier = BEDROCK_SERVICE_TIER_PRICING[this.options.awsBedrockServiceTier]
 			if (pricingMultiplier && pricingMultiplier !== 1.0) {
 				// Apply pricing multiplier to all price fields
@@ -1154,7 +1191,7 @@ export class AwsBedrockHandler extends BaseProvider implements SingleCompletionH
 			info: ModelInfo
 			maxTokens?: number
 			temperature?: number
-			reasoning?: any
+			reasoning?: AnthropicReasoningParams
 			reasoningBudget?: number
 		}
 	}
@@ -1166,24 +1203,22 @@ export class AwsBedrockHandler extends BaseProvider implements SingleCompletionH
 	 *************************************************************************************/
 
 	// Store previous cache point placements for maintaining consistency across consecutive messages
-	private previousCachePointPlacements: { [conversationId: string]: any[] } = {}
+	private previousCachePointPlacements: Record<string, CachePointPlacement[]> = {}
 
 	private supportsAwsPromptCache(modelConfig: { id: BedrockModelId | string; info: ModelInfo }): boolean | undefined {
 		// Check if the model supports prompt cache
 		// The cachableFields property is not part of the ModelInfo type in schemas
 		// but it's used in the bedrockModels object in shared/api.ts
-		return (
-			modelConfig?.info?.supportsPromptCache &&
-			// Use optional chaining and type assertion to access cachableFields
-			(modelConfig?.info as any)?.cachableFields &&
-			(modelConfig?.info as any)?.cachableFields?.length > 0
-		)
+		if (!modelConfig?.info?.supportsPromptCache) return false
+		const info = modelConfig.info as ModelInfoWithCacheFields
+		const cachableFields = info.cachableFields
+		return Array.isArray(cachableFields) && cachableFields.length > 0
 	}
 
 	/**
 	 * Removes any existing cachePoint nodes from content blocks
 	 */
-	private removeCachePoints(content: any): any {
+	private removeCachePoints(content: unknown): unknown {
 		if (Array.isArray(content)) {
 			return content.map((block) => {
 				// Use destructuring to remove cachePoint property
@@ -1469,12 +1504,13 @@ Please check:
 		}
 
 		// Check for HTTP 429 status code (Too Many Requests)
-		if ((error as any).status === 429 || (error as any).$metadata?.httpStatusCode === 429) {
+		const errorRecord = error as BedrockErrorMetadata
+		if (errorRecord.status === 429 || errorRecord.$metadata?.httpStatusCode === 429) {
 			return "THROTTLING"
 		}
 
 		// Check for Amazon Bedrock specific throttling exception names
-		if ((error as any).name === "ThrottlingException" || (error as any).__type === "ThrottlingException") {
+		if (errorRecord.name === "ThrottlingException" || errorRecord.__type === "ThrottlingException") {
 			return "THROTTLING"
 		}
 

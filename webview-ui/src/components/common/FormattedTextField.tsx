@@ -75,9 +75,12 @@ function FormattedTextFieldInner<T>(
 	)
 }
 
-export const FormattedTextField = forwardRef(FormattedTextFieldInner as any) as <T>(
-	props: FormattedTextFieldProps<T> & { ref?: React.Ref<HTMLInputElement> },
-) => React.ReactElement
+export const FormattedTextField = forwardRef(
+	FormattedTextFieldInner as React.ForwardRefRenderFunction<
+		HTMLInputElement,
+		Omit<FormattedTextFieldProps<unknown>, "ref">
+	>,
+) as <T>(props: FormattedTextFieldProps<T> & { ref?: React.Ref<HTMLInputElement> }) => React.ReactElement
 
 // Common formatters for reuse
 export const unlimitedIntegerFormatter: InputFormatter<number> = {

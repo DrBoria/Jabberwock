@@ -5,7 +5,7 @@ import { VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 
 import { Package } from "@shared/package"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@src/components/ui"
 
 interface AnnouncementProps {
@@ -13,7 +13,7 @@ interface AnnouncementProps {
 }
 
 /**
- * You must update the `latestAnnouncementId` in ClineProvider for new
+ * You must update the `latestAnnouncementId` in EventBridge for new
  * announcements to show to users. This new id will be compared with what's in
  * state for the 'last announcement shown', and if it's different then the
  * announcement will render. As soon as an announcement is shown, the id will be
@@ -94,7 +94,7 @@ const SocialLink = ({ icon, label, href }: { icon: ReactNode; label: string; hre
 		className="inline-flex items-center gap-1"
 		onClick={(e) => {
 			e.preventDefault()
-			vscode.postMessage({ type: "openExternal", url: href })
+			rootStore.settings.openExternal(href)
 		}}>
 		{icon}
 		<span className="sr-only">{label}</span>
@@ -106,7 +106,7 @@ const GitHubLink = ({ children }: { children?: ReactNode }) => (
 		href="https://github.com/JabberwockInc/Jabberwock"
 		onClick={(e) => {
 			e.preventDefault()
-			vscode.postMessage({ type: "openExternal", url: "https://github.com/JabberwockInc/Jabberwock" })
+			rootStore.settings.openExternal("https://github.com/JabberwockInc/Jabberwock")
 		}}>
 		{children}
 	</VSCodeLink>
@@ -117,7 +117,7 @@ const CareersLink = ({ children }: { children?: ReactNode }) => (
 		href="https://careers.jabberwock.com"
 		onClick={(e) => {
 			e.preventDefault()
-			vscode.postMessage({ type: "openExternal", url: "https://careers.jabberwock.com" })
+			rootStore.settings.openExternal("https://careers.jabberwock.com")
 		}}>
 		{children}
 	</VSCodeLink>

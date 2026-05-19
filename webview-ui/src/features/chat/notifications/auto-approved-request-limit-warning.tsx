@@ -3,7 +3,7 @@ import { Trans } from "react-i18next"
 
 import type { ClineMessage } from "@jabberwock/types"
 
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { Button } from "@src/components/ui"
 
 type AutoApprovedRequestLimitWarningProps = {
@@ -55,7 +55,7 @@ export const AutoApprovedRequestLimitWarning = memo(({ message }: AutoApprovedRe
 					onClick={(e) => {
 						e.preventDefault()
 						setButtonClicked(true)
-						vscode.postMessage({ type: "askResponse", askResponse: "yesButtonClicked" })
+						rootStore.chat.respondToAsk("yesButtonClicked")
 					}}>
 					<Trans i18nKey={buttonKey} ns="chat" />
 				</Button>

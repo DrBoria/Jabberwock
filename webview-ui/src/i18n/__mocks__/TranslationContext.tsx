@@ -1,7 +1,7 @@
 import React, { createContext, useContext, ReactNode } from "react"
 
 // Mock translation function that returns English text for settings or the key itself
-const mockTranslate = (key: string, options?: Record<string, any>): string => {
+const mockTranslate = (key: string, options?: Record<string, unknown>): string => {
 	// Convert the key back to approximate English text for test purposes
 	if (key.startsWith("settings.")) {
 		// For specific keys the tests are looking for
@@ -32,8 +32,8 @@ const mockTranslate = (key: string, options?: Record<string, any>): string => {
 
 // Create mock context
 export const TranslationContext = createContext<{
-	t: (key: string, options?: Record<string, any>) => string
-	i18n: any
+	t: (key: string, options?: Record<string, unknown>) => string
+	i18n: Record<string, never>
 }>({
 	t: mockTranslate,
 	i18n: {},

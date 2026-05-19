@@ -151,7 +151,16 @@ export function serializeDomToTree(
 			iframeNode.__crossOrigin = true
 		}
 
-		return { iframe: iframeNode }
+		// Use a unique key for each iframe to prevent deduplication when multiple iframes exist.
+		// Previously used static "iframe" key which caused second iframe to overwrite first.
+		const parent = root.parentElement
+		let iframeIndex = 1
+		if (parent) {
+			const siblings = Array.from(parent.querySelectorAll("iframe"))
+			iframeIndex = siblings.indexOf(root as HTMLIFrameElement) + 1
+		}
+		const key = `iframe:nth-of-type(${iframeIndex})`
+		return { [key]: iframeNode }
 	}
 
 	// Build child tree

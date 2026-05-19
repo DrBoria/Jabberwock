@@ -2,6 +2,12 @@ import React, { useState, useEffect, useMemo, useCallback } from "react"
 import { Plus, Globe, Folder, Edit, Trash2, Settings } from "lucide-react"
 import { Trans } from "react-i18next"
 
+import {
+	MARKETPLACE_REQUEST_SKILLS as _MARKETPLACE_REQUEST_SKILLS,
+	MARKETPLACE_DELETE_SKILL as _MARKETPLACE_DELETE_SKILL,
+	MARKETPLACE_OPEN_SKILL_FILE as _MARKETPLACE_OPEN_SKILL_FILE,
+	MARKETPLACE_UPDATE_SKILL_MODES as _MARKETPLACE_UPDATE_SKILL_MODES,
+} from "@jabberwock/types"
 import type { SkillMetadata } from "@jabberwock/types"
 
 import { getAllModes } from "@shared/modes"
@@ -22,7 +28,7 @@ import { Button } from "../ui/button"
 import { Checkbox } from "../ui/checkbox"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog"
 import { StandardTooltip } from "../ui/standard-tooltip"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { buildDocLink } from "@/features/settings/utils/docLinks"
 
 import { SectionHeader } from "./SectionHeader"
@@ -52,7 +58,7 @@ export const SkillsSettings: React.FC = () => {
 	}, [customModes])
 
 	const handleRefresh = useCallback(() => {
-		vscode.postMessage({ type: "requestSkills" })
+		rootStore.marketplace.requestSkills()
 	}, [])
 
 	// Request skills when component mounts
@@ -67,12 +73,7 @@ export const SkillsSettings: React.FC = () => {
 
 	const handleDeleteConfirm = useCallback(() => {
 		if (skillToDelete) {
-			vscode.postMessage({
-				type: "deleteSkill",
-				skillName: skillToDelete.name,
-				source: skillToDelete.source,
-				skillModeSlugs: skillToDelete.modeSlugs,
-			})
+			rootStore.marketplace.deleteSkill(skillToDelete.name)
 			setDeleteDialogOpen(false)
 			setSkillToDelete(null)
 		}
@@ -84,12 +85,7 @@ export const SkillsSettings: React.FC = () => {
 	}, [])
 
 	const handleEditClick = useCallback((skill: SkillMetadata) => {
-		vscode.postMessage({
-			type: "openSkillFile",
-			skillName: skill.name,
-			source: skill.source,
-			skillModeSlugs: skill.modeSlugs,
-		})
+		rootStore.marketplace.openSkillFile(skill.name)
 	}, [])
 
 	// Open mode selection modal
@@ -133,12 +129,7 @@ export const SkillsSettings: React.FC = () => {
 	const handleSaveModes = useCallback(() => {
 		if (skillToEditModes) {
 			const newModeSlugs = isAnyMode ? undefined : selectedModes.length > 0 ? selectedModes : undefined
-			vscode.postMessage({
-				type: "updateSkillModes",
-				skillName: skillToEditModes.name,
-				source: skillToEditModes.source,
-				newSkillModeSlugs: newModeSlugs,
-			})
+			rootStore.marketplace.updateSkillModes(skillToEditModes.name, newModeSlugs)
 			setModeDialogOpen(false)
 			setSkillToEditModes(null)
 		}

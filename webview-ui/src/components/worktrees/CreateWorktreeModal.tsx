@@ -2,8 +2,14 @@ import { useState, useEffect, useCallback, useMemo } from "react"
 import prettyBytes from "pretty-bytes"
 
 import type { WorktreeDefaultsResponse, BranchInfo, WorktreeIncludeStatus } from "@jabberwock/types"
+import {
+	SETTINGS_GET_WORKTREE_DEFAULTS as _SETTINGS_GET_WORKTREE_DEFAULTS,
+	SETTINGS_GET_AVAILABLE_BRANCHES as _SETTINGS_GET_AVAILABLE_BRANCHES,
+	SETTINGS_GET_WORKTREE_INCLUDE_STATUS as _SETTINGS_GET_WORKTREE_INCLUDE_STATUS,
+	SETTINGS_BROWSE_FOR_WORKTREE_PATH as _SETTINGS_BROWSE_FOR_WORKTREE_PATH,
+} from "@jabberwock/types"
 
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { useAppTranslation } from "@/i18n/TranslationContext"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Button, Input } from "@/components/ui"
 import { SearchableSelect, type SearchableSelectOption } from "@/components/ui/searchable-select"
@@ -45,9 +51,9 @@ export const CreateWorktreeModal = ({
 	// Fetch defaults and branches on open
 	useEffect(() => {
 		if (open) {
-			vscode.postMessage({ type: "getWorktreeDefaults" })
-			vscode.postMessage({ type: "getAvailableBranches" })
-			vscode.postMessage({ type: "getWorktreeIncludeStatus" })
+			rootStore.settings.getWorktreeDefaults()
+			rootStore.settings.getAvailableBranches()
+			rootStore.settings.getWorktreeIncludeStatus()
 		}
 	}, [open])
 
@@ -91,11 +97,7 @@ export const CreateWorktreeModal = ({
 					setCopyProgress(null)
 					if (message.success) {
 						if (openAfterCreate) {
-							vscode.postMessage({
-								type: "switchWorktree",
-								worktreePath: worktreePath,
-								worktreeNewWindow: true,
-							})
+							rootStore.settings.switchWorktree(worktreePath, true)
 						}
 						onSuccess?.()
 						onClose()
@@ -115,13 +117,7 @@ export const CreateWorktreeModal = ({
 		setError(null)
 		setIsCreating(true)
 
-		vscode.postMessage({
-			type: "createWorktree",
-			worktreePath: worktreePath,
-			worktreeBranch: branchName,
-			worktreeBaseBranch: baseBranch,
-			worktreeCreateNewBranch: true,
-		})
+		rootStore.settings.createWorktree(worktreePath, branchName, baseBranch, true)
 	}, [worktreePath, branchName, baseBranch])
 
 	const isValid = branchName.trim() && worktreePath.trim() && baseBranch.trim()
@@ -211,7 +207,7 @@ export const CreateWorktreeModal = ({
 						/>
 						<FolderSearch
 							className="size-4 shrink-0 absolute right-3 cursor-pointer hover:opacity-75 transition-opacity"
-							onClick={() => vscode.postMessage({ type: "browseForWorktreePath" })}
+							onClick={() => rootStore.settings.browseForWorktreePath()}
 						/>
 					</div>
 

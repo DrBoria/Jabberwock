@@ -1,6 +1,5 @@
 import * as path from "path"
-// @ts-ignore-next-line
-import pdf from "pdf-parse/lib/pdf-parse"
+const pdf = require("pdf-parse/lib/pdf-parse") as (dataBuffer: Buffer) => Promise<{ text: string; numpages: number }>
 import mammoth from "mammoth"
 import { virtualWorkspace } from "../../core/fs/VirtualWorkspace"
 import { isBinaryFile } from "isbinaryfile"

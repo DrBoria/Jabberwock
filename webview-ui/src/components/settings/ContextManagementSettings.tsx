@@ -1,5 +1,6 @@
 import { HTMLAttributes } from "react"
 import React from "react"
+import { getEventValue } from "@src/utils/getEventValue"
 import { useAppTranslation } from "@/i18n/TranslationContext"
 import { VSCodeCheckbox, VSCodeTextArea } from "@vscode/webview-ui-toolkit/react"
 import { FoldVertical } from "lucide-react"
@@ -23,12 +24,13 @@ import { SetCachedStateField } from "./types"
 import { SectionHeader } from "./SectionHeader"
 import { Section } from "./Section"
 import { SearchableSetting } from "./SearchableSetting"
-import { vscode } from "@jabberwock/devtool/react"
+import { SETTINGS_UPDATE_SETTINGS as _SETTINGS_UPDATE_SETTINGS } from "@jabberwock/types"
+import { rootStore } from "@src/features/store"
 
 type ContextManagementSettingsProps = HTMLAttributes<HTMLDivElement> & {
 	autoCondenseContext: boolean
 	autoCondenseContextPercent: number
-	listApiConfigMeta: any[]
+	listApiConfigMeta: Array<{ id: string; name: string }>
 	maxOpenTabsContext: number
 	maxWorkspaceFiles: number
 	showJabberwockIgnoredFiles?: boolean
@@ -135,7 +137,7 @@ export const ContextManagementSettings = ({
 			}
 
 			setCachedStateField("profileThresholds", newThresholds)
-			vscode.postMessage({ type: "updateSettings", updatedSettings: { profileThresholds: newThresholds } })
+			rootStore.settings.updateSettings({ profileThresholds: newThresholds })
 		}
 	}
 	return (
@@ -218,7 +220,12 @@ export const ContextManagementSettings = ({
 					label={t("settings:contextManagement.jabberwockignore.label")}>
 					<VSCodeCheckbox
 						checked={showJabberwockIgnoredFiles}
-						onChange={(e: any) => setCachedStateField("showJabberwockIgnoredFiles", e.target.checked)}
+						onChange={(e: Event | React.FormEvent<HTMLElement>) =>
+							setCachedStateField(
+								"showJabberwockIgnoredFiles",
+								(e.target as HTMLInputElement)?.checked ?? false,
+							)
+						}
 						data-testid="show-rooignored-files-checkbox">
 						<label className="block font-medium mb-1">
 							{t("settings:contextManagement.jabberwockignore.label")}
@@ -235,7 +242,12 @@ export const ContextManagementSettings = ({
 					label={t("settings:contextManagement.enableSubfolderRules.label")}>
 					<VSCodeCheckbox
 						checked={enableSubfolderRules}
-						onChange={(e: any) => setCachedStateField("enableSubfolderRules", e.target.checked)}
+						onChange={(e: Event | React.FormEvent<HTMLElement>) =>
+							setCachedStateField(
+								"enableSubfolderRules",
+								(e.target as HTMLInputElement)?.checked ?? false,
+							)
+						}
 						data-testid="enable-subfolder-rules-checkbox">
 						<label className="block font-medium mb-1">
 							{t("settings:contextManagement.enableSubfolderRules.label")}
@@ -314,7 +326,12 @@ export const ContextManagementSettings = ({
 					label={t("settings:contextManagement.diagnostics.includeMessages.label")}>
 					<VSCodeCheckbox
 						checked={includeDiagnosticMessages}
-						onChange={(e: any) => setCachedStateField("includeDiagnosticMessages", e.target.checked)}
+						onChange={(e: Event | React.FormEvent<HTMLElement>) =>
+							setCachedStateField(
+								"includeDiagnosticMessages",
+								(e.target as HTMLInputElement)?.checked ?? false,
+							)
+						}
 						data-testid="include-diagnostic-messages-checkbox">
 						<label className="block font-medium mb-1">
 							{t("settings:contextManagement.diagnostics.includeMessages.label")}
@@ -412,7 +429,9 @@ export const ContextManagementSettings = ({
 					label={t("settings:contextManagement.includeCurrentTime.label")}>
 					<VSCodeCheckbox
 						checked={includeCurrentTime}
-						onChange={(e: any) => setCachedStateField("includeCurrentTime", e.target.checked)}
+						onChange={(e: Event | React.FormEvent<HTMLElement>) =>
+							setCachedStateField("includeCurrentTime", (e.target as HTMLInputElement)?.checked ?? false)
+						}
 						data-testid="include-current-time-checkbox">
 						<label className="block font-medium mb-1">
 							{t("settings:contextManagement.includeCurrentTime.label")}
@@ -429,7 +448,9 @@ export const ContextManagementSettings = ({
 					label={t("settings:contextManagement.includeCurrentCost.label")}>
 					<VSCodeCheckbox
 						checked={includeCurrentCost}
-						onChange={(e: any) => setCachedStateField("includeCurrentCost", e.target.checked)}
+						onChange={(e: Event | React.FormEvent<HTMLElement>) =>
+							setCachedStateField("includeCurrentCost", (e.target as HTMLInputElement)?.checked ?? false)
+						}
 						data-testid="include-current-cost-checkbox">
 						<label className="block font-medium mb-1">
 							{t("settings:contextManagement.includeCurrentCost.label")}
@@ -461,9 +482,7 @@ export const ContextManagementSettings = ({
 						resize="vertical"
 						value={getCondensePromptValue()}
 						onInput={(e) => {
-							const value =
-								(e as unknown as CustomEvent)?.detail?.target?.value ??
-								((e as any).target as HTMLTextAreaElement).value
+							const value = getEventValue(e) ?? ""
 							updateCondensePrompt(value)
 						}}
 						rows={6}
@@ -479,7 +498,9 @@ export const ContextManagementSettings = ({
 					label={t("settings:contextManagement.autoCondenseContext.name")}>
 					<VSCodeCheckbox
 						checked={autoCondenseContext}
-						onChange={(e: any) => setCachedStateField("autoCondenseContext", e.target.checked)}
+						onChange={(e: Event | React.FormEvent<HTMLElement>) =>
+							setCachedStateField("autoCondenseContext", (e.target as HTMLInputElement)?.checked ?? false)
+						}
 						data-testid="auto-condense-context-checkbox">
 						<span className="font-medium">{t("settings:contextManagement.autoCondenseContext.name")}</span>
 					</VSCodeCheckbox>

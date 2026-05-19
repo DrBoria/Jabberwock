@@ -6,7 +6,6 @@ import { Markdown } from "../../messages-list/markdown"
 import { OpenMarkdownPreviewButton } from "../../messages-list/open-markdown-preview-button"
 import ImageBlock from "@src/components/common/ImageBlock"
 import { headerStyle, Container } from "@src/components/ui"
-import { chatStore } from "@src/features/chat/store"
 
 interface TextSayProps {
 	message: ClineMessage
@@ -16,7 +15,7 @@ interface TextSayProps {
 	modeName: string | undefined
 	isStreaming: boolean
 	onToggleExpand: () => void
-	t: any
+	t: (key: string, options?: Record<string, unknown>) => string
 }
 
 export const TextSay: React.FC<TextSayProps> = ({
@@ -24,14 +23,11 @@ export const TextSay: React.FC<TextSayProps> = ({
 	isExpanded,
 	isRedundantDelegation,
 	isAgentSaidSummary,
-	modeName: _modeNameProp,
+	modeName,
 	isStreaming: _isStreaming,
 	onToggleExpand,
 	t,
 }) => {
-	// Read modeName from the unified chat store as the primary source
-	const modeName = chatStore.activeModeName
-
 	if (isRedundantDelegation) return null
 
 	if (isAgentSaidSummary) {

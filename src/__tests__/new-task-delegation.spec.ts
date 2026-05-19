@@ -2,7 +2,7 @@
 
 import { describe, it, expect, vi } from "vitest"
 import { JabberwockEventName } from "@jabberwock/types"
-import { Task } from "../core/task/Task"
+import { Task } from "../features/chat/task/Task"
 
 describe("Task.startSubtask() metadata-driven delegation", () => {
 	it("Routes to provider.delegateParentAndOpenChild without pausing parent", async () => {

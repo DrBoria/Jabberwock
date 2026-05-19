@@ -5,7 +5,12 @@ import { Package } from "@shared/package"
 
 import { useAppTranslation } from "@/i18n/TranslationContext"
 import { VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react"
-import { vscode } from "@jabberwock/devtool/react"
+import {
+	SETTINGS_UPDATE_SETTINGS as _SETTINGS_UPDATE_SETTINGS,
+	AGENT_STATE_AUTO_APPROVAL_ENABLED as _AGENT_STATE_AUTO_APPROVAL_ENABLED,
+	SETTINGS_OPEN_KEYBOARD_SHORTCUTS as _SETTINGS_OPEN_KEYBOARD_SHORTCUTS,
+} from "@jabberwock/types"
+import { rootStore } from "@src/features/store"
 import { Button } from "../ui/button"
 import { Input } from "../ui/input"
 import { Slider } from "../ui/slider"
@@ -90,7 +95,7 @@ export const AutoApproveSettings = ({
 			const newCommands = [...currentCommands, commandInput]
 			setCachedStateField("allowedCommands", newCommands)
 			setCommandInput("")
-			vscode.postMessage({ type: "updateSettings", updatedSettings: { allowedCommands: newCommands } })
+			rootStore.settings.updateSettings({ allowedCommands: newCommands })
 		}
 	}
 
@@ -101,7 +106,7 @@ export const AutoApproveSettings = ({
 			const newCommands = [...currentCommands, deniedCommandInput]
 			setCachedStateField("deniedCommands", newCommands)
 			setDeniedCommandInput("")
-			vscode.postMessage({ type: "updateSettings", updatedSettings: { deniedCommands: newCommands } })
+			rootStore.settings.updateSettings({ deniedCommands: newCommands })
 		}
 	}
 
@@ -121,7 +126,7 @@ export const AutoApproveSettings = ({
 							onChange={() => {
 								const newValue = !(autoApprovalEnabled ?? false)
 								setAutoApprovalEnabled(newValue)
-								vscode.postMessage({ type: "autoApprovalEnabled", bool: newValue })
+								rootStore.settings.setAutoApprovalEnabled(newValue)
 							}}>
 							<span className="font-medium">{t("settings:autoApprove.enabled")}</span>
 						</VSCodeCheckbox>
@@ -138,10 +143,9 @@ export const AutoApproveSettings = ({
 												onClick={(e) => {
 													e.preventDefault()
 													// Send message to open keyboard shortcuts with search for toggle command
-													vscode.postMessage({
-														type: "openKeyboardShortcuts",
-														text: `${Package.name}.toggleAutoApprove`,
-													})
+													rootStore.settings.openKeyboardShortcuts(
+														`${Package.name}.toggleAutoApprove`,
+													)
 												}}
 											/>
 										),
@@ -184,8 +188,11 @@ export const AutoApproveSettings = ({
 							label={t("settings:autoApprove.readOnly.outsideWorkspace.label")}>
 							<VSCodeCheckbox
 								checked={alwaysAllowReadOnlyOutsideWorkspace}
-								onChange={(e: any) =>
-									setCachedStateField("alwaysAllowReadOnlyOutsideWorkspace", e.target.checked)
+								onChange={(e) =>
+									setCachedStateField(
+										"alwaysAllowReadOnlyOutsideWorkspace",
+										(e.target as HTMLInputElement).checked,
+									)
 								}
 								data-testid="always-allow-readonly-outside-workspace-checkbox">
 								<span className="font-medium">
@@ -211,8 +218,11 @@ export const AutoApproveSettings = ({
 							label={t("settings:autoApprove.write.outsideWorkspace.label")}>
 							<VSCodeCheckbox
 								checked={alwaysAllowWriteOutsideWorkspace}
-								onChange={(e: any) =>
-									setCachedStateField("alwaysAllowWriteOutsideWorkspace", e.target.checked)
+								onChange={(e) =>
+									setCachedStateField(
+										"alwaysAllowWriteOutsideWorkspace",
+										(e.target as HTMLInputElement).checked,
+									)
 								}
 								data-testid="always-allow-write-outside-workspace-checkbox">
 								<span className="font-medium">
@@ -229,8 +239,11 @@ export const AutoApproveSettings = ({
 							label={t("settings:autoApprove.write.protected.label")}>
 							<VSCodeCheckbox
 								checked={alwaysAllowWriteProtected}
-								onChange={(e: any) =>
-									setCachedStateField("alwaysAllowWriteProtected", e.target.checked)
+								onChange={(e) =>
+									setCachedStateField(
+										"alwaysAllowWriteProtected",
+										(e.target as HTMLInputElement).checked,
+									)
 								}
 								data-testid="always-allow-write-protected-checkbox">
 								<span className="font-medium">{t("settings:autoApprove.write.protected.label")}</span>
@@ -294,8 +307,8 @@ export const AutoApproveSettings = ({
 						<div className="flex gap-2">
 							<Input
 								value={commandInput}
-								onChange={(e: any) => setCommandInput(e.target.value)}
-								onKeyDown={(e: any) => {
+								onChange={(e) => setCommandInput((e.target as HTMLInputElement).value)}
+								onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
 									if (e.key === "Enter") {
 										e.preventDefault()
 										handleAddCommand()
@@ -320,10 +333,7 @@ export const AutoApproveSettings = ({
 										const newCommands = (allowedCommands ?? []).filter((_, i) => i !== index)
 										setCachedStateField("allowedCommands", newCommands)
 
-										vscode.postMessage({
-											type: "updateSettings",
-											updatedSettings: { allowedCommands: newCommands },
-										})
+										rootStore.settings.updateSettings({ allowedCommands: newCommands })
 									}}>
 									<div className="flex flex-row items-center gap-1">
 										<div>{cmd}</div>
@@ -350,8 +360,8 @@ export const AutoApproveSettings = ({
 						<div className="flex gap-2">
 							<Input
 								value={deniedCommandInput}
-								onChange={(e: any) => setDeniedCommandInput(e.target.value)}
-								onKeyDown={(e: any) => {
+								onChange={(e) => setDeniedCommandInput((e.target as HTMLInputElement).value)}
+								onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
 									if (e.key === "Enter") {
 										e.preventDefault()
 										handleAddDeniedCommand()
@@ -379,10 +389,7 @@ export const AutoApproveSettings = ({
 										const newCommands = (deniedCommands ?? []).filter((_, i) => i !== index)
 										setCachedStateField("deniedCommands", newCommands)
 
-										vscode.postMessage({
-											type: "updateSettings",
-											updatedSettings: { deniedCommands: newCommands },
-										})
+										rootStore.settings.updateSettings({ deniedCommands: newCommands })
 									}}>
 									<div className="flex flex-row items-center gap-1">
 										<div>{cmd}</div>

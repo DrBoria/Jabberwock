@@ -2,6 +2,12 @@ import React, { useState, useEffect, useMemo, useCallback } from "react"
 import { Plus, Globe, Folder, Edit, Trash2 } from "lucide-react"
 import { Trans } from "react-i18next"
 
+import {
+	SETTINGS_REQUEST_MODES as _SETTINGS_REQUEST_MODES,
+	SETTINGS_DELETE_COMMAND as _SETTINGS_DELETE_COMMAND,
+	SETTINGS_OPEN_FILE as _SETTINGS_OPEN_FILE,
+	SETTINGS_OPEN_COMMAND_FILE as _SETTINGS_OPEN_COMMAND_FILE,
+} from "@jabberwock/types"
 import type { Command } from "@jabberwock/types"
 
 import { useAppTranslation } from "@/i18n/TranslationContext"
@@ -18,7 +24,7 @@ import {
 } from "../ui/alert-dialog"
 import { Button } from "../ui/button"
 import { StandardTooltip } from "../ui/standard-tooltip"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { buildDocLink } from "@/features/settings/utils/docLinks"
 
 import { SectionHeader } from "./SectionHeader"
@@ -37,7 +43,7 @@ export const SlashCommandsSettings: React.FC = () => {
 	const hasWorkspace = Boolean(cwd)
 
 	const handleRefresh = useCallback(() => {
-		vscode.postMessage({ type: "requestCommands" })
+		rootStore.chat.requestCommands()
 	}, [])
 
 	// Request commands when component mounts
@@ -52,11 +58,7 @@ export const SlashCommandsSettings: React.FC = () => {
 
 	const handleDeleteConfirm = useCallback(() => {
 		if (commandToDelete) {
-			vscode.postMessage({
-				type: "deleteCommand",
-				text: commandToDelete.name,
-				values: { source: commandToDelete.source },
-			})
+			rootStore.settings.deleteCommand(commandToDelete.name)
 			setDeleteDialogOpen(false)
 			setCommandToDelete(null)
 			// Refresh the commands list after deletion
@@ -71,17 +73,10 @@ export const SlashCommandsSettings: React.FC = () => {
 
 	const handleEditClick = useCallback((command: Command) => {
 		if (command.filePath) {
-			vscode.postMessage({
-				type: "openFile",
-				text: command.filePath,
-			})
+			rootStore.settings.openFile(command.filePath)
 		} else {
 			// Fallback: request to open command file by name and source
-			vscode.postMessage({
-				type: "openCommandFile",
-				text: command.name,
-				values: { source: command.source },
-			})
+			rootStore.settings.openCommandFile(command.name)
 		}
 	}, [])
 

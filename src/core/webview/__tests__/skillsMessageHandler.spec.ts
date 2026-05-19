@@ -1,7 +1,7 @@
 // npx vitest run src/core/webview/__tests__/skillsMessageHandler.spec.ts
 
 import type { SkillMetadata, WebviewMessage } from "@jabberwock/types"
-import type { ClineProvider } from "../ClineProvider"
+import type { EventBridge } from "../EventBridge"
 
 // Mock vscode first
 vi.mock("vscode", () => {
@@ -41,7 +41,7 @@ import {
 	handleDeleteSkill,
 	handleMoveSkill,
 	handleOpenSkillFile,
-} from "../skillsMessageHandler"
+} from "../../../features/settings/skills/handlers"
 
 describe("skillsMessageHandler", () => {
 	const mockLog = vi.fn()
@@ -53,7 +53,7 @@ describe("skillsMessageHandler", () => {
 	const mockGetSkill = vi.fn()
 	const mockFindSkillByNameAndSource = vi.fn()
 
-	const createMockProvider = (hasSkillsManager: boolean = true): ClineProvider => {
+	const createMockProvider = (hasSkillsManager: boolean = true): EventBridge => {
 		const skillsManager = hasSkillsManager
 			? {
 					getSkillsMetadata: mockGetSkillsMetadata,
@@ -69,7 +69,7 @@ describe("skillsMessageHandler", () => {
 			log: mockLog,
 			postMessageToWebview: mockPostMessageToWebview,
 			getSkillsManager: () => skillsManager,
-		} as unknown as ClineProvider
+		} as unknown as EventBridge
 	}
 
 	const mockSkills: SkillMetadata[] = [

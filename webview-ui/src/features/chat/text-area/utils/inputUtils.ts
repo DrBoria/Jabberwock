@@ -13,7 +13,7 @@ export function getNextSelectableIndex(
 	currentIndex: number,
 	direction: -1 | 1,
 	searchQuery: string,
-	selectedType: ContextMenuOptionType | null,
+	selectedType: ContextMenuOptionType,
 	queryItems: Array<{ type: ContextMenuOptionType; value?: string }>,
 	fileSearchResults: SearchResult[],
 	allModes: ModeConfig[],
@@ -44,7 +44,7 @@ export function getNextSelectableIndex(
 export function getSelectedOption(
 	selectedMenuIndex: number,
 	searchQuery: string,
-	selectedType: ContextMenuOptionType | null,
+	selectedType: ContextMenuOptionType,
 	queryItems: Array<{ type: ContextMenuOptionType; value?: string }>,
 	fileSearchResults: SearchResult[],
 	allModes: ModeConfig[],

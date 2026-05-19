@@ -11,7 +11,7 @@ interface CloudUpsellDialogProps {
 }
 
 // Reusable method to render cloud benefits content
-export const renderCloudBenefitsContent = (t: any) => {
+export const renderCloudBenefitsContent = (t: (key: string, options?: Record<string, unknown>) => string) => {
 	return (
 		<div className="text-left cursor-default">
 			<div className="w-15">

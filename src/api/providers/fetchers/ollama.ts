@@ -25,7 +25,7 @@ const OllamaModelInfoResponseSchema = z.object({
 	parameters: z.string().optional(),
 	template: z.string().optional(),
 	details: OllamaModelDetailsSchema,
-	model_info: z.record(z.string(), z.any()),
+	model_info: z.record(z.string(), z.unknown()),
 	capabilities: z.array(z.string()).optional(),
 })
 
@@ -109,7 +109,8 @@ export async function getOllamaModels(
 			console.error(`Error parsing Ollama models response: ${JSON.stringify(parsedResponse.error, null, 2)}`)
 		}
 	} catch (error) {
-		if (error.code === "ECONNREFUSED") {
+		const err = error as { code?: string }
+		if (err.code === "ECONNREFUSED") {
 			console.warn(`Failed connecting to Ollama at ${baseUrl}`)
 		} else {
 			console.error(

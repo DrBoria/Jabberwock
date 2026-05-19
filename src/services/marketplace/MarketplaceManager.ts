@@ -5,8 +5,8 @@ import * as vscode from "vscode"
 import * as yaml from "yaml"
 
 import type { OrganizationSettings, MarketplaceItem, MarketplaceItemType, McpMarketplaceItem } from "@jabberwock/types"
-import { TelemetryService } from "@jabberwock/telemetry"
-import { CloudService } from "@jabberwock/cloud"
+import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
+import { CloudService, getCloudService, hasCloudService } from "@jabberwock/cloud"
 
 import { GlobalFileNames } from "../../shared/globalFileNames"
 import { ensureSettingsDirectoryExists } from "../../utils/globalContext"
@@ -41,8 +41,8 @@ export class MarketplaceManager {
 			let orgSettings: OrganizationSettings | undefined
 
 			try {
-				if (CloudService.hasInstance() && CloudService.instance.isAuthenticated()) {
-					orgSettings = CloudService.instance.getOrganizationSettings()
+				if (hasCloudService() && getCloudService().isAuthenticated()) {
+					orgSettings = getCloudService().getOrganizationSettings()
 				}
 			} catch (orgError) {
 				console.warn("Failed to load organization settings:", orgError)
@@ -140,7 +140,7 @@ export class MarketplaceManager {
 
 	async installMarketplaceItem(
 		item: MarketplaceItem,
-		options?: { target?: "global" | "project"; parameters?: Record<string, any> },
+		options?: { target?: "global" | "project"; parameters?: Record<string, unknown> },
 	): Promise<string> {
 		const { target = "project", parameters } = options || {}
 
@@ -151,19 +151,19 @@ export class MarketplaceManager {
 			vscode.window.showInformationMessage(t("marketplace:installation.installSuccess", { itemName: item.name }))
 
 			// Capture telemetry for successful installation
-			const telemetryProperties: Record<string, any> = {}
+			const telemetryProperties: Record<string, unknown> = {}
 			if (parameters && Object.keys(parameters).length > 0) {
 				telemetryProperties.hasParameters = true
 				// For MCP items with multiple installation methods, track which one was used
 				if (item.type === "mcp" && parameters._selectedIndex !== undefined && Array.isArray(item.content)) {
-					const selectedMethod = item.content[parameters._selectedIndex]
+					const selectedMethod = item.content[parameters._selectedIndex as number]
 					if (selectedMethod && selectedMethod.name) {
 						telemetryProperties.installationMethodName = selectedMethod.name
 					}
 				}
 			}
 
-			TelemetryService.instance.captureMarketplaceItemInstalled(
+			getTelemetryService().captureMarketplaceItemInstalled(
 				item.id,
 				item.type,
 				item.name,
@@ -205,7 +205,7 @@ export class MarketplaceManager {
 			vscode.window.showInformationMessage(t("marketplace:installation.removeSuccess", { itemName: item.name }))
 
 			// Capture telemetry for successful removal
-			TelemetryService.instance.captureMarketplaceItemRemoved(item.id, item.type, item.name, target)
+			getTelemetryService().captureMarketplaceItemRemoved(item.id, item.type, item.name, target)
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
 			vscode.window.showErrorMessage(

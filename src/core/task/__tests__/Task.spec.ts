@@ -7,10 +7,15 @@ import * as vscode from "vscode"
 import { Anthropic } from "@anthropic-ai/sdk"
 
 import type { GlobalState, ProviderSettings, ModelInfo } from "@jabberwock/types"
-import { TelemetryService } from "@jabberwock/telemetry"
+import {
+	TelemetryService,
+	getTelemetryService,
+	hasTelemetryService,
+	createTelemetryService,
+} from "@jabberwock/telemetry"
 
-import { Task } from "../Task"
-import { ClineProvider } from "../../webview/ClineProvider"
+import { Task } from "../../../features/chat/task/Task"
+import { EventBridge } from "../../webview/EventBridge"
 import { ApiStreamChunk } from "../../../api/transform/stream"
 import { ContextProxy } from "../../config/ContextProxy"
 import { processUserContentMentions } from "../../mentions/processUserContentMentions"
@@ -200,8 +205,8 @@ describe("Cline", () => {
 	let mockExtensionContext: vscode.ExtensionContext
 
 	beforeEach(() => {
-		if (!TelemetryService.hasInstance()) {
-			TelemetryService.createInstance([])
+		if (!hasTelemetryService()) {
+			createTelemetryService([])
 		}
 
 		// Setup mock extension context
@@ -265,7 +270,7 @@ describe("Cline", () => {
 		}
 
 		// Setup mock provider with output channel
-		mockProvider = new ClineProvider(
+		mockProvider = new EventBridge(
 			mockExtensionContext,
 			mockOutputChannel,
 			"sidebar",
@@ -1897,7 +1902,7 @@ describe("Queued message processing after condense", () => {
 			dispose: vi.fn(),
 		}
 
-		const provider = new ClineProvider(ctx, output as any, "sidebar", new ContextProxy(ctx)) as any
+		const provider = new EventBridge(ctx, output as any, "sidebar", new ContextProxy(ctx)) as any
 		provider.postMessageToWebview = vi.fn().mockResolvedValue(undefined)
 		provider.postStateToWebview = vi.fn().mockResolvedValue(undefined)
 		provider.postStateToWebviewWithoutTaskHistory = vi.fn().mockResolvedValue(undefined)
@@ -2030,7 +2035,7 @@ describe("pushToolResultToUserContent", () => {
 			dispose: vi.fn(),
 		}
 
-		mockProvider = new ClineProvider(
+		mockProvider = new EventBridge(
 			mockExtensionContext,
 			mockOutputChannel,
 			"sidebar",

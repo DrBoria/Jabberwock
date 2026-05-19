@@ -11,7 +11,7 @@ import {
 	OPEN_ROUTER_PROMPT_CACHING_MODELS,
 	DEEP_SEEK_DEFAULT_TEMPERATURE,
 } from "@jabberwock/types"
-import { TelemetryService } from "@jabberwock/telemetry"
+import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 
 import { NativeToolCallParser } from "../../core/assistant-message/NativeToolCallParser"
 
@@ -21,6 +21,7 @@ import {
 	convertToOpenAiMessages,
 	sanitizeGeminiMessages,
 	consolidateReasoningDetails,
+	type ReasoningDetail,
 } from "../transform/openai-format"
 import { normalizeMistralToolCallId } from "../transform/mistral-format"
 import { ApiStreamChunk } from "../transform/stream"
@@ -144,7 +145,7 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 	protected models: ModelRecord = {}
 	protected endpoints: ModelRecord = {}
 	private readonly providerName = "OpenRouter"
-	private currentReasoningDetails: any[] = []
+	private currentReasoningDetails: ReasoningDetail[] = []
 
 	constructor(options: ApiHandlerOptions) {
 		super()
@@ -182,7 +183,7 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 		}
 	}
 
-	getReasoningDetails(): any[] | undefined {
+	getReasoningDetails(): ReasoningDetail[] | undefined {
 		return this.currentReasoningDetails.length > 0 ? this.currentReasoningDetails : undefined
 	}
 
@@ -201,7 +202,7 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 			{ status: error?.code, error },
 		)
 
-		TelemetryService.instance.captureException(apiError)
+		getTelemetryService().captureException(apiError)
 
 		throw new Error(`OpenRouter API Error ${error?.code}: ${rawErrorMessage}`)
 	}
@@ -269,8 +270,12 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 			// Step 2: Inject fake reasoning.encrypted block for tool calls that survived sanitization
 			openAiMessages = openAiMessages.map((msg) => {
 				if (msg.role === "assistant") {
-					const toolCalls = (msg as any).tool_calls as any[] | undefined
-					const existingDetails = (msg as any).reasoning_details as any[] | undefined
+					const toolCalls = (msg as OpenAI.Chat.ChatCompletionAssistantMessageParam).tool_calls
+					const existingDetails = (
+						msg as OpenAI.Chat.Completions.ChatCompletionMessageParam & {
+							reasoning_details?: Array<Record<string, unknown>>
+						}
+					).reasoning_details
 
 					// Only inject if there are tool calls and no existing encrypted reasoning
 					if (toolCalls && toolCalls.length > 0) {
@@ -363,13 +368,13 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 					},
 				)
 
-				TelemetryService.instance.captureException(apiError)
+				getTelemetryService().captureException(apiError)
 				throw handleOpenAIError(error, this.providerName)
 			} else {
 				// Fallback for non-OpenRouter errors
 				const errorMessage = error instanceof Error ? error.message : String(error)
 				const apiError = new ApiProviderError(errorMessage, this.providerName, modelId, "createMessage")
-				TelemetryService.instance.captureException(apiError)
+				getTelemetryService().captureException(apiError)
 				throw handleOpenAIError(error, this.providerName)
 			}
 		}
@@ -628,13 +633,13 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 					},
 				)
 
-				TelemetryService.instance.captureException(apiError)
+				getTelemetryService().captureException(apiError)
 				throw handleOpenAIError(error, this.providerName)
 			} else {
 				// Fallback for non-OpenRouter errors
 				const errorMessage = error instanceof Error ? error.message : String(error)
 				const apiError = new ApiProviderError(errorMessage, this.providerName, modelId, "completePrompt")
-				TelemetryService.instance.captureException(apiError)
+				getTelemetryService().captureException(apiError)
 				throw handleOpenAIError(error, this.providerName)
 			}
 		}

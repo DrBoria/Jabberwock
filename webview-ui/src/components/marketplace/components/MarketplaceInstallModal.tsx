@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react"
 import { MarketplaceItem, McpParameter, McpInstallationMethod } from "@jabberwock/types"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { useAppTranslation } from "@/i18n/TranslationContext"
 import {
 	Dialog,
@@ -138,9 +138,7 @@ export const MarketplaceInstallModal: React.FC<MarketplaceInstallModalProps> = (
 					setValidationError(null)
 
 					// Request fresh marketplace data to update installed status
-					vscode.postMessage({
-						type: "fetchMarketplaceData",
-					})
+					rootStore.marketplace.fetchMarketplaceData()
 				} else {
 					// Installation failed - show error
 					setValidationError(message.error || "Installation failed")
@@ -177,17 +175,7 @@ export const MarketplaceInstallModal: React.FC<MarketplaceInstallModalProps> = (
 		}
 
 		// Send install message with parameters
-		vscode.postMessage({
-			type: "installMarketplaceItem",
-			mpItem: item,
-			mpInstallOptions: {
-				target: scope,
-				parameters: {
-					...finalParameters,
-					_selectedIndex: hasMultipleMethods ? selectedMethodIndex : undefined,
-				},
-			},
-		})
+		rootStore.marketplace.installMarketplaceItem(item, { target: scope, parameters: { ...finalParameters } })
 
 		// Don't show success immediately - wait for backend result
 		// The success state will be shown when installation actually succeeds
@@ -197,11 +185,7 @@ export const MarketplaceInstallModal: React.FC<MarketplaceInstallModalProps> = (
 	const handlePostInstallAction = (tab: "mcp" | "modes") => {
 		const section = tab === "mcp" ? "mcp" : "modes"
 
-		vscode.postMessage({
-			type: "switchTab",
-			tab: "settings",
-			values: { section },
-		})
+		rootStore.windowManager.switchTab("settings", { section })
 
 		// Close the modal
 		onClose()

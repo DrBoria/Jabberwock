@@ -9,7 +9,7 @@ import {
 	MISTRAL_DEFAULT_TEMPERATURE,
 	ApiProviderError,
 } from "@jabberwock/types"
-import { TelemetryService } from "@jabberwock/telemetry"
+import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 
 import { ApiHandlerOptions } from "../../shared/api"
 
@@ -107,7 +107,7 @@ export class MistralHandler extends BaseProvider implements SingleCompletionHand
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
 			const apiError = new ApiProviderError(errorMessage, this.providerName, model, "createMessage")
-			TelemetryService.instance.captureException(apiError)
+			getTelemetryService().captureException(apiError)
 			throw new Error(`Mistral completion error: ${errorMessage}`)
 		}
 
@@ -217,7 +217,7 @@ export class MistralHandler extends BaseProvider implements SingleCompletionHand
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
 			const apiError = new ApiProviderError(errorMessage, this.providerName, model, "completePrompt")
-			TelemetryService.instance.captureException(apiError)
+			getTelemetryService().captureException(apiError)
 			throw new Error(`Mistral completion error: ${errorMessage}`)
 		}
 	}

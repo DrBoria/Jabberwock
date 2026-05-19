@@ -1,7 +1,8 @@
 import * as vscode from "vscode"
 
 import { Package } from "../shared/package"
-import { ClineProvider } from "../core/webview/ClineProvider"
+import { EventBridge } from "../core/webview/EventBridge"
+import { handleCodeAction } from "../features/foundation/agent-state/handlers"
 import { t } from "../i18n"
 
 export const handleNewTask = async (params: { prompt?: string } | null | undefined) => {
@@ -19,5 +20,13 @@ export const handleNewTask = async (params: { prompt?: string } | null | undefin
 		return
 	}
 
-	await ClineProvider.handleCodeAction("newTask", "NEW_TASK", { userInput: prompt })
+	const provider = EventBridge.getFirstAvailableInstance()
+	if (provider) {
+		await handleCodeAction(provider, {
+			type: "handleCodeAction",
+			command: "newTask",
+			promptType: "NEW_TASK",
+			params: { userInput: prompt },
+		})
+	}
 }

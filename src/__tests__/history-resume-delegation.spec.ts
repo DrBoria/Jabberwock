@@ -35,7 +35,7 @@ vi.mock("../core/task-persistence", () => ({
 	saveTaskMessages: vi.fn().mockResolvedValue(undefined),
 }))
 
-import { ClineProvider } from "../core/webview/ClineProvider"
+import { EventBridge } from "../core/webview/EventBridge"
 import { readTaskMessages } from "../core/task-persistence/taskMessages"
 import { readApiMessages, saveApiMessages, saveTaskMessages } from "../core/task-persistence"
 
@@ -79,13 +79,13 @@ describe("History resume delegation - parent metadata transitions", () => {
 			removeClineFromStack,
 			createTaskWithHistoryItem,
 			updateTaskHistory,
-		} as unknown as ClineProvider
+		} as unknown as EventBridge
 
 		// Mock persistence reads to return empty arrays
 		vi.mocked(readTaskMessages).mockResolvedValue([])
 		vi.mocked(readApiMessages).mockResolvedValue([])
 
-		await (ClineProvider.prototype as any).reopenParentFromDelegation.call(provider, {
+		await (EventBridge.prototype as any).reopenParentFromDelegation.call(provider, {
 			parentTaskId: "parent-1",
 			childTaskId: "child-1",
 			completionResultSummary: "Child done",
@@ -145,7 +145,7 @@ describe("History resume delegation - parent metadata transitions", () => {
 				overwriteApiConversationHistory: vi.fn().mockResolvedValue(undefined),
 			}),
 			updateTaskHistory: vi.fn().mockResolvedValue([]),
-		} as unknown as ClineProvider
+		} as unknown as EventBridge
 
 		// Start with existing messages in history
 		const existingUiMessages = [{ type: "ask", ask: "tool", text: "Old tool", ts: 50 }]
@@ -154,7 +154,7 @@ describe("History resume delegation - parent metadata transitions", () => {
 		vi.mocked(readTaskMessages).mockResolvedValue(existingUiMessages as any)
 		vi.mocked(readApiMessages).mockResolvedValue(existingApiMessages as any)
 
-		await (ClineProvider.prototype as any).reopenParentFromDelegation.call(provider, {
+		await (EventBridge.prototype as any).reopenParentFromDelegation.call(provider, {
 			parentTaskId: "p1",
 			childTaskId: "c1",
 			completionResultSummary: "Subtask completed successfully",
@@ -228,7 +228,7 @@ describe("History resume delegation - parent metadata transitions", () => {
 				overwriteApiConversationHistory: vi.fn().mockResolvedValue(undefined),
 			}),
 			updateTaskHistory: vi.fn().mockResolvedValue([]),
-		} as unknown as ClineProvider
+		} as unknown as EventBridge
 
 		// Include an assistant message with new_task tool_use to exercise the tool_result path
 		const existingUiMessages = [{ type: "ask", ask: "tool", text: "new_task request", ts: 50 }]
@@ -251,7 +251,7 @@ describe("History resume delegation - parent metadata transitions", () => {
 		vi.mocked(readTaskMessages).mockResolvedValue(existingUiMessages as any)
 		vi.mocked(readApiMessages).mockResolvedValue(existingApiMessages as any)
 
-		await (ClineProvider.prototype as any).reopenParentFromDelegation.call(provider, {
+		await (EventBridge.prototype as any).reopenParentFromDelegation.call(provider, {
 			parentTaskId: "p-tool",
 			childTaskId: "c-tool",
 			completionResultSummary: "Subtask completed via tool_result",
@@ -314,7 +314,7 @@ describe("History resume delegation - parent metadata transitions", () => {
 				overwriteApiConversationHistory: vi.fn().mockResolvedValue(undefined),
 			}),
 			updateTaskHistory: vi.fn().mockResolvedValue([]),
-		} as unknown as ClineProvider
+		} as unknown as EventBridge
 
 		// No assistant tool_use in history
 		const existingUiMessages = [{ type: "ask", ask: "tool", text: "subtask request", ts: 50 }]
@@ -323,7 +323,7 @@ describe("History resume delegation - parent metadata transitions", () => {
 		vi.mocked(readTaskMessages).mockResolvedValue(existingUiMessages as any)
 		vi.mocked(readApiMessages).mockResolvedValue(existingApiMessages as any)
 
-		await (ClineProvider.prototype as any).reopenParentFromDelegation.call(provider, {
+		await (EventBridge.prototype as any).reopenParentFromDelegation.call(provider, {
 			parentTaskId: "p-no-tool",
 			childTaskId: "c-no-tool",
 			completionResultSummary: "Subtask completed without tool_use",
@@ -369,12 +369,12 @@ describe("History resume delegation - parent metadata transitions", () => {
 			removeClineFromStack: vi.fn().mockResolvedValue(undefined),
 			createTaskWithHistoryItem: vi.fn().mockResolvedValue(parentInstance),
 			updateTaskHistory: vi.fn().mockResolvedValue([]),
-		} as unknown as ClineProvider
+		} as unknown as EventBridge
 
 		vi.mocked(readTaskMessages).mockResolvedValue([])
 		vi.mocked(readApiMessages).mockResolvedValue([])
 
-		await (ClineProvider.prototype as any).reopenParentFromDelegation.call(provider, {
+		await (EventBridge.prototype as any).reopenParentFromDelegation.call(provider, {
 			parentTaskId: "parent-2",
 			childTaskId: "child-2",
 			completionResultSummary: "Done",
@@ -413,12 +413,12 @@ describe("History resume delegation - parent metadata transitions", () => {
 				overwriteApiConversationHistory: vi.fn().mockResolvedValue(undefined),
 			}),
 			updateTaskHistory,
-		} as unknown as ClineProvider
+		} as unknown as EventBridge
 
 		vi.mocked(readTaskMessages).mockResolvedValue([])
 		vi.mocked(readApiMessages).mockResolvedValue([])
 
-		await (ClineProvider.prototype as any).reopenParentFromDelegation.call(provider, {
+		await (EventBridge.prototype as any).reopenParentFromDelegation.call(provider, {
 			parentTaskId: "p3",
 			childTaskId: "c3",
 			completionResultSummary: "Summary",
@@ -491,13 +491,13 @@ describe("History resume delegation - parent metadata transitions", () => {
 			removeClineFromStack: vi.fn().mockResolvedValue(undefined),
 			createTaskWithHistoryItem: vi.fn().mockResolvedValue(parentInstance),
 			updateTaskHistory: vi.fn().mockResolvedValue([]),
-		} as unknown as ClineProvider
+		} as unknown as EventBridge
 
 		vi.mocked(readTaskMessages).mockResolvedValue([])
 		vi.mocked(readApiMessages).mockResolvedValue([])
 
 		await expect(
-			(ClineProvider.prototype as any).reopenParentFromDelegation.call(provider, {
+			(EventBridge.prototype as any).reopenParentFromDelegation.call(provider, {
 				parentTaskId: "parent-rpd06",
 				childTaskId: "child-rpd06",
 				completionResultSummary: "Subtask finished despite overwrite failures",
@@ -549,12 +549,12 @@ describe("History resume delegation - parent metadata transitions", () => {
 				overwriteApiConversationHistory: vi.fn().mockResolvedValue(undefined),
 			}),
 			updateTaskHistory: vi.fn().mockResolvedValue([]),
-		} as unknown as ClineProvider
+		} as unknown as EventBridge
 
 		vi.mocked(readTaskMessages).mockResolvedValue([])
 		vi.mocked(readApiMessages).mockResolvedValue([])
 
-		await (ClineProvider.prototype as any).reopenParentFromDelegation.call(provider, {
+		await (EventBridge.prototype as any).reopenParentFromDelegation.call(provider, {
 			parentTaskId: "p4",
 			childTaskId: "c4",
 			completionResultSummary: "S",
@@ -613,12 +613,12 @@ describe("History resume delegation - parent metadata transitions", () => {
 			removeClineFromStack,
 			createTaskWithHistoryItem,
 			updateTaskHistory,
-		} as unknown as ClineProvider
+		} as unknown as EventBridge
 
 		vi.mocked(readTaskMessages).mockResolvedValue([])
 		vi.mocked(readApiMessages).mockResolvedValue([])
 
-		await (ClineProvider.prototype as any).reopenParentFromDelegation.call(provider, {
+		await (EventBridge.prototype as any).reopenParentFromDelegation.call(provider, {
 			parentTaskId: "parent-rpd02",
 			childTaskId: "child-rpd02",
 			completionResultSummary: "Child done without being current",
@@ -694,13 +694,13 @@ describe("History resume delegation - parent metadata transitions", () => {
 			removeClineFromStack: vi.fn().mockResolvedValue(undefined),
 			createTaskWithHistoryItem: vi.fn().mockResolvedValue(parentInstance),
 			updateTaskHistory,
-		} as unknown as ClineProvider
+		} as unknown as EventBridge
 
 		vi.mocked(readTaskMessages).mockResolvedValue([])
 		vi.mocked(readApiMessages).mockResolvedValue([])
 
 		await expect(
-			(ClineProvider.prototype as any).reopenParentFromDelegation.call(provider, {
+			(EventBridge.prototype as any).reopenParentFromDelegation.call(provider, {
 				parentTaskId: "parent-rpd04",
 				childTaskId: "child-rpd04",
 				completionResultSummary: "Child completion with persistence failure",
@@ -748,14 +748,14 @@ describe("History resume delegation - parent metadata transitions", () => {
 				overwriteApiConversationHistory: vi.fn().mockResolvedValue(undefined),
 			}),
 			updateTaskHistory: vi.fn().mockResolvedValue([]),
-		} as unknown as ClineProvider
+		} as unknown as EventBridge
 
 		// Mock read failures or empty returns
 		vi.mocked(readTaskMessages).mockResolvedValue([])
 		vi.mocked(readApiMessages).mockResolvedValue([])
 
 		await expect(
-			(ClineProvider.prototype as any).reopenParentFromDelegation.call(provider, {
+			(EventBridge.prototype as any).reopenParentFromDelegation.call(provider, {
 				parentTaskId: "p5",
 				childTaskId: "c5",
 				completionResultSummary: "Result",

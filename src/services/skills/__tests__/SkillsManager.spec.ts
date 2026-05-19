@@ -110,11 +110,11 @@ vi.mock("../../../i18n", () => ({
 }))
 
 import { SkillsManager } from "../SkillsManager"
-import { ClineProvider } from "../../../core/webview/ClineProvider"
+import { EventBridge } from "../../../core/webview/EventBridge"
 
 describe("SkillsManager", () => {
 	let skillsManager: SkillsManager
-	let mockProvider: Partial<ClineProvider>
+	let mockProvider: Partial<EventBridge>
 
 	// Pre-computed paths for tests
 	const globalSkillsDir = p(GLOBAL_JABBERWOCK_DIR, "skills")
@@ -140,7 +140,7 @@ describe("SkillsManager", () => {
 			} as any,
 		}
 
-		skillsManager = new SkillsManager(mockProvider as ClineProvider)
+		skillsManager = new SkillsManager(mockProvider as EventBridge)
 	})
 
 	afterEach(async () => {

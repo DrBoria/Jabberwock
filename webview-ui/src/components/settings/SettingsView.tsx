@@ -37,9 +37,16 @@ import {
 	type TelemetrySetting,
 	DEFAULT_CHECKPOINT_TIMEOUT_SECONDS,
 	ImageGenerationProvider,
+	SETTINGS_UPDATE_SETTINGS as _SETTINGS_UPDATE_SETTINGS,
+	SETTINGS_TELEMETRY_SETTING as _SETTINGS_TELEMETRY_SETTING,
+	AGENT_STATE_UPSERT_API_CONFIGURATION as _AGENT_STATE_UPSERT_API_CONFIGURATION,
+	AGENT_STATE_DEBUG_SETTING as _AGENT_STATE_DEBUG_SETTING,
+	AGENT_STATE_LOAD_API_CONFIGURATION as _AGENT_STATE_LOAD_API_CONFIGURATION,
+	AGENT_STATE_DELETE_API_CONFIGURATION as _AGENT_STATE_DELETE_API_CONFIGURATION,
+	AGENT_STATE_RENAME_API_CONFIGURATION as _AGENT_STATE_RENAME_API_CONFIGURATION,
 } from "@jabberwock/types"
 
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { cn } from "@src/lib/utils"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { ExtensionStateContextType, useExtensionState } from "@src/context/ExtensionStateContext"
@@ -140,6 +147,7 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>(({ onDone, t
 	const contentRef = useRef<HTMLDivElement | null>(null)
 
 	const prevApiConfigName = useRef(currentApiConfigName)
+	const prevApiConfiguration = useRef(extensionState.apiConfiguration)
 	const prevSettingsImportedAt = useRef(settingsImportedAt)
 	const confirmDialogHandler = useRef<() => void>()
 
@@ -213,16 +221,18 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>(({ onDone, t
 	}, [extensionState])
 
 	useEffect(() => {
-		// Update only when currentApiConfigName is changed.
-		// Expected to be triggered by loadApiConfiguration/upsertApiConfiguration.
-		if (prevApiConfigName.current === currentApiConfigName) {
+		// Sync cachedState when currentApiConfigName changes (switch to different config)
+		// OR when apiConfiguration reference changes (same config updated in-place).
+		const apiConfigChanged = prevApiConfiguration.current !== extensionState.apiConfiguration
+		if (prevApiConfigName.current === currentApiConfigName && !apiConfigChanged) {
 			return
 		}
 
 		setCachedState((prevCachedState) => ({ ...prevCachedState, ...extensionStateRef.current }))
 		prevApiConfigName.current = currentApiConfigName
+		prevApiConfiguration.current = extensionState.apiConfiguration
 		setChangeDetected(false)
-	}, [currentApiConfigName]) // Removed extensionState from dependencies to prevent reset loops on background updates
+	}, [currentApiConfigName, extensionState.apiConfiguration]) // apiConfiguration added to detect in-place config updates
 
 	// Bust the cache when settings are imported.
 	useEffect(() => {
@@ -254,7 +264,7 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>(({ onDone, t
 				const previousValue = prevState.apiConfiguration?.[field]
 
 				// Helper to check if two values are semantically equal
-				const areValuesEqual = (a: any, b: any): boolean => {
+				const areValuesEqual = (a: unknown, b: unknown): boolean => {
 					if (a === b) return true
 					if (a == null && b == null) return true
 					if (typeof a !== typeof b) return false
@@ -367,76 +377,73 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>(({ onDone, t
 	const handleSubmit = () => {
 		// Allow saving regardless of background errors (like provider connectivity issues)
 		// so that global settings (language, navigation target, etc.) can always be persisted.
-		vscode.postMessage({
-			type: "updateSettings",
-			updatedSettings: {
-				language,
-				alwaysAllowReadOnly: alwaysAllowReadOnly ?? undefined,
-				alwaysAllowReadOnlyOutsideWorkspace: alwaysAllowReadOnlyOutsideWorkspace ?? undefined,
-				alwaysAllowWrite: alwaysAllowWrite ?? undefined,
-				alwaysAllowWriteOutsideWorkspace: alwaysAllowWriteOutsideWorkspace ?? undefined,
-				alwaysAllowWriteProtected: alwaysAllowWriteProtected ?? undefined,
-				alwaysAllowExecute: alwaysAllowExecute ?? undefined,
-				alwaysAllowMcp,
-				alwaysAllowModeSwitch,
-				allowedCommands: allowedCommands ?? [],
-				deniedCommands: deniedCommands ?? [],
-				// Note that we use `null` instead of `undefined` since `JSON.stringify`
-				// will omit `undefined` when serializing the object and passing it to the
-				// extension host. We may need to do the same for other nullable fields.
-				allowedMaxRequests: allowedMaxRequests ?? null,
-				allowedMaxCost: allowedMaxCost ?? null,
-				autoCondenseContext,
-				autoCondenseContextPercent,
-				soundEnabled: soundEnabled ?? true,
-				soundVolume: soundVolume ?? 0.5,
-				ttsEnabled,
-				ttsSpeed,
-				enableCheckpoints: enableCheckpoints ?? false,
-				checkpointTimeout: checkpointTimeout ?? DEFAULT_CHECKPOINT_TIMEOUT_SECONDS,
-				writeDelayMs,
-				terminalShellIntegrationTimeout: terminalShellIntegrationTimeout ?? 30_000,
-				terminalShellIntegrationDisabled,
-				terminalCommandDelay,
-				terminalPowershellCounter,
-				terminalZshClearEolMark,
-				terminalZshOhMy,
-				terminalZshP10k,
-				terminalZdotdir,
-				terminalOutputPreviewSize: terminalOutputPreviewSize ?? "medium",
-				mcpEnabled,
-				maxOpenTabsContext: Math.min(Math.max(0, maxOpenTabsContext ?? 20), 500),
-				maxWorkspaceFiles: Math.min(Math.max(0, maxWorkspaceFiles ?? 200), 500),
-				showJabberwockIgnoredFiles: showJabberwockIgnoredFiles ?? true,
-				enableSubfolderRules: enableSubfolderRules ?? false,
-				maxImageFileSize: maxImageFileSize ?? 5,
-				maxTotalImageSize: maxTotalImageSize ?? 20,
-				includeDiagnosticMessages: includeDiagnosticMessages !== undefined ? includeDiagnosticMessages : true,
-				maxDiagnosticMessages: maxDiagnosticMessages ?? 50,
-				alwaysAllowSubtasks,
-				alwaysAllowFollowupQuestions: alwaysAllowFollowupQuestions ?? false,
-				followupAutoApproveTimeoutMs,
-				includeTaskHistoryInEnhance: includeTaskHistoryInEnhance ?? true,
-				reasoningBlockCollapsed: reasoningBlockCollapsed ?? true,
-				enterBehavior: enterBehavior ?? "send",
-				includeCurrentTime: includeCurrentTime ?? true,
-				includeCurrentCost: includeCurrentCost ?? true,
-				maxGitStatusFiles: maxGitStatusFiles ?? 0,
-				profileThresholds,
-				imageGenerationProvider,
-				openRouterImageApiKey,
-				openRouterImageGenerationSelectedModel,
-				experiments,
-				customSupportPrompts,
-				locatorTarget,
-			},
+		rootStore.settings.updateSettings({
+			language,
+			alwaysAllowReadOnly: alwaysAllowReadOnly ?? undefined,
+			alwaysAllowReadOnlyOutsideWorkspace: alwaysAllowReadOnlyOutsideWorkspace ?? undefined,
+			alwaysAllowWrite: alwaysAllowWrite ?? undefined,
+			alwaysAllowWriteOutsideWorkspace: alwaysAllowWriteOutsideWorkspace ?? undefined,
+			alwaysAllowWriteProtected: alwaysAllowWriteProtected ?? undefined,
+			alwaysAllowExecute: alwaysAllowExecute ?? undefined,
+			alwaysAllowMcp,
+			alwaysAllowModeSwitch,
+			allowedCommands: allowedCommands ?? [],
+			deniedCommands: deniedCommands ?? [],
+			// Note that we use `null` instead of `undefined` since `JSON.stringify`
+			// will omit `undefined` when serializing the object and passing it to the
+			// extension host. We may need to do the same for other nullable fields.
+			allowedMaxRequests: allowedMaxRequests ?? null,
+			allowedMaxCost: allowedMaxCost ?? null,
+			autoCondenseContext,
+			autoCondenseContextPercent,
+			soundEnabled: soundEnabled ?? true,
+			soundVolume: soundVolume ?? 0.5,
+			ttsEnabled,
+			ttsSpeed,
+			enableCheckpoints: enableCheckpoints ?? false,
+			checkpointTimeout: checkpointTimeout ?? DEFAULT_CHECKPOINT_TIMEOUT_SECONDS,
+			writeDelayMs,
+			terminalShellIntegrationTimeout: terminalShellIntegrationTimeout ?? 30_000,
+			terminalShellIntegrationDisabled,
+			terminalCommandDelay,
+			terminalPowershellCounter,
+			terminalZshClearEolMark,
+			terminalZshOhMy,
+			terminalZshP10k,
+			terminalZdotdir,
+			terminalOutputPreviewSize: terminalOutputPreviewSize ?? "medium",
+			mcpEnabled,
+			maxOpenTabsContext: Math.min(Math.max(0, maxOpenTabsContext ?? 20), 500),
+			maxWorkspaceFiles: Math.min(Math.max(0, maxWorkspaceFiles ?? 200), 500),
+			showJabberwockIgnoredFiles: showJabberwockIgnoredFiles ?? true,
+			enableSubfolderRules: enableSubfolderRules ?? false,
+			maxImageFileSize: maxImageFileSize ?? 5,
+			maxTotalImageSize: maxTotalImageSize ?? 20,
+			includeDiagnosticMessages: includeDiagnosticMessages !== undefined ? includeDiagnosticMessages : true,
+			maxDiagnosticMessages: maxDiagnosticMessages ?? 50,
+			alwaysAllowSubtasks,
+			alwaysAllowFollowupQuestions: alwaysAllowFollowupQuestions ?? false,
+			followupAutoApproveTimeoutMs,
+			includeTaskHistoryInEnhance: includeTaskHistoryInEnhance ?? true,
+			reasoningBlockCollapsed: reasoningBlockCollapsed ?? true,
+			enterBehavior: enterBehavior ?? "send",
+			includeCurrentTime: includeCurrentTime ?? true,
+			includeCurrentCost: includeCurrentCost ?? true,
+			maxGitStatusFiles: maxGitStatusFiles ?? 0,
+			profileThresholds,
+			imageGenerationProvider,
+			openRouterImageApiKey,
+			openRouterImageGenerationSelectedModel,
+			experiments,
+			customSupportPrompts,
+			locatorTarget,
 		})
 
 		// These have more complex logic so they aren't (yet) handled
 		// by the `updateSettings` message.
-		vscode.postMessage({ type: "upsertApiConfiguration", text: currentApiConfigName, apiConfiguration })
-		vscode.postMessage({ type: "telemetrySetting", text: telemetrySetting })
-		vscode.postMessage({ type: "debugSetting", bool: cachedState.debug })
+		rootStore.settings.upsertApiConfig(currentApiConfigName, apiConfiguration)
+		rootStore.settings.setTelemetry(telemetrySetting)
+		rootStore.settings.setDebugSetting(cachedState.debug)
 
 		setChangeDetected(false)
 	}
@@ -749,27 +756,17 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>(({ onDone, t
 										currentApiConfigName={currentApiConfigName}
 										listApiConfigMeta={listApiConfigMeta}
 										onSelectConfig={(configName: string) =>
-											checkUnsaveChanges(() =>
-												vscode.postMessage({ type: "loadApiConfiguration", text: configName }),
-											)
+											checkUnsaveChanges(() => rootStore.settings.loadApiConfig(configName))
 										}
 										onDeleteConfig={(configName: string) =>
-											vscode.postMessage({ type: "deleteApiConfiguration", text: configName })
+											rootStore.settings.deleteApiConfig(configName)
 										}
 										onRenameConfig={(oldName: string, newName: string) => {
-											vscode.postMessage({
-												type: "renameApiConfiguration",
-												values: { oldName, newName },
-												apiConfiguration,
-											})
+											rootStore.settings.renameApiConfig({ oldName, newName })
 											prevApiConfigName.current = newName
 										}}
 										onUpsertConfig={(configName: string) =>
-											vscode.postMessage({
-												type: "upsertApiConfiguration",
-												text: configName,
-												apiConfiguration,
-											})
+											rootStore.settings.upsertApiConfig(configName, apiConfiguration)
 										}
 									/>
 									<ApiOptions
@@ -914,7 +911,6 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>(({ onDone, t
 								setExperimentEnabled={setExperimentEnabled}
 								experiments={experiments}
 								apiConfiguration={apiConfiguration}
-								setApiConfigurationField={setApiConfigurationField}
 								imageGenerationProvider={imageGenerationProvider}
 								openRouterImageApiKey={openRouterImageApiKey as string | undefined}
 								openRouterImageGenerationSelectedModel={

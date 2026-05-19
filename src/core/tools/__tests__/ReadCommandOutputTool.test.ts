@@ -3,7 +3,7 @@ import * as path from "path"
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest"
 
 import { ReadCommandOutputTool } from "../ReadCommandOutputTool"
-import { Task } from "../../task/Task"
+import { Task } from "../../../features/chat/task/Task"
 
 // Mock filesystem operations
 vi.mock("fs/promises", () => ({

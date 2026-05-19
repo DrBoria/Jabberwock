@@ -39,8 +39,8 @@ export const CheckpointSettings = ({
 					label={t("settings:checkpoints.enable.label")}>
 					<VSCodeCheckbox
 						checked={enableCheckpoints}
-						onChange={(e: any) => {
-							setCachedStateField("enableCheckpoints", e.target.checked)
+						onChange={(e) => {
+							setCachedStateField("enableCheckpoints", (e.target as HTMLInputElement).checked)
 						}}>
 						<span className="font-medium">{t("settings:checkpoints.enable.label")}</span>
 					</VSCodeCheckbox>

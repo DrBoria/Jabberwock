@@ -1,11 +1,12 @@
 import OpenAI from "openai"
 
 export function addCacheBreakpoints(systemPrompt: string, messages: OpenAI.Chat.ChatCompletionMessageParam[]) {
+	type CachedTextPart = OpenAI.Chat.ChatCompletionContentPartText & { cache_control?: { type: "ephemeral" } }
+
 	messages[0] = {
 		role: "system",
-		// @ts-ignore-next-line
-		content: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }],
-	}
+		content: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }] as CachedTextPart[],
+	} as OpenAI.Chat.ChatCompletionMessageParam
 
 	// Ensure all user messages have content in array format first
 	for (const msg of messages) {
@@ -34,8 +35,7 @@ export function addCacheBreakpoints(systemPrompt: string, messages: OpenAI.Chat.
 					msg.content.push(lastTextPart)
 				}
 
-				// @ts-ignore-next-line
-				lastTextPart["cache_control"] = { type: "ephemeral" }
+				;(lastTextPart as CachedTextPart)["cache_control"] = { type: "ephemeral" }
 			}
 		})
 }

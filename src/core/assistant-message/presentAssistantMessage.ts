@@ -3,16 +3,17 @@ import { Anthropic } from "@anthropic-ai/sdk"
 
 import type { ToolName, ClineAsk, ToolProgressStatus } from "@jabberwock/types"
 import { ConsecutiveMistakeError, TelemetryEventName } from "@jabberwock/types"
-import { TelemetryService } from "@jabberwock/telemetry"
+import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 import { customToolRegistry } from "@jabberwock/core"
 
 import { t } from "../../i18n"
 
 import { defaultModeSlug, getModeBySlug } from "../../shared/modes"
-import type { ToolParamName, ToolResponse, ToolUse, McpToolUse } from "../../shared/tools"
+import type { ModeConfig } from "@jabberwock/types"
+import type { ToolParamName, ToolResponse, TextContent, ToolUse, McpToolUse } from "../../shared/tools"
 
 import { AskIgnoredError } from "../task/AskIgnoredError"
-import { Task } from "../task/Task"
+import { Task } from "../../features/chat/task/Task"
 
 import { listFilesTool } from "../tools/ListFilesTool"
 import { readFileTool } from "../tools/ReadFileTool"
@@ -28,6 +29,7 @@ import { useMcpToolTool } from "../tools/UseMcpToolTool"
 import { accessMcpResourceTool } from "../tools/accessMcpResourceTool"
 import { askFollowupQuestionTool } from "../tools/AskFollowupQuestionTool"
 import { switchModeTool } from "../tools/SwitchModeTool"
+import { delegateParentAndOpenChild } from "../../features/chat/task/actions/delegation"
 import { attemptCompletionTool, AttemptCompletionCallbacks } from "../tools/AttemptCompletionTool"
 import { delegateTaskTool } from "../tools/DelegateTaskTool"
 import { awaitBatchCompletionTool } from "../tools/AwaitBatchCompletionTool"
@@ -63,6 +65,8 @@ import { agentStore } from "../state/AgentStore"
  * as it becomes available.
  */
 
+import type { AssistantMessageContent } from "./types"
+
 export async function presentAssistantMessage(cline: Task) {
 	if (cline.abort) {
 		throw new Error(`[Task#presentAssistantMessage] task ${cline.taskId}.${cline.instanceId} aborted`)
@@ -89,8 +93,7 @@ export async function presentAssistantMessage(cline: Task) {
 		return
 	}
 
-	let block: any
-	let result: any
+	let block: AssistantMessageContent
 	try {
 		// Performance optimization: Use shallow copy instead of deep clone.
 		// The block is used read-only throughout this function - we never mutate its properties.
@@ -241,13 +244,13 @@ export async function presentAssistantMessage(cline: Task) {
 
 			if (!mcpBlock.partial) {
 				cline.recordToolUsage("use_mcp_tool") // Record as use_mcp_tool for analytics
-				TelemetryService.instance.captureToolUsage(cline.taskId, "use_mcp_tool")
+				getTelemetryService().captureToolUsage(cline.taskId, "use_mcp_tool")
 			}
 
 			// Resolve sanitized server name back to original server name
 			// The serverName from parsing is sanitized (e.g., "my_server" from "my server")
 			// We need the original name to find the actual MCP connection
-			const mcpHub = cline.providerRef.deref()?.getMcpHub()
+			const mcpHub = await cline.providerRef.deref()?.getMcpHub()
 			let resolvedServerName = mcpBlock.serverName
 			if (mcpHub) {
 				const originalName = mcpHub.findServerNameBySanitizedName(mcpBlock.serverName)
@@ -275,22 +278,12 @@ export async function presentAssistantMessage(cline: Task) {
 				},
 			}
 
-			const mcpToolResult = await useMcpToolTool.handle(cline, syntheticToolUse, {
+			await useMcpToolTool.handle(cline, syntheticToolUse, {
 				askApproval,
 				handleError,
 				pushToolResult,
 			})
 
-			// CRITICAL: Check for isDelegated signal from deterministic delegation (e.g., manage_todo_plan).
-			// Without this check, the orchestration loop continues running and the LLM may re-issue
-			// the same tool call, causing the spamming behavior observed with md-todo-mcp.
-			if ((mcpToolResult as { isDelegated?: boolean })?.isDelegated) {
-				console.log(
-					`[presentAssistantMessage] MCP tool ${mcpBlock.serverName}/${mcpBlock.toolName} triggered delegation. Aborting orchestration loop.`,
-				)
-				cline.abort = true
-				break
-			}
 			break
 		}
 		case "text": {
@@ -298,7 +291,8 @@ export async function presentAssistantMessage(cline: Task) {
 				break
 			}
 
-			let content = block.content
+			// TextContent has 'text' not 'content'
+			let content = (block as TextContent).text
 
 			if (content) {
 				// Have to do this for partial and complete since sending
@@ -315,17 +309,14 @@ export async function presentAssistantMessage(cline: Task) {
 		case "tool_use": {
 			// Native tool calling is the only supported tool calling mechanism.
 			// A tool_use block without an id is invalid and cannot be executed.
-			const toolCallId = (block as any).id as string | undefined
+			const toolCallId = (block as ToolUse).id
 			if (!toolCallId) {
 				const errorMessage =
 					"Invalid tool call: missing tool_use.id. XML tool calls are no longer supported. Remove any XML tool markup (e.g. <read_file>...</read_file>) and use native tool calling instead."
 				// Record a tool error for visibility/telemetry. Use the reported tool name if present.
 				try {
-					if (
-						typeof (cline as any).recordToolError === "function" &&
-						typeof (block as any).name === "string"
-					) {
-						;(cline as any).recordToolError((block as any).name as ToolName, errorMessage)
+					if (typeof cline.recordToolError === "function" && typeof (block as ToolUse).name === "string") {
+						cline.recordToolError((block as ToolUse).name as ToolName, errorMessage)
 					}
 				} catch {
 					// Best-effort only
@@ -349,7 +340,10 @@ export async function presentAssistantMessage(cline: Task) {
 						// Prefer native typed args when available; fall back to legacy params
 						// Check if nativeArgs exists (native protocol)
 						if (block.nativeArgs) {
-							return readFileTool.getReadFileToolDescription(block.name, block.nativeArgs)
+							return readFileTool.getReadFileToolDescription(
+								block.name,
+								block.nativeArgs as { path?: string },
+							)
 						}
 						return readFileTool.getReadFileToolDescription(block.name, block.params)
 					case "write_to_file":
@@ -393,7 +387,7 @@ export async function presentAssistantMessage(cline: Task) {
 					case "new_task": {
 						const mode = block.params.mode ?? defaultModeSlug
 						const message = block.params.message ?? "(no message)"
-						const modeName = getModeBySlug(mode, customModes)?.name ?? mode
+						const modeName = getModeBySlug(mode, customModes as ModeConfig[] | undefined)?.name ?? mode
 						return `[${block.name} in ${modeName} mode: '${message}']`
 					}
 					case "delegate_task": {
@@ -594,12 +588,12 @@ export async function presentAssistantMessage(cline: Task) {
 				const isCustomTool = stateExperiments?.customTools && customToolRegistry.has(block.name)
 				const recordName = isCustomTool ? "custom_tool" : block.name
 				cline.recordToolUsage(recordName)
-				TelemetryService.instance.captureToolUsage(cline.taskId, recordName)
+				getTelemetryService().captureToolUsage(cline.taskId, recordName)
 
 				// Track legacy format usage for read_file tool (for migration monitoring)
 				if (block.name === "read_file" && block.usedLegacyFormat) {
 					const modelInfo = cline.api.getModel()
-					TelemetryService.instance.captureEvent(TelemetryEventName.READ_FILE_LEGACY_FORMAT_USED, {
+					getTelemetryService().captureEvent(TelemetryEventName.READ_FILE_LEGACY_FORMAT_USED, {
 						taskId: cline.taskId,
 						model: modelInfo?.id,
 					})
@@ -633,7 +627,7 @@ export async function presentAssistantMessage(cline: Task) {
 					validateToolUse(
 						block.name as ToolName,
 						mode ?? defaultModeSlug,
-						customModes ?? [],
+						(customModes ?? []) as ModeConfig[],
 						toolRequirements,
 						block.params,
 						stateExperiments,
@@ -646,7 +640,8 @@ export async function presentAssistantMessage(cline: Task) {
 					// 2. NOT set didAlreadyUseTool = true (the tool was never executed, just failed validation)
 					// This prevents the stream from being interrupted with "Response interrupted by tool use result"
 					// which would cause the extension to appear to hang
-					const errorContent = formatResponse.toolError(error.message)
+					const validationError = error instanceof Error ? error.message : String(error)
+					const errorContent = formatResponse.toolError(validationError)
 					// Push tool_result directly without setting didAlreadyUseTool
 					cline.pushToolResultToUserContent({
 						type: "tool_result",
@@ -688,8 +683,8 @@ export async function presentAssistantMessage(cline: Task) {
 					}
 
 					// Track tool repetition in telemetry via PostHog exception tracking and event.
-					TelemetryService.instance.captureConsecutiveMistakeError(cline.taskId)
-					TelemetryService.instance.captureException(
+					getTelemetryService().captureConsecutiveMistakeError(cline.taskId)
+					getTelemetryService().captureException(
 						new ConsecutiveMistakeError(
 							`Tool repetition limit reached for ${block.name}`,
 							cline.taskId,
@@ -746,15 +741,11 @@ Please execute this tool and confirm once done.`
 					)
 
 					// Trigger delegation to a new coder branch
-					// We use type-casting workarounds to comply with "No Explicit Types" policy
-					const delegateFunc = (provider as any).delegateParentAndOpenChild
-					if (typeof delegateFunc === "function") {
-						void delegateFunc.call(provider, {
-							parentTaskId: cline.taskId,
-							message,
-							mode: "coder",
-						})
-					}
+					void delegateParentAndOpenChild(provider, {
+						parentTaskId: cline.taskId,
+						message,
+						mode: "coder",
+					})
 					break
 				}
 			}
@@ -777,14 +768,14 @@ Please execute this tool and confirm once done.`
 			switch (block.name) {
 				case "write_to_file":
 					await checkpointSaveAndMark(cline)
-					await writeToFileTool.handle(cline, block as any, {
+					await writeToFileTool.handle(cline, block as ToolUse<"write_to_file">, {
 						askApproval,
 						handleError,
 						pushToolResult,
 					})
 					break
 				case "update_todo_list":
-					await updateTodoListTool.handle(cline, block as any, {
+					await updateTodoListTool.handle(cline, block as ToolUse<"update_todo_list">, {
 						askApproval,
 						handleError,
 						pushToolResult,
@@ -792,7 +783,7 @@ Please execute this tool and confirm once done.`
 					break
 				case "apply_diff":
 					await checkpointSaveAndMark(cline)
-					await applyDiffToolClass.handle(cline, block as any, {
+					await applyDiffToolClass.handle(cline, block as ToolUse<"apply_diff">, {
 						askApproval,
 						handleError,
 						pushToolResult,
@@ -801,7 +792,7 @@ Please execute this tool and confirm once done.`
 				case "edit":
 				case "search_and_replace":
 					await checkpointSaveAndMark(cline)
-					await editTool.handle(cline, block as any, {
+					await editTool.handle(cline, block as ToolUse<"edit">, {
 						askApproval,
 						handleError,
 						pushToolResult,
@@ -809,7 +800,7 @@ Please execute this tool and confirm once done.`
 					break
 				case "search_replace":
 					await checkpointSaveAndMark(cline)
-					await searchReplaceTool.handle(cline, block as any, {
+					await searchReplaceTool.handle(cline, block as ToolUse<"search_replace">, {
 						askApproval,
 						handleError,
 						pushToolResult,
@@ -817,7 +808,7 @@ Please execute this tool and confirm once done.`
 					break
 				case "edit_file":
 					await checkpointSaveAndMark(cline)
-					await editFileTool.handle(cline, block as any, {
+					await editFileTool.handle(cline, block as ToolUse<"edit_file">, {
 						askApproval,
 						handleError,
 						pushToolResult,
@@ -825,7 +816,7 @@ Please execute this tool and confirm once done.`
 					break
 				case "apply_patch":
 					await checkpointSaveAndMark(cline)
-					await applyPatchTool.handle(cline, block as any, {
+					await applyPatchTool.handle(cline, block as ToolUse<"apply_patch">, {
 						askApproval,
 						handleError,
 						pushToolResult,
@@ -833,77 +824,77 @@ Please execute this tool and confirm once done.`
 					break
 				case "read_file":
 					// Type assertion is safe here because we're in the "read_file" case
-					await readFileTool.handle(cline, block as any, {
+					await readFileTool.handle(cline, block as ToolUse<"read_file">, {
 						askApproval,
 						handleError,
 						pushToolResult,
 					})
 					break
 				case "list_files":
-					result = await listFilesTool.handle(cline, block as any, {
+					await listFilesTool.handle(cline, block as ToolUse<"list_files">, {
 						askApproval,
 						handleError,
 						pushToolResult,
 					})
 					break
 				case "codebase_search":
-					await codebaseSearchTool.handle(cline, block as any, {
+					await codebaseSearchTool.handle(cline, block as ToolUse<"codebase_search">, {
 						askApproval,
 						handleError,
 						pushToolResult,
 					})
 					break
 				case "search_files":
-					await searchFilesTool.handle(cline, block as any, {
+					await searchFilesTool.handle(cline, block as ToolUse<"search_files">, {
 						askApproval,
 						handleError,
 						pushToolResult,
 					})
 					break
 				case "execute_command":
-					await executeCommandTool.handle(cline, block as any, {
+					await executeCommandTool.handle(cline, block as ToolUse<"execute_command">, {
 						askApproval,
 						handleError,
 						pushToolResult,
 					})
 					break
 				case "read_command_output":
-					result = await readCommandOutputTool.handle(cline, block as any, {
+					await readCommandOutputTool.handle(cline, block as ToolUse<"read_command_output">, {
 						askApproval,
 						handleError,
 						pushToolResult,
 					})
 					break
 				case "use_mcp_tool":
-					result = await useMcpToolTool.handle(cline, block as any, {
+					await useMcpToolTool.handle(cline, block as ToolUse<"use_mcp_tool">, {
 						askApproval,
 						handleError,
 						pushToolResult,
 					})
 					break
 				case "access_mcp_resource":
-					result = await accessMcpResourceTool.handle(cline, block as any, {
+					await accessMcpResourceTool.handle(cline, block as ToolUse<"access_mcp_resource">, {
 						askApproval,
 						handleError,
 						pushToolResult,
 					})
 					break
 				case "ask_followup_question":
-					result = await askFollowupQuestionTool.handle(cline, block as any, {
+					await askFollowupQuestionTool.handle(cline, block as ToolUse<"ask_followup_question">, {
 						askApproval,
 						handleError,
 						pushToolResult,
 					})
 					break
 				case "switch_mode":
-					result = await switchModeTool.handle(cline, block as any, {
+					await switchModeTool.handle(cline, block as ToolUse<"switch_mode">, {
 						askApproval,
 						handleError,
 						pushToolResult,
 					})
 					break
 				case "await_batch_completion":
-					result = await awaitBatchCompletionTool.handle(cline, block as any, {
+					await awaitBatchCompletionTool.handle(cline, block as ToolUse<"await_batch_completion">, {
 						askApproval,
 						handleError,
 						pushToolResult,
@@ -911,7 +902,7 @@ Please execute this tool and confirm once done.`
 					break
 				case "new_task":
 					await checkpointSaveAndMark(cline)
-					result = await newTaskTool.handle(cline, block as any, {
+					await newTaskTool.handle(cline, block as ToolUse<"new_task">, {
 						askApproval,
 						handleError,
 						pushToolResult,
@@ -920,7 +911,7 @@ Please execute this tool and confirm once done.`
 					break
 				case "delegate_task":
 					await checkpointSaveAndMark(cline)
-					result = await delegateTaskTool.handle(cline, block as any, {
+					await delegateTaskTool.handle(cline, block as ToolUse<"delegate_task">, {
 						askApproval,
 						handleError,
 						pushToolResult,
@@ -934,25 +925,29 @@ Please execute this tool and confirm once done.`
 						askFinishSubTaskApproval,
 						toolDescription,
 					}
-					result = await attemptCompletionTool.handle(cline, block as any, completionCallbacks)
+					await attemptCompletionTool.handle(
+						cline,
+						block as ToolUse<"attempt_completion">,
+						completionCallbacks,
+					)
 					break
 				}
 				case "think_tool":
-					result = await thinkTool.handle(cline, block as any, {
+					await thinkTool.handle(cline, block as ToolUse<"think_tool">, {
 						askApproval,
 						handleError,
 						pushToolResult,
 					})
 					break
 				case "run_slash_command":
-					result = await runSlashCommandTool.handle(cline, block as any, {
+					await runSlashCommandTool.handle(cline, block as ToolUse<"run_slash_command">, {
 						askApproval,
 						handleError,
 						pushToolResult,
 					})
 					break
 				case "skill":
-					result = await skillTool.handle(cline, block as any, {
+					await skillTool.handle(cline, block as ToolUse<"skill">, {
 						askApproval,
 						handleError,
 						pushToolResult,
@@ -961,7 +956,7 @@ Please execute this tool and confirm once done.`
 				case "analyze_image":
 					const analyzeImageTool = (await import("../tools/AnalyzeImageTool")).analyzeImageTool
 					await checkpointSaveAndMark(cline)
-					result = await analyzeImageTool.handle(cline, block as any, {
+					await analyzeImageTool.handle(cline, block as ToolUse<"analyze_image">, {
 						askApproval,
 						handleError,
 						pushToolResult,
@@ -969,7 +964,7 @@ Please execute this tool and confirm once done.`
 					break
 				case "generate_image":
 					await checkpointSaveAndMark(cline)
-					result = await generateImageTool.handle(cline, block as any, {
+					await generateImageTool.handle(cline, block as ToolUse<"generate_image">, {
 						askApproval,
 						handleError,
 						pushToolResult,
@@ -990,13 +985,19 @@ Please execute this tool and confirm once done.`
 
 					if (customTool) {
 						try {
-							let customToolArgs
+							let customToolArgs: Record<string, unknown> = {}
 
 							if (customTool.parameters) {
 								try {
-									customToolArgs = customTool.parameters.parse(block.nativeArgs || block.params || {})
+									customToolArgs = customTool.parameters.parse(
+										block.nativeArgs || block.params || {},
+									) as Record<string, unknown>
 								} catch (parseParamsError) {
-									const message = `Custom tool "${block.name}" argument validation failed: ${parseParamsError.message}`
+									const parseError =
+										parseParamsError instanceof Error
+											? parseParamsError.message
+											: String(parseParamsError)
+									const message = `Custom tool "${block.name}" argument validation failed: ${parseError}`
 									console.error(message)
 									cline.consecutiveMistakeCount++
 									await cline.say("error", message)
@@ -1016,7 +1017,8 @@ Please execute this tool and confirm once done.`
 
 							pushToolResult(executionResult)
 							cline.consecutiveMistakeCount = 0
-							result = executionResult
+							// Custom tools return a string, not a delegation result object
+							// so we don't assign to `result` (which expects { isDelegated?: boolean })
 						} catch (executionError: unknown) {
 							const msg =
 								executionError instanceof Error ? executionError.message : String(executionError)
@@ -1046,14 +1048,6 @@ Please execute this tool and confirm once done.`
 					})
 					break
 				}
-			}
-
-			if (result?.isDelegated) {
-				console.log(
-					`[presentAssistantMessage] Tool ${block.name} triggered delegation. Aborting orchestration loop.`,
-				)
-				cline.abort = true
-				break
 			}
 
 			break
@@ -1128,6 +1122,7 @@ async function checkpointSaveAndMark(task: Task) {
 		await task.checkpointSave(true)
 		task.currentStreamingDidCheckpoint = true
 	} catch (error) {
-		console.error(`[Task#presentAssistantMessage] Error saving checkpoint: ${error.message}`, error)
+		const checkpointError = error instanceof Error ? error.message : String(error)
+		console.error(`[Task#presentAssistantMessage] Error saving checkpoint: ${checkpointError}`, error)
 	}
 }

@@ -74,8 +74,7 @@ export function initializeSourceMaps(): void {
 				// Preload all possible source map locations ONLY in true production environments
 				// and only if explicitly enabled, to avoid console warnings about unused preloads
 				const shouldPreload =
-					process.env.NODE_ENV === "production" &&
-					(window as unknown as Record<string, unknown>).__ENABLE_SOURCEMAP_PRELOAD__
+					process.env.NODE_ENV === "production" && (window as ExtendedWindow).__ENABLE_SOURCEMAP_PRELOAD__
 
 				if (shouldPreload) {
 					for (const mapUrl of possibleMapUrls) {
@@ -119,6 +118,13 @@ export function initializeSourceMaps(): void {
 	}
 }
 
+interface ExtendedWindow {
+	__ENABLE_SOURCEMAP_PRELOAD__?: boolean
+	__applySourceMaps?: (error: Error) => Promise<Error>
+	__testSourceMaps?: () => void
+	__checkSourceMap?: (scriptUrl: string) => Promise<boolean>
+}
+
 /**
  * Expose source maps on the window object for debugging
  */
@@ -129,7 +135,7 @@ export function exposeSourceMapsForDebugging(): void {
 
 	try {
 		// Add a global function to manually apply source maps to an error
-		;(window as unknown as Record<string, unknown>).__applySourceMaps = async (error: Error) => {
+		;(window as ExtendedWindow).__applySourceMaps = async (error: Error) => {
 			if (!(error instanceof Error)) {
 				console.error("Not an Error object:", error)
 				return error
@@ -138,15 +144,15 @@ export function exposeSourceMapsForDebugging(): void {
 		}
 
 		// Add a global function to test source map functionality
-		;(window as unknown as Record<string, unknown>).__testSourceMaps = () => {
+		;(window as ExtendedWindow).__testSourceMaps = () => {
 			try {
 				// Intentionally cause an error
 				const obj: Record<string, unknown> | undefined = undefined
-				;(obj as unknown as { nonExistentMethod: () => void }).nonExistentMethod()
+				;(obj! as { nonExistentMethod: () => void }).nonExistentMethod()
 			} catch (e) {
 				if (e instanceof Error) {
 					console.log("Original error:", e)
-					const applySourceMaps = window as unknown as Record<string, unknown>
+					const applySourceMaps = window as ExtendedWindow
 					;(applySourceMaps.__applySourceMaps as (err: Error) => Promise<Error>)(e).then(
 						(enhanced: Error) => {
 							console.log("Enhanced error:", enhanced)
@@ -167,7 +173,7 @@ export function exposeSourceMapsForDebugging(): void {
 		}
 
 		// Add a global function to check if source maps are available for a script
-		;(window as unknown as Record<string, unknown>).__checkSourceMap = async (scriptUrl: string) => {
+		;(window as ExtendedWindow).__checkSourceMap = async (scriptUrl: string) => {
 			try {
 				const response = await fetch(`${scriptUrl}.map`)
 				if (response.ok) {

@@ -101,6 +101,9 @@ export interface CreateTaskOptions {
 	startTask?: boolean
 	/** Optional: slug of the mode to start the task in (e.g. 'orchestrator', 'coder') */
 	mode?: string
+	/** Optional: parent API configuration to use as fallback when mode-specific config is not found.
+	 *  Used by child tasks to inherit the parent's API config when the child's mode has no config. */
+	parentApiConfig?: Record<string, unknown>
 }
 
 export enum TaskStatus {
@@ -154,6 +157,9 @@ export type TaskEvents = {
 	[JabberwockEventName.TaskPaused]: [taskId: string]
 	[JabberwockEventName.TaskUnpaused]: [taskId: string]
 	[JabberwockEventName.TaskSpawned]: [taskId: string]
+	[JabberwockEventName.TaskDelegated]: [parentTaskId: string, childTaskId: string]
+	[JabberwockEventName.TaskDelegationCompleted]: [parentTaskId: string, childTaskId: string, summary: string]
+	[JabberwockEventName.TaskDelegationResumed]: [parentTaskId: string, childTaskId: string]
 
 	// Task Execution
 	[JabberwockEventName.Message]: [{ action: "created" | "updated"; message: ClineMessage }]

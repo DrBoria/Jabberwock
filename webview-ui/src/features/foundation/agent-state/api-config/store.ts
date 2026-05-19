@@ -5,8 +5,8 @@ import { types, Instance } from "mobx-state-tree"
  * Receives snapshots from the extension-side store via MstBridge.
  */
 export const ApiConfigStore = types.model("ApiConfigStore", {
-	listApiConfigMeta: types.optional(types.array(types.frozen<any>()), []),
-	currentApiConfigId: types.maybe(types.string),
+	listApiConfigMeta: types.array(types.frozen<any>()),
+	currentApiConfigId: types.string,
 })
 
 export type IApiConfigStore = Instance<typeof ApiConfigStore>

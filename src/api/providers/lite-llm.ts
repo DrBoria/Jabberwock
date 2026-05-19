@@ -85,19 +85,22 @@ export class LiteLLMHandler extends RouterProvider implements SingleCompletionHa
 
 		return openAiMessages.map((msg) => {
 			if (msg.role === "assistant") {
-				const toolCalls = (msg as any).tool_calls as any[] | undefined
+				const toolCalls = (msg as OpenAI.Chat.ChatCompletionAssistantMessageParam).tool_calls
 
 				// Only process if there are tool calls
 				if (toolCalls && toolCalls.length > 0) {
 					// Inject dummy signature into ALL tool calls' provider_specific_fields
 					// This ensures Gemini doesn't reject tool calls from other models
-					const updatedToolCalls = toolCalls.map((tc) => ({
-						...tc,
-						provider_specific_fields: {
-							...(tc.provider_specific_fields || {}),
-							thought_signature: dummySignature,
-						},
-					}))
+					const updatedToolCalls = toolCalls.map((tc) => {
+						const tcExt = tc as { provider_specific_fields?: Record<string, unknown> }
+						return {
+							...tc,
+							provider_specific_fields: {
+								...(tcExt.provider_specific_fields || {}),
+								thought_signature: dummySignature,
+							},
+						}
+					})
 
 					return {
 						...msg,
@@ -133,7 +136,7 @@ export class LiteLLMHandler extends RouterProvider implements SingleCompletionHa
 						type: "text",
 						text: systemPrompt,
 						cache_control: { type: "ephemeral" },
-					} as any,
+					} as OpenAI.Chat.ChatCompletionContentPartText & { cache_control: { type: "ephemeral" } },
 				],
 			}
 
@@ -157,7 +160,9 @@ export class LiteLLMHandler extends RouterProvider implements SingleCompletionHa
 									type: "text",
 									text: message.content,
 									cache_control: { type: "ephemeral" },
-								} as any,
+								} as OpenAI.Chat.ChatCompletionContentPartText & {
+									cache_control: { type: "ephemeral" }
+								},
 							],
 						}
 					} else if (Array.isArray(message.content)) {
@@ -169,7 +174,9 @@ export class LiteLLMHandler extends RouterProvider implements SingleCompletionHa
 									? ({
 											...content,
 											cache_control: { type: "ephemeral" },
-										} as any)
+										} as OpenAI.Chat.ChatCompletionContentPart & {
+											cache_control: { type: "ephemeral" }
+										})
 									: content,
 							),
 						}
@@ -257,11 +264,11 @@ export class LiteLLMHandler extends RouterProvider implements SingleCompletionHa
 				// Extract cache-related information if available
 				// LiteLLM may use different field names for cache tokens
 				const cacheWriteTokens =
-					lastUsage.cache_creation_input_tokens || (lastUsage as any).prompt_cache_miss_tokens || 0
+					lastUsage.cache_creation_input_tokens || lastUsage.prompt_cache_miss_tokens || 0
 				const cacheReadTokens =
 					lastUsage.prompt_tokens_details?.cached_tokens ||
-					(lastUsage as any).cache_read_input_tokens ||
-					(lastUsage as any).prompt_cache_hit_tokens ||
+					lastUsage.cache_read_input_tokens ||
+					lastUsage.prompt_cache_hit_tokens ||
 					0
 
 				const { totalCost } = calculateApiCostOpenAI(
@@ -325,7 +332,13 @@ export class LiteLLMHandler extends RouterProvider implements SingleCompletionHa
 	}
 }
 
-// LiteLLM usage may include an extra field for Anthropic use cases.
+// LiteLLM usage may include extra fields for various provider-specific cache tokens.
 interface LiteLLMUsage extends OpenAI.CompletionUsage {
 	cache_creation_input_tokens?: number
+	/** Anthropic-style prompt cache miss tokens (used by some LiteLLM proxy configurations) */
+	prompt_cache_miss_tokens?: number
+	/** LiteLLM field for cache read tokens (alternative naming) */
+	cache_read_input_tokens?: number
+	/** Anthropic-style prompt cache hit tokens (used by some LiteLLM proxy configurations) */
+	prompt_cache_hit_tokens?: number
 }

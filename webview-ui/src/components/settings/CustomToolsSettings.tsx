@@ -3,11 +3,12 @@ import { useEvent } from "react-use"
 import { VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react"
 import { RefreshCw, Loader2, FileCode } from "lucide-react"
 
+import { MARKETPLACE_REFRESH_CUSTOM_TOOLS as _MARKETPLACE_REFRESH_CUSTOM_TOOLS } from "@jabberwock/types"
 import type { SerializedCustomToolDefinition } from "@jabberwock/types"
 
 import { useAppTranslation } from "@/i18n/TranslationContext"
 
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 
 import { Button } from "../ui/button"
 
@@ -38,7 +39,7 @@ export const CustomToolsSettings = ({ enabled, onChange }: CustomToolsSettingsPr
 
 	useEffect(() => {
 		if (enabled) {
-			vscode.postMessage({ type: "refreshCustomTools" })
+			rootStore.marketplace.refreshCustomTools()
 		} else {
 			setTools([])
 		}
@@ -57,7 +58,7 @@ export const CustomToolsSettings = ({ enabled, onChange }: CustomToolsSettingsPr
 	const onRefresh = useCallback(() => {
 		setIsRefreshing(true)
 		setRefreshError(null)
-		vscode.postMessage({ type: "refreshCustomTools" })
+		rootStore.marketplace.refreshCustomTools()
 	}, [])
 
 	const processedTools = useMemo<ProcessedTool[]>(
@@ -86,7 +87,9 @@ export const CustomToolsSettings = ({ enabled, onChange }: CustomToolsSettingsPr
 		<div className="space-y-4">
 			<div>
 				<div className="flex items-center gap-2">
-					<VSCodeCheckbox checked={enabled} onChange={(e: any) => onChange(e.target.checked)}>
+					<VSCodeCheckbox
+						checked={enabled}
+						onChange={(e) => onChange((e.target as HTMLInputElement).checked)}>
 						<span className="font-medium">{t("settings:experimental.CUSTOM_TOOLS.name")}</span>
 					</VSCodeCheckbox>
 				</div>

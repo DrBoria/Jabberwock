@@ -40,28 +40,32 @@ const serializeArg = (arg: unknown) => {
 export function initWebviewConsoleBridge() {
 	LOG_METHODS.forEach((method) => {
 		const original = originalConsole[method]
-		;(console as unknown as Record<string, (...args: unknown[]) => void>)[method] = (...args: unknown[]) => {
-			original(...args)
+		Object.defineProperty(console, method, {
+			value: (...args: unknown[]) => {
+				original(...args)
 
-			try {
-				let messageStr = ""
-				if (typeof args[0] === "string" && args[0].includes("%s")) {
-					let formatStr = args[0]
-					const formatArgs = args.slice(1)
-					formatArgs.forEach((arg) => {
-						formatStr = formatStr.replace("%s", serializeArg(arg))
-					})
-					messageStr = formatStr
-				} else {
-					messageStr = args.map(serializeArg).join(" ")
+				try {
+					let messageStr = ""
+					if (typeof args[0] === "string" && args[0].includes("%s")) {
+						let formatStr = args[0]
+						const formatArgs = args.slice(1)
+						formatArgs.forEach((arg) => {
+							formatStr = formatStr.replace("%s", serializeArg(arg))
+						})
+						messageStr = formatStr
+					} else {
+						messageStr = args.map(serializeArg).join(" ")
+					}
+					vscode.postMessage({
+						type: "webviewLog",
+						text: `[WEBVIEW][${method.toUpperCase()}] ${messageStr}`,
+					} as never)
+				} catch {
+					// Serialization safety — never break the caller
 				}
-				vscode.postMessage({
-					type: "webviewLog",
-					text: `[WEBVIEW][${method.toUpperCase()}] ${messageStr}`,
-				} as never)
-			} catch {
-				// Serialization safety — never break the caller
-			}
-		}
+			},
+			writable: true,
+			configurable: true,
+		})
 	})
 }

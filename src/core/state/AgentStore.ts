@@ -7,7 +7,7 @@ export const ToolConfig = types
 	.model("ToolConfig", {
 		id: types.identifier,
 		name: types.string,
-		isEnabled: types.optional(types.boolean, true),
+		isEnabled: types.boolean,
 	})
 	.actions((self) => ({
 		toggle() {

@@ -4,7 +4,7 @@ import { VSCodeLink, VSCodePanels, VSCodePanelTab, VSCodePanelView } from "@vsco
 
 import type { McpServer } from "@jabberwock/types"
 
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { useTooManyTools } from "@src/hooks/useTooManyTools"
@@ -110,7 +110,7 @@ const McpView = () => {
 								variant="secondary"
 								style={{ width: "100%" }}
 								onClick={() => {
-									vscode.postMessage({ type: "openMcpSettings" })
+									rootStore.settings.openMcpSettings()
 								}}>
 								<span className="codicon codicon-edit" style={{ marginRight: "6px" }}></span>
 								{t("mcp:editGlobalMCP")}
@@ -119,7 +119,7 @@ const McpView = () => {
 								variant="secondary"
 								style={{ width: "100%" }}
 								onClick={() => {
-									vscode.postMessage({ type: "openProjectMcpSettings" })
+									rootStore.settings.openProjectMcpSettings()
 								}}>
 								<span className="codicon codicon-edit" style={{ marginRight: "6px" }}></span>
 								{t("mcp:editProjectMCP")}
@@ -128,7 +128,7 @@ const McpView = () => {
 								variant="secondary"
 								style={{ width: "100%" }}
 								onClick={() => {
-									vscode.postMessage({ type: "refreshAllMcpServers" })
+									rootStore.settings.refreshAllMcpServers()
 								}}>
 								<span className="codicon codicon-refresh" style={{ marginRight: "6px" }}></span>
 								{t("mcp:refreshMCP")}
@@ -221,30 +221,17 @@ const ServerRow = ({ server, alwaysAllowMcp }: { server: McpServer; alwaysAllowM
 	}
 
 	const handleRestart = () => {
-		vscode.postMessage({
-			type: "restartMcpServer",
-			text: server.name,
-			source: server.source || "global",
-		})
+		rootStore.settings.restartMcpServer(server.name, server.source || "global")
 	}
 
 	const handleTimeoutChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
 		const seconds = parseInt(event.target.value)
 		setTimeoutValue(seconds)
-		vscode.postMessage({
-			type: "updateMcpTimeout",
-			serverName: server.name,
-			source: server.source || "global",
-			timeout: seconds,
-		})
+		rootStore.settings.updateMcpTimeout(server.name, server.source || "global", seconds)
 	}
 
 	const handleDelete = () => {
-		vscode.postMessage({
-			type: "deleteMcpServer",
-			serverName: server.name,
-			source: server.source || "global",
-		})
+		rootStore.settings.deleteMcpServer(server.name, server.source || "global")
 		setShowDeleteConfirm(false)
 	}
 
@@ -315,12 +302,7 @@ const ServerRow = ({ server, alwaysAllowMcp }: { server: McpServer; alwaysAllowM
 					<ToggleSwitch
 						checked={!server.disabled}
 						onChange={() => {
-							vscode.postMessage({
-								type: "toggleMcpServer",
-								serverName: server.name,
-								source: server.source || "global",
-								disabled: !server.disabled,
-							})
+							rootStore.settings.toggleMcpServer(server.name, server.source || "global", !server.disabled)
 						}}
 						size="medium"
 						aria-label={`Toggle ${server.name} server`}

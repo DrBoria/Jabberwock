@@ -3,26 +3,21 @@
 import * as vscode from "vscode"
 
 import type { ProviderSettings } from "@jabberwock/types"
-import { Task } from "../Task"
-import { ClineProvider } from "../../webview/ClineProvider"
+import { Task } from "../../../features/chat/task/Task"
+import { EventBridge } from "../../webview/EventBridge"
 
 vi.mock("@jabberwock/telemetry", () => ({
-	TelemetryService: {
-		hasInstance: vi.fn().mockReturnValue(true),
-		createInstance: vi.fn(),
-		get instance() {
-			return {
-				captureTaskCreated: vi.fn(),
-				captureTaskRestarted: vi.fn(),
-				captureModeSwitch: vi.fn(),
-				captureConversationMessage: vi.fn(),
-				captureLlmCompletion: vi.fn(),
-				captureConsecutiveMistakeError: vi.fn(),
-				captureCodeActionUsed: vi.fn(),
-				setProvider: vi.fn(),
-			}
-		},
-	},
+	hasTelemetryService: vi.fn().mockReturnValue(true),
+	getTelemetryService: vi.fn().mockReturnValue({
+		captureTaskCreated: vi.fn(),
+		captureTaskRestarted: vi.fn(),
+		captureModeSwitch: vi.fn(),
+		captureConversationMessage: vi.fn(),
+		captureLlmCompletion: vi.fn(),
+		captureConsecutiveMistakeError: vi.fn(),
+		captureCodeActionUsed: vi.fn(),
+		setProvider: vi.fn(),
+	}),
 }))
 
 vi.mock("vscode", () => {
@@ -123,7 +118,7 @@ describe("Task - sticky provider profile init race", () => {
 			postStateToWebview: vi.fn().mockResolvedValue(undefined),
 			postStateToWebviewWithoutTaskHistory: vi.fn().mockResolvedValue(undefined),
 			updateTaskHistory: vi.fn().mockResolvedValue(undefined),
-		} as unknown as ClineProvider
+		} as unknown as EventBridge
 
 		const task = new Task({
 			provider: mockProvider,

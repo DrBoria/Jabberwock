@@ -3,7 +3,7 @@ import { Check } from "lucide-react"
 import type { ClineMessage } from "@jabberwock/types"
 import { safeJsonParse } from "@shared/core"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { Markdown } from "../../messages-list/markdown"
 import { OpenMarkdownPreviewButton } from "../../messages-list/open-markdown-preview-button"
 import { WarningRow } from "../../messages-list/row/warning-row"
@@ -23,7 +23,7 @@ import { Container } from "@src/components/ui"
 /* ── SubtaskResult ── */
 interface SubtaskResultProps {
 	message: ClineMessage
-	t: (key: string, options?: any) => string
+	t: (key: string, options?: Record<string, unknown>) => string
 }
 
 export const SubtaskResultSay: React.FC<SubtaskResultProps> = ({ message, t }) => {
@@ -39,7 +39,7 @@ export const SubtaskResultSay: React.FC<SubtaskResultProps> = ({ message, t }) =
 			{completedChildTaskId && (
 				<button
 					className="cursor-pointer flex gap-1 items-center mt-2 text-vscode-descriptionForeground hover:text-vscode-descriptionForeground hover:underline font-normal"
-					onClick={() => vscode.postMessage({ type: "showTaskWithId", text: completedChildTaskId })}>
+					onClick={() => rootStore.chat.navigateToTask(completedChildTaskId)}>
 					{t("chat:subtasks.goToSubtask")}
 					<Check className="size-3" />
 				</button>
@@ -86,7 +86,7 @@ export const ImageSay: React.FC<ImageProps> = ({ message }) => {
 /* ── TooManyToolsWarning ── */
 interface TooManyToolsWarningProps {
 	message: ClineMessage
-	t: any
+	t: (key: string, options?: Record<string, unknown>) => string
 }
 
 export const TooManyToolsWarningSay: React.FC<TooManyToolsWarningProps> = ({ message, t }) => {
@@ -135,7 +135,17 @@ interface CodebaseSearchResultProps {
 }
 
 export const CodebaseSearchResultSay: React.FC<CodebaseSearchResultProps> = ({ message }) => {
-	let parsed: any = null
+	let parsed: {
+		content?: {
+			results?: Array<{
+				filePath: string
+				score: number
+				startLine: number
+				endLine: number
+				codeChunk: string
+			}>
+		}
+	} | null = null
 	try {
 		if (message.text) parsed = JSON.parse(message.text)
 	} catch (error) {
@@ -145,7 +155,13 @@ export const CodebaseSearchResultSay: React.FC<CodebaseSearchResultProps> = ({ m
 		console.error("Invalid codebaseSearch content structure:", parsed.content)
 		return <div>Error displaying search results.</div>
 	}
-	const { results = [] } = parsed?.content || {}
+	const results: Array<{
+		filePath: string
+		score: number
+		startLine: number
+		endLine: number
+		codeChunk: string
+	}> = parsed?.content?.results ?? []
 	return <CodebaseSearchResultsDisplay results={results} />
 }
 

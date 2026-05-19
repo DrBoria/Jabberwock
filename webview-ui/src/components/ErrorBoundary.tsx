@@ -1,7 +1,8 @@
 import React, { Component } from "react"
 import { telemetryClient } from "@src/features/cloud/utils/TelemetryClient"
 import { enhanceErrorWithSourceMaps } from "@jabberwock/devtool/react"
-import { vscode } from "@jabberwock/devtool/react"
+import { SETTINGS_WEBVIEW_ERROR as _SETTINGS_WEBVIEW_ERROR } from "@jabberwock/types"
+import { rootStore } from "@src/features/store"
 
 type ErrorProps = {
 	children: React.ReactNode
@@ -52,10 +53,7 @@ class ErrorBoundary extends Component<ErrorProps, ErrorState> {
 		})
 
 		// Report error to extension
-		vscode.postMessage({
-			type: "webviewError",
-			text: `${errorMessage}\nStack: ${stack}\nComponent Stack: ${fullComponentStack}`,
-		})
+		rootStore.settings.webviewError(`${errorMessage}\nStack: ${stack}\nComponent Stack: ${fullComponentStack}`)
 
 		this.setState({
 			error: stack,

@@ -28,9 +28,6 @@ export interface ProxyConfig {
 }
 
 let extensionContext: vscode.ExtensionContext | null = null
-let proxyInitialized = false
-let undiciProxyInitialized = false
-let fetchPatched = false
 let originalFetch: typeof fetch | undefined
 let outputChannel: vscode.OutputChannel | null = null
 
@@ -39,6 +36,61 @@ let consoleLoggingEnabled = false
 
 let tlsVerificationOverridden = false
 let originalNodeTlsRejectUnauthorized: string | undefined
+
+// ─── Store-backed flag accessors ─────────────────────────────────────────────
+// These flags are read from and written to the MST BackendRootStore when it is
+// available, falling back to local module state during early initialization.
+
+function readProxyInitialized(): boolean {
+	try {
+		const { getBackendRootStore } = require("../features/store")
+		return getBackendRootStore().core.proxyInitialized
+	} catch {
+		return false
+	}
+}
+function writeProxyInitialized(v: boolean): void {
+	try {
+		const { getBackendRootStore } = require("../features/store")
+		getBackendRootStore().core.setProxyInitialized(v)
+	} catch {
+		// Store not ready yet
+	}
+}
+
+function readUndiciProxyInitialized(): boolean {
+	try {
+		const { getBackendRootStore } = require("../features/store")
+		return getBackendRootStore().core.undiciProxyInitialized
+	} catch {
+		return false
+	}
+}
+function writeUndiciProxyInitialized(v: boolean): void {
+	try {
+		const { getBackendRootStore } = require("../features/store")
+		getBackendRootStore().core.setUndiciProxyInitialized(v)
+	} catch {
+		// Store not ready yet
+	}
+}
+
+function readFetchPatched(): boolean {
+	try {
+		const { getBackendRootStore } = require("../features/store")
+		return getBackendRootStore().core.fetchPatched
+	} catch {
+		return false
+	}
+}
+function writeFetchPatched(v: boolean): void {
+	try {
+		const { getBackendRootStore } = require("../features/store")
+		getBackendRootStore().core.setFetchPatched(v)
+	} catch {
+		// Store not ready yet
+	}
+}
 
 function redactProxyUrl(proxyUrl: string | undefined): string {
 	if (!proxyUrl) {
@@ -57,7 +109,7 @@ function redactProxyUrl(proxyUrl: string | undefined): string {
 }
 
 function restoreGlobalFetchPatch(): void {
-	if (!fetchPatched) {
+	if (!readFetchPatched()) {
 		return
 	}
 
@@ -65,7 +117,7 @@ function restoreGlobalFetchPatch(): void {
 		globalThis.fetch = originalFetch
 	}
 
-	fetchPatched = false
+	writeFetchPatched(false)
 	originalFetch = undefined
 }
 
@@ -218,7 +270,7 @@ export function getProxyConfig(): ProxyConfig {
  * Configure global-agent to route all HTTP/HTTPS traffic through the proxy.
  */
 async function configureGlobalProxy(config: ProxyConfig): Promise<void> {
-	if (proxyInitialized) {
+	if (readProxyInitialized()) {
 		// global-agent can only be bootstrapped once
 		// Update environment variables for any new connections
 		log(`Proxy already initialized, updating env vars only`)
@@ -245,7 +297,7 @@ async function configureGlobalProxy(config: ProxyConfig): Promise<void> {
 	log(`Calling global-agent bootstrap()...`)
 	try {
 		bootstrap()
-		proxyInitialized = true
+		writeProxyInitialized(true)
 		log(`global-agent bootstrap() completed successfully`)
 	} catch (error) {
 		log(`global-agent bootstrap() FAILED: ${error instanceof Error ? error.message : String(error)}`)
@@ -264,7 +316,7 @@ async function configureUndiciProxy(config: ProxyConfig): Promise<void> {
 		return
 	}
 
-	if (undiciProxyInitialized) {
+	if (readUndiciProxyInitialized()) {
 		log(`undici global dispatcher already configured; restart VS Code to change proxy safely`)
 		return
 	}
@@ -287,7 +339,7 @@ async function configureUndiciProxy(config: ProxyConfig): Promise<void> {
 				: undefined,
 		})
 		setGlobalDispatcher(proxyAgent)
-		undiciProxyInitialized = true
+		writeUndiciProxyInitialized(true)
 		log(`undici global dispatcher configured for proxy: ${redactProxyUrl(config.serverUrl)}`)
 
 		// Node's built-in `fetch()` (Node 18+) is powered by an internal undici copy.
@@ -295,13 +347,25 @@ async function configureUndiciProxy(config: ProxyConfig): Promise<void> {
 		// To ensure Jabberwock's `fetch()` calls are proxied, patch global fetch in debug mode.
 		// This patch is scoped to the extension lifecycle (restored on deactivate) and can be restored
 		// immediately if the proxy is disabled.
-		if (!fetchPatched) {
+		if (!readFetchPatched()) {
 			if (typeof globalThis.fetch === "function") {
 				originalFetch = globalThis.fetch
 			}
 
-			globalThis.fetch = undiciFetch as unknown as typeof fetch
-			fetchPatched = true
+			const patchedFetch: typeof globalThis.fetch = async (input, init) => {
+				// Normalize input to string | URL to avoid undici v6 Request type conflicts
+				const url = input instanceof Request ? input.url : input
+				// Spread init to a plain object to avoid DOM-vs-undici HeadersInit type mismatch
+				const undiciRes = await undiciFetch(url, { ...init } as import("undici").RequestInit)
+				const body = await undiciRes.arrayBuffer()
+				return new Response(body, {
+					status: undiciRes.status,
+					statusText: undiciRes.statusText,
+					headers: Object.fromEntries(undiciRes.headers.entries()),
+				})
+			}
+			globalThis.fetch = patchedFetch
+			writeFetchPatched(true)
 			log(`globalThis.fetch patched to undici.fetch (debug proxy mode)`)
 
 			if (extensionContext) {

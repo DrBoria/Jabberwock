@@ -1,12 +1,19 @@
 import { types, Instance } from "mobx-state-tree"
-import React, { createContext, useContext } from "react"
 
-import { vscode } from "@jabberwock/devtool/react"
-import type { ClineAskResponse } from "@jabberwock/types"
+import type { ClineMessage, Command } from "@jabberwock/types"
 
 import { ChatStore as TreeStore } from "./messages-list/store"
 import { CommandExecutionStore } from "./messages-list/store"
 import { McpExecutionStore } from "./notifications/mcp/store"
+import { NotificationsStore } from "./notifications/store"
+import { AskStore } from "./notifications/ask/store"
+
+// ── Factory imports (chat-scoped action modules) ────────────────────
+import { createTaskActions } from "./task/store"
+import { createTopicActions } from "./topic/store"
+import { createMessagesListActions } from "./messages-list/store"
+import { createNotificationsActions } from "./notifications/store"
+import { createTextAreaActions } from "./text-area/store"
 
 // ── AggregatedCostEntry ──────────────────────────────────────────────
 
@@ -35,10 +42,10 @@ export const CheckpointWarning = types.model("CheckpointWarning", {
  */
 export const CommandsStore = types
 	.model("CommandsStore", {
-		commands: types.optional(types.array(types.frozen<any>()), []),
+		commands: types.array(types.frozen<Command>()),
 	})
 	.actions((self) => ({
-		setCommands(commands: any[]) {
+		setCommands(commands: Command[]) {
 			self.commands.replace(commands)
 		},
 	}))
@@ -55,30 +62,48 @@ export type ICommandsStore = Instance<typeof CommandsStore>
 export const ChatUIStore = types
 	.model("ChatUIStore", {
 		// ── Input state ──
-		inputValue: types.optional(types.string, ""),
-		selectedImages: types.optional(types.array(types.string), []),
-		sendingDisabled: types.optional(types.boolean, false),
+		inputValue: types.string,
+		selectedImages: types.array(types.string),
+		sendingDisabled: types.boolean,
 
 		// ── Message list state ──
-		expandedRows: types.optional(types.frozen<Record<number, boolean>>(), {}),
-		currentFollowUpTs: types.maybeNull(types.number),
+		expandedRows: types.frozen<Record<number, boolean>>(),
+		currentFollowUpTs: types.number,
 
 		// ── Streaming / task state ──
-		isCondensing: types.optional(types.boolean, false),
-		checkpointWarning: types.maybeNull(types.safeReference(CheckpointWarning)),
+		isCondensing: types.boolean,
+		checkpointWarning: types.safeReference(CheckpointWarning),
 
 		// ── Announcement / upsell ──
-		showAnnouncementModal: types.optional(types.boolean, false),
-		showRetiredProviderWarning: types.optional(types.boolean, false),
+		showAnnouncementModal: types.boolean,
+		showRetiredProviderWarning: types.boolean,
 
 		// ── Costs ──
-		aggregatedCostsMap: types.optional(
-			types.frozen<Map<string, { totalCost: number; ownCost: number; childrenCost: number }>>(),
-			new Map(),
-		),
+		aggregatedCostsMap: types.frozen<Map<string, { totalCost: number; ownCost: number; childrenCost: number }>>(),
 
 		// ── TTS ──
-		isTtsPlaying: types.optional(types.boolean, false),
+		isTtsPlaying: types.boolean,
+
+		// ── Ask/Say button state (synced from view.tsx via syncAskState) ──
+		isStreaming: types.boolean,
+		isFollowUpAutoApprovalPaused: types.boolean,
+		enableButtons: types.boolean,
+		primaryButtonText: types.string,
+		secondaryButtonText: types.string,
+		clineAsk: types.string,
+
+		// ── Scroll state (synced from view.tsx) ──
+		showScrollToBottom: types.boolean,
+
+		// ── API metrics (synced from view.tsx) ──
+		apiMetrics: types.frozen<{
+			totalTokensIn: number
+			totalTokensOut: number
+			totalCacheWrites?: number
+			totalCacheReads?: number
+			totalCost: number
+			contextTokens: number
+		}>(),
 	})
 	.actions((self) => ({
 		// ── Input actions ──
@@ -111,7 +136,7 @@ export const ChatUIStore = types
 		},
 
 		// ── Follow-up ──
-		setCurrentFollowUpTs(ts: number | null) {
+		setCurrentFollowUpTs(ts: number) {
 			self.currentFollowUpTs = ts
 		},
 
@@ -121,8 +146,8 @@ export const ChatUIStore = types
 		},
 
 		// ── Checkpoint warning ──
-		setCheckpointWarning(warning: { type: "WAIT_TIMEOUT" | "INIT_TIMEOUT"; timeout: number } | null) {
-			self.checkpointWarning = warning as { type: "WAIT_TIMEOUT" | "INIT_TIMEOUT"; timeout: number } | null
+		setCheckpointWarning(warning: { type: "WAIT_TIMEOUT" | "INIT_TIMEOUT"; timeout: number } | undefined) {
+			self.checkpointWarning = warning as { type: "WAIT_TIMEOUT" | "INIT_TIMEOUT"; timeout: number } | undefined
 		},
 
 		// ── Announcement ──
@@ -150,147 +175,226 @@ export const ChatUIStore = types
 			self.isTtsPlaying = val
 		},
 
+		// ── Ask/Say state setters (written by AskStore actions) ──
+		setClineAsk(val: string) {
+			self.clineAsk = val
+		},
+		setEnableButtons(val: boolean) {
+			self.enableButtons = val
+		},
+		setPrimaryButtonText(val: string) {
+			self.primaryButtonText = val
+		},
+		setSecondaryButtonText(val: string) {
+			self.secondaryButtonText = val
+		},
+		setIsStreaming(val: boolean) {
+			self.isStreaming = val
+		},
+		setIsFollowUpAutoApprovalPaused(val: boolean) {
+			self.isFollowUpAutoApprovalPaused = val
+		},
+
+		// ── Scroll state sync ──
+		setShowScrollToBottom(val: boolean) {
+			self.showScrollToBottom = val
+		},
+
+		// ── API metrics sync ──
+		setApiMetrics(metrics: {
+			totalTokensIn: number
+			totalTokensOut: number
+			totalCacheWrites?: number
+			totalCacheReads?: number
+			totalCost: number
+			contextTokens: number
+		}) {
+			self.apiMetrics = metrics
+		},
+
 		// ── Bulk reset ──
 		resetTaskUI() {
 			self.expandedRows = {}
-			self.currentFollowUpTs = null
+			self.currentFollowUpTs = 0
 			self.isCondensing = false
-			self.checkpointWarning = null
+			self.checkpointWarning = undefined
 		},
 	}))
 
 export type IChatUIStore = Instance<typeof ChatUIStore>
-
-// ── Unified ChatStore ────────────────────────────────────────────────
+import { useRootStore } from "../store"
 
 /**
- * Unified ChatStore — composes all chat sub-stores and exposes high-level
- * actions that components can call directly instead of wiring through props.
+ * Backward-compatible hook for consuming components.
+ * Returns the ChatUI store from the root store singleton.
+ * Components should migrate to `useRootStore().chat.ui` directly.
+ */
+export const useChatUI = (): IChatUIStore => useRootStore().chat.ui
+
+// ── ChatStore (chat-scoped root) ──────────────────────────────────────
+
+/**
+ * ChatStore — composes all chat sub-stores and exposes chat-scoped actions.
+ * Owned by RootStore as a sub-store under `rootStore.chat`.
  *
- * Components should use `useChatStore()` to access the store and call actions
- * like `chatStore.sendMessage(text, images)`, `chatStore.switchMode(slug)`,
- * `chatStore.respondToAsk(response, text, images)`, etc.
+ * Components should use `rootStore.chat.xxx` to access chat state and actions.
  */
 export const ChatStore = types
 	.model("ChatStore", {
-		ui: types.optional(ChatUIStore, () => ChatUIStore.create({})),
-		tree: types.optional(TreeStore, () => TreeStore.create({ nodes: {} })),
-		commands: types.optional(CommandsStore, () => CommandsStore.create({})),
+		// ── Chat sub-stores ──
+		ui: types.optional(ChatUIStore, () =>
+			ChatUIStore.create({
+				inputValue: "",
+				selectedImages: [],
+				sendingDisabled: false,
+				expandedRows: {},
+				currentFollowUpTs: 0,
+				isCondensing: false,
+				showAnnouncementModal: false,
+				showRetiredProviderWarning: false,
+				aggregatedCostsMap: new Map(),
+				isTtsPlaying: false,
+				isStreaming: false,
+				isFollowUpAutoApprovalPaused: false,
+				enableButtons: false,
+				primaryButtonText: "",
+				secondaryButtonText: "",
+				clineAsk: "",
+				showScrollToBottom: false,
+				apiMetrics: {
+					totalTokensIn: 0,
+					totalTokensOut: 0,
+					totalCost: 0,
+					contextTokens: 0,
+				},
+			}),
+		),
+		tree: types.optional(TreeStore, () => TreeStore.create({ nodes: {}, isNavigating: false })),
+		commands: types.optional(CommandsStore, () => CommandsStore.create({ commands: [] })),
 		commandExecution: types.optional(CommandExecutionStore, () => CommandExecutionStore.create({})),
 		mcpExecution: types.optional(McpExecutionStore, () => McpExecutionStore.create({})),
+		notifications: types.optional(NotificationsStore, () => NotificationsStore.create({})),
+		ask: types.optional(AskStore, () => AskStore.create({})),
 	})
+	// ── Block 1: All chat domain actions (from chat-scoped factories) ──
 	.actions((self) => ({
-		// ── Send message ───────────────────────────────────────────
-		sendMessage(text: string, images: string[]) {
-			const trimmed = text.trim()
-			if (!trimmed && images.length === 0) return
-			vscode.postMessage({ type: "newTask", text: trimmed, images })
-			self.ui.clearInput()
-		},
-
-		// ── Ask response ───────────────────────────────────────────
-		respondToAsk(response: ClineAskResponse, text?: string, images?: string[]) {
-			vscode.postMessage({
-				type: "askResponse",
-				askResponse: response,
-				text,
-				images,
-			})
-			self.ui.clearInput()
-			self.ui.setSendingDisabled(true)
-		},
-
-		// ── Queue message ──────────────────────────────────────────
-		queueMessage(text: string, images: string[]) {
-			vscode.postMessage({ type: "queueMessage", text, images })
-			self.ui.clearInput()
-		},
-
-		// ── Clear / cancel task ────────────────────────────────────
-		clearTask() {
-			vscode.postMessage({ type: "clearTask" })
-			self.ui.clearInput()
-			self.ui.setSendingDisabled(false)
-		},
-
-		cancelTask() {
-			vscode.postMessage({ type: "cancelTask" })
-		},
-
-		// ── Mode switching ─────────────────────────────────────────
-		switchMode(modeSlug: string) {
-			vscode.postMessage({ type: "mode", text: modeSlug })
-		},
-
-		// ── Terminal operations ────────────────────────────────────
-		terminalOperation(operation: "continue" | "abort") {
-			vscode.postMessage({ type: "terminalOperation", terminalOperation: operation })
-		},
-
-		// ── Navigate to task ───────────────────────────────────────
-		navigateToTask(taskId: string) {
-			self.tree.navigateToNode(taskId)
-			vscode.postMessage({ type: "showTaskWithId", text: taskId })
-		},
-
-		// ── Condense context ───────────────────────────────────────
-		condenseContext(taskId: string) {
-			if (self.ui.isCondensing || self.ui.sendingDisabled) return
-			self.ui.setIsCondensing(true)
-			self.ui.setSendingDisabled(true)
-			vscode.postMessage({ type: "condenseTaskContextRequest", text: taskId })
-		},
-
-		// ── Select images ──────────────────────────────────────────
-		selectImages() {
-			vscode.postMessage({ type: "selectImages" })
-		},
-
-		// ── Batch file response ────────────────────────────────────
-		batchFileResponse(response: { [key: string]: boolean }) {
-			vscode.postMessage({
-				type: "askResponse",
-				askResponse: "objectResponse",
-				text: JSON.stringify(response),
-			})
-		},
+		...createTaskActions(self),
+		...createTopicActions(self),
+		...createMessagesListActions(self),
+		...createNotificationsActions(self),
+		...createTextAreaActions(self),
 	}))
-	.views((self) => ({
-		/** The mode name of the currently active task node, or "Agent" if unknown. */
-		get activeModeName(): string {
-			const activeNode = self.tree.activeNodeId
-			if (activeNode && activeNode.mode) {
-				return activeNode.mode
+	// ── Block 2: Primary / Secondary button handlers ──
+	.actions((self) => ({
+		handlePrimaryButtonClick(
+			clineAsk: string | undefined,
+			currentTaskItem: { parentTaskId?: string } | undefined,
+			messages: ClineMessage[],
+			text?: string,
+			images?: string[],
+		) {
+			const trimmedInput = text?.trim()
+			switch (clineAsk) {
+				case "api_req_failed":
+				case "command":
+				case "tool":
+				case "use_mcp_server":
+				case "mistake_limit_reached":
+					if (trimmedInput || (images && images.length > 0)) {
+						self.respondToAsk("yesButtonClicked", trimmedInput, images)
+					} else {
+						self.respondToAsk("yesButtonClicked")
+					}
+					break
+				case "resume_task":
+					if (
+						currentTaskItem?.parentTaskId &&
+						messages.some((msg) => msg.ask === "completion_result" || msg.say === "completion_result")
+					) {
+						self.clearTask()
+					} else {
+						if (trimmedInput || (images && images.length > 0)) {
+							self.respondToAsk("yesButtonClicked", trimmedInput, images)
+						} else {
+							self.respondToAsk("yesButtonClicked")
+						}
+					}
+					break
+				case "completion_result":
+				case "resume_completed_task":
+					self.clearTask()
+					break
 			}
-			return "Agent"
+			self.ui.setSendingDisabled(true)
 		},
 
-		/** Whether there is an active task. */
-		get hasActiveTask(): boolean {
-			return self.tree.activeNodeId !== undefined
+		// ── Secondary button click ──
+		handleSecondaryButtonClick(
+			clineAsk: string | undefined,
+			_isStreaming: boolean,
+			text?: string,
+			images?: string[],
+		) {
+			const trimmedInput = text?.trim()
+			switch (clineAsk) {
+				case "api_req_failed":
+				case "mistake_limit_reached":
+				case "resume_task":
+					self.clearTask()
+					break
+				case "command":
+				case "tool":
+				case "use_mcp_server":
+					if (trimmedInput || (images && images.length > 0)) {
+						self.respondToAsk("noButtonClicked", trimmedInput, images)
+					} else {
+						self.respondToAsk("noButtonClicked")
+					}
+					break
+				default:
+					self.respondToAsk("noButtonClicked", trimmedInput, images)
+					break
+			}
+			self.ui.setSendingDisabled(true)
 		},
 	}))
 
 export type IChatStore = Instance<typeof ChatStore>
 
-/** Singleton instance of the unified ChatStore. */
-export const chatStore = ChatStore.create({})
-
-// ── React Context bridge for ChatUIStore ─────────────────────────────
-
-const ChatUIContext = createContext<IChatUIStore | undefined>(undefined)
-
-export const ChatUIProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-	return <ChatUIContext.Provider value={chatStore.ui}>{children}</ChatUIContext.Provider>
-}
-
-export const useChatUI = (): IChatUIStore => {
-	const context = useContext(ChatUIContext)
-	if (context === undefined) {
-		throw new Error("useChatUI must be used within a ChatUIProvider")
-	}
-	return context
-}
+/** Singleton instance of ChatStore. */
+export const chatStore = ChatStore.create({
+	ui: {
+		inputValue: "",
+		selectedImages: [],
+		sendingDisabled: false,
+		expandedRows: {},
+		currentFollowUpTs: 0,
+		isCondensing: false,
+		showAnnouncementModal: false,
+		showRetiredProviderWarning: false,
+		aggregatedCostsMap: new Map(),
+		isTtsPlaying: false,
+		isStreaming: false,
+		isFollowUpAutoApprovalPaused: false,
+		enableButtons: false,
+		primaryButtonText: "",
+		secondaryButtonText: "",
+		clineAsk: "",
+		showScrollToBottom: false,
+		apiMetrics: {
+			totalTokensIn: 0,
+			totalTokensOut: 0,
+			totalCost: 0,
+			contextTokens: 0,
+		},
+	},
+	tree: { nodes: {}, activeNodeId: undefined, isNavigating: false },
+	commands: { commands: [] },
+	commandExecution: { executions: [] },
+	mcpExecution: { executions: [] },
+	notifications: {},
+	ask: {},
+})
 
 // ── Re-export sub-store types for convenience ──────────────────────
 export type { ICommandExecutionStore } from "./messages-list/store"

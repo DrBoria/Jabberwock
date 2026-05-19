@@ -34,6 +34,22 @@ import i18n from "../../../i18n/setup"
  *   throw handleProviderError(error, "Anthropic", { messagePrefix: "streaming" })
  * }
  */
+/**
+ * Extended metadata that may be present on API error objects.
+ * Providers attach HTTP status, structured details, error codes, and AWS metadata.
+ */
+interface ErrorMetadata {
+	status?: number
+	errorDetails?: unknown
+	code?: string | number
+	$metadata?: object
+	error?: {
+		metadata?: {
+			raw?: string
+		}
+	}
+}
+
 export function handleProviderError(
 	error: unknown,
 	providerName: string,
@@ -47,8 +63,9 @@ export function handleProviderError(
 	const messagePrefix = options?.messagePrefix || "completion"
 
 	if (error instanceof Error) {
-		const anyErr = error as any
-		const msg = anyErr?.error?.metadata?.raw || error.message || ""
+		const anyErr = error as ErrorMetadata
+		const rawMetadata = anyErr?.error
+		const msg = rawMetadata?.metadata?.raw || error.message || ""
 
 		// Log the original error details for debugging
 		console.error(`[${providerName}] API error:`, {
@@ -75,19 +92,12 @@ export function handleProviderError(
 		// Preserve HTTP status and structured details for retry/backoff + UI
 		// These fields are used by Task.backoffAndAnnounce() and ChatRow/ErrorRow
 		// to provide status-aware error messages and handling
-		if (anyErr.status !== undefined) {
-			;(wrapped as any).status = anyErr.status
-		}
-		if (anyErr.errorDetails !== undefined) {
-			;(wrapped as any).errorDetails = anyErr.errorDetails
-		}
-		if (anyErr.code !== undefined) {
-			;(wrapped as any).code = anyErr.code
-		}
-		// Preserve AWS-specific metadata if present (for Bedrock)
-		if (anyErr.$metadata !== undefined) {
-			;(wrapped as any).$metadata = anyErr.$metadata
-		}
+		Object.assign(wrapped, {
+			...(anyErr.status !== undefined && { status: anyErr.status }),
+			...(anyErr.errorDetails !== undefined && { errorDetails: anyErr.errorDetails }),
+			...(anyErr.code !== undefined && { code: anyErr.code }),
+			...(anyErr.$metadata !== undefined && { $metadata: anyErr.$metadata }),
+		})
 
 		return wrapped
 	}
@@ -97,9 +107,9 @@ export function handleProviderError(
 	const wrapped = new Error(`${providerName} ${messagePrefix} error: ${String(error)}`)
 
 	// Also try to preserve status for non-Error exceptions (e.g., plain objects with status)
-	const anyErr = error as any
+	const anyErr = error as ErrorMetadata
 	if (typeof anyErr?.status === "number") {
-		;(wrapped as any).status = anyErr.status
+		Object.assign(wrapped, { status: anyErr.status })
 	}
 
 	return wrapped

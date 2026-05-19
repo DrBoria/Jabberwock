@@ -1,13 +1,11 @@
 import React from "react"
+import { observer } from "mobx-react-lite"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { Button } from "@src/components/ui/button"
 import { StandardTooltip } from "@src/components/ui/standard-tooltip"
+import { useChatUI } from "@src/features/chat/store"
 
 export interface AskResponderProps {
-	primaryButtonText: string | undefined
-	secondaryButtonText: string | undefined
-	enableButtons: boolean
-	showScrollToBottom: boolean
 	onPrimaryClick: () => void
 	onSecondaryClick: () => void
 	onScrollToBottom: () => void
@@ -28,17 +26,12 @@ const tooltipMap: Record<string, string> = {
  * Renders the primary/secondary action button bar below the chat.
  * Shows scroll-to-bottom button when user has scrolled up,
  * or approve/reject/continue buttons when the AI is asking.
+ * Reads button state from ChatUIStore (synced by view.tsx).
  */
-export const AskResponder: React.FC<AskResponderProps> = ({
-	primaryButtonText,
-	secondaryButtonText,
-	enableButtons,
-	showScrollToBottom,
-	onPrimaryClick,
-	onSecondaryClick,
-	onScrollToBottom,
-}) => {
+const AskResponderComponent: React.FC<AskResponderProps> = ({ onPrimaryClick, onSecondaryClick, onScrollToBottom }) => {
 	const { t } = useAppTranslation()
+	const ui = useChatUI()
+	const { primaryButtonText, secondaryButtonText, enableButtons, showScrollToBottom } = ui
 
 	if (!showScrollToBottom && !primaryButtonText && !secondaryButtonText) return null
 
@@ -47,7 +40,7 @@ export const AskResponder: React.FC<AskResponderProps> = ({
 			className={`flex h-9 items-center mb-1 px-[15px] ${
 				showScrollToBottom ? "opacity-100" : enableButtons ? "opacity-100" : "opacity-50"
 			}`}>
-			{showScrollToBottom ? (
+			{showScrollToBottom && !enableButtons ? (
 				<StandardTooltip content={t("chat:scrollToBottom")}>
 					<Button variant="secondary" className="flex-[2]" onClick={onScrollToBottom}>
 						<span className="codicon codicon-chevron-down" />
@@ -86,3 +79,5 @@ export const AskResponder: React.FC<AskResponderProps> = ({
 		</div>
 	)
 }
+
+export const AskResponder = observer(AskResponderComponent)

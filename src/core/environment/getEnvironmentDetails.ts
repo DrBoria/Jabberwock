@@ -8,6 +8,7 @@ import delay from "delay"
 import type { ExperimentId } from "@jabberwock/types"
 
 import { formatLanguage } from "../../shared/language"
+import type { ModeConfig } from "@jabberwock/types"
 import { defaultModeSlug } from "../../shared/modes"
 import { getFullModeDetails } from "../../shared/modes-extension"
 import { getApiMetrics } from "../../shared/getApiMetrics"
@@ -18,7 +19,7 @@ import { arePathsEqual } from "../../utils/path"
 import { formatResponse } from "../prompts/responses"
 import { getGitStatus } from "../../utils/git"
 
-import { Task } from "../task/Task"
+import { Task } from "../../features/chat/task/Task"
 import { formatReminderSection } from "./reminder"
 
 export async function getEnvironmentDetails(cline: Task, includeFileDetails: boolean = false) {
@@ -215,11 +216,16 @@ export async function getEnvironmentDetails(cline: Task, includeFileDetails: boo
 
 	const currentMode = cline.taskMode || defaultModeSlug
 
-	const modeDetails = await getFullModeDetails(currentMode, customModes, customModePrompts, {
-		cwd: cline.cwd,
-		globalCustomInstructions,
-		language: language ?? formatLanguage(vscode.env.language),
-	})
+	const modeDetails = await getFullModeDetails(
+		currentMode,
+		customModes as ModeConfig[] | undefined,
+		customModePrompts,
+		{
+			cwd: cline.cwd,
+			globalCustomInstructions,
+			language: language ?? formatLanguage(vscode.env.language),
+		},
+	)
 
 	details += `\n\n# Current Mode\n`
 	details += `<slug>${currentMode}</slug>\n`

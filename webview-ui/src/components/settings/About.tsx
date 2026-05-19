@@ -4,11 +4,11 @@ import { Trans } from "react-i18next"
 import { Download, Upload, TriangleAlert, Bug, Lightbulb, Shield, MessageCircle, MessagesSquare } from "lucide-react"
 import { VSCodeCheckbox, VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 
-import type { TelemetrySetting } from "@jabberwock/types"
+import { type TelemetrySetting } from "@jabberwock/types"
 
 import { Package } from "@shared/package"
 
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { cn } from "@/lib/utils"
 import { Button } from "../ui/button"
 
@@ -42,8 +42,8 @@ export const About = ({ telemetrySetting, setTelemetrySetting, debug, setDebug, 
 					label={t("settings:footer.telemetry.label")}>
 					<VSCodeCheckbox
 						checked={telemetrySetting !== "disabled"}
-						onChange={(e: any) => {
-							const checked = e.target.checked === true
+						onChange={(e) => {
+							const checked = (e.target as HTMLInputElement).checked === true
 							setTelemetrySetting(checked ? "enabled" : "disabled")
 						}}>
 						{t("settings:footer.telemetry.label")}
@@ -116,8 +116,8 @@ export const About = ({ telemetrySetting, setTelemetrySetting, debug, setDebug, 
 							className="mt-4 pt-4 border-t border-vscode-settings-headerBorder">
 							<VSCodeCheckbox
 								checked={debug ?? false}
-								onChange={(e: any) => {
-									const checked = e.target.checked === true
+								onChange={(e) => {
+									const checked = (e.target as HTMLInputElement).checked === true
 									setDebug(checked)
 								}}>
 								{t("settings:about.debugMode.label")}
@@ -137,18 +137,15 @@ export const About = ({ telemetrySetting, setTelemetrySetting, debug, setDebug, 
 					label={t("settings:about.manageSettings")}>
 					<h3>{t("settings:about.manageSettings")}</h3>
 					<div className="flex flex-wrap items-center gap-2">
-						<Button onClick={() => vscode.postMessage({ type: "exportSettings" })} className="w-28">
+						<Button onClick={() => rootStore.history.exportSettings()} className="w-28">
 							<Upload className="p-0.5" />
 							{t("settings:footer.settings.export")}
 						</Button>
-						<Button onClick={() => vscode.postMessage({ type: "importSettings" })} className="w-28">
+						<Button onClick={() => rootStore.history.importSettings()} className="w-28">
 							<Download className="p-0.5" />
 							{t("settings:footer.settings.import")}
 						</Button>
-						<Button
-							variant="destructive"
-							onClick={() => vscode.postMessage({ type: "resetState" })}
-							className="w-28">
+						<Button variant="destructive" onClick={() => rootStore.history.resetState()} className="w-28">
 							<TriangleAlert className="p-0.5" />
 							{t("settings:footer.settings.reset")}
 						</Button>

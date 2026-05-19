@@ -107,16 +107,18 @@ export interface ExtensionMessage {
 		| "skills"
 		| "fileContent"
 		| "diagnostics"
+		| "draggedImages"
 		| "chatTreeSnapshot"
 		| "chatTreePatch"
 		| "fetchUrlResponse"
+		| "mst-snapshot-batch"
 
 	text?: string
-	snapshot?: any // eslint-disable-line @typescript-eslint/no-explicit-any
+	snapshot?: unknown
 	/** For fileContent: { path, content, error? } */
 	fileContent?: { path: string; content: string | null; error?: string }
-	diagnostics?: any // eslint-disable-line @typescript-eslint/no-explicit-any
-	payload?: any // eslint-disable-line @typescript-eslint/no-explicit-any
+	diagnostics?: DiagnosticSnapshot
+	payload?: unknown
 	checkpointWarning?: {
 		type: "WAIT_TIMEOUT" | "INIT_TIMEOUT"
 		timeout: number
@@ -166,8 +168,7 @@ export interface ExtensionMessage {
 	slug?: string
 	success?: boolean
 	/** Generic payload for extension messages that use `values` */
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	values?: Record<string, any>
+	values?: Record<string, unknown>
 	requestId?: string
 	promptText?: string
 	results?:
@@ -175,7 +176,7 @@ export interface ExtensionMessage {
 		| { name: string; description?: string; argumentHint?: string; source: "global" | "project" | "built-in" }[]
 	error?: string
 	setting?: string
-	value?: any // eslint-disable-line @typescript-eslint/no-explicit-any
+	value?: unknown
 	hasContent?: boolean
 	items?: MarketplaceItem[]
 	userInfo?: CloudUserInfo
@@ -187,7 +188,7 @@ export interface ExtensionMessage {
 	errors?: string[]
 	visibility?: ShareVisibility
 	rulesFolderPath?: string
-	settings?: any // eslint-disable-line @typescript-eslint/no-explicit-any
+	settings?: unknown
 	messageTs?: number
 	hasCheckpoint?: boolean
 	context?: string
@@ -334,6 +335,15 @@ export type ExtensionState = Pick<
 	currentTaskId?: string
 	currentTaskItem?: HistoryItem
 	currentTaskTodos?: TodoItem[] // Initial todos for the current task
+	/** Data for ALL tasks in the clineStack, enabling per-window rendering.
+	 *  Each entry contains the taskId, history item, messages, and todos for one task.
+	 *  Used by WindowManager to render each window layer with its own content. */
+	taskStackData?: Array<{
+		taskId: string
+		taskItem?: HistoryItem
+		clineMessages: ClineMessage[]
+		todos: TodoItem[]
+	}>
 	apiConfiguration: ProviderSettings
 	uriScheme?: string
 	shouldShowAnnouncement: boolean
@@ -381,9 +391,10 @@ export type ExtensionState = Pick<
 
 	autoCondenseContext: boolean
 	autoCondenseContextPercent: number
+	routerModels?: RouterModels
+	skills?: SkillMetadata[]
 	marketplaceItems?: MarketplaceItem[]
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	marketplaceInstalledMetadata?: { project: Record<string, any>; global: Record<string, any> }
+	marketplaceInstalledMetadata?: { project: Record<string, unknown>; global: Record<string, unknown> }
 	profileThresholds: Record<string, number>
 	hasOpenedModeSelector: boolean
 	openRouterImageApiKey?: string
@@ -425,8 +436,7 @@ export type ClineAskResponse = "yesButtonClicked" | "noButtonClicked" | "message
 export type AudioType = "notification" | "celebration" | "progress_loop"
 
 export interface UpdateTodoListPayload {
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	todos: any[]
+	todos: unknown[]
 }
 
 export type EditQueuedMessagePayload = Pick<QueuedMessage, "id" | "text" | "images">
@@ -617,6 +627,10 @@ export interface WebviewMessage {
 		| "activePageResponse"
 		| "webviewError"
 		| "fetchUrl"
+		| "lastMessageSeen"
+		| "setChatBoxMessage"
+		| "followUpAnswered"
+		| "batchFileResponse"
 	text?: string
 	taskId?: string
 	editedMessageContent?: string
@@ -646,8 +660,7 @@ export interface WebviewMessage {
 	systemPromptTemplateKey?: string
 	dataUrls?: string[]
 	/** Generic payload for webview messages that use `values` */
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	values?: Record<string, any>
+	values?: Record<string, unknown>
 	query?: string
 	setting?: string
 	slug?: string
@@ -672,13 +685,11 @@ export interface WebviewMessage {
 	restoreCheckpoint?: boolean
 	historyPreviewCollapsed?: boolean
 	filters?: { type?: string; search?: string; tags?: string[] }
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	settings?: any
+	settings?: unknown
 	url?: string // For openExternal
 	mpItem?: MarketplaceItem
 	mpInstallOptions?: InstallMarketplaceItemOptions
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	config?: Record<string, any> // Add config to the payload
+	config?: Record<string, unknown> // Add config to the payload
 	visibility?: ShareVisibility // For share visibility
 	hasContent?: boolean // For checkRulesDirectoryResult
 	checkOnly?: boolean // For deleteCustomMode check
@@ -734,6 +745,8 @@ export interface WebviewMessage {
 	fromMCP?: boolean
 	/** Response to getActivePage request — the active window type */
 	activePage?: string
+	/** Response map for batch file operations */
+	response?: { [key: string]: boolean }
 }
 
 export interface RequestOpenAiCodexRateLimitsMessage {
@@ -769,7 +782,7 @@ export interface IndexClearedPayload {
 
 export const installMarketplaceItemWithParametersPayloadSchema = z.object({
 	item: marketplaceItemSchema,
-	parameters: z.record(z.string(), z.any()),
+	parameters: z.record(z.string(), z.unknown()),
 })
 
 export type InstallMarketplaceItemWithParametersPayload = z.infer<

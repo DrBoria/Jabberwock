@@ -251,9 +251,9 @@ export function formatToolAskMessage(toolInfo: Record<string, unknown>): string 
  */
 export function parseTodosFromToolInfo(toolInfo: Record<string, unknown>): TodoItem[] | null {
 	// Try to get todos directly as an array
-	const todosArray = toolInfo.todos as unknown[] | undefined
-	if (Array.isArray(todosArray)) {
-		return todosArray
+	const todosValue = toolInfo.todos
+	if (Array.isArray(todosValue)) {
+		return todosValue
 			.map((item, index) => {
 				if (typeof item === "object" && item !== null) {
 					const todo = item as Record<string, unknown>

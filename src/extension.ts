@@ -17,9 +17,14 @@ if (fs.existsSync(envPath)) {
 	}
 }
 
-import type { CloudUserInfo, AuthState } from "@jabberwock/types"
-import { CloudService } from "@jabberwock/cloud"
-import { TelemetryService, PostHogTelemetryClient } from "@jabberwock/telemetry"
+import type { CloudUserInfo, AuthState, JabberwockAPIEvents } from "@jabberwock/types"
+import { createCloudService, getCloudService, hasCloudService } from "@jabberwock/cloud"
+import {
+	createTelemetryService,
+	getTelemetryService,
+	hasTelemetryService,
+	PostHogTelemetryClient,
+} from "@jabberwock/telemetry"
 import { customToolRegistry } from "@jabberwock/core"
 import { configure } from "mobx"
 
@@ -30,16 +35,23 @@ import { initializeNetworkProxy } from "./utils/networkProxy"
 import { Package } from "./shared/package"
 import { formatLanguage } from "./shared/language"
 import { ContextProxy } from "./core/config/ContextProxy"
-import { ClineProvider } from "./core/webview/ClineProvider"
+import { ProviderSettingsManager } from "./core/config/ProviderSettingsManager"
+import { EventBridge } from "./core/webview/EventBridge"
 import { DIFF_VIEW_URI_SCHEME } from "./integrations/editor/DiffViewProvider"
 import { TerminalRegistry } from "./integrations/terminal/TerminalRegistry"
 import { openAiCodexOAuthManager } from "./integrations/openai-codex/oauth"
-import { McpServerManager } from "./services/mcp/McpServerManager"
-import { CodeIndexManager } from "./services/code-index/manager"
+import { McpServerManager, createMcpServerManager } from "./services/mcp/McpServerManager"
+import type { DevtoolBridgeProvider } from "@jabberwock/devtool"
+import {
+	getCodeIndexManager,
+	getAllCodeIndexManagers,
+	disposeAllCodeIndexManagers,
+} from "./services/code-index/manager"
 import { MdmService } from "./services/mdm/MdmService"
 import { migrateSettings } from "./utils/migrateSettings"
 import { autoImportSettings } from "./utils/autoImportSettings"
-import { API } from "./extension/api"
+import { createJabberwockApi } from "./extension/jabberwock-api-factory"
+import { registerIpcListeners } from "./features/ipc/listeners"
 
 import {
 	handleUri,
@@ -50,6 +62,10 @@ import {
 } from "./activate"
 import { initializeI18n } from "./i18n"
 import { flushModels, initializeModelCacheRefresh, refreshModels } from "./api/providers/fetchers/modelCache"
+// Dynamic imports used inside activate() to avoid circular dependency chain:
+// extension.ts → settings/api-config/store → store.ts → settings/api-config/store (CIRCULAR)
+// extension.ts → cloud/store → store.ts → settings/api-config/store → store.ts (CIRCULAR)
+import { setServiceRegistry } from "./features/core/ServiceRegistry"
 
 /**
  * Built using https://github.com/microsoft/vscode-webview-ui-toolkit
@@ -61,11 +77,6 @@ import { flushModels, initializeModelCacheRefresh, refreshModels } from "./api/p
 
 let outputChannel: vscode.OutputChannel
 let extensionContext: vscode.ExtensionContext
-let cloudService: CloudService | undefined
-
-let authStateChangedHandler: ((data: { state: AuthState; previousState: AuthState }) => Promise<void>) | undefined
-let settingsUpdatedHandler: (() => void) | undefined
-let userInfoHandler: ((data: { userInfo: CloudUserInfo }) => Promise<void>) | undefined
 
 /**
  * Check if we should auto-open the Jabberwock sidebar after switching to a worktree.
@@ -118,6 +129,22 @@ async function checkWorktreeAutoOpen(
 
 // This method is called when your extension is activated.
 // Your extension is activated the very first time the command is executed.
+/** Adapter to widen EventBridge to DevtoolBridgeProvider for the DevTool bridge factory. */
+function toDevtoolBridgeProvider(provider: EventBridge): DevtoolBridgeProvider {
+	return {
+		findElement: (selector, depth, maxChildren, command) =>
+			provider.findElement(selector, depth, maxChildren, command),
+		getModes: () => provider.getModes(),
+		postMessageToWebview: (message) => provider.postMessageToWebview(message),
+		setDomRequestCallback: (requestId, callback) => provider.setDomRequestCallback(requestId, callback),
+		setActivePageRequestCallback: (requestId, callback) =>
+			provider.setActivePageRequestCallback(requestId, callback),
+		getMode: () => provider.getMode(),
+		getTaskWithId: (id) => provider.getTaskWithId(id),
+		chatStore: provider.chatStore ? ({ ...provider.chatStore } as Record<string, unknown>) : undefined,
+	}
+}
+
 export async function activate(context: vscode.ExtensionContext) {
 	// Isolate MobX global state to prevent conflicts with other extensions
 	// that bundle their own MobX version (e.g., vsls-contrib.codetour).
@@ -140,7 +167,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	await migrateSettings(context, outputChannel)
 
 	// Initialize telemetry service.
-	const telemetryService = TelemetryService.createInstance()
+	const telemetryService = createTelemetryService()
 
 	try {
 		telemetryService.register(new PostHogTelemetryClient())
@@ -152,7 +179,8 @@ export async function activate(context: vscode.ExtensionContext) {
 	const cloudLogger = createDualLogger(createOutputChannelLogger(outputChannel))
 
 	// Initialize MDM service
-	const mdmService = await MdmService.createInstance(cloudLogger)
+	const mdmService = new MdmService(cloudLogger)
+	await mdmService.initialize()
 
 	// Initialize i18n for internationalization support.
 	initializeI18n(context.globalState.get("language") ?? formatLanguage(vscode.env.language))
@@ -174,15 +202,11 @@ export async function activate(context: vscode.ExtensionContext) {
 	const contextProxy = await ContextProxy.getInstance(context)
 
 	// Initialize code index managers for all workspace folders.
-	const codeIndexManagers: CodeIndexManager[] = []
-
 	if (vscode.workspace.workspaceFolders) {
 		for (const folder of vscode.workspace.workspaceFolders) {
-			const manager = CodeIndexManager.getInstance(context, folder.uri.fsPath)
+			const manager = getCodeIndexManager(context, folder.uri.fsPath)
 
 			if (manager) {
-				codeIndexManagers.push(manager)
-
 				// Initialize in background; do not block extension activation
 				void manager.initialize(contextProxy).catch((error) => {
 					const message = error instanceof Error ? error.message : String(error)
@@ -197,12 +221,121 @@ export async function activate(context: vscode.ExtensionContext) {
 	}
 
 	// Initialize the provider *before* the Jabberwock Cloud service.
-	const provider = new ClineProvider(context, outputChannel, "sidebar", contextProxy, mdmService)
+	const provider = new EventBridge(context, outputChannel, "sidebar", contextProxy, mdmService)
+
+	// Initialize the MST ChatStore for task tree tracking and devtool inspection.
+	const { ChatStore } = await import("./core/state/ChatTreeStore")
+	provider.chatStore = ChatStore.create({ nodes: {} })
+	console.log("[extension] ChatStore created and assigned to provider")
+
+	// Initialize the backend MST RootStore (unconditionally).
+	// Must happen BEFORE any getState() / getWindowManagerState() call,
+	// as resolveWebviewView → getWindowManagerState → getState → getBackendRootStore()
+	// throws if createBackendRootStore() was never called.
+	const { createBackendRootStore: initRootStore } = await import("./features/store")
+	initRootStore({ context })
+	console.log("[extension] Backend MST RootStore initialized")
+
+	// Initialize the singleton McpServerManager so that webview handlers (e.g., webviewDidLaunch) can access it.
+	createMcpServerManager()
+
+	// Initialize all feature states now that the root store exists.
+	// Must happen after createBackendRootStore() to avoid circular dependency
+	// issues during esbuild __esm module initialization (JABBERWOCK-263).
+	void provider.initFeatures().catch((error) => {
+		const errorMsg = error instanceof Error ? `${error.message}\n${error.stack}` : String(error)
+		outputChannel.appendLine(`[extension] Error initializing features: ${errorMsg}`)
+		console.error(`[extension] Error initializing features:`, error)
+	})
+
+	// Push ChatStore snapshots to the webview via MstBridge so the frontend
+	// chatTreeStore stays in sync via applySnapshot.
+	;(await import("mobx-state-tree")).onSnapshot(provider.chatStore, (snapshot: Record<string, unknown>) => {
+		provider.postMessageToWebview({
+			type: "mst-snapshot-batch",
+			payload: {
+				snapshots: [{ storeName: "ChatStore", snapshot }],
+			},
+		})
+	})
+
+	// Initialize the ProviderSettingsManager and assign it to the provider.
+	// This enables API config persistence (save/load from VS Code secrets).
+	const providerSettingsManager = new ProviderSettingsManager(context)
+	provider.providerSettingsManager = providerSettingsManager
+	console.log("[extension] ProviderSettingsManager created and assigned to provider")
+
+	// Initialize CustomModesManager for custom mode management.
+	const { CustomModesManager } = await import("./core/config/CustomModesManager")
+	provider.customModesManager = new CustomModesManager(context, async () => {
+		const { postStateToWebviewWithoutClineMessages: lazyPostState } = await import(
+			"./features/foundation/window-manager/store"
+		)
+		await lazyPostState(provider)
+	})
+	console.log("[extension] CustomModesManager created and assigned to provider")
+
+	// Initialize DevTool WebSocket server for debugging and E2E testing.
+	// The server handles DOM interaction, console/diagnostics/tracing, and state inspection.
+	// `jabberwock.devtool` setting controls whether it starts (default: true).
+	// NOTE: Devtool starts asynchronously to avoid blocking extension activation.
+	// WebSocketClientTransport in McpHub.ts has built-in retry logic (exponential backoff,
+	// up to ~31s) that handles the race condition where MCP clients try to connect
+	// before the devtool server is ready.
+	try {
+		const devtoolEnabled = vscode.workspace.getConfiguration(Package.name).get<boolean>("devtool", true)
+		if (devtoolEnabled) {
+			const devtoolPort = vscode.workspace.getConfiguration().get<number>("debugmcp.serverPort", 60060)
+			import("@jabberwock/devtool")
+				.then(async ({ Devtool, createDevtoolBridge }) => {
+					const [{ getSnapshot }, { getBackendRootStore }, { getActionBuffer }] = await Promise.all([
+						import("mobx-state-tree"),
+						import("./features/storeSingleton"),
+						import("./features/store"),
+					])
+					const backendStore = getBackendRootStore()
+
+					const bridge = createDevtoolBridge(toDevtoolBridgeProvider(provider), undefined, {
+						getSnapshot: () => getSnapshot(backendStore) as Record<string, unknown>,
+						getActionBuffer: () => getActionBuffer(),
+					})
+					const devtool = new Devtool(bridge, undefined, devtoolPort)
+					await devtool.start()
+					console.log(`[extension] DevTool WebSocket server started on port ${devtoolPort}`)
+					outputChannel.appendLine(
+						`[DevTool] WebSocket MCP server listening on ws://127.0.0.1:${devtoolPort}/ws`,
+					)
+				})
+				.catch((err: unknown) => {
+					const msg = err instanceof Error ? err.message : String(err)
+					console.warn(`[extension] Failed to start DevTool WebSocket server:`, err)
+					outputChannel.appendLine(
+						`[DevTool] Failed to start WebSocket server on port ${devtoolPort}: ${msg}`,
+					)
+					vscode.window.showWarningMessage(
+						`DevTool WebSocket server failed to start on port ${devtoolPort}: ${msg}. ` +
+							`Check that port ${devtoolPort} is not in use.`,
+					)
+				})
+		} else {
+			console.log(`[extension] DevTool disabled by setting`)
+		}
+	} catch (error) {
+		console.warn(`[extension] Error initializing DevTool:`, error)
+	}
 
 	// Initialize Jabberwock Cloud service.
-	const postStateListener = () => ClineProvider.getVisibleInstance()?.postStateToWebviewWithoutClineMessages()
+	const postStateListener = async () => {
+		const instance = await EventBridge.getVisibleInstance()
+		if (instance) {
+			const { postStateToWebviewWithoutClineMessages: lazyPostState } = await import(
+				"./features/foundation/window-manager/store"
+			)
+			lazyPostState(instance)
+		}
+	}
 
-	authStateChangedHandler = async (data: { state: AuthState; previousState: AuthState }) => {
+	const authStateChangedHandler = async (data: { state: AuthState; previousState: AuthState }) => {
 		postStateListener()
 
 		// Handle Jabberwock models cache based on auth state (JABBERWOCK-202)
@@ -210,14 +343,15 @@ export async function activate(context: vscode.ExtensionContext) {
 			try {
 				if (data.state === "active-session") {
 					// Refresh with auth token to get authenticated models
-					const sessionToken = CloudService.hasInstance()
-						? CloudService.instance.authService?.getSessionToken()
-						: undefined
-					await refreshModels({
-						provider: "jabberwock",
-						baseUrl: process.env.JABBERWOCK_CODE_PROVIDER_URL ?? "https://api.jabberwock.com/proxy",
-						apiKey: sessionToken,
-					})
+					const svcReg = (await import("./features/core/ServiceRegistry")).getServiceRegistry()
+					const sessionToken = svcReg.cloudService?.authService?.getSessionToken()
+					if (sessionToken) {
+						await refreshModels({
+							provider: "jabberwock",
+							baseUrl: process.env.JABBERWOCK_CODE_PROVIDER_URL ?? "https://api.jabberwock.com/proxy",
+							apiKey: sessionToken,
+						})
+					}
 				} else {
 					// Flush without refresh on logout
 					await flushModels({ provider: "jabberwock" }, false)
@@ -241,8 +375,11 @@ export async function activate(context: vscode.ExtensionContext) {
 						// Get the current API configuration name
 						const currentConfigName =
 							provider.contextProxy.getGlobalState("currentApiConfigName") || "default"
-						// Update it with the stored model using upsertProviderProfile
-						await provider.upsertProviderProfile(currentConfigName, {
+						// Update it with the stored model using dynamic import to avoid circular deps
+						const { upsertProviderProfile: lazyUpsert } = await import(
+							"./features/settings/api-config/store"
+						)
+						await lazyUpsert(provider, currentConfigName, {
 							apiProvider: "jabberwock",
 							apiModelId: storedModel,
 						})
@@ -259,23 +396,34 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 	}
 
-	settingsUpdatedHandler = async () => {
+	const settingsUpdatedHandler = async () => {
 		postStateListener()
 	}
 
-	userInfoHandler = async ({ userInfo }: { userInfo: CloudUserInfo }) => {
+	const userInfoHandler = async ({ userInfo }: { userInfo: CloudUserInfo }) => {
 		postStateListener()
 	}
 
-	cloudService = await CloudService.createInstance(context, cloudLogger, {
+	setServiceRegistry({
+		authStateChangedHandler,
+		settingsUpdatedHandler,
+		userInfoHandler,
+	})
+
+	const cloudService = await createCloudService(context, cloudLogger, {
 		"auth-state-changed": authStateChangedHandler,
 		"settings-updated": settingsUpdatedHandler,
 		"user-info": userInfoHandler,
 	})
 
+	setServiceRegistry({ cloudService })
+	// Notify store that cloud service is available
+	const { getBackendRootStore } = await import("./features/storeSingleton")
+	getBackendRootStore().core.setCloudServiceAvailable(true)
+
 	try {
 		if (cloudService.telemetryClient) {
-			TelemetryService.instance.register(cloudService.telemetryClient)
+			getTelemetryService().register(cloudService.telemetryClient)
 		}
 	} catch (error) {
 		outputChannel.appendLine(
@@ -288,7 +436,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	// Trigger initial cloud profile sync now that CloudService is ready.
 	try {
-		await provider.initializeCloudProfileSyncWhenReady()
+		const { initializeCloudProfileSyncWhenReady: lazyInitCloud } = await import("./features/cloud/store")
+		await lazyInitCloud(provider)
 	} catch (error) {
 		outputChannel.appendLine(
 			`[CloudService] Failed to initialize cloud profile sync: ${error instanceof Error ? error.message : String(error)}`,
@@ -296,10 +445,10 @@ export async function activate(context: vscode.ExtensionContext) {
 	}
 
 	// Finish initializing the provider.
-	TelemetryService.instance.setProvider(provider)
+	getTelemetryService().setProvider(provider)
 
 	context.subscriptions.push(
-		vscode.window.registerWebviewViewProvider(ClineProvider.sideBarId, provider, {
+		vscode.window.registerWebviewViewProvider(EventBridge.sideBarId, provider, {
 			webviewOptions: { retainContextWhenHidden: true },
 		}),
 	)
@@ -422,7 +571,20 @@ export async function activate(context: vscode.ExtensionContext) {
 	// Initialize background model cache refresh
 	initializeModelCacheRefresh()
 
-	return new API(outputChannel, provider, socketPath, enableLogging)
+	// ── IPC Server & Event Broadcasting ────────────────────────────────
+	// IPC server listens for external commands (CLI, headless) and
+	// broadcasts task events to IPC clients.
+	let emit: <K extends keyof JabberwockAPIEvents>(eventName: K, ...args: JabberwockAPIEvents[K]) => void = () => {}
+
+	if (socketPath) {
+		const ipcResult = registerIpcListeners(provider, context, outputChannel, socketPath, enableLogging)
+		emit = ipcResult.emit
+	}
+
+	// ── Public API ─────────────────────────────────────────────────────
+	// Compose the public JabberwockAPI from feature store functions.
+	// This replaces the old monolithic API class.
+	return createJabberwockApi({ outputChannel, provider, context, emit })
 }
 
 // This method is called when your extension is deactivated.
@@ -431,31 +593,28 @@ export async function deactivate() {
 
 	// NOTE: We do NOT stop the Devtool WebSocket server here.
 	//
-	// The WsMcpServer state is stored in globalThis.__jabberwock_ws_mcp_global_state
-	// specifically to survive hot-module replacement (HMR). On HMR, deactivate() is
-	// called but globalThis persists. If we killed the server here, all MCP clients
-	// (e.g. Roo-Code's WebSocketClientTransport) would disconnect and stay
-	// disconnected — they have no auto-reconnect logic.
-	//
-	// The start() method in WsMcpServer already checks:
-	//   if (gs.wss) { return this.port }
-	// so it will safely reuse the existing server across HMR cycles.
+	// On HMR, the deactivate() is called but the snapshot in context.globalState
+	// persists, so the MST BackendRootStore state survives. The WsMcpServer
+	// handles HMR internally — it reuses the existing WebSocketServer instance
+	// when start() is called again.
 	//
 	// On a full process exit (F5 restart), the OS releases the socket automatically,
 	// and the EADDRINUSE retry loop handles the brief TIME_WAIT window.
 
-	if (cloudService && CloudService.hasInstance()) {
+	const svcReg = (await import("./features/core/ServiceRegistry")).getServiceRegistry()
+	const cloudService = svcReg.cloudService
+	if (cloudService && hasCloudService()) {
 		try {
-			if (authStateChangedHandler) {
-				CloudService.instance.off("auth-state-changed", authStateChangedHandler)
+			if (svcReg.authStateChangedHandler) {
+				getCloudService().off("auth-state-changed", svcReg.authStateChangedHandler)
 			}
 
-			if (settingsUpdatedHandler) {
-				CloudService.instance.off("settings-updated", settingsUpdatedHandler)
+			if (svcReg.settingsUpdatedHandler) {
+				getCloudService().off("settings-updated", svcReg.settingsUpdatedHandler)
 			}
 
-			if (userInfoHandler) {
-				CloudService.instance.off("user-info", userInfoHandler as any)
+			if (svcReg.userInfoHandler) {
+				getCloudService().off("user-info", svcReg.userInfoHandler as (...args: unknown[]) => void)
 			}
 
 			outputChannel.appendLine("CloudService event handlers cleaned up")
@@ -466,7 +625,12 @@ export async function deactivate() {
 		}
 	}
 
-	await McpServerManager.cleanup(extensionContext)
-	TelemetryService.instance.shutdown()
+	const mcpManager = svcReg.mcpManager
+	if (mcpManager) {
+		await mcpManager.cleanup(extensionContext)
+	}
+	if (hasTelemetryService()) {
+		getTelemetryService().shutdown()
+	}
 	TerminalRegistry.cleanup()
 }

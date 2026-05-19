@@ -51,8 +51,7 @@ export interface CustomToolDefinition {
 	 * @param context - Execution context with session and message info
 	 * @returns A string result to return to the AI
 	 */
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	execute: (args: any, context: CustomToolContext) => Promise<string>
+	execute: (args: Record<string, unknown>, context: CustomToolContext) => Promise<string>
 }
 
 export interface SerializedCustomToolDefinition {

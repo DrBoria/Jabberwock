@@ -1,13 +1,19 @@
 import fs from "fs/promises"
 import * as path from "path"
 import * as vscode from "vscode"
+import { getMstState } from "../../features/foundation/mst/store"
 
 import delay from "delay"
 
-import { CommandExecutionStatus, DEFAULT_TERMINAL_OUTPUT_PREVIEW_SIZE, PersistedCommandOutput } from "@jabberwock/types"
-import { TelemetryService } from "@jabberwock/telemetry"
+import {
+	CommandExecutionStatus,
+	DEFAULT_TERMINAL_OUTPUT_PREVIEW_SIZE,
+	PersistedCommandOutput,
+	TerminalOutputPreviewSize,
+} from "@jabberwock/types"
+import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 
-import { Task } from "../task/Task"
+import { Task } from "../../features/chat/task/Task"
 
 import { ToolUse, ToolResponse } from "../../shared/tools"
 import { formatResponse } from "../prompts/responses"
@@ -118,7 +124,7 @@ export class ExecuteCommandTool extends BaseTool<"execute_command"> {
 			} catch (error: unknown) {
 				const status: CommandExecutionStatus = { executionId, status: "fallback" }
 				provider?.postMessageToWebview({ type: "commandExecutionStatus", text: JSON.stringify(status) })
-				provider?.commandExecutionStore?.addOrUpdateExecution(status)
+				provider?.postMessageToWebview({ type: "commandExecutionStatus", text: JSON.stringify(status) })
 				await task.say("shell_integration_warning")
 
 				// Invalidate pending ask from first execution to prevent race condition
@@ -220,7 +226,7 @@ export async function executeCommandInTerminal(
 			taskId: task.taskId,
 			command,
 			storageDir,
-			previewSize: terminalOutputPreviewSize,
+			previewSize: terminalOutputPreviewSize as TerminalOutputPreviewSize,
 		})
 	}
 
@@ -302,7 +308,9 @@ export async function executeCommandInTerminal(
 			latestCompressedOutput = compressedOutput
 			const status: CommandExecutionStatus = { executionId, status: "output", output: compressedOutput }
 			provider?.postMessageToWebview({ type: "commandExecutionStatus", text: JSON.stringify(status) })
-			provider?.commandExecutionStore?.addOrUpdateExecution(status)
+			if (provider) {
+				getMstState(provider).commandExecutionStore?.addOrUpdateExecution(status)
+			}
 			schedulePartialCommandOutputUpdate()
 
 			if (runInBackground || hasAskedForCommandOutput) {
@@ -353,19 +361,23 @@ export async function executeCommandInTerminal(
 		onShellExecutionStarted: (pid: number | undefined) => {
 			const status: CommandExecutionStatus = { executionId, status: "started", pid, command }
 			provider?.postMessageToWebview({ type: "commandExecutionStatus", text: JSON.stringify(status) })
-			provider?.commandExecutionStore?.addOrUpdateExecution(status)
+			if (provider) {
+				getMstState(provider).commandExecutionStore?.addOrUpdateExecution(status)
+			}
 		},
 		onShellExecutionComplete: (details: ExitCodeDetails) => {
 			const status: CommandExecutionStatus = { executionId, status: "exited", exitCode: details.exitCode }
 			provider?.postMessageToWebview({ type: "commandExecutionStatus", text: JSON.stringify(status) })
-			provider?.commandExecutionStore?.addOrUpdateExecution(status)
+			if (provider) {
+				getMstState(provider).commandExecutionStore?.addOrUpdateExecution(status)
+			}
 			exitDetails = details
 		},
 	}
 
 	if (terminalProvider === "vscode") {
 		callbacks.onNoShellIntegration = async (error: string) => {
-			TelemetryService.instance.captureShellIntegrationError(task.taskId)
+			getTelemetryService().captureShellIntegrationError(task.taskId)
 			shellIntegrationError = error
 		}
 	}
@@ -428,7 +440,9 @@ export async function executeCommandInTerminal(
 		if (isUserTimedOut) {
 			const status: CommandExecutionStatus = { executionId, status: "timeout" }
 			provider?.postMessageToWebview({ type: "commandExecutionStatus", text: JSON.stringify(status) })
-			provider?.commandExecutionStore?.addOrUpdateExecution(status)
+			if (provider) {
+				getMstState(provider).commandExecutionStore?.addOrUpdateExecution(status)
+			}
 			await task.say("error", t("common:errors:command_timeout", { seconds: commandExecutionTimeoutSeconds }))
 			task.didToolFailInCurrentTurn = true
 			task.terminalProcess = undefined

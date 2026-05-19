@@ -4,7 +4,8 @@ import { CodeActionId, CodeActionName } from "@jabberwock/types"
 
 import { getCodeActionCommand } from "../utils/commands"
 import { EditorUtils } from "../integrations/editor/EditorUtils"
-import { ClineProvider } from "../core/webview/ClineProvider"
+import { EventBridge } from "../core/webview/EventBridge"
+import { handleCodeAction } from "../features/foundation/agent-state/handlers"
 
 export const registerCodeActions = (context: vscode.ExtensionContext) => {
 	registerCodeAction(context, "explainCode", "EXPLAIN")
@@ -17,17 +18,23 @@ const registerCodeAction = (context: vscode.ExtensionContext, command: CodeActio
 	let userInput: string | undefined
 
 	context.subscriptions.push(
-		vscode.commands.registerCommand(getCodeActionCommand(command), async (...args: any[]) => {
+		vscode.commands.registerCommand(getCodeActionCommand(command), async (...args: unknown[]) => {
 			// Handle both code action and direct command cases.
 			let filePath: string
 			let selectedText: string
 			let startLine: number | undefined
 			let endLine: number | undefined
-			let diagnostics: any[] | undefined
+			let diagnostics: unknown[] | undefined
 
 			if (args.length > 1) {
 				// Called from code action.
-				;[filePath, selectedText, startLine, endLine, diagnostics] = args
+				;[filePath, selectedText, startLine, endLine, diagnostics] = args as [
+					string,
+					string,
+					number | undefined,
+					number | undefined,
+					unknown[] | undefined,
+				]
 			} else {
 				// Called directly from command palette.
 				const context = EditorUtils.getEditorContext()
@@ -47,7 +54,15 @@ const registerCodeAction = (context: vscode.ExtensionContext, command: CodeActio
 				...(userInput ? { userInput } : {}),
 			}
 
-			await ClineProvider.handleCodeAction(command, promptType, params)
+			const provider = EventBridge.getFirstAvailableInstance()
+			if (provider) {
+				await handleCodeAction(provider, {
+					type: "handleCodeAction",
+					command,
+					promptType,
+					params,
+				})
+			}
 		}),
 	)
 }

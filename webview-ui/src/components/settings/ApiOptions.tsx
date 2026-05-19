@@ -32,6 +32,11 @@ import {
 	vercelAiGatewayDefaultModelId,
 	minimaxDefaultModelId,
 	unboundDefaultModelId,
+	AGENT_STATE_REQUEST_OPEN_AI_MODELS as _AGENT_STATE_REQUEST_OPEN_AI_MODELS,
+	AGENT_STATE_REQUEST_OLLAMA_MODELS as _AGENT_STATE_REQUEST_OLLAMA_MODELS,
+	AGENT_STATE_REQUEST_LM_STUDIO_MODELS as _AGENT_STATE_REQUEST_LM_STUDIO_MODELS,
+	AGENT_STATE_REQUEST_VS_CODE_LM_MODELS as _AGENT_STATE_REQUEST_VS_CODE_LM_MODELS,
+	AGENT_STATE_REQUEST_ROUTER_MODELS as _AGENT_STATE_REQUEST_ROUTER_MODELS,
 } from "@jabberwock/types"
 
 import {
@@ -42,7 +47,7 @@ import {
 	handleModelChangeSideEffects,
 } from "./utils/providerModelConfig"
 
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { validateApiConfigurationExcludingModelErrors, getModelValidationError } from "@src/utils/validate"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { useRouterModels } from "@src/components/ui/hooks/useRouterModels"
@@ -160,7 +165,9 @@ const ApiOptions = ({
 	const handleInputChange = useCallback(
 		<K extends keyof ProviderSettings, E>(
 			field: K,
-			transform: (event: E) => ProviderSettings[K] = inputEventTransform,
+			transform: (event: E) => ProviderSettings[K] = inputEventTransform as unknown as (
+				event: E,
+			) => ProviderSettings[K],
 		) =>
 			(event: E | Event) => {
 				setApiConfigurationField(field, transform(event as E))
@@ -214,23 +221,20 @@ const ApiOptions = ({
 				// Use our custom headers state to build the headers object.
 				const headerObject = convertHeadersToObject(customHeaders)
 
-				vscode.postMessage({
-					type: "requestOpenAiModels",
-					values: {
-						baseUrl: apiConfiguration?.openAiBaseUrl,
-						apiKey: apiConfiguration?.openAiApiKey,
-						customHeaders: {}, // Reserved for any additional headers.
-						openAiHeaders: headerObject,
-					},
+				rootStore.settings.requestOpenAiModels({
+					baseUrl: apiConfiguration?.openAiBaseUrl,
+					apiKey: apiConfiguration?.openAiApiKey,
+					customHeaders: {}, // Reserved for any additional headers.
+					openAiHeaders: headerObject,
 				})
 			} else if (selectedProvider === "ollama") {
-				vscode.postMessage({ type: "requestOllamaModels" })
+				rootStore.settings.requestOllamaModels()
 			} else if (selectedProvider === "lmstudio") {
-				vscode.postMessage({ type: "requestLmStudioModels" })
+				rootStore.settings.requestLmStudioModels()
 			} else if (selectedProvider === "vscode-lm") {
-				vscode.postMessage({ type: "requestVsCodeLmModels" })
+				rootStore.settings.requestVscodeLmModels()
 			} else if (selectedProvider === "litellm" || selectedProvider === "jabberwock") {
-				vscode.postMessage({ type: "requestRouterModels" })
+				rootStore.settings.requestRouterModels()
 			}
 		},
 		250,

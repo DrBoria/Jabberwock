@@ -7,7 +7,7 @@ import type { ClineMessage, ExtensionMessage } from "@jabberwock/types"
 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@src/components/ui/collapsible"
 import { cn } from "@/lib/utils"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 
 import { fileChangesFromMessages, type FileChangeEntry } from "./utils/file-changes-from-messages"
 import CodeAccordion from "@src/components/common/CodeAccordion"
@@ -78,7 +78,7 @@ const FileChangesPanel = memo(({ clineMessages, className }: FileChangesPanelPro
 				!pendingPathsRef.current.has(lookupPath)
 			) {
 				pendingPathsRef.current.add(lookupPath)
-				vscode.postMessage({ type: "readFileContent", text: lookupPath })
+				rootStore.settings.readFileContent(lookupPath)
 			}
 		}
 	}, [expandedPaths, byPath, finalContentByPath])
@@ -163,10 +163,9 @@ const FileChangesPanel = memo(({ clineMessages, className }: FileChangesPanelPro
 									onJumpToFile={
 										path
 											? () =>
-													vscode.postMessage({
-														type: "openFile",
-														text: path.startsWith("./") ? path : "./" + path,
-													})
+													rootStore.settings.openFile(
+														path.startsWith("./") ? path : "./" + path,
+													)
 											: undefined
 									}
 								/>

@@ -1464,6 +1464,9 @@ importers:
       '@types/diff':
         specifier: ^5.2.1
         version: 5.2.3
+      '@types/hast':
+        specifier: ^3.0.4
+        version: 3.0.4
       '@types/jest':
         specifier: ^29.0.0
         version: 29.5.14
@@ -1485,6 +1488,9 @@ importers:
       '@types/stacktrace-js':
         specifier: ^2.0.3
         version: 2.0.3
+      '@types/unist':
+        specifier: ^3.0.3
+        version: 3.0.3
       '@types/vscode-webview':
         specifier: ^1.57.5
         version: 1.57.5
@@ -1503,6 +1509,9 @@ importers:
       jsdom:
         specifier: ^26.0.0
         version: 26.1.0
+      unified:
+        specifier: ^11.0.5
+        version: 11.0.5
       vite:
         specifier: 6.3.6
         version: 6.3.6(@types/node@20.17.57)(jiti@2.4.2)(lightningcss@1.30.1)(tsx@4.19.4)(yaml@2.8.0)
@@ -16748,7 +16757,7 @@ snapshots:
       sirv: 3.0.1
       tinyglobby: 0.2.14
       tinyrainbow: 2.0.0
-      vitest: 3.2.4(@types/debug@4.1.12)(@types/node@24.2.1)(@vitest/ui@3.2.4)(jiti@2.4.2)(jsdom@26.1.0)(lightningcss@1.30.1)(tsx@4.19.4)(yaml@2.8.0)
+      vitest: 3.2.4(@types/debug@4.1.12)(@types/node@20.17.57)(@vitest/ui@3.2.4)(jiti@2.4.2)(jsdom@26.1.0)(lightningcss@1.30.1)(tsx@4.19.4)(yaml@2.8.0)
 
   '@vitest/utils@3.2.4':
     dependencies:

@@ -19,6 +19,8 @@ export interface ProcessUserContentMentionsResult {
  * Each file/folder mention becomes a separate text block formatted
  * to look like a read_file tool result.
  */
+import { JabberwockIgnoreController } from "../ignore/JabberwockIgnoreController"
+
 function contentBlocksToTextParts(contentBlocks: MentionContentBlock[]): TextPart[] {
 	return contentBlocks.map((block) => ({
 		type: "text" as const,
@@ -47,7 +49,7 @@ export async function processUserContentMentions({
 	userContent: Anthropic.Messages.ContentBlockParam[]
 	cwd: string
 	fileContextTracker: FileContextTracker
-	jabberwockIgnoreController?: any
+	jabberwockIgnoreController?: JabberwockIgnoreController
 	showJabberwockIgnoredFiles?: boolean
 	includeDiagnosticMessages?: boolean
 	maxDiagnosticMessages?: number

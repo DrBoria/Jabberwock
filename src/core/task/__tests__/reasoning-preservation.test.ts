@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import type { ClineProvider } from "../../webview/ClineProvider"
+import type { EventBridge } from "../../webview/EventBridge"
 import type { ProviderSettings, ModelInfo } from "@jabberwock/types"
 
 // All vi.mock() calls are hoisted to the top of the file by Vitest
@@ -152,17 +152,15 @@ vi.mock("../../../utils/fs", () => ({
 }))
 
 // Import Task AFTER all vi.mock() calls - Vitest hoists mocks so this works
-import { Task } from "../Task"
+import { Task } from "../../../features/chat/task/Task"
 
 describe("Task reasoning preservation", () => {
-	let mockProvider: Partial<ClineProvider>
+	let mockProvider: Partial<EventBridge>
 	let mockApiConfiguration: ProviderSettings
 
 	beforeEach(() => {
 		// Mock provider with necessary methods
 		mockProvider = {
-			postStateToWebview: vi.fn().mockResolvedValue(undefined),
-			postStateToWebviewWithoutTaskHistory: vi.fn().mockResolvedValue(undefined),
 			getState: vi.fn().mockResolvedValue({
 				mode: "code",
 				experiments: {},
@@ -172,7 +170,6 @@ describe("Task reasoning preservation", () => {
 				extensionPath: "/test/extension",
 			} as any,
 			log: vi.fn(),
-			updateTaskHistory: vi.fn().mockResolvedValue(undefined),
 			postMessageToWebview: vi.fn().mockResolvedValue(undefined),
 		}
 
@@ -185,7 +182,7 @@ describe("Task reasoning preservation", () => {
 	it("should append reasoning to assistant message when preserveReasoning is true", async () => {
 		// Create a task instance
 		const task = new Task({
-			provider: mockProvider as ClineProvider,
+			provider: mockProvider as EventBridge,
 			apiConfiguration: mockApiConfiguration,
 			task: "Test task",
 			startTask: false,
@@ -252,7 +249,7 @@ describe("Task reasoning preservation", () => {
 	it("should NOT append reasoning to assistant message when preserveReasoning is false", async () => {
 		// Create a task instance
 		const task = new Task({
-			provider: mockProvider as ClineProvider,
+			provider: mockProvider as EventBridge,
 			apiConfiguration: mockApiConfiguration,
 			task: "Test task",
 			startTask: false,
@@ -310,7 +307,7 @@ describe("Task reasoning preservation", () => {
 	it("should handle empty reasoning message gracefully when preserveReasoning is true", async () => {
 		// Create a task instance
 		const task = new Task({
-			provider: mockProvider as ClineProvider,
+			provider: mockProvider as EventBridge,
 			apiConfiguration: mockApiConfiguration,
 			task: "Test task",
 			startTask: false,
@@ -364,7 +361,7 @@ describe("Task reasoning preservation", () => {
 	it("should handle undefined preserveReasoning (defaults to false)", async () => {
 		// Create a task instance
 		const task = new Task({
-			provider: mockProvider as ClineProvider,
+			provider: mockProvider as EventBridge,
 			apiConfiguration: mockApiConfiguration,
 			task: "Test task",
 			startTask: false,
@@ -408,7 +405,7 @@ describe("Task reasoning preservation", () => {
 
 	it("should embed encrypted reasoning as first assistant content block", async () => {
 		const task = new Task({
-			provider: mockProvider as ClineProvider,
+			provider: mockProvider as EventBridge,
 			apiConfiguration: mockApiConfiguration,
 			task: "Test task",
 			startTask: false,
@@ -454,7 +451,7 @@ describe("Task reasoning preservation", () => {
 
 	it("should store plain text reasoning from streaming for all providers", async () => {
 		const task = new Task({
-			provider: mockProvider as ClineProvider,
+			provider: mockProvider as EventBridge,
 			apiConfiguration: mockApiConfiguration,
 			task: "Test task",
 			startTask: false,

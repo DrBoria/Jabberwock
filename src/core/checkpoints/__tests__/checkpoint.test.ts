@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach, Mock } from "vitest"
-import { Task } from "../../task/Task"
-import { ClineProvider } from "../../webview/ClineProvider"
+import { Task } from "../../../features/chat/task/Task"
+import { EventBridge } from "../../webview/EventBridge"
 import { checkpointSave, checkpointRestore, checkpointDiff, getCheckpointService } from "../index"
 import { MessageManager } from "../../message-manager"
 import * as vscode from "vscode"

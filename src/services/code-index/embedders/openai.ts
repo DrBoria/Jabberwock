@@ -12,7 +12,7 @@ import { getModelQueryPrefix } from "../../../shared/embeddingModels"
 import { t } from "../../../i18n"
 import { withValidationErrorHandling, formatEmbeddingError, HttpError } from "../shared/validation-helpers"
 import { TelemetryEventName } from "@jabberwock/types"
-import { TelemetryService } from "@jabberwock/telemetry"
+import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 import { handleOpenAIError } from "../../../api/providers/utils/openai-error-handler"
 
 /**
@@ -149,7 +149,7 @@ export class OpenAiEmbedder extends OpenAiNativeHandler implements IEmbedder {
 						totalTokens: response.usage?.total_tokens || 0,
 					},
 				}
-			} catch (error: any) {
+			} catch (error) {
 				const hasMoreAttempts = attempts < MAX_RETRIES - 1
 
 				// Check if it's a rate limit error
@@ -168,7 +168,7 @@ export class OpenAiEmbedder extends OpenAiNativeHandler implements IEmbedder {
 				}
 
 				// Capture telemetry before reformatting the error
-				TelemetryService.instance.captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
+				getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
 					error: error instanceof Error ? error.message : String(error),
 					stack: error instanceof Error ? error.stack : undefined,
 					location: "OpenAiEmbedder:_embedBatchWithRetries",
@@ -210,7 +210,7 @@ export class OpenAiEmbedder extends OpenAiNativeHandler implements IEmbedder {
 				return { valid: true }
 			} catch (error) {
 				// Capture telemetry for validation errors
-				TelemetryService.instance.captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
+				getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
 					error: error instanceof Error ? error.message : String(error),
 					stack: error instanceof Error ? error.stack : undefined,
 					location: "OpenAiEmbedder:validateConfiguration",

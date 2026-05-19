@@ -1,4 +1,5 @@
 import { types, Instance } from "mobx-state-tree"
+import type { ModelRecord, RouterModels } from "@jabberwock/types"
 
 /**
  * RouterModelsStore — tracks router model lists.
@@ -6,29 +7,44 @@ import { types, Instance } from "mobx-state-tree"
  */
 export const RouterModelsStore = types
 	.model("RouterModelsStore", {
-		routerModels: types.maybe(types.frozen<any>()),
-		ollamaModels: types.maybe(types.frozen<any>()),
-		lmStudioModels: types.maybe(types.frozen<any>()),
-		openAiModels: types.maybe(types.frozen<any>()),
-		vsCodeLmModels: types.maybe(types.frozen<any>()),
+		routerModels: types.frozen<RouterModels>(),
+		ollamaModels: types.frozen<ModelRecord>(),
+		lmStudioModels: types.frozen<ModelRecord>(),
+		openAiModels: types.frozen<string[]>(),
+		vsCodeLmModels: types.frozen<{ vendor?: string; family?: string; version?: string; id?: string }[]>(),
 	})
 	.actions((self) => ({
-		setRouterModels(models: any) {
+		setRouterModels(models: RouterModels) {
 			self.routerModels = models
 		},
-		setOllamaModels(models: any) {
+		setOllamaModels(models: ModelRecord) {
 			self.ollamaModels = models
 		},
-		setLmStudioModels(models: any) {
+		setLmStudioModels(models: ModelRecord) {
 			self.lmStudioModels = models
 		},
-		setOpenAiModels(models: any) {
+		setOpenAiModels(models: string[]) {
 			self.openAiModels = models
 		},
-		setVsCodeLmModels(models: any) {
+		setVsCodeLmModels(models: { vendor?: string; family?: string; version?: string; id?: string }[]) {
 			self.vsCodeLmModels = models
 		},
 	}))
 
 export type IRouterModelsStore = Instance<typeof RouterModelsStore>
-export const routerModelsStore = RouterModelsStore.create({})
+export const routerModelsStore = RouterModelsStore.create({
+	routerModels: {
+		openrouter: {},
+		"vercel-ai-gateway": {},
+		litellm: {},
+		requesty: {},
+		jabberwock: {},
+		unbound: {},
+		ollama: {},
+		lmstudio: {},
+	},
+	ollamaModels: {},
+	lmStudioModels: {},
+	openAiModels: [],
+	vsCodeLmModels: [],
+})

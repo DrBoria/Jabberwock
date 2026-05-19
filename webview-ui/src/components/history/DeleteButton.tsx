@@ -3,7 +3,8 @@ import { useCallback } from "react"
 import { Button } from "../ui/button"
 import { StandardTooltip } from "../ui/standard-tooltip"
 import { useAppTranslation } from "@/i18n/TranslationContext"
-import { vscode } from "@jabberwock/devtool/react"
+import { WINDOW_MANAGER_DELETE_TASK_WITH_ID as _WINDOW_MANAGER_DELETE_TASK_WITH_ID } from "@jabberwock/types"
+import { rootStore } from "@src/features/store"
 
 type DeleteButtonProps = {
 	itemId: string
@@ -17,7 +18,7 @@ export const DeleteButton = ({ itemId, onDelete }: DeleteButtonProps) => {
 		(e: React.MouseEvent) => {
 			e.stopPropagation()
 			if (e.shiftKey) {
-				vscode.postMessage({ type: "deleteTaskWithId", text: itemId })
+				rootStore.history.deleteTaskWithId(itemId)
 			} else if (onDelete) {
 				onDelete(itemId)
 			}

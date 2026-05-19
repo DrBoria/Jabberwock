@@ -1,6 +1,5 @@
 import React from "react"
 import { useTranslation } from "react-i18next"
-import { vscode } from "@jabberwock/devtool/react"
 import { StandardTooltip } from "@src/components/ui/standard-tooltip"
 
 interface CodebaseSearchResultProps {
@@ -12,18 +11,13 @@ interface CodebaseSearchResultProps {
 	language: string
 }
 
+import { rootStore } from "@src/features/store"
 const CodebaseSearchResult: React.FC<CodebaseSearchResultProps> = ({ filePath, score, startLine, endLine }) => {
 	const { t } = useTranslation("chat")
 
 	const handleClick = () => {
 		console.log(filePath)
-		vscode.postMessage({
-			type: "openFile",
-			text: "./" + filePath,
-			values: {
-				line: startLine,
-			},
-		})
+		rootStore.settings.openFile("./" + filePath, { line: startLine })
 	}
 
 	return (

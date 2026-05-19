@@ -1,6 +1,6 @@
 import { memo } from "react"
 import { ArrowRight } from "lucide-react"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { cn } from "@/lib/utils"
 import type { SubtaskTreeNode } from "./types"
 import { countAllSubtasks } from "./types"
@@ -28,7 +28,7 @@ const SubtaskRow = ({ node, depth, onToggleExpand, className }: SubtaskRowProps)
 	const hasChildren = children.length > 0
 
 	const handleClick = () => {
-		vscode.postMessage({ type: "showTaskWithId", text: item.id })
+		rootStore.chat.navigateToTask(item.id)
 	}
 
 	return (

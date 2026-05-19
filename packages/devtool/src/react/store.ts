@@ -9,8 +9,8 @@ import { types, Instance } from "mobx-state-tree"
 
 export const DevToolsStore = types
 	.model("DevToolsStore", {
-		isOpen: types.optional(types.boolean, false),
-		activeTab: types.optional(types.string, "console"),
+		isOpen: types.boolean,
+		activeTab: types.string,
 	})
 	.actions((self) => ({
 		toggle() {
@@ -29,4 +29,4 @@ export const DevToolsStore = types
 
 export type IDevToolsStore = Instance<typeof DevToolsStore>
 
-export const devToolsStore = DevToolsStore.create({})
+export const devToolsStore = DevToolsStore.create({ isOpen: false, activeTab: "" })

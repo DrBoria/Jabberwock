@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react"
 import { TelemetryEventName } from "@jabberwock/types"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { telemetryClient } from "@/features/cloud/utils/TelemetryClient"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 
@@ -54,7 +54,7 @@ export const useCloudUpsell = (options: UseCloudUpsellOptions = {}) => {
 		setShouldOpenOnAuth(true)
 
 		// Send message to VS Code to initiate sign in
-		vscode.postMessage({ type: "jabberwockCloudSignIn" })
+		rootStore.cloud.cloudSignIn()
 
 		// Close the upsell dialog
 		closeUpsell()

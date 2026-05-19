@@ -1,12 +1,12 @@
 // npx vitest run __tests__/single-open-invariant.spec.ts
 
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { ClineProvider } from "../core/webview/ClineProvider"
-import { API } from "../extension/api"
+import { EventBridge } from "../core/webview/EventBridge"
+import { startNewTask } from "../features/chat/api-methods"
 import * as ProfileValidatorMod from "../shared/ProfileValidator"
 
-// Mock Task class used by ClineProvider to avoid heavy startup
-vi.mock("../core/task/Task", () => {
+// Mock Task class used by EventBridge to avoid heavy startup
+vi.mock("../features/chat/task/Task", () => {
 	class TaskStub {
 		public taskId: string
 		public instanceId = "inst"
@@ -65,9 +65,9 @@ describe("Single-open-task invariant", () => {
 				setProviderSettings: vi.fn(),
 				getProviderSettings: vi.fn(() => ({})),
 			},
-		} as unknown as ClineProvider
+		} as unknown as EventBridge
 
-		await (ClineProvider.prototype as any).createTask.call(provider, "New task")
+		await (EventBridge.prototype as any).createTask.call(provider, "New task")
 
 		expect(removeClineFromStack).toHaveBeenCalledTimes(1)
 		expect(addClineToStack).toHaveBeenCalledTimes(1)
@@ -109,7 +109,7 @@ describe("Single-open-task invariant", () => {
 				getProviderSettings: vi.fn(() => ({})),
 			},
 			postStateToWebview: vi.fn(),
-		} as unknown as ClineProvider
+		} as unknown as EventBridge
 
 		const historyItem = {
 			id: "hist-1",
@@ -122,7 +122,7 @@ describe("Single-open-task invariant", () => {
 			workspace: "/tmp",
 		}
 
-		const task = await (ClineProvider.prototype as any).createTaskWithHistoryItem.call(provider, historyItem)
+		const task = await (EventBridge.prototype as any).createTaskWithHistoryItem.call(provider, historyItem)
 		expect(task).toBeTruthy()
 		expect(removeClineFromStack).toHaveBeenCalledTimes(1)
 		expect(addClineToStack).toHaveBeenCalledTimes(1)
@@ -145,12 +145,12 @@ describe("Single-open-task invariant", () => {
 				}
 				return provider
 			}),
-		} as unknown as ClineProvider
+		} as unknown as EventBridge
 
-		const output = { appendLine: vi.fn() } as any
-		const api = new API(output, provider, undefined, false)
+		const mockOutput = { appendLine: vi.fn() } as unknown as import("vscode").OutputChannel
+		const mockContext = {} as any
 
-		const taskId = await api.startNewTask({
+		const taskId = await startNewTask(provider, mockContext, mockOutput, {
 			configuration: {},
 			text: "hello",
 			images: undefined,

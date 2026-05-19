@@ -3,7 +3,7 @@ import { VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react"
 
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 
 const McpEnabledToggle = () => {
 	const { mcpEnabled, setMcpEnabled } = useExtensionState()
@@ -17,7 +17,7 @@ const McpEnabledToggle = () => {
 		}
 
 		setMcpEnabled(target.checked)
-		vscode.postMessage({ type: "updateSettings", updatedSettings: { mcpEnabled: target.checked } })
+		rootStore.settings.updateSettings({ mcpEnabled: target.checked })
 	}
 
 	return (

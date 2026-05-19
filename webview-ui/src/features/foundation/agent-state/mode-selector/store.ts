@@ -5,9 +5,9 @@ import { types, Instance } from "mobx-state-tree"
  * Receives snapshots from the extension-side store via MstBridge.
  */
 export const ModeSelectorStore = types.model("ModeSelectorStore", {
-	currentMode: types.maybe(types.string),
-	allModes: types.optional(types.array(types.frozen<any>()), []),
-	customModes: types.optional(types.array(types.frozen<any>()), []),
+	currentMode: types.string,
+	allModes: types.array(types.frozen<any>()),
+	customModes: types.array(types.frozen<any>()),
 })
 
 export type IModeSelectorStore = Instance<typeof ModeSelectorStore>

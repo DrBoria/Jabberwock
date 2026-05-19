@@ -160,33 +160,35 @@ export async function getRooModels(baseUrl: string, apiKey?: string): Promise<Mo
 		} finally {
 			clearTimeout(timeoutId)
 		}
-	} catch (error: any) {
-		// Enhanced error logging
+	} catch (error) {
+		const err = error instanceof Error ? error : new Error(String(error))
+		// Network errors (TypeError / AbortError) mean the service is unreachable.
+		// This is expected for non-existent services like Jabberwock Cloud,
+		// so return an empty model list gracefully instead of throwing.
+		// HTTP-level errors (non-2xx responses) indicate a reachable-but-broken
+		// service and are still thrown for proper error reporting.
+		if (err.name === "AbortError" || err instanceof TypeError) {
+			console.debug("[getRooModels] Jabberwock Cloud is unreachable, returning empty models:", {
+				message: err.message || String(err),
+				name: err.name,
+				url,
+			})
+			return {}
+		}
+
+		// For HTTP errors and other unexpected errors, log and re-throw
 		console.error("[getRooModels] Error fetching Jabberwock Cloud models:", {
-			message: error.message || String(error),
-			name: error.name,
-			stack: error.stack,
+			message: err.message || String(err),
+			name: err.name,
+			stack: err.stack,
 			url,
 			hasApiKey: Boolean(apiKey),
 		})
 
-		// Handle abort/timeout
-		if (error.name === "AbortError") {
-			throw new Error("Failed to fetch Jabberwock Cloud models: Request timed out after 10 seconds.")
+		if (err.message?.includes("HTTP")) {
+			throw new Error(`Failed to fetch Jabberwock Cloud models: ${err.message}. Check base URL and API key.`)
 		}
 
-		// Handle fetch errors
-		if (error.message?.includes("HTTP")) {
-			throw new Error(`Failed to fetch Jabberwock Cloud models: ${error.message}. Check base URL and API key.`)
-		}
-
-		// Handle network errors
-		if (error instanceof TypeError) {
-			throw new Error(
-				"Failed to fetch Jabberwock Cloud models: No response from server. Check Jabberwock Cloud server status and base URL.",
-			)
-		}
-
-		throw new Error(`Failed to fetch Jabberwock Cloud models: ${error.message || "An unknown error occurred."}`)
+		throw new Error(`Failed to fetch Jabberwock Cloud models: ${err.message || "An unknown error occurred."}`)
 	}
 }

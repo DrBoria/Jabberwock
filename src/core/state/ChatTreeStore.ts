@@ -1,35 +1,35 @@
-import { types } from "mobx-state-tree"
+import { types, Instance } from "mobx-state-tree"
 
 export const Message = types.model("Message", {
 	id: types.identifier,
-	role: types.optional(types.string, "cline"), // "user", "assistant", or default to "cline"
+	role: types.string, // "user", "assistant", or default to "cline"
 	content: types.frozen(), // For Anthropic-style multi-block content
-	type: types.maybe(types.string), // cline: "say" or "ask"
-	say: types.maybe(types.string), // cline: "text", "error", etc.
-	ask: types.maybe(types.string), // cline: "tool", "followup", etc.
-	text: types.maybe(types.string), // main text content
-	partial: types.maybe(types.boolean),
+	type: types.optional(types.string, ""), // cline: "say" or "ask"
+	say: types.optional(types.string, ""), // cline: "text", "error", etc.
+	ask: types.optional(types.string, ""), // cline: "tool", "followup", etc.
+	text: types.optional(types.string, ""), // main text content
+	partial: types.optional(types.boolean, false),
 	images: types.optional(types.array(types.string), []),
-	ts: types.optional(types.number, () => Date.now()),
+	ts: types.optional(types.number, 0),
 })
 
 export const TaskNode = types
 	.model("TaskNode", {
 		id: types.identifier,
 		title: types.string,
-		mode: types.maybe(types.string),
-		status: types.optional(types.enumeration(["pending", "in_progress", "completed", "failed"]), "pending"),
+		mode: types.string,
+		status: types.enumeration(["pending", "in_progress", "completed", "failed"]),
 		messages: types.array(Message),
-		uiMessages: types.optional(types.frozen<any[]>(), []), // Store serialized ClineMessage objects
+		uiMessages: types.frozen<unknown[]>(), // Store serialized ClineMessage objects
 		children: types.array(types.string),
-		parentId: types.maybe(types.string),
-		rootId: types.maybe(types.string),
+		parentId: types.string,
+		rootId: types.string,
 	})
 	.actions((self) => ({
-		addMessage(msg: { id: string; role: string; content: any; ts?: number }) {
-			self.messages.push(msg)
+		addMessage(msg: { id: string; role: string; content: unknown; ts?: number }) {
+			self.messages.push(msg as never)
 		},
-		syncUiMessages(uiMessages: any[]) {
+		syncUiMessages(uiMessages: unknown[]) {
 			self.uiMessages = uiMessages
 		},
 		updateStatus(status: "pending" | "in_progress" | "completed" | "failed") {
@@ -41,20 +41,20 @@ export const TaskNode = types
 		addChild(childId: string) {
 			self.children.push(childId)
 		},
-		replaceMessages(newMessages: { id: string; role: string; content: any; ts?: number }[]) {
-			self.messages.replace(newMessages as any)
+		replaceMessages(newMessages: { id: string; role: string; content: unknown; ts?: number }[]) {
+			self.messages.replace(newMessages as never)
 		},
 		addApiMessage(msg: {
 			id: string
 			role?: string
-			content?: any
+			content?: unknown
 			text?: string
 			partial?: boolean
 			ts?: number
 		}) {
-			self.messages.push(msg as any)
+			self.messages.push(msg as never)
 		},
-		updateApiMessage(id: string, update: { role?: string; content?: any; text?: string; partial?: boolean }) {
+		updateApiMessage(id: string, update: { role?: string; content?: unknown; text?: string; partial?: boolean }) {
 			const msg = self.messages.find((m) => m.id === id)
 			if (msg) {
 				if (update.role) msg.role = update.role
@@ -68,14 +68,18 @@ export const TaskNode = types
 export const ChatStore = types
 	.model("ChatStore", {
 		nodes: types.map(TaskNode),
-		activeNodeId: types.maybe(types.reference(TaskNode)),
+		activeNodeId: types.safeReference(TaskNode),
 	})
 	.actions((self) => ({
 		createBranch(parentId = "", title = "", id = "") {
 			const node = TaskNode.create({
 				id,
 				title,
-				parentId: parentId || undefined,
+				mode: "",
+				status: "pending",
+				uiMessages: [],
+				parentId,
+				rootId: "",
 				messages: [],
 				children: [],
 			})
@@ -111,3 +115,5 @@ export const ChatStore = types
 			}
 		},
 	}))
+
+export type ChatStoreType = Instance<typeof ChatStore>

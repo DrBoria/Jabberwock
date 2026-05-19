@@ -34,7 +34,7 @@ import type {
 
 import { t } from "../../i18n"
 
-import { ClineProvider } from "../../core/webview/ClineProvider"
+import { EventBridge } from "../../core/webview/EventBridge"
 
 import { diagnosticsManager } from "@jabberwock/devtool"
 
@@ -45,6 +45,8 @@ import { arePathsEqual, getWorkspacePath } from "../../utils/path"
 import { injectVariables } from "../../utils/config"
 import { safeWriteJson } from "../../utils/safeWriteJson"
 import { sanitizeMcpName, toolNamesMatch } from "../../utils/mcp-name"
+import { getSettingsDirectoryPath } from "../../utils/storage"
+import { ensureSettingsDirectoryExists } from "../../utils/globalContext"
 
 // InternalMcpClientTransport has been removed.
 // The Devtool package (@jabberwock/devtool) now uses WebSocket-based MCP transport
@@ -67,13 +69,51 @@ class WebSocketClientTransport implements Transport {
 
 	onclose?: () => void
 	onerror?: (error: Error) => void
-	onmessage?: (message: any) => void
+	onmessage?: (message: unknown) => void
 
 	constructor(url: string) {
 		this.url = url
 	}
 
+	/**
+	 * Start the WebSocket connection with retry logic.
+	 * Retries up to `maxReconnectAttempts` times with exponential backoff
+	 * if the initial connection fails. This handles race conditions where
+	 * the target WebSocket server (e.g. Devtool) hasn't started listening yet.
+	 */
 	async start(): Promise<void> {
+		let lastError: Error | null = null
+
+		for (let attempt = 0; attempt <= this.maxReconnectAttempts; attempt++) {
+			if (attempt > 0) {
+				const delay = this.reconnectDelay * Math.pow(2, attempt - 1)
+				console.log(
+					`[WebSocketClientTransport] Retrying connection to ${this.url} in ${delay}ms (attempt ${attempt + 1}/${this.maxReconnectAttempts + 1})`,
+				)
+				await new Promise((r) => setTimeout(r, delay))
+			}
+
+			try {
+				await this.tryConnect()
+				this.wasEverConnected = true
+				this.reconnectAttempts = 0
+				return // Connected successfully
+			} catch (err) {
+				lastError = err as Error
+				console.log(
+					`[WebSocketClientTransport] Connection attempt ${attempt + 1}/${this.maxReconnectAttempts + 1} failed: ${(err as Error).message}`,
+				)
+			}
+		}
+
+		// All connection attempts exhausted
+		throw lastError ?? new Error(`Failed to connect to ${this.url} after ${this.maxReconnectAttempts + 1} attempts`)
+	}
+
+	/**
+	 * Single WebSocket connection attempt with 10-second timeout.
+	 */
+	private tryConnect(): Promise<void> {
 		return new Promise((resolve, reject) => {
 			try {
 				this.ws = new WebSocket(this.url)
@@ -94,8 +134,6 @@ class WebSocketClientTransport implements Transport {
 
 			this.ws.on("open", () => {
 				clearTimeout(timeout)
-				this.wasEverConnected = true // Mark that we successfully connected at least once
-				this.reconnectAttempts = 0 // Reset reconnect counter on successful connection
 				resolve()
 			})
 
@@ -150,7 +188,7 @@ class WebSocketClientTransport implements Transport {
 		}, delay)
 	}
 
-	async send(message: any): Promise<void> {
+	async send(message: unknown): Promise<void> {
 		if (!this.ws) {
 			throw new Error("WebSocket not connected")
 		}
@@ -296,7 +334,7 @@ const McpSettingsSchema = z.object({
 })
 
 export class McpHub extends EventEmitter {
-	providerRef: WeakRef<ClineProvider>
+	providerRef: WeakRef<EventBridge>
 	private disposables: vscode.Disposable[] = []
 	private settingsWatcher?: vscode.FileSystemWatcher
 	private fileWatchers: Map<string, FSWatcher[]> = new Map()
@@ -311,7 +349,7 @@ export class McpHub extends EventEmitter {
 	private sanitizedNameRegistry: Map<string, string> = new Map()
 	private initializationPromise: Promise<void>
 
-	constructor(provider: ClineProvider) {
+	constructor(provider: EventBridge) {
 		super()
 		this.providerRef = new WeakRef(provider)
 		this.watchMcpSettingsFile()
@@ -331,7 +369,7 @@ export class McpHub extends EventEmitter {
 		await this.initializationPromise
 	}
 	/**
-	 * Registers a client (e.g., ClineProvider) using this hub.
+	 * Registers a client (e.g., EventBridge) using this hub.
 	 * Increments the reference count.
 	 */
 	public registerClient(): void {
@@ -361,7 +399,10 @@ export class McpHub extends EventEmitter {
 	 * @returns The validated configuration
 	 * @throws Error if the configuration is invalid
 	 */
-	private validateServerConfig(config: any, serverName?: string): z.infer<typeof ServerConfigSchema> {
+	private validateServerConfig(
+		config: Record<string, unknown>,
+		serverName?: string,
+	): z.infer<typeof ServerConfigSchema> {
 		// Detect configuration issues before validation
 		const hasStdioFields = config.command !== undefined
 		const hasUrlFields = config.url !== undefined // Covers sse, websocket, and streamable-http
@@ -378,7 +419,7 @@ export class McpHub extends EventEmitter {
 
 		// Infer type for websocket URLs if not provided
 		if (hasUrlFields && !config.type) {
-			if (config.url.startsWith("ws://") || config.url.startsWith("wss://")) {
+			if ((config.url as string).startsWith("ws://") || (config.url as string).startsWith("wss://")) {
 				config.type = "websocket"
 			} else {
 				throw new Error(
@@ -390,7 +431,7 @@ export class McpHub extends EventEmitter {
 		// Validate type if provided
 		if (
 			config.type &&
-			!["stdio", "sse", "websocket", "streamable-http", "interactiveApp", "tool"].includes(config.type)
+			!["stdio", "sse", "websocket", "streamable-http", "interactiveApp", "tool"].includes(config.type as string)
 		) {
 			throw new Error(
 				"Server type must be 'stdio', 'sse', 'websocket', 'streamable-http', 'interactiveApp', or 'tool'",
@@ -487,7 +528,7 @@ export class McpHub extends EventEmitter {
 	private async handleConfigFileChange(filePath: string, source: "global" | "project"): Promise<void> {
 		try {
 			const content = await fs.readFile(filePath, "utf-8")
-			let config: any
+			let config: unknown
 
 			try {
 				config = JSON.parse(content)
@@ -511,7 +552,7 @@ export class McpHub extends EventEmitter {
 			await this.updateServerConnections(result.data.mcpServers || {}, source)
 		} catch (error) {
 			// Check if the error is because the file doesn't exist
-			if (error.code === "ENOENT" && source === "project") {
+			if ((error as NodeJS.ErrnoException).code === "ENOENT" && source === "project") {
 				// File was deleted, clean up project MCP servers
 				await this.cleanupProjectMcpServers()
 				await this.notifyWebviewOfServerChanges()
@@ -573,7 +614,7 @@ export class McpHub extends EventEmitter {
 			if (!projectMcpPath) return
 
 			const content = await fs.readFile(projectMcpPath, "utf-8")
-			let config: any
+			let config: unknown
 
 			try {
 				config = JSON.parse(content)
@@ -639,7 +680,7 @@ export class McpHub extends EventEmitter {
 
 		// Filter servers based on agent's MCP list
 		return allServers.filter((server) => {
-			let serverConfig: any = {}
+			let serverConfig: Record<string, unknown> = {}
 			try {
 				serverConfig = JSON.parse(server.config)
 			} catch (e) {}
@@ -658,7 +699,9 @@ export class McpHub extends EventEmitter {
 		if (!provider) {
 			throw new Error("Provider not available")
 		}
-		const mcpServersPath = await provider.ensureMcpServersDirectoryExists()
+		const settingsPath = await getSettingsDirectoryPath(provider.context.globalStorageUri.fsPath)
+		const mcpServersPath = path.join(settingsPath, "mcpServers")
+		await fs.mkdir(mcpServersPath, { recursive: true })
 		return mcpServersPath
 	}
 
@@ -668,7 +711,7 @@ export class McpHub extends EventEmitter {
 			throw new Error("Provider not available")
 		}
 		const mcpSettingsFilePath = path.join(
-			await provider.ensureSettingsDirectoryExists(),
+			await ensureSettingsDirectoryExists(provider.context),
 			GlobalFileNames.mcpSettings,
 		)
 		const fileExists = await fileExistsAtPath(mcpSettingsFilePath)
@@ -676,9 +719,9 @@ export class McpHub extends EventEmitter {
 			await fs.writeFile(
 				mcpSettingsFilePath,
 				`{
-  "mcpServers": {
+	 "mcpServers": {
 
-  }
+	 }
 }`,
 			)
 		}
@@ -768,6 +811,7 @@ export class McpHub extends EventEmitter {
 		await this.initializeMcpServers("global")
 	}
 
+	// Get project-level MCP configuration path
 	// Get project-level MCP configuration path
 	private async getProjectMcpPath(): Promise<string | null> {
 		const workspacePath = this.providerRef.deref()?.cwd ?? getWorkspacePath()
@@ -897,10 +941,11 @@ export class McpHub extends EventEmitter {
 					.optional(),
 			})
 
-			client.setRequestHandler(ElicitationRequestSchema as any, async (request: any) => {
+			client.setRequestHandler(ElicitationRequestSchema, async (request) => {
 				return new Promise((resolve, reject) => {
-					console.log("[Jabberwock] Elicitation requested:", request.params?._meta?.ui?.resourceUri)
-					const resourceUri = request.params?._meta?.ui?.resourceUri
+					const params = request.params as { _meta?: { ui?: { resourceUri?: string } } } | undefined
+					console.log("[Jabberwock] Elicitation requested:", params?._meta?.ui?.resourceUri)
+					const resourceUri = params?._meta?.ui?.resourceUri
 					if (resourceUri) {
 						this.emit("interactiveUiRequested", {
 							uri: resourceUri,
@@ -1124,7 +1169,7 @@ export class McpHub extends EventEmitter {
 				}
 			} else {
 				// Should not happen if validateServerConfig is correct
-				throw new Error(`Unsupported MCP server type: ${(configInjected as any).type}`)
+				throw new Error(`Unsupported MCP server type: ${config.type}`)
 			}
 
 			// Only override transport.start for stdio transports that have already been started
@@ -1271,7 +1316,7 @@ export class McpHub extends EventEmitter {
 
 			// Read from the appropriate config file based on the actual source
 			try {
-				let serverConfigData: Record<string, any> = {}
+				let serverConfigData: Record<string, unknown> = {}
 				if (actualSource === "project") {
 					// Get project MCP config path
 					const projectMcpPath = await this.getProjectMcpPath()
@@ -1287,8 +1332,11 @@ export class McpHub extends EventEmitter {
 					serverConfigData = JSON.parse(content)
 				}
 				if (serverConfigData) {
-					alwaysAllowConfig = serverConfigData.mcpServers?.[serverName]?.alwaysAllow || []
-					disabledToolsList = serverConfigData.mcpServers?.[serverName]?.disabledTools || []
+					const mcpServersData = serverConfigData["mcpServers"] as
+						| Record<string, { alwaysAllow?: string[]; disabledTools?: string[] }>
+						| undefined
+					alwaysAllowConfig = mcpServersData?.[serverName]?.alwaysAllow ?? []
+					disabledToolsList = mcpServersData?.[serverName]?.disabledTools ?? []
 				}
 			} catch (error) {
 				console.error(`Failed to read tool configuration for ${serverName}:`, error)
@@ -1394,7 +1442,7 @@ export class McpHub extends EventEmitter {
 	}
 
 	async updateServerConnections(
-		newServers: Record<string, any>,
+		newServers: Record<string, unknown>,
 		source: "global" | "project" = "global",
 		manageConnectingState: boolean = true,
 	): Promise<void> {
@@ -1424,7 +1472,7 @@ export class McpHub extends EventEmitter {
 			// Validate and transform the config
 			let validatedConfig: z.infer<typeof ServerConfigSchema>
 			try {
-				validatedConfig = this.validateServerConfig(config, name)
+				validatedConfig = this.validateServerConfig(config as Record<string, unknown>, name)
 			} catch (error) {
 				this.showErrorMessage(`Invalid configuration for MCP server "${name}"`, error)
 				continue
@@ -1549,7 +1597,7 @@ export class McpHub extends EventEmitter {
 		}
 
 		// Get existing connection and update its status
-		const connection = this.findConnection(serverName, source as any)
+		const connection = this.findConnection(serverName, source)
 		const config = connection?.server.config
 
 		if (config) {
@@ -1658,7 +1706,7 @@ export class McpHub extends EventEmitter {
 		})
 
 		// Send sorted servers to webview
-		const targetProvider: ClineProvider | undefined = this.providerRef.deref()
+		const targetProvider: EventBridge | undefined = this.providerRef.deref()
 
 		if (targetProvider) {
 			const serversToSend = sortedConnections.map((connection) => connection.server)
@@ -1799,7 +1847,7 @@ export class McpHub extends EventEmitter {
 	 */
 	private async updateServerConfig(
 		serverName: string,
-		configUpdate: Record<string, any>,
+		configUpdate: Record<string, unknown>,
 		source: "global" | "project" = "global",
 	): Promise<void> {
 		// Determine which config file to update
@@ -2021,11 +2069,16 @@ export class McpHub extends EventEmitter {
 		let agentRole = ""
 		const targetProvider = this.providerRef?.deref()
 		if (targetProvider) {
-			if (targetProvider.chatStore && targetProvider.chatStore.activeNodeId) {
-				activeTaskId = targetProvider.chatStore.activeNodeId.id
+			const providerRecord = targetProvider as {
+				chatStore?: { activeNodeId?: { id: string } }
+				getState?: () => { mode?: string } | undefined
 			}
-			if (targetProvider.getState) {
-				const state = await Reflect.apply(targetProvider.getState, targetProvider, [])
+			const chatStore = providerRecord.chatStore
+			if (chatStore && chatStore.activeNodeId) {
+				activeTaskId = chatStore.activeNodeId.id
+			}
+			if (providerRecord.getState) {
+				const state = await Reflect.apply(providerRecord.getState, targetProvider, [])
 				agentRole = state?.mode || ""
 			}
 		}
@@ -2288,7 +2341,11 @@ export class McpHub extends EventEmitter {
 	 * Helper to check if a server should be visible to a specific agent
 	 * Based on the per-agent MCP isolation strategy
 	 */
-	private isServerVisibleToAgent(serverName: string, serverConfig: any, agentMcpList?: string[]): boolean {
+	private isServerVisibleToAgent(
+		serverName: string,
+		serverConfig: Record<string, unknown>,
+		agentMcpList?: string[],
+	): boolean {
 		if (serverConfig?.disabled) {
 			return false
 		}

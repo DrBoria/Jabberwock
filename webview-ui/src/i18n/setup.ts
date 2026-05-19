@@ -22,7 +22,7 @@ Object.entries(localeFiles).forEach(([path, module]) => {
 		}
 
 		// Add namespace resources to language
-		translations[language][namespace] = (module as any).default || module
+		translations[language][namespace] = (module as { default?: Record<string, unknown> }).default || module
 	}
 })
 

@@ -38,7 +38,10 @@ export function fileChangesFromMessages(messages: ClineMessage[] | undefined): F
 		if (tool.batchDiffs && Array.isArray(tool.batchDiffs)) {
 			for (const file of tool.batchDiffs) {
 				if (!file.path) continue
-				const content = file.content ?? file.diffs?.map((d: any) => d.content).join("\n") ?? ""
+				const content =
+					file.content ??
+					file.diffs?.map((d: { content: string; startLine?: number }) => d.content).join("\n") ??
+					""
 				if (content) {
 					entries.push({
 						path: file.path,

@@ -2,7 +2,7 @@ import * as path from "path"
 
 import { type ClineSayTool } from "@jabberwock/types"
 
-import { Task } from "../task/Task"
+import { Task } from "../../features/chat/task/Task"
 import { formatResponse } from "../prompts/responses"
 import { listFiles } from "../../services/glob/list-files"
 import { getReadablePath } from "../../utils/path"
@@ -64,7 +64,7 @@ export class ListFilesTool extends BaseTool<"list_files"> {
 
 			pushToolResult(result)
 		} catch (error) {
-			await handleError("listing files", error)
+			await handleError("listing files", error instanceof Error ? error : new Error(String(error)))
 		}
 	}
 

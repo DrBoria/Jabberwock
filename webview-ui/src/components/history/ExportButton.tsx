@@ -1,4 +1,4 @@
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { Button } from "../ui/button"
 import { StandardTooltip } from "../ui/standard-tooltip"
 import { useAppTranslation } from "@/i18n/TranslationContext"
@@ -10,7 +10,7 @@ export const ExportButton = ({ itemId }: { itemId: string }) => {
 	const handleExportClick = useCallback(
 		(e: React.MouseEvent) => {
 			e.stopPropagation()
-			vscode.postMessage({ type: "exportTaskWithId", text: itemId })
+			rootStore.history.exportTaskWithId(itemId)
 		},
 		[itemId],
 	)

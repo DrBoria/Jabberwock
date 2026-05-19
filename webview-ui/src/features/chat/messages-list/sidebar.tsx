@@ -27,7 +27,7 @@ const ChatTreeNode = observer(({ node, depth, isRoot }: ChatTreeNodeProps) => {
 	const { pushWindow: _pushWindow } = useWindowManager()
 
 	// The node.uiMessages holds the ClineMessage[]
-	const messages: ClineMessage[] = node.uiMessages || []
+	const messages = (node.uiMessages || []) as ClineMessage[]
 
 	if (depth === 0 || isRoot) {
 		return (
@@ -94,7 +94,6 @@ const ChatTreeNode = observer(({ node, depth, isRoot }: ChatTreeNodeProps) => {
 								message={msg}
 								history={messages}
 								isLast={idx === messages.length - 1}
-								isStreaming={false}
 								onHeightChange={() => {}}
 								isNested={true}
 							/>

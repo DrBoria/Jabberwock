@@ -65,10 +65,18 @@ async function getOpenRouterProvidersForModel(modelId: string, baseUrl?: string)
 
 		for (const endpoint of endpoints) {
 			const providerName = endpoint.tag ?? endpoint.name
-			const inputPrice = parseApiPrice(endpoint.pricing?.prompt)
-			const outputPrice = parseApiPrice(endpoint.pricing?.completion)
-			const cacheReadsPrice = parseApiPrice(endpoint.pricing?.input_cache_read)
-			const cacheWritesPrice = parseApiPrice(endpoint.pricing?.input_cache_write)
+			const inputPrice =
+				endpoint.pricing?.prompt != null ? parseApiPrice(String(endpoint.pricing.prompt)) : undefined
+			const outputPrice =
+				endpoint.pricing?.completion != null ? parseApiPrice(String(endpoint.pricing.completion)) : undefined
+			const cacheReadsPrice =
+				endpoint.pricing?.input_cache_read != null
+					? parseApiPrice(String(endpoint.pricing.input_cache_read))
+					: undefined
+			const cacheWritesPrice =
+				endpoint.pricing?.input_cache_write != null
+					? parseApiPrice(String(endpoint.pricing.input_cache_write))
+					: undefined
 
 			const modelInfo: OpenRouterModelProvider = {
 				maxTokens: endpoint.max_completion_tokens || endpoint.context_length,

@@ -37,10 +37,14 @@ vi.mock("../diagnosticsHandler", () => ({
 	generateErrorDiagnostics: vi.fn().mockResolvedValue({ success: true, filePath: "/tmp/diagnostics.json" }),
 }))
 
+vi.mock("../../../features/settings/skills/store", () => ({
+	getSkillsManager: vi.fn(),
+}))
+
 import type { ModelRecord } from "@jabberwock/types"
 
 import { webviewMessageHandler } from "../webviewMessageHandler"
-import type { ClineProvider } from "../ClineProvider"
+import type { EventBridge } from "../EventBridge"
 import { getModels } from "../../../api/providers/fetchers/modelCache"
 import { getCommands } from "../../../services/command/commands"
 const { openAiCodexOAuthManager } = await import("../../../integrations/openai-codex/oauth")
@@ -52,8 +56,8 @@ const mockGetAccessToken = vi.mocked(openAiCodexOAuthManager.getAccessToken)
 const mockGetAccountId = vi.mocked(openAiCodexOAuthManager.getAccountId)
 const mockFetchOpenAiCodexRateLimitInfo = vi.mocked(fetchOpenAiCodexRateLimitInfo)
 
-// Mock ClineProvider
-const mockClineProvider = {
+// Mock EventBridge
+const mockEventBridge = {
 	getState: vi.fn(),
 	postMessageToWebview: vi.fn(),
 	customModesManager: {
@@ -73,13 +77,12 @@ const mockClineProvider = {
 		getValue: vi.fn(),
 	},
 	log: vi.fn(),
-	postStateToWebview: vi.fn(),
+	postStateToWebview: vi.fn() as any,
 	getCurrentTask: vi.fn(),
 	getTaskWithId: vi.fn(),
 	createTaskWithHistoryItem: vi.fn(),
-	getSkillsManager: vi.fn(),
 	cwd: "/mock/workspace",
-} as unknown as ClineProvider
+} as unknown as EventBridge
 
 import { t } from "../../../i18n"
 
@@ -147,7 +150,7 @@ import * as path from "path"
 import * as fsUtils from "../../../utils/fs"
 import { getWorkspacePath } from "../../../utils/path"
 import { ensureSettingsDirectoryExists } from "../../../utils/globalContext"
-import { generateErrorDiagnostics } from "../diagnosticsHandler"
+import { generateErrorDiagnostics } from "../../../features/diagnostics/handlers"
 import type { ModeConfig } from "@jabberwock/types"
 
 vi.mock("../../../utils/fs")
@@ -166,7 +169,7 @@ import { resolveImageMentions } from "../../mentions/resolveImageMentions"
 describe("webviewMessageHandler - requestLmStudioModels", () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
-		mockClineProvider.getState = vi.fn().mockResolvedValue({
+		mockEventBridge.getState = vi.fn().mockResolvedValue({
 			apiConfiguration: {
 				lmStudioModelId: "model-1",
 				lmStudioBaseUrl: "http://localhost:1234",
@@ -192,13 +195,13 @@ describe("webviewMessageHandler - requestLmStudioModels", () => {
 
 		mockGetModels.mockResolvedValue(mockModels)
 
-		await webviewMessageHandler(mockClineProvider, {
+		await webviewMessageHandler(mockEventBridge, {
 			type: "requestLmStudioModels",
 		})
 
 		expect(mockGetModels).toHaveBeenCalledWith({ provider: "lmstudio", baseUrl: "http://localhost:1234" })
 
-		expect(mockClineProvider.postMessageToWebview).toHaveBeenCalledWith({
+		expect(mockEventBridge.postMessageToWebview).toHaveBeenCalledWith({
 			type: "lmStudioModels",
 			lmStudioModels: mockModels,
 		})
@@ -208,7 +211,7 @@ describe("webviewMessageHandler - requestLmStudioModels", () => {
 describe("webviewMessageHandler - image mentions", () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
-		mockClineProvider.getState = vi.fn().mockResolvedValue({
+		mockEventBridge.getState = vi.fn().mockResolvedValue({
 			maxImageFileSize: 5,
 			maxTotalImageSize: 20,
 		})
@@ -216,13 +219,13 @@ describe("webviewMessageHandler - image mentions", () => {
 
 	it("should resolve image mentions for askResponse payloads", async () => {
 		const mockHandleWebviewAskResponse = vi.fn()
-		vi.mocked(mockClineProvider.getCurrentTask).mockReturnValue({
+		vi.mocked(mockEventBridge.getCurrentTask).mockReturnValue({
 			cwd: "/mock/workspace",
 			jabberwockIgnoreController: undefined,
 			handleWebviewAskResponse: mockHandleWebviewAskResponse,
 		} as any)
 
-		await webviewMessageHandler(mockClineProvider, {
+		await webviewMessageHandler(mockEventBridge, {
 			type: "askResponse",
 			askResponse: "messageResponse",
 			text: "See @/img.png",
@@ -239,7 +242,7 @@ describe("webviewMessageHandler - image mentions", () => {
 describe("webviewMessageHandler - requestOllamaModels", () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
-		mockClineProvider.getState = vi.fn().mockResolvedValue({
+		mockEventBridge.getState = vi.fn().mockResolvedValue({
 			apiConfiguration: {
 				ollamaModelId: "model-1",
 				ollamaBaseUrl: "http://localhost:1234",
@@ -265,13 +268,13 @@ describe("webviewMessageHandler - requestOllamaModels", () => {
 
 		mockGetModels.mockResolvedValue(mockModels)
 
-		await webviewMessageHandler(mockClineProvider, {
+		await webviewMessageHandler(mockEventBridge, {
 			type: "requestOllamaModels",
 		})
 
 		expect(mockGetModels).toHaveBeenCalledWith({ provider: "ollama", baseUrl: "http://localhost:1234" })
 
-		expect(mockClineProvider.postMessageToWebview).toHaveBeenCalledWith({
+		expect(mockEventBridge.postMessageToWebview).toHaveBeenCalledWith({
 			type: "ollamaModels",
 			ollamaModels: mockModels,
 		})
@@ -281,7 +284,7 @@ describe("webviewMessageHandler - requestOllamaModels", () => {
 describe("webviewMessageHandler - requestRouterModels", () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
-		mockClineProvider.getState = vi.fn().mockResolvedValue({
+		mockEventBridge.getState = vi.fn().mockResolvedValue({
 			apiConfiguration: {
 				openRouterApiKey: "openrouter-key",
 				requestyApiKey: "requesty-key",
@@ -309,7 +312,7 @@ describe("webviewMessageHandler - requestRouterModels", () => {
 
 		mockGetModels.mockResolvedValue(mockModels)
 
-		await webviewMessageHandler(mockClineProvider, {
+		await webviewMessageHandler(mockEventBridge, {
 			type: "requestRouterModels",
 		})
 
@@ -335,7 +338,7 @@ describe("webviewMessageHandler - requestRouterModels", () => {
 		})
 
 		// Verify response was sent
-		expect(mockClineProvider.postMessageToWebview).toHaveBeenCalledWith({
+		expect(mockEventBridge.postMessageToWebview).toHaveBeenCalledWith({
 			type: "routerModels",
 			routerModels: {
 				openrouter: mockModels,
@@ -352,7 +355,7 @@ describe("webviewMessageHandler - requestRouterModels", () => {
 	})
 
 	it("handles LiteLLM models with values from message when config is missing", async () => {
-		mockClineProvider.getState = vi.fn().mockResolvedValue({
+		mockEventBridge.getState = vi.fn().mockResolvedValue({
 			apiConfiguration: {
 				openRouterApiKey: "openrouter-key",
 				requestyApiKey: "requesty-key",
@@ -371,7 +374,7 @@ describe("webviewMessageHandler - requestRouterModels", () => {
 
 		mockGetModels.mockResolvedValue(mockModels)
 
-		await webviewMessageHandler(mockClineProvider, {
+		await webviewMessageHandler(mockEventBridge, {
 			type: "requestRouterModels",
 			values: {
 				litellmApiKey: "message-litellm-key",
@@ -388,7 +391,7 @@ describe("webviewMessageHandler - requestRouterModels", () => {
 	})
 
 	it("skips LiteLLM when both config and message values are missing", async () => {
-		mockClineProvider.getState = vi.fn().mockResolvedValue({
+		mockEventBridge.getState = vi.fn().mockResolvedValue({
 			apiConfiguration: {
 				openRouterApiKey: "openrouter-key",
 				requestyApiKey: "requesty-key",
@@ -407,7 +410,7 @@ describe("webviewMessageHandler - requestRouterModels", () => {
 
 		mockGetModels.mockResolvedValue(mockModels)
 
-		await webviewMessageHandler(mockClineProvider, {
+		await webviewMessageHandler(mockEventBridge, {
 			type: "requestRouterModels",
 			// No values provided
 		})
@@ -420,7 +423,7 @@ describe("webviewMessageHandler - requestRouterModels", () => {
 		)
 
 		// Verify response includes empty object for LiteLLM
-		expect(mockClineProvider.postMessageToWebview).toHaveBeenCalledWith({
+		expect(mockEventBridge.postMessageToWebview).toHaveBeenCalledWith({
 			type: "routerModels",
 			routerModels: {
 				openrouter: mockModels,
@@ -455,19 +458,19 @@ describe("webviewMessageHandler - requestRouterModels", () => {
 			.mockResolvedValueOnce(mockModels) // jabberwock
 			.mockRejectedValueOnce(new Error("LiteLLM connection failed")) // litellm
 
-		await webviewMessageHandler(mockClineProvider, {
+		await webviewMessageHandler(mockEventBridge, {
 			type: "requestRouterModels",
 		})
 
 		// Verify error messages were sent for failed providers (these come first)
-		expect(mockClineProvider.postMessageToWebview).toHaveBeenCalledWith({
+		expect(mockEventBridge.postMessageToWebview).toHaveBeenCalledWith({
 			type: "singleRouterModelFetchResponse",
 			success: false,
 			error: "Requesty API error",
 			values: { provider: "requesty" },
 		})
 
-		expect(mockClineProvider.postMessageToWebview).toHaveBeenCalledWith({
+		expect(mockEventBridge.postMessageToWebview).toHaveBeenCalledWith({
 			type: "singleRouterModelFetchResponse",
 			success: false,
 			error: "LiteLLM connection failed",
@@ -475,7 +478,7 @@ describe("webviewMessageHandler - requestRouterModels", () => {
 		})
 
 		// Verify final routerModels response includes successful providers and empty objects for failed ones
-		expect(mockClineProvider.postMessageToWebview).toHaveBeenCalledWith({
+		expect(mockEventBridge.postMessageToWebview).toHaveBeenCalledWith({
 			type: "routerModels",
 			routerModels: {
 				openrouter: mockModels,
@@ -501,47 +504,47 @@ describe("webviewMessageHandler - requestRouterModels", () => {
 			.mockRejectedValueOnce(new Error("Jabberwock API error")) // jabberwock
 			.mockRejectedValueOnce(new Error("LiteLLM connection failed")) // litellm
 
-		await webviewMessageHandler(mockClineProvider, {
+		await webviewMessageHandler(mockEventBridge, {
 			type: "requestRouterModels",
 		})
 
 		// Verify error handling for different error types
-		expect(mockClineProvider.postMessageToWebview).toHaveBeenCalledWith({
+		expect(mockEventBridge.postMessageToWebview).toHaveBeenCalledWith({
 			type: "singleRouterModelFetchResponse",
 			success: false,
 			error: "Structured error message",
 			values: { provider: "openrouter" },
 		})
 
-		expect(mockClineProvider.postMessageToWebview).toHaveBeenCalledWith({
+		expect(mockEventBridge.postMessageToWebview).toHaveBeenCalledWith({
 			type: "singleRouterModelFetchResponse",
 			success: false,
 			error: "Requesty API error",
 			values: { provider: "requesty" },
 		})
 
-		expect(mockClineProvider.postMessageToWebview).toHaveBeenCalledWith({
+		expect(mockEventBridge.postMessageToWebview).toHaveBeenCalledWith({
 			type: "singleRouterModelFetchResponse",
 			success: false,
 			error: "Unbound error",
 			values: { provider: "unbound" },
 		})
 
-		expect(mockClineProvider.postMessageToWebview).toHaveBeenCalledWith({
+		expect(mockEventBridge.postMessageToWebview).toHaveBeenCalledWith({
 			type: "singleRouterModelFetchResponse",
 			success: false,
 			error: "Vercel AI Gateway error",
 			values: { provider: "vercel-ai-gateway" },
 		})
 
-		expect(mockClineProvider.postMessageToWebview).toHaveBeenCalledWith({
+		expect(mockEventBridge.postMessageToWebview).toHaveBeenCalledWith({
 			type: "singleRouterModelFetchResponse",
 			success: false,
 			error: "Jabberwock API error",
 			values: { provider: "jabberwock" },
 		})
 
-		expect(mockClineProvider.postMessageToWebview).toHaveBeenCalledWith({
+		expect(mockEventBridge.postMessageToWebview).toHaveBeenCalledWith({
 			type: "singleRouterModelFetchResponse",
 			success: false,
 			error: "LiteLLM connection failed",
@@ -553,7 +556,7 @@ describe("webviewMessageHandler - requestRouterModels", () => {
 		const mockModels: ModelRecord = {}
 		mockGetModels.mockResolvedValue(mockModels)
 
-		await webviewMessageHandler(mockClineProvider, {
+		await webviewMessageHandler(mockEventBridge, {
 			type: "requestRouterModels",
 			values: {
 				litellmApiKey: "message-key",
@@ -578,9 +581,9 @@ describe("webviewMessageHandler - requestOpenAiCodexRateLimits", () => {
 	})
 
 	it("posts error when not authenticated", async () => {
-		await webviewMessageHandler(mockClineProvider, { type: "requestOpenAiCodexRateLimits" } as any)
+		await webviewMessageHandler(mockEventBridge, { type: "requestOpenAiCodexRateLimits" } as any)
 
-		expect(mockClineProvider.postMessageToWebview).toHaveBeenCalledWith({
+		expect(mockEventBridge.postMessageToWebview).toHaveBeenCalledWith({
 			type: "openAiCodexRateLimits",
 			error: "Not authenticated with OpenAI Codex",
 		})
@@ -594,10 +597,10 @@ describe("webviewMessageHandler - requestOpenAiCodexRateLimits", () => {
 			fetchedAt: 1700000000000,
 		})
 
-		await webviewMessageHandler(mockClineProvider, { type: "requestOpenAiCodexRateLimits" } as any)
+		await webviewMessageHandler(mockEventBridge, { type: "requestOpenAiCodexRateLimits" } as any)
 
 		expect(mockFetchOpenAiCodexRateLimitInfo).toHaveBeenCalledWith("token", { accountId: "acct_123" })
-		expect(mockClineProvider.postMessageToWebview).toHaveBeenCalledWith({
+		expect(mockEventBridge.postMessageToWebview).toHaveBeenCalledWith({
 			type: "openAiCodexRateLimits",
 			values: {
 				primary: { usedPercent: 10, resetsAt: 1700000000000 },
@@ -619,7 +622,7 @@ describe("webviewMessageHandler - deleteCustomMode", () => {
 		const slug = "test-project-mode"
 		const rulesFolderPath = path.join("/mock/workspace", ".jabberwock", `rules-${slug}`)
 
-		vi.mocked(mockClineProvider.customModesManager.getCustomModes).mockResolvedValue([
+		vi.mocked(mockEventBridge.customModesManager!.getCustomModes).mockResolvedValue([
 			{
 				name: "Test Project Mode",
 				slug,
@@ -629,13 +632,13 @@ describe("webviewMessageHandler - deleteCustomMode", () => {
 			} as ModeConfig,
 		])
 		vi.mocked(fsUtils.fileExistsAtPath).mockResolvedValue(true)
-		vi.mocked(mockClineProvider.customModesManager.deleteCustomMode).mockResolvedValue(undefined)
+		vi.mocked(mockEventBridge.customModesManager!.deleteCustomMode).mockResolvedValue(undefined)
 
-		await webviewMessageHandler(mockClineProvider, { type: "deleteCustomMode", slug })
+		await webviewMessageHandler(mockEventBridge, { type: "deleteCustomMode", slug })
 
 		// The confirmation dialog is now handled in the webview, so we don't expect showInformationMessage to be called
 		expect(vscode.window.showInformationMessage).not.toHaveBeenCalled()
-		expect(mockClineProvider.customModesManager.deleteCustomMode).toHaveBeenCalledWith(slug)
+		expect(mockEventBridge.customModesManager!.deleteCustomMode).toHaveBeenCalledWith(slug)
 		expect(fs.rm).toHaveBeenCalledWith(rulesFolderPath, { recursive: true, force: true })
 	})
 
@@ -644,7 +647,7 @@ describe("webviewMessageHandler - deleteCustomMode", () => {
 		const homeDir = os.homedir()
 		const rulesFolderPath = path.join(homeDir, ".jabberwock", `rules-${slug}`)
 
-		vi.mocked(mockClineProvider.customModesManager.getCustomModes).mockResolvedValue([
+		vi.mocked(mockEventBridge.customModesManager!.getCustomModes).mockResolvedValue([
 			{
 				name: "Test Global Mode",
 				slug,
@@ -654,19 +657,19 @@ describe("webviewMessageHandler - deleteCustomMode", () => {
 			} as ModeConfig,
 		])
 		vi.mocked(fsUtils.fileExistsAtPath).mockResolvedValue(true)
-		vi.mocked(mockClineProvider.customModesManager.deleteCustomMode).mockResolvedValue(undefined)
+		vi.mocked(mockEventBridge.customModesManager!.deleteCustomMode).mockResolvedValue(undefined)
 
-		await webviewMessageHandler(mockClineProvider, { type: "deleteCustomMode", slug })
+		await webviewMessageHandler(mockEventBridge, { type: "deleteCustomMode", slug })
 
 		// The confirmation dialog is now handled in the webview, so we don't expect showInformationMessage to be called
 		expect(vscode.window.showInformationMessage).not.toHaveBeenCalled()
-		expect(mockClineProvider.customModesManager.deleteCustomMode).toHaveBeenCalledWith(slug)
+		expect(mockEventBridge.customModesManager!.deleteCustomMode).toHaveBeenCalledWith(slug)
 		expect(fs.rm).toHaveBeenCalledWith(rulesFolderPath, { recursive: true, force: true })
 	})
 
 	it("should only delete the mode when rules folder does not exist", async () => {
 		const slug = "test-mode-no-rules"
-		vi.mocked(mockClineProvider.customModesManager.getCustomModes).mockResolvedValue([
+		vi.mocked(mockEventBridge.customModesManager!.getCustomModes).mockResolvedValue([
 			{
 				name: "Test Mode No Rules",
 				slug,
@@ -676,13 +679,13 @@ describe("webviewMessageHandler - deleteCustomMode", () => {
 			} as ModeConfig,
 		])
 		vi.mocked(fsUtils.fileExistsAtPath).mockResolvedValue(false)
-		vi.mocked(mockClineProvider.customModesManager.deleteCustomMode).mockResolvedValue(undefined)
+		vi.mocked(mockEventBridge.customModesManager!.deleteCustomMode).mockResolvedValue(undefined)
 
-		await webviewMessageHandler(mockClineProvider, { type: "deleteCustomMode", slug })
+		await webviewMessageHandler(mockEventBridge, { type: "deleteCustomMode", slug })
 
 		// The confirmation dialog is now handled in the webview, so we don't expect showInformationMessage to be called
 		expect(vscode.window.showInformationMessage).not.toHaveBeenCalled()
-		expect(mockClineProvider.customModesManager.deleteCustomMode).toHaveBeenCalledWith(slug)
+		expect(mockEventBridge.customModesManager!.deleteCustomMode).toHaveBeenCalledWith(slug)
 		expect(fs.rm).not.toHaveBeenCalled()
 	})
 
@@ -691,7 +694,7 @@ describe("webviewMessageHandler - deleteCustomMode", () => {
 		const rulesFolderPath = path.join("/mock/workspace", ".jabberwock", `rules-${slug}`)
 		const error = new Error("Permission denied")
 
-		vi.mocked(mockClineProvider.customModesManager.getCustomModes).mockResolvedValue([
+		vi.mocked(mockEventBridge.customModesManager!.getCustomModes).mockResolvedValue([
 			{
 				name: "Test Mode Error",
 				slug,
@@ -701,12 +704,12 @@ describe("webviewMessageHandler - deleteCustomMode", () => {
 			} as ModeConfig,
 		])
 		vi.mocked(fsUtils.fileExistsAtPath).mockResolvedValue(true)
-		vi.mocked(mockClineProvider.customModesManager.deleteCustomMode).mockResolvedValue(undefined)
+		vi.mocked(mockEventBridge.customModesManager!.deleteCustomMode).mockResolvedValue(undefined)
 		vi.mocked(fs.rm).mockRejectedValue(error)
 
-		await webviewMessageHandler(mockClineProvider, { type: "deleteCustomMode", slug })
+		await webviewMessageHandler(mockEventBridge, { type: "deleteCustomMode", slug })
 
-		expect(mockClineProvider.customModesManager.deleteCustomMode).toHaveBeenCalledWith(slug)
+		expect(mockEventBridge.customModesManager!.deleteCustomMode).toHaveBeenCalledWith(slug)
 		expect(fs.rm).toHaveBeenCalledWith(rulesFolderPath, { recursive: true, force: true })
 		// Verify error message is shown to the user
 		expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
@@ -716,7 +719,7 @@ describe("webviewMessageHandler - deleteCustomMode", () => {
 			}),
 		)
 		// No error response is sent anymore - we just continue with deletion
-		expect(mockClineProvider.postMessageToWebview).not.toHaveBeenCalled()
+		expect(mockEventBridge.postMessageToWebview).not.toHaveBeenCalled()
 	})
 })
 
@@ -724,28 +727,28 @@ describe("webviewMessageHandler - message dialog preferences", () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
 		// Mock a current Cline instance
-		vi.mocked(mockClineProvider.getCurrentTask).mockReturnValue({
+		vi.mocked(mockEventBridge.getCurrentTask).mockReturnValue({
 			taskId: "test-task-id",
 			apiConversationHistory: [],
 			clineMessages: [],
 		} as any)
 		// Reset getValue mock
-		vi.mocked(mockClineProvider.contextProxy.getValue).mockReturnValue(false)
+		vi.mocked(mockEventBridge.contextProxy.getValue).mockReturnValue(false)
 	})
 
 	describe("deleteMessage", () => {
 		it("should always show dialog for delete confirmation", async () => {
-			vi.mocked(mockClineProvider.getCurrentTask).mockReturnValue({
+			vi.mocked(mockEventBridge.getCurrentTask).mockReturnValue({
 				clineMessages: [],
 				apiConversationHistory: [],
 			} as any) // Mock current cline with proper structure
 
-			await webviewMessageHandler(mockClineProvider, {
+			await webviewMessageHandler(mockEventBridge, {
 				type: "deleteMessage",
 				value: 123456789, // Changed from messageTs to value
 			})
 
-			expect(mockClineProvider.postMessageToWebview).toHaveBeenCalledWith({
+			expect(mockEventBridge.postMessageToWebview).toHaveBeenCalledWith({
 				type: "showDeleteMessageDialog",
 				messageTs: 123456789,
 				hasCheckpoint: false,
@@ -755,18 +758,18 @@ describe("webviewMessageHandler - message dialog preferences", () => {
 
 	describe("submitEditedMessage", () => {
 		it("should always show dialog for edit confirmation", async () => {
-			vi.mocked(mockClineProvider.getCurrentTask).mockReturnValue({
+			vi.mocked(mockEventBridge.getCurrentTask).mockReturnValue({
 				clineMessages: [],
 				apiConversationHistory: [],
 			} as any) // Mock current cline with proper structure
 
-			await webviewMessageHandler(mockClineProvider, {
+			await webviewMessageHandler(mockEventBridge, {
 				type: "submitEditedMessage",
 				value: 123456789,
 				editedMessageContent: "edited content",
 			})
 
-			expect(mockClineProvider.postMessageToWebview).toHaveBeenCalledWith({
+			expect(mockEventBridge.postMessageToWebview).toHaveBeenCalledWith({
 				type: "showEditMessageDialog",
 				messageTs: 123456789,
 				text: "edited content",
@@ -789,43 +792,43 @@ describe("webviewMessageHandler - mcpEnabled", () => {
 		}
 
 		// Ensure provider exposes getMcpHub and returns our mock
-		;(mockClineProvider as any).getMcpHub = vi.fn().mockReturnValue(mockMcpHub)
+		;(mockEventBridge as any).getMcpHub = vi.fn().mockReturnValue(mockMcpHub)
 	})
 
 	it("delegates enable=true to McpHub and posts updated state", async () => {
-		await webviewMessageHandler(mockClineProvider, {
+		await webviewMessageHandler(mockEventBridge, {
 			type: "updateSettings",
 			updatedSettings: { mcpEnabled: true },
 		})
 
-		expect((mockClineProvider as any).getMcpHub).toHaveBeenCalledTimes(1)
+		expect((mockEventBridge as any).getMcpHub).toHaveBeenCalledTimes(1)
 		expect(mockMcpHub.handleMcpEnabledChange).toHaveBeenCalledTimes(1)
 		expect(mockMcpHub.handleMcpEnabledChange).toHaveBeenCalledWith(true)
-		expect(mockClineProvider.postStateToWebview).toHaveBeenCalledTimes(1)
+		expect((mockEventBridge as any).postStateToWebview).toHaveBeenCalledTimes(1)
 	})
 
 	it("delegates enable=false to McpHub and posts updated state", async () => {
-		await webviewMessageHandler(mockClineProvider, {
+		await webviewMessageHandler(mockEventBridge, {
 			type: "updateSettings",
 			updatedSettings: { mcpEnabled: false },
 		})
 
-		expect((mockClineProvider as any).getMcpHub).toHaveBeenCalledTimes(1)
+		expect((mockEventBridge as any).getMcpHub).toHaveBeenCalledTimes(1)
 		expect(mockMcpHub.handleMcpEnabledChange).toHaveBeenCalledTimes(1)
 		expect(mockMcpHub.handleMcpEnabledChange).toHaveBeenCalledWith(false)
-		expect(mockClineProvider.postStateToWebview).toHaveBeenCalledTimes(1)
+		expect((mockEventBridge as any).postStateToWebview).toHaveBeenCalledTimes(1)
 	})
 
 	it("handles missing McpHub instance gracefully and still posts state", async () => {
-		;(mockClineProvider as any).getMcpHub = vi.fn().mockReturnValue(undefined)
+		;(mockEventBridge as any).getMcpHub = vi.fn().mockReturnValue(undefined)
 
-		await webviewMessageHandler(mockClineProvider, {
+		await webviewMessageHandler(mockEventBridge, {
 			type: "updateSettings",
 			updatedSettings: { mcpEnabled: true },
 		})
 
-		expect((mockClineProvider as any).getMcpHub).toHaveBeenCalledTimes(1)
-		expect(mockClineProvider.postStateToWebview).toHaveBeenCalledTimes(1)
+		expect((mockEventBridge as any).getMcpHub).toHaveBeenCalledTimes(1)
+		expect((mockEventBridge as any).postStateToWebview).toHaveBeenCalledTimes(1)
 	})
 })
 
@@ -838,10 +841,10 @@ describe("webviewMessageHandler - requestCommands", () => {
 		mockGetCommands.mockResolvedValue([])
 
 		const getTaskMode = vi.fn().mockResolvedValue("code")
-		vi.mocked(mockClineProvider.getCurrentTask).mockReturnValue({
+		vi.mocked(mockEventBridge.getCurrentTask).mockReturnValue({
 			cwd: "/mock/workspace",
 			getTaskMode,
-		} as unknown as ReturnType<ClineProvider["getCurrentTask"]>)
+		} as unknown as ReturnType<EventBridge["getCurrentTask"]>)
 
 		const getSkillsForMode = vi.fn().mockReturnValue([
 			{
@@ -867,14 +870,15 @@ describe("webviewMessageHandler - requestCommands", () => {
 			},
 		])
 
-		vi.mocked(mockClineProvider.getSkillsManager).mockReturnValue({
+		const { getSkillsManager: mockGetSkillsManager } = await import("../../../features/settings/skills/store")
+		vi.mocked(mockGetSkillsManager).mockReturnValue({
 			getSkillsForMode,
-		} as unknown as ReturnType<ClineProvider["getSkillsManager"]>)
+		} as any)
 
-		await webviewMessageHandler(mockClineProvider, { type: "requestCommands" })
+		await webviewMessageHandler(mockEventBridge, { type: "requestCommands" })
 
 		const commandMessageCall = vi
-			.mocked(mockClineProvider.postMessageToWebview)
+			.mocked(mockEventBridge.postMessageToWebview)
 			.mock.calls.find(([postedMessage]) => postedMessage.type === "commands")
 		expect(commandMessageCall).toBeDefined()
 
@@ -896,7 +900,8 @@ describe("webviewMessageHandler - requestCommands", () => {
 			]),
 		)
 
-		expect(commandMessage?.commands?.filter((command) => command.name === "skill-slug-entry")).toHaveLength(1)
+		const commands = (commandMessage as { commands?: Array<{ name: string }> })?.commands
+		expect(commands?.filter((command) => command.name === "skill-slug-entry")).toHaveLength(1)
 	})
 
 	it("adds skill-backed command entries without overriding existing command names", async () => {
@@ -912,10 +917,10 @@ describe("webviewMessageHandler - requestCommands", () => {
 		])
 
 		const getTaskMode = vi.fn().mockResolvedValue("code")
-		vi.mocked(mockClineProvider.getCurrentTask).mockReturnValue({
+		vi.mocked(mockEventBridge.getCurrentTask).mockReturnValue({
 			cwd: "/mock/workspace",
 			getTaskMode,
-		} as unknown as ReturnType<ClineProvider["getCurrentTask"]>)
+		} as unknown as ReturnType<EventBridge["getCurrentTask"]>)
 
 		const getSkillsForMode = vi.fn().mockReturnValue([
 			{
@@ -934,15 +939,16 @@ describe("webviewMessageHandler - requestCommands", () => {
 			},
 		])
 
-		vi.mocked(mockClineProvider.getSkillsManager).mockReturnValue({
+		const { getSkillsManager: mockGetSkillsManager } = await import("../../../features/settings/skills/store")
+		vi.mocked(mockGetSkillsManager).mockReturnValue({
 			getSkillsForMode,
-		} as unknown as ReturnType<ClineProvider["getSkillsManager"]>)
+		} as any)
 
-		await webviewMessageHandler(mockClineProvider, { type: "requestCommands" })
+		await webviewMessageHandler(mockEventBridge, { type: "requestCommands" })
 
 		expect(getSkillsForMode).toHaveBeenCalledWith("code")
 
-		expect(mockClineProvider.postMessageToWebview).toHaveBeenCalledWith({
+		expect(mockEventBridge.postMessageToWebview).toHaveBeenCalledWith({
 			type: "commands",
 			commands: expect.arrayContaining([
 				{
@@ -962,12 +968,13 @@ describe("webviewMessageHandler - requestCommands", () => {
 		})
 
 		const commandMessageCall = vi
-			.mocked(mockClineProvider.postMessageToWebview)
+			.mocked(mockEventBridge.postMessageToWebview)
 			.mock.calls.find(([postedMessage]) => postedMessage.type === "commands")
 		expect(commandMessageCall).toBeDefined()
 
 		const commandMessage = commandMessageCall?.[0]
-		expect(commandMessage?.commands?.filter((command) => command.name === "deploy")).toHaveLength(1)
+		const commands2 = (commandMessage as { commands?: Array<{ name: string }> })?.commands
+		expect(commands2?.filter((command) => command.name === "deploy")).toHaveLength(1)
 	})
 
 	it("preserves existing behavior when skills manager is unavailable", async () => {
@@ -982,15 +989,16 @@ describe("webviewMessageHandler - requestCommands", () => {
 			},
 		])
 
-		vi.mocked(mockClineProvider.getCurrentTask).mockReturnValue({
+		vi.mocked(mockEventBridge.getCurrentTask).mockReturnValue({
 			cwd: "/mock/workspace",
-		} as unknown as ReturnType<ClineProvider["getCurrentTask"]>)
+		} as unknown as ReturnType<EventBridge["getCurrentTask"]>)
 
-		vi.mocked(mockClineProvider.getSkillsManager).mockReturnValue(undefined)
+		const { getSkillsManager } = await import("../../../features/settings/skills/store")
+		vi.mocked(getSkillsManager).mockReturnValue(undefined)
 
-		await webviewMessageHandler(mockClineProvider, { type: "requestCommands" })
+		await webviewMessageHandler(mockEventBridge, { type: "requestCommands" })
 
-		expect(mockClineProvider.postMessageToWebview).toHaveBeenCalledWith({
+		expect(mockEventBridge.postMessageToWebview).toHaveBeenCalledWith({
 			type: "commands",
 			commands: [
 				{
@@ -1010,16 +1018,16 @@ describe("webviewMessageHandler - downloadErrorDiagnostics", () => {
 		vi.clearAllMocks()
 
 		// Ensure contextProxy has a globalStorageUri for the handler
-		;(mockClineProvider as any).contextProxy.globalStorageUri = { fsPath: "/mock/global/storage" }
+		;(mockEventBridge as any).contextProxy.globalStorageUri = { fsPath: "/mock/global/storage" }
 
 		// Provide a current task with a stable ID
-		vi.mocked(mockClineProvider.getCurrentTask).mockReturnValue({
+		vi.mocked(mockEventBridge.getCurrentTask).mockReturnValue({
 			taskId: "test-task-id",
 		} as any)
 	})
 
 	it("calls generateErrorDiagnostics with correct parameters", async () => {
-		await webviewMessageHandler(mockClineProvider, {
+		await webviewMessageHandler(mockEventBridge, {
 			type: "downloadErrorDiagnostics",
 			values: {
 				timestamp: "2025-01-01T00:00:00.000Z",
@@ -1047,9 +1055,9 @@ describe("webviewMessageHandler - downloadErrorDiagnostics", () => {
 	})
 
 	it("shows error when no active task", async () => {
-		vi.mocked(mockClineProvider.getCurrentTask).mockReturnValue(null as any)
+		vi.mocked(mockEventBridge.getCurrentTask).mockReturnValue(null as any)
 
-		await webviewMessageHandler(mockClineProvider, {
+		await webviewMessageHandler(mockEventBridge, {
 			type: "downloadErrorDiagnostics",
 			values: {},
 		} as any)

@@ -60,7 +60,7 @@ vi.mock("../../mentions/resolveImageMentions", () => ({
 }))
 
 import { webviewMessageHandler } from "../webviewMessageHandler"
-import type { ClineProvider } from "../ClineProvider"
+import type { EventBridge } from "../EventBridge"
 import * as fs from "fs/promises"
 
 const MOCK_CWD = "/mock/workspace/project"
@@ -90,7 +90,7 @@ const mockProvider = {
 	getTaskWithId: vi.fn(),
 	createTaskWithHistoryItem: vi.fn(),
 	cwd: MOCK_CWD,
-} as unknown as ClineProvider
+} as unknown as EventBridge
 
 describe("webviewMessageHandler - readFileContent path traversal prevention", () => {
 	beforeEach(() => {

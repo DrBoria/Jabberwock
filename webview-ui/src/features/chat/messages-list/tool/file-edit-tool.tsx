@@ -1,7 +1,7 @@
 import React from "react"
 import { FileDiff } from "lucide-react"
 import type { ClineMessage, ClineSayTool } from "@jabberwock/types"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { toolIcon, Container } from "@src/components/ui"
 import CodeAccordion from "@src/components/common/CodeAccordion"
 import { BatchDiffApproval } from "../../notifications/batch/batch-diff-approval"
@@ -11,16 +11,14 @@ interface ToolRendererProps {
 	tool: ClineSayTool
 	isExpanded: boolean
 	onToggleExpand: () => void
-	t: (key: string, options?: any) => string
+	t: (key: string, options?: Record<string, unknown>) => string
 }
 
 /** Renders file edit/diff operations (editedExistingFile, appliedDiff, newFileCreated, etc.) */
 export const FileEditRenderer: React.FC<ToolRendererProps> = ({ message, tool, isExpanded, onToggleExpand, t }) => {
 	const unifiedDiff = (tool.content ?? tool.diff) as string | undefined
 	const onJumpToCreatedFile =
-		tool.tool === "newFileCreated" && tool.path
-			? () => vscode.postMessage({ type: "openFile", text: "./" + tool.path })
-			: undefined
+		tool.tool === "newFileCreated" && tool.path ? () => rootStore.settings.openFile("./" + tool.path) : undefined
 
 	// Batch diff request
 	if (message.type === "ask" && tool.batchDiffs && Array.isArray(tool.batchDiffs)) {

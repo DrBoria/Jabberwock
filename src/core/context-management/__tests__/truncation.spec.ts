@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach } from "vitest"
-import { TelemetryService } from "@jabberwock/telemetry"
+import {
+	TelemetryService,
+	getTelemetryService,
+	hasTelemetryService,
+	createTelemetryService,
+} from "@jabberwock/telemetry"
 import { truncateConversation } from "../index"
 import { getEffectiveApiHistory, cleanupAfterTruncation } from "../../condense"
 import { ApiMessage } from "../../task-persistence/apiMessages"
@@ -9,8 +14,8 @@ describe("Non-Destructive Sliding Window Truncation", () => {
 
 	beforeEach(() => {
 		// Initialize TelemetryService for tests
-		if (!TelemetryService.hasInstance()) {
-			TelemetryService.createInstance([])
+		if (!hasTelemetryService()) {
+			createTelemetryService([])
 		}
 
 		// Create a sample conversation with 11 messages (1 initial + 10 conversation messages)

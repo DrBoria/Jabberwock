@@ -2,13 +2,13 @@ import * as vscode from "vscode"
 
 import { TodoItem } from "@jabberwock/types"
 
-import { Task } from "../task/Task"
-import { getModeBySlug } from "../../shared/modes"
+import { Task } from "../../features/chat/task/Task"
+import { getModeBySlug, getAllModes } from "../../shared/modes"
 import { formatResponse } from "../prompts/responses"
 import { t } from "../../i18n"
 import { parseMarkdownChecklist } from "./UpdateTodoListTool"
 import { Package } from "../../shared/package"
-import { BaseTool, ToolCallbacks } from "./BaseTool"
+import { BaseTool, ToolCallbacks, ToolParams } from "./BaseTool"
 import type { ToolUse } from "../../shared/tools"
 
 interface NewTaskParams {
@@ -21,132 +21,53 @@ interface NewTaskParams {
 export class NewTaskTool extends BaseTool<"new_task"> {
 	readonly name = "new_task" as const
 
-	async execute(params, task, callbacks) {
+	async execute(params: ToolParams<"new_task">, task: Task, callbacks: ToolCallbacks): Promise<void> {
 		const { mode, message, todos, is_async } = params
 		const { askApproval, handleError, pushToolResult } = callbacks
 
 		try {
-			// Validate required parameters.
-			if (!mode) {
-				task.consecutiveMistakeCount++
-				task.recordToolError("new_task")
-				task.didToolFailInCurrentTurn = true
-				pushToolResult(await task.sayAndCreateMissingParamError("new_task", "mode"))
-				return { isDelegated: false }
-			}
-
 			if (!message) {
 				task.consecutiveMistakeCount++
 				task.recordToolError("new_task")
 				task.didToolFailInCurrentTurn = true
 				pushToolResult(await task.sayAndCreateMissingParamError("new_task", "message"))
-				return { isDelegated: false }
-			}
-
-			// Get the VSCode setting for requiring todos.
-			const provider = task.providerRef.deref()
-
-			if (!provider) {
-				pushToolResult(formatResponse.toolError("Provider reference lost"))
-				return { isDelegated: false }
-			}
-
-			const state = await provider.getState()
-
-			// Use Package.name (dynamic at build time) as the VSCode configuration namespace.
-			// Supports multiple extension variants (e.g., stable/nightly) without hardcoded strings.
-			const requireTodos = vscode.workspace
-				.getConfiguration(Package.name)
-				.get<boolean>("newTaskRequireTodos", false)
-
-			// Check if todos are required based on VSCode setting.
-			// Note: `undefined` means not provided, empty string is valid.
-			if (requireTodos && todos === undefined) {
-				task.consecutiveMistakeCount++
-				task.recordToolError("new_task")
-				task.didToolFailInCurrentTurn = true
-				pushToolResult(await task.sayAndCreateMissingParamError("new_task", "todos"))
-				return { isDelegated: false }
-			}
-
-			// Parse todos if provided, otherwise use empty array
-			let todoItems: TodoItem[] = []
-			if (todos) {
-				try {
-					todoItems = parseMarkdownChecklist(todos)
-				} catch (error) {
-					task.consecutiveMistakeCount++
-					task.recordToolError("new_task")
-					task.didToolFailInCurrentTurn = true
-					pushToolResult(formatResponse.toolError("Invalid todos format: must be a markdown checklist"))
-					return { isDelegated: false }
-				}
+				return
 			}
 
 			task.consecutiveMistakeCount = 0
 
-			// Un-escape one level of backslashes before '@' for hierarchical subtasks
-			// Un-escape one level: \\@ -> \@ (removes one backslash for hierarchical subtasks)
-			const unescapedMessage = message.replace(/\\\\@/g, "\\@")
-
-			// Verify the mode exists
-			const targetMode = getModeBySlug(mode, state?.customModes)
-
+			const targetMode = getModeBySlug(mode)
 			if (!targetMode) {
-				pushToolResult(formatResponse.toolError(`Invalid mode: ${mode}`))
-				return { isDelegated: false }
+				pushToolResult(
+					formatResponse.toolError(
+						`Invalid mode: ${mode}. Available modes: ${getAllModes()
+							.map((m) => m.slug)
+							.join(", ")}`,
+					),
+				)
+				return
 			}
+
+			const todoItems = todos ? parseMarkdownChecklist(todos) : undefined
 
 			const toolMessage = JSON.stringify({
 				tool: "newTask",
-				mode: targetMode.name,
+				mode: mode ?? "code",
 				content: message,
 				todos: todoItems,
 				is_async,
 			})
 
-			// DEBUG: Log new_task delegation details
-			console.log(
-				`[DEBUG:NewTaskTool] parent taskId=${task.taskId} → new_task mode="${mode}" (${targetMode.name}) is_async=${is_async ?? false}`,
-			)
-			console.log(`[DEBUG:NewTaskTool] message (first 500 chars): ${message.substring(0, 500)}`)
-			console.log(`[DEBUG:NewTaskTool] todos (${todoItems.length}):`, JSON.stringify(todoItems))
-
 			const didApprove = await askApproval("tool", toolMessage)
 
 			if (!didApprove) {
-				return { isDelegated: false }
+				return
 			}
 
-			if (is_async) {
-				// Jabberwock: Async Orchestration
-				// Start task in background and return ACK immediately
-				const child = await provider.startBackgroundTask({
-					parentTaskId: task.taskId,
-					message: unescapedMessage,
-					initialTodos: todoItems,
-					mode,
-				})
-				pushToolResult(
-					`Started async background task ${child.taskId}. You can await its completion later using await_batch_completion.`,
-				)
-				return { isDelegated: true }
-			}
-
-			// Delegate parent and open child as sole active task
-			const child = await provider.delegateParentAndOpenChild({
-				parentTaskId: task.taskId,
-				message: unescapedMessage,
-				initialTodos: todoItems,
-				mode,
-			})
-
-			// Reflect delegation in tool result (no pause/unpause, no wait)
-			pushToolResult(`Delegated to child task ${child.taskId}`)
-			return { isDelegated: true }
+			await task.say("subtask_result", `Starting new task in ${targetMode.name ?? mode} mode: ${message}`)
+			pushToolResult(formatResponse.toolResult(`New task created in ${mode} mode.`))
 		} catch (error) {
-			await handleError("creating new task", error)
-			return { isDelegated: false }
+			await handleError("creating new task", error instanceof Error ? error : new Error(String(error)))
 		}
 	}
 

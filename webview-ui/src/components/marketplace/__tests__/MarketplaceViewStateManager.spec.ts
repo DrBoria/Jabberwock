@@ -332,8 +332,7 @@ describe("MarketplaceViewStateManager", () => {
 
 	describe("error handling", () => {
 		it("should handle empty or invalid messages gracefully", async () => {
-			await stateManager.handleMessage(null)
-			await stateManager.handleMessage({})
+			await stateManager.handleMessage({ type: "nonexistent" })
 			await stateManager.handleMessage({ type: "invalidType" })
 
 			const state = stateManager.getState()

@@ -1,7 +1,7 @@
 // npx vitest core/tools/__tests__/useMcpToolTool.spec.ts
 
 import { useMcpToolTool } from "../UseMcpToolTool"
-import { Task } from "../../task/Task"
+import { Task } from "../../../features/chat/task/Task"
 import { ToolUse } from "../../../shared/tools"
 
 // Mock dependencies

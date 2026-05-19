@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 export const window = {
 	showInformationMessage: vi.fn(),
 	showErrorMessage: vi.fn(),
@@ -28,9 +26,9 @@ export interface ExtensionContext {
 	}
 	globalState: {
 		get: <T>(key: string) => T | undefined
-		update: (key: string, value: any) => Promise<void>
+		update: (key: string, value: unknown) => Promise<void>
 	}
-	subscriptions: any[]
+	subscriptions: { dispose: () => void }[]
 	extension?: {
 		packageJSON?: {
 			version?: string

@@ -1,5 +1,5 @@
 import { BaseTool, ToolCallbacks } from "./BaseTool"
-import { Task } from "../task/Task"
+import { Task } from "../../features/chat/task/Task"
 import { agentStore } from "../state/AgentStore"
 import { DevToolsLogger } from "@jabberwock/devtool"
 

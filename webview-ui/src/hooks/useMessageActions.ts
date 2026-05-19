@@ -1,7 +1,7 @@
 import { useCallback, useRef } from "react"
 import type { ClineAsk, ClineMessage } from "@jabberwock/types"
 import { isRetiredProvider } from "@jabberwock/types"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 
 export interface MessageActions {
 	handleSendMessage: (text: string, images: string[]) => void
@@ -16,7 +16,7 @@ export interface MessageActions {
 	handleSuggestionClick: (
 		suggestion: { answer: string; mode?: string; id?: string },
 		event: React.MouseEvent | undefined,
-		store: { navigateToNode: (id: string) => void },
+		_store: { navigateToNode: (id: string) => void },
 		alwaysAllowModeSwitch: boolean,
 	) => void
 	handleBatchFileResponse: (response: { [key: string]: boolean }) => void
@@ -53,7 +53,7 @@ export function useMessageActions(
 		const lastFollowUp = messages.findLast((msg: ClineMessage) => msg.ask === "followup")
 		if (lastFollowUp) {
 			// The parent should track followUpTs via a callback
-			vscode.postMessage({ type: "followUpAnswered" as any, text: String(lastFollowUp.ts) })
+			rootStore.chat.followUpAnswered(lastFollowUp.ts)
 		}
 	}, [messages])
 
@@ -65,7 +65,7 @@ export function useMessageActions(
 			onSetInputValue("")
 			onSetSelectedImages([])
 			if (shouldPostMessage) {
-				vscode.postMessage({ type: "clearTask" })
+				rootStore.chat.clearTask()
 			}
 		},
 		[onSetSendingDisabled, onSetClineAsk, onSetEnableButtons, onSetInputValue, onSetSelectedImages],
@@ -74,7 +74,7 @@ export function useMessageActions(
 	const startNewTask = useCallback(() => {
 		onSetInputValue("")
 		onSetSelectedImages([])
-		vscode.postMessage({ type: "clearTask" })
+		rootStore.chat.clearTask()
 	}, [onSetInputValue, onSetSelectedImages])
 
 	const handleSendMessage = useCallback(
@@ -88,7 +88,7 @@ export function useMessageActions(
 			}
 
 			if (sendingDisabled || isStreaming || messageQueue.length > 0 || clineAskRef.current === "command_output") {
-				vscode.postMessage({ type: "queueMessage", text, images })
+				rootStore.chat.queueMessage(text, images)
 				onSetInputValue("")
 				onSetSelectedImages([])
 				return
@@ -97,12 +97,12 @@ export function useMessageActions(
 			userRespondedRef.current = true
 
 			if (messages.length === 0) {
-				vscode.postMessage({ type: "newTask", text, images })
+				rootStore.chat.sendMessage(text, images)
 			} else if (clineAskRef.current) {
 				if (clineAskRef.current === "followup") markFollowUpAsAnswered()
-				vscode.postMessage({ type: "askResponse", askResponse: "messageResponse", text, images })
+				rootStore.chat.respondToAsk("messageResponse", text, images)
 			} else {
-				vscode.postMessage({ type: "askResponse", askResponse: "messageResponse", text, images })
+				rootStore.chat.respondToAsk("messageResponse", text, images)
 			}
 
 			handleChatReset(true)
@@ -133,16 +133,11 @@ export function useMessageActions(
 				case "use_mcp_server":
 				case "mistake_limit_reached":
 					if (trimmedInput || (images && images.length > 0)) {
-						vscode.postMessage({
-							type: "askResponse",
-							askResponse: "yesButtonClicked",
-							text: trimmedInput,
-							images,
-						})
+						rootStore.chat.respondToAsk("yesButtonClicked", trimmedInput, images)
 						onSetInputValue("")
 						onSetSelectedImages([])
 					} else {
-						vscode.postMessage({ type: "askResponse", askResponse: "yesButtonClicked" })
+						rootStore.chat.respondToAsk("yesButtonClicked")
 					}
 					break
 				case "resume_task": {
@@ -154,16 +149,11 @@ export function useMessageActions(
 						return
 					}
 					if (trimmedInput || (images && images.length > 0)) {
-						vscode.postMessage({
-							type: "askResponse",
-							askResponse: "yesButtonClicked",
-							text: trimmedInput,
-							images,
-						})
+						rootStore.chat.respondToAsk("yesButtonClicked", trimmedInput, images)
 						onSetInputValue("")
 						onSetSelectedImages([])
 					} else {
-						vscode.postMessage({ type: "askResponse", askResponse: "yesButtonClicked" })
+						rootStore.chat.respondToAsk("yesButtonClicked")
 					}
 					break
 				}
@@ -172,7 +162,7 @@ export function useMessageActions(
 					startNewTask()
 					return
 				case "command_output":
-					vscode.postMessage({ type: "terminalOperation", terminalOperation: "continue" })
+					rootStore.settings.terminalOperation("continue")
 					break
 			}
 
@@ -202,8 +192,8 @@ export function useMessageActions(
 			userRespondedRef.current = true
 			const trimmedInput = text?.trim()
 
-			if (isStreaming) {
-				vscode.postMessage({ type: "cancelTask" })
+			if (isStreaming && !clineAsk) {
+				rootStore.chat.cancelTask()
 				return
 			}
 
@@ -217,20 +207,15 @@ export function useMessageActions(
 				case "tool":
 				case "use_mcp_server":
 					if (trimmedInput || (images && images.length > 0)) {
-						vscode.postMessage({
-							type: "askResponse",
-							askResponse: "noButtonClicked",
-							text: trimmedInput,
-							images,
-						})
+						rootStore.chat.respondToAsk("noButtonClicked", trimmedInput, images)
 						onSetInputValue("")
 						onSetSelectedImages([])
 					} else {
-						vscode.postMessage({ type: "askResponse", askResponse: "noButtonClicked" })
+						rootStore.chat.respondToAsk("noButtonClicked")
 					}
 					break
 				case "command_output":
-					vscode.postMessage({ type: "terminalOperation", terminalOperation: "abort" })
+					rootStore.settings.terminalOperation("abort")
 					break
 			}
 
@@ -251,13 +236,13 @@ export function useMessageActions(
 	)
 
 	const handleStopTask = useCallback(() => {
-		vscode.postMessage({ type: "cancelTask" })
+		rootStore.chat.cancelTask()
 	}, [])
 
 	const handleEnqueueCurrentMessage = useCallback(
 		(text: string, images: string[]) => {
 			if (text.trim() || images.length > 0) {
-				vscode.postMessage({ type: "queueMessage", text: text.trim(), images })
+				rootStore.chat.queueMessage(text.trim(), images)
 				onSetInputValue("")
 				onSetSelectedImages([])
 			}
@@ -267,14 +252,14 @@ export function useMessageActions(
 
 	const handleSetChatBoxMessage = useCallback((text: string, images: string[]) => {
 		// Parent should handle merging with current inputValue
-		vscode.postMessage({ type: "setChatBoxMessage" as any, text, images })
+		rootStore.chat.setChatBoxMessage(text, images)
 	}, [])
 
 	const handleSuggestionClick = useCallback(
 		(
 			suggestion: { answer: string; mode?: string; id?: string },
 			event: React.MouseEvent | undefined,
-			store: { navigateToNode: (id: string) => void },
+			_store: { navigateToNode: (id: string) => void },
 			alwaysAllowModeSwitch: boolean,
 		) => {
 			if (event) userRespondedRef.current = true
@@ -282,14 +267,13 @@ export function useMessageActions(
 			if (suggestion.mode) {
 				const isManualClick = !!event
 				if (isManualClick || alwaysAllowModeSwitch) {
-					if (suggestion.id) store.navigateToNode(suggestion.id)
-					vscode.postMessage({ type: "showTaskWithId", text: suggestion.id })
+					if (suggestion.id) rootStore.chat.navigateToTask(suggestion.id)
 				}
 			}
 
 			if (event?.shiftKey) {
 				// Append to input — parent handles this via setChatBoxMessage
-				vscode.postMessage({ type: "setChatBoxMessage" as any, text: suggestion.answer, images: [] })
+				rootStore.chat.setChatBoxMessage(suggestion.answer, [])
 			} else {
 				handleSendMessage(suggestion.answer, [])
 			}
@@ -298,11 +282,11 @@ export function useMessageActions(
 	)
 
 	const handleBatchFileResponse = useCallback((response: { [key: string]: boolean }) => {
-		vscode.postMessage({ type: "askResponse", askResponse: "objectResponse", text: JSON.stringify(response) })
+		rootStore.windowManager.batchFileResponse(response)
 	}, [])
 
 	const handleFollowUpUnmount = useCallback(() => {
-		vscode.postMessage({ type: "cancelAutoApproval" })
+		rootStore.chat.cancelAutoApproval()
 	}, [])
 
 	return {

@@ -228,7 +228,7 @@ export function filterNativeToolsForMode(
 	customModes: ModeConfig[] | undefined,
 	experiments: Record<string, boolean> | undefined,
 	codeIndexManager?: CodeIndexManager,
-	settings?: Record<string, any>,
+	settings?: Record<string, unknown>,
 	mcpHub?: McpHub,
 ): OpenAI.Chat.ChatCompletionTool[] {
 	// Get mode configuration and all tools for this mode
@@ -287,8 +287,9 @@ export function filterNativeToolsForMode(
 	}
 
 	// Remove tools that are explicitly disabled via the disabledTools setting
-	if (settings?.disabledTools?.length) {
-		for (const toolName of settings.disabledTools) {
+	const disabledTools = (settings?.disabledTools ?? []) as string[]
+	if (disabledTools.length) {
+		for (const toolName of disabledTools) {
 			// Normalize aliases so disabling a legacy alias (e.g. "search_and_replace")
 			// also disables the canonical tool (e.g. "edit").
 			const resolvedToolName = resolveToolAlias(toolName)
@@ -350,7 +351,7 @@ export function isToolAllowedInMode(
 	customModes: ModeConfig[] | undefined,
 	experiments: Record<string, boolean> | undefined,
 	codeIndexManager?: CodeIndexManager,
-	settings?: Record<string, any>,
+	settings?: Record<string, unknown>,
 ): boolean {
 	const modeSlug = mode ?? defaultModeSlug
 
@@ -406,7 +407,7 @@ export function getAvailableToolsInGroup(
 	customModes: ModeConfig[] | undefined,
 	experiments: Record<string, boolean> | undefined,
 	codeIndexManager?: CodeIndexManager,
-	settings?: Record<string, any>,
+	settings?: Record<string, unknown>,
 ): ToolName[] {
 	const toolGroup = TOOL_GROUPS[groupName]
 	if (!toolGroup) {

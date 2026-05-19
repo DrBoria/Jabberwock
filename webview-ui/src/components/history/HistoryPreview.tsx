@@ -1,6 +1,7 @@
 import { memo } from "react"
 
-import { vscode } from "@jabberwock/devtool/react"
+import { WINDOW_MANAGER_SWITCH_TAB as _WINDOW_MANAGER_SWITCH_TAB } from "@jabberwock/types"
+import { rootStore } from "@src/features/store"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 
 import { useTaskSearch } from "./useTaskSearch"
@@ -13,7 +14,7 @@ const HistoryPreview = () => {
 	const { t } = useAppTranslation()
 
 	const handleViewAllHistory = () => {
-		vscode.postMessage({ type: "switchTab", tab: "history" })
+		rootStore.windowManager.switchTab("history")
 	}
 
 	// Show up to 4 groups (parent + subtasks count as 1 block)

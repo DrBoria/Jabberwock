@@ -36,7 +36,7 @@ export const NotificationSettings = ({
 					label={t("settings:notifications.tts.label")}>
 					<VSCodeCheckbox
 						checked={ttsEnabled}
-						onChange={(e: any) => setCachedStateField("ttsEnabled", e.target.checked)}
+						onChange={(e) => setCachedStateField("ttsEnabled", (e.target as HTMLInputElement).checked)}
 						data-testid="tts-enabled-checkbox">
 						<span className="font-medium">{t("settings:notifications.tts.label")}</span>
 					</VSCodeCheckbox>
@@ -75,7 +75,7 @@ export const NotificationSettings = ({
 					label={t("settings:notifications.sound.label")}>
 					<VSCodeCheckbox
 						checked={soundEnabled}
-						onChange={(e: any) => setCachedStateField("soundEnabled", e.target.checked)}
+						onChange={(e) => setCachedStateField("soundEnabled", (e.target as HTMLInputElement).checked)}
 						data-testid="sound-enabled-checkbox">
 						<span className="font-medium">{t("settings:notifications.sound.label")}</span>
 					</VSCodeCheckbox>

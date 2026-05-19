@@ -1,5 +1,5 @@
 import React from "react"
-import type { ClineMessage } from "@jabberwock/types"
+import type { ClineMessage, SuggestionItem } from "@jabberwock/types"
 import { Markdown } from "../../messages-list/markdown"
 import { ReasoningBlock } from "../../messages-list/reasoning-block"
 import { ErrorRow } from "../../messages-list/row/error-row"
@@ -42,9 +42,9 @@ interface SayRendererProps {
 	icon: React.ReactNode
 	title: React.ReactNode
 	onToggleExpand: () => void
-	onSuggestionClick?: (suggestion: any, event?: React.MouseEvent) => void
-	t: (key: string, options?: any) => string
-	i18n: any
+	onSuggestionClick?: (suggestion: SuggestionItem, event?: React.MouseEvent) => void
+	t: (key: string, options?: Record<string, unknown>) => string
+	i18n: { exists: (key: string) => boolean }
 }
 
 /** Main SayRenderer - dispatches to sub-renderers via object-literal pattern */
@@ -72,7 +72,7 @@ export const SayRenderer: React.FC<SayRendererProps> = (props) => {
 	const agentsList = React.useMemo(() => {
 		return JSON.stringify(
 			getAllModes(customModes)
-				.map((m: any) => ({ slug: m.slug, name: m.name }))
+				.map((m: { slug: string; name: string }) => ({ slug: m.slug, name: m.name }))
 				.filter(Boolean),
 		)
 	}, [customModes])
@@ -171,7 +171,8 @@ export const SayRenderer: React.FC<SayRendererProps> = (props) => {
 		},
 	}
 
-	const dispatcherResult = dispatchers[message.say ?? ""]?.()
+	const sayType = message.say ?? ""
+	const dispatcherResult = dispatchers[sayType]?.()
 
 	return (
 		dispatcherResult ?? (

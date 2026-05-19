@@ -1,7 +1,7 @@
 import React from "react"
 import { TriangleAlert, BookOpenText } from "lucide-react"
 import { useAppTranslation } from "@/i18n/TranslationContext"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 
 export interface WarningRowProps {
 	title: string
@@ -44,7 +44,7 @@ export const WarningRow: React.FC<WarningRowProps> = ({ title, message, docsURL,
 						className="text-sm flex items-center gap-1 transition-opacity opacity-0 group-hover:opacity-100"
 						onClick={(e) => {
 							e.preventDefault()
-							vscode.postMessage({ type: "openExternal", url: docsURL })
+							rootStore.settings.openExternal(docsURL)
 						}}>
 						<BookOpenText className="size-3 mt-[3px]" />
 						{t("chat:apiRequest.errorMessage.docs")}

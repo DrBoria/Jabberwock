@@ -1,5 +1,5 @@
 import { Anthropic } from "@anthropic-ai/sdk"
-import { TelemetryService } from "@jabberwock/telemetry"
+import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 import {
 	validateAndFixToolResultIds,
 	ToolResultIdMismatchError,
@@ -801,8 +801,8 @@ describe("validateAndFixToolResultIds", () => {
 			validateAndFixToolResultIds(userMessage, [assistantMessage])
 
 			// A mismatch also triggers missing detection since the wrong-id doesn't match any tool_use
-			expect(TelemetryService.instance.captureException).toHaveBeenCalledTimes(2)
-			expect(TelemetryService.instance.captureException).toHaveBeenCalledWith(
+			expect(getTelemetryService().captureException).toHaveBeenCalledTimes(2)
+			expect(getTelemetryService().captureException).toHaveBeenCalledWith(
 				expect.any(MissingToolResultError),
 				expect.objectContaining({
 					missingToolUseIds: ["correct-id"],
@@ -811,7 +811,7 @@ describe("validateAndFixToolResultIds", () => {
 					toolResultCount: 1,
 				}),
 			)
-			expect(TelemetryService.instance.captureException).toHaveBeenCalledWith(
+			expect(getTelemetryService().captureException).toHaveBeenCalledWith(
 				expect.any(ToolResultIdMismatchError),
 				expect.objectContaining({
 					toolResultIds: ["wrong-id"],
@@ -848,7 +848,7 @@ describe("validateAndFixToolResultIds", () => {
 
 			validateAndFixToolResultIds(userMessage, [assistantMessage])
 
-			expect(TelemetryService.instance.captureException).not.toHaveBeenCalled()
+			expect(getTelemetryService().captureException).not.toHaveBeenCalled()
 		})
 	})
 
@@ -908,8 +908,8 @@ describe("validateAndFixToolResultIds", () => {
 
 			validateAndFixToolResultIds(userMessage, [assistantMessage])
 
-			expect(TelemetryService.instance.captureException).toHaveBeenCalledTimes(1)
-			expect(TelemetryService.instance.captureException).toHaveBeenCalledWith(
+			expect(getTelemetryService().captureException).toHaveBeenCalledTimes(1)
+			expect(getTelemetryService().captureException).toHaveBeenCalledWith(
 				expect.any(MissingToolResultError),
 				expect.objectContaining({
 					missingToolUseIds: ["tool-123"],
@@ -954,12 +954,12 @@ describe("validateAndFixToolResultIds", () => {
 			validateAndFixToolResultIds(userMessage, [assistantMessage])
 
 			// Should be called twice: once for missing, once for mismatch
-			expect(TelemetryService.instance.captureException).toHaveBeenCalledTimes(2)
-			expect(TelemetryService.instance.captureException).toHaveBeenCalledWith(
+			expect(getTelemetryService().captureException).toHaveBeenCalledTimes(2)
+			expect(getTelemetryService().captureException).toHaveBeenCalledWith(
 				expect.any(MissingToolResultError),
 				expect.any(Object),
 			)
-			expect(TelemetryService.instance.captureException).toHaveBeenCalledWith(
+			expect(getTelemetryService().captureException).toHaveBeenCalledWith(
 				expect.any(ToolResultIdMismatchError),
 				expect.any(Object),
 			)
@@ -991,7 +991,7 @@ describe("validateAndFixToolResultIds", () => {
 
 			validateAndFixToolResultIds(userMessage, [assistantMessage])
 
-			expect(TelemetryService.instance.captureException).not.toHaveBeenCalled()
+			expect(getTelemetryService().captureException).not.toHaveBeenCalled()
 		})
 	})
 })

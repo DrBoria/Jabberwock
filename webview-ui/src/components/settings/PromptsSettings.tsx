@@ -3,7 +3,13 @@ import { VSCodeTextArea, VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react
 
 import { supportPrompt, SupportPromptType } from "@shared/support-prompt"
 
-import { vscode } from "@jabberwock/devtool/react"
+import { getEventValue } from "@src/utils/getEventValue"
+import {
+	CHAT_TEXT_AREA_ENHANCE_PROMPT as _CHAT_TEXT_AREA_ENHANCE_PROMPT,
+	AGENT_STATE_ENHANCEMENT_API_CONFIG_ID as _AGENT_STATE_ENHANCEMENT_API_CONFIG_ID,
+	SETTINGS_UPDATE_SETTINGS as _SETTINGS_UPDATE_SETTINGS,
+} from "@jabberwock/types"
+import { rootStore } from "@src/features/store"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import {
@@ -93,10 +99,7 @@ const PromptsSettings = ({
 		if (!testPrompt.trim()) return
 
 		setIsEnhancing(true)
-		vscode.postMessage({
-			type: "enhancePrompt",
-			text: testPrompt,
-		})
+		rootStore.chat.enhancePrompt(testPrompt)
 	}
 
 	return (
@@ -148,9 +151,7 @@ const PromptsSettings = ({
 						resize="vertical"
 						value={getSupportPromptValue(activeSupportOption)}
 						onInput={(e) => {
-							const value =
-								(e as unknown as CustomEvent)?.detail?.target?.value ??
-								((e as any).target as HTMLTextAreaElement).value
+							const value = getEventValue(e) ?? ""
 							updateSupportPrompt(activeSupportOption, value)
 						}}
 						rows={6}
@@ -168,10 +169,7 @@ const PromptsSettings = ({
 									onValueChange={(value) => {
 										const newConfigId = value === "-" ? "" : value
 										setEnhancementApiConfigId(newConfigId)
-										vscode.postMessage({
-											type: "enhancementApiConfigId",
-											text: value,
-										})
+										rootStore.settings.setEnhancementApiConfigId(value)
 									}}>
 									<SelectTrigger data-testid="api-config-select" className="w-full">
 										<SelectValue
@@ -209,9 +207,8 @@ const PromptsSettings = ({
 
 										setIncludeTaskHistoryInEnhance(target.checked)
 
-										vscode.postMessage({
-											type: "updateSettings",
-											updatedSettings: { includeTaskHistoryInEnhance: target.checked },
+										rootStore.settings.updateSettings({
+											includeTaskHistoryInEnhance: target.checked,
 										})
 									}}>
 									<span className="font-medium">

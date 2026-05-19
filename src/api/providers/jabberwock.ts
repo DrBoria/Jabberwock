@@ -2,7 +2,7 @@ import { Anthropic } from "@anthropic-ai/sdk"
 import OpenAI from "openai"
 
 import { rooDefaultModelId, getApiProtocol, type ImageGenerationApiMethod } from "@jabberwock/types"
-import { CloudService } from "@jabberwock/cloud"
+import { CloudService, getCloudService, hasCloudService } from "@jabberwock/cloud"
 
 import { NativeToolCallParser } from "../../core/assistant-message/NativeToolCallParser"
 
@@ -10,7 +10,7 @@ import { Package } from "../../shared/package"
 import type { ApiHandlerOptions } from "../../shared/api"
 import { ApiStream } from "../transform/stream"
 import { getModelParams } from "../transform/model-params"
-import { convertToOpenAiMessages } from "../transform/openai-format"
+import { convertToOpenAiMessages, type ReasoningDetail } from "../transform/openai-format"
 import type { RooReasoningParams } from "../transform/reasoning"
 import { getRooReasoning } from "../transform/reasoning"
 
@@ -33,13 +33,13 @@ type RooChatCompletionParams = OpenAI.Chat.ChatCompletionCreateParamsStreaming &
 }
 
 function getSessionToken(): string {
-	const token = CloudService.hasInstance() ? CloudService.instance.authService?.getSessionToken() : undefined
+	const token = hasCloudService() ? getCloudService().authService?.getSessionToken() : undefined
 	return token ?? "unauthenticated"
 }
 
 export class RooHandler extends BaseOpenAiCompatibleProvider<string> {
 	private fetcherBaseURL: string
-	private currentReasoningDetails: any[] = []
+	private currentReasoningDetails: ReasoningDetail[] = []
 
 	constructor(options: ApiHandlerOptions) {
 		const sessionToken = options.jabberwockCloudApiKey ?? getSessionToken()
@@ -118,7 +118,7 @@ export class RooHandler extends BaseOpenAiCompatibleProvider<string> {
 		}
 	}
 
-	getReasoningDetails(): any[] | undefined {
+	getReasoningDetails(): ReasoningDetail[] | undefined {
 		return this.currentReasoningDetails.length > 0 ? this.currentReasoningDetails : undefined
 	}
 

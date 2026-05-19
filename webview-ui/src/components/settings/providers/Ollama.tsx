@@ -6,7 +6,7 @@ import type { ProviderSettings, ExtensionMessage, ModelRecord } from "@jabberwoc
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { useRouterModels } from "@src/components/ui/hooks/useRouterModels"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 
 import { inputEventTransform } from "../transforms"
 import { ModelPicker } from "../ModelPicker"
@@ -23,12 +23,14 @@ export const Ollama = ({ apiConfiguration, setApiConfigurationField }: OllamaPro
 	const routerModels = useRouterModels()
 
 	const handleInputChange = useCallback(
-		<K extends keyof ProviderSettings, E>(
-			field: K,
-			transform: (event: E) => ProviderSettings[K] = inputEventTransform,
-		) =>
+		<K extends keyof ProviderSettings, E>(field: K, transform?: (event: E) => ProviderSettings[K]) =>
 			(event: E | Event) => {
-				setApiConfigurationField(field, transform(event as E))
+				setApiConfigurationField(
+					field,
+					transform
+						? transform(event as E)
+						: (inputEventTransform(event as { target: HTMLInputElement }) as ProviderSettings[K]),
+				)
 			},
 		[setApiConfigurationField],
 	)
@@ -51,7 +53,7 @@ export const Ollama = ({ apiConfiguration, setApiConfigurationField }: OllamaPro
 	// Refresh models on mount
 	useEffect(() => {
 		// Request fresh models - the handler now flushes cache automatically
-		vscode.postMessage({ type: "requestOllamaModels" })
+		rootStore.settings.requestOllamaModels()
 	}, [])
 
 	// Check if the selected model exists in the fetched models

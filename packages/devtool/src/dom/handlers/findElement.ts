@@ -7,7 +7,7 @@
  */
 import type { DomHandlerContext, DomIframeResponse } from "../types.js"
 import { serializeDomToTree } from "../serialization.js"
-import { findElementBySelector } from "../lookup.js"
+import { findAllElementsBySelector } from "../lookup.js"
 
 export async function handleFindElement(ctx: DomHandlerContext, req: Record<string, unknown>): Promise<void> {
 	const { postMessage, queryIframe, resolveSelectorInIframe } = ctx
@@ -60,83 +60,107 @@ export async function handleFindElement(ctx: DomHandlerContext, req: Record<stri
 			}
 		}
 
-		// Find element in the main document
-		const el = selector === "*" ? document.getElementById("root") || document.body : findElementBySelector(selector)
+		// Find element(s) in the main document
+		// For "*" selector, use root/body (single element).
+		// For specific selectors, use querySelectorAll to return ALL matching elements.
+		const elements =
+			selector === "*"
+				? (() => {
+						const root = document.getElementById("root") || document.body
+						return root ? [root] : []
+					})()
+				: findAllElementsBySelector(selector)
 
-		if (!el) {
+		if (elements.length === 0) {
 			postMessage({ type: "domResponse", requestId, text: `Element not found: ${selector}` })
 			return
 		}
 
-		// ── Iframe element found without inner selector — forward query to iframe content ──
-		// When the selector targets an iframe directly (e.g., "iframe[src*='3005']") without
-		// a space-separated inner selector, resolveSelectorInIframe returned null above.
-		// We detect this case and forward the query (serialize + command) to the iframe content.
-		if (el instanceof HTMLIFrameElement && el.src) {
-			try {
-				const iframeQuery: Record<string, unknown> = {
-					type: "dom-query",
-					command: "querySelector",
-					selector: "*",
-					depth: domDepth,
-					maxChildren: domMaxChildren,
-				}
-				if (req.command) {
-					iframeQuery.userCommand = req.command
-				}
-				const result = (await queryIframe(el, iframeQuery)) as DomIframeResponse
-				let output = ""
-				if (result?.html) {
-					const parser = new DOMParser()
-					const parsedDoc = parser.parseFromString(result.html, "text/html")
-					if (parsedDoc.body) {
-						const iframeTree = serializeDomToTree(parsedDoc.body, 0, domDepth, domMaxChildren)
-						output = JSON.stringify(iframeTree, null, 2)
+		// Serialize all matched elements
+		let output = ""
+		for (let idx = 0; idx < elements.length; idx++) {
+			const el = elements[idx]!
+
+			// ── Iframe element found without inner selector — forward query to iframe content ──
+			// When the selector targets an iframe directly (e.g., "iframe[src*='3005']") without
+			// a space-separated inner selector, resolveSelectorInIframe returned null above.
+			// We detect this case and forward the query (serialize + command) to the iframe content.
+			if (el instanceof HTMLIFrameElement && el.src) {
+				try {
+					const iframeQuery: Record<string, unknown> = {
+						type: "dom-query",
+						command: "querySelector",
+						selector: "*",
+						depth: domDepth,
+						maxChildren: domMaxChildren,
 					}
+					if (req.command) {
+						iframeQuery.userCommand = req.command
+					}
+					const result = (await queryIframe(el, iframeQuery)) as DomIframeResponse
+					let iframeOutput = ""
+					if (result?.html) {
+						const parser = new DOMParser()
+						const parsedDoc = parser.parseFromString(result.html, "text/html")
+						if (parsedDoc.body) {
+							const iframeTree = serializeDomToTree(parsedDoc.body, 0, domDepth, domMaxChildren)
+							iframeOutput = JSON.stringify(iframeTree, null, 2)
+						}
+					}
+					if (result?.commandResult !== undefined) {
+						iframeOutput += `\n\nCommand result:\n${result.commandResult}`
+					} else if (result?.commandError !== undefined) {
+						iframeOutput += `\n\nCommand error:\n${result.commandError}`
+					}
+					if (elements.length > 1) {
+						output += `[${idx}] ${iframeOutput || `iframe content empty (${el.src})`}\n\n`
+					} else {
+						output = iframeOutput || `iframe content empty (${el.src})`
+					}
+					continue
+				} catch (_iframeErr) {
+					// Fall through to normal serialization if iframe query fails
 				}
-				if (result?.commandResult !== undefined) {
-					output += `\n\nCommand result:\n${result.commandResult}`
-				} else if (result?.commandError !== undefined) {
-					output += `\n\nCommand error:\n${result.commandError}`
-				}
-				postMessage({ type: "domResponse", requestId, text: output || `iframe content empty (${el.src})` })
-				return
-			} catch (_iframeErr) {
-				// Fall through to normal serialization if iframe query fails
 			}
-		}
 
-		// Serialize the DOM subtree
-		const tree = serializeDomToTree(el, 0, domDepth, domMaxChildren)
-		let output = JSON.stringify(tree, null, 2)
+			// Serialize the DOM subtree
+			const tree = serializeDomToTree(el, 0, domDepth, domMaxChildren)
+			let elOutput = JSON.stringify(tree, null, 2)
 
-		// Execute command if provided (use $0 to reference the found element)
-		if (req.command) {
-			try {
-				const fn = new Function("$0", `return (${req.command})`)
-				const commandResult = fn(el)
-				const resultStr =
-					commandResult === undefined
-						? "undefined"
-						: commandResult === null
-							? "null"
-							: commandResult === ""
-								? '"" (empty string)'
-								: commandResult instanceof Element
-									? `<${commandResult.tagName.toLowerCase()}>`
-									: commandResult instanceof NodeList || commandResult instanceof HTMLCollection
-										? `[${Array.from(commandResult)
-												.map((el2, i) => {
-													const tag = (el2 as Element).tagName?.toLowerCase() || "?"
-													return `${i}: <${tag}>${(el2 as Element).id ? `#${(el2 as Element).id}` : ""}`
-												})
-												.join(", ")}] (${commandResult.length} elements)`
-										: typeof commandResult === "object"
-											? JSON.stringify(commandResult, null, 2)
-											: String(commandResult)
-				output += `\n\nCommand result:\n${resultStr}`
-			} catch (cmdErr) {
-				output += `\n\nCommand error: ${cmdErr instanceof Error ? cmdErr.message : String(cmdErr)}`
+			// Execute command if provided (use $0 to reference the found element)
+			if (req.command) {
+				try {
+					const fn = new Function("$0", `return (${req.command})`)
+					const commandResult = fn(el)
+					const resultStr =
+						commandResult === undefined
+							? "undefined"
+							: commandResult === null
+								? "null"
+								: commandResult === ""
+									? '"" (empty string)'
+									: commandResult instanceof Element
+										? `<${commandResult.tagName.toLowerCase()}>`
+										: commandResult instanceof NodeList || commandResult instanceof HTMLCollection
+											? `[${Array.from(commandResult)
+													.map((el2, i) => {
+														const tag = (el2 as Element).tagName?.toLowerCase() || "?"
+														return `${i}: <${tag}>${(el2 as Element).id ? `#${(el2 as Element).id}` : ""}`
+													})
+													.join(", ")}] (${commandResult.length} elements)`
+											: typeof commandResult === "object"
+												? JSON.stringify(commandResult, null, 2)
+												: String(commandResult)
+					elOutput += `\n\nCommand result:\n${resultStr}`
+				} catch (cmdErr) {
+					elOutput += `\n\nCommand error: ${cmdErr instanceof Error ? cmdErr.message : String(cmdErr)}`
+				}
+			}
+
+			if (elements.length > 1) {
+				output += `[${idx}] ${elOutput}\n\n`
+			} else {
+				output = elOutput
 			}
 		}
 

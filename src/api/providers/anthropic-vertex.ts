@@ -27,6 +27,31 @@ import { BaseProvider } from "./base-provider"
 import type { SingleCompletionHandler, ApiHandlerCreateMessageMetadata } from "../index"
 
 // https://docs.anthropic.com/en/api/claude-on-vertex-ai
+/**
+ * Content block types for Anthropic Vertex extended thinking.
+ * The Anthropic Vertex SDK includes "thinking" and "thinking_delta" event types
+ * that are not part of the base Anthropic ContentBlockParam union.
+ */
+
+// Thinking content block (content_block_start with type "thinking")
+interface ThinkingContentBlock {
+	type: "thinking"
+	thinking: string
+	signature?: string
+}
+
+// Thinking delta event (content_block_delta with type "thinking_delta")
+interface ThinkingDelta {
+	type: "thinking_delta"
+	thinking: string
+}
+
+// Input JSON delta (content_block_delta with type "input_json_delta")
+interface InputJsonDelta {
+	type: "input_json_delta"
+	partial_json: string
+}
+
 export class AnthropicVertexHandler extends BaseProvider implements SingleCompletionHandler {
 	protected options: ApiHandlerOptions
 	private client: AnthropicVertex
@@ -151,7 +176,7 @@ export class AnthropicVertexHandler extends BaseProvider implements SingleComple
 								yield { type: "reasoning", text: "\n" }
 							}
 
-							yield { type: "reasoning", text: (chunk.content_block as any).thinking }
+							yield { type: "reasoning", text: (chunk.content_block as ThinkingContentBlock).thinking }
 							break
 						}
 						case "tool_use": {
@@ -176,7 +201,7 @@ export class AnthropicVertexHandler extends BaseProvider implements SingleComple
 							break
 						}
 						case "thinking_delta": {
-							yield { type: "reasoning", text: (chunk.delta as any).thinking }
+							yield { type: "reasoning", text: (chunk.delta as ThinkingDelta).thinking }
 							break
 						}
 						case "input_json_delta": {
@@ -186,7 +211,7 @@ export class AnthropicVertexHandler extends BaseProvider implements SingleComple
 								index: chunk.index,
 								id: undefined,
 								name: undefined,
-								arguments: (chunk.delta as any).partial_json,
+								arguments: (chunk.delta as InputJsonDelta).partial_json,
 							}
 							break
 						}

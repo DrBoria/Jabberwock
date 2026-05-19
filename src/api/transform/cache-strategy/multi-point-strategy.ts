@@ -29,9 +29,9 @@ export class MultiPointStrategy extends CacheStrategy {
 		// Handle system blocks
 		let systemBlocks: SystemContentBlock[] = []
 		if (this.config.systemPrompt) {
-			systemBlocks = [{ text: this.config.systemPrompt } as unknown as SystemContentBlock]
+			systemBlocks = [{ text: this.config.systemPrompt } as SystemContentBlock]
 			if (useSystemCache) {
-				systemBlocks.push(this.createCachePoint() as unknown as SystemContentBlock)
+				systemBlocks.push(this.createCachePoint() as SystemContentBlock)
 				remainingCachePoints--
 			}
 		}
@@ -306,7 +306,7 @@ export class MultiPointStrategy extends CacheStrategy {
 	 */
 	private formatWithoutCachePoints(): CacheResult {
 		const systemBlocks: SystemContentBlock[] = this.config.systemPrompt
-			? [{ text: this.config.systemPrompt } as unknown as SystemContentBlock]
+			? [{ text: this.config.systemPrompt } as SystemContentBlock]
 			: []
 
 		return this.formatResult(systemBlocks, this.messagesToContentBlocks(this.config.messages))

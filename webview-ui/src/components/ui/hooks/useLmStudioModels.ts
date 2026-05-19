@@ -3,7 +3,7 @@ import { onSnapshot } from "mobx-state-tree"
 
 import { type ModelRecord } from "@jabberwock/types"
 
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { routerModelsStore } from "@src/features/settings/models/store"
 
 const getLmStudioModels = async () =>
@@ -29,7 +29,7 @@ const getLmStudioModels = async () =>
 			reject(new Error("LM Studio models request timed out"))
 		}, 10000)
 
-		vscode.postMessage({ type: "requestLmStudioModels" })
+		rootStore.settings.requestLmStudioModels()
 	})
 
 export const useLmStudioModels = (modelId?: string) =>

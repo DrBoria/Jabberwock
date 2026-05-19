@@ -18,9 +18,9 @@ import { COMMAND_OUTPUT_STRING } from "@shared/combineCommandSequences"
 import { safeJsonParse } from "@shared/core"
 
 import { useExtensionState } from "@src/context/ExtensionStateContext"
+import { rootStore } from "@src/features/store"
 import { useChatUI } from "@src/features/chat/store"
 import { getAllModes } from "@shared/modes"
-import { vscode } from "@jabberwock/devtool/react"
 
 import { UserMessage, AssistantMessage, ToolRenderer } from "../index"
 import { SayRenderer } from "../../notifications/say/view"
@@ -40,14 +40,8 @@ interface ChatRowProps {
 	message: ClineMessage
 	lastModifiedMessage?: ClineMessage
 	isLast: boolean
-	isStreaming: boolean
 	onHeightChange: (isTaller: boolean) => void
 	onSuggestionClick?: (suggestion: SuggestionItem, event?: React.MouseEvent) => void
-	onBatchFileResponse?: (response: { [key: string]: boolean }) => void
-	onFollowUpUnmount?: () => void
-	isFollowUpAutoApprovalPaused?: boolean
-	editable?: boolean
-	hasCheckpoint?: boolean
 	isNested?: boolean
 	history?: ClineMessage[]
 }
@@ -95,11 +89,7 @@ export const ChatRowContent = ({
 	message,
 	lastModifiedMessage,
 	isLast,
-	isStreaming,
 	onSuggestionClick,
-	onFollowUpUnmount,
-	onBatchFileResponse,
-	isFollowUpAutoApprovalPaused,
 	isNested,
 	history,
 }: ChatRowContentProps) => {
@@ -169,15 +159,15 @@ export const ChatRowContent = ({
 	const [editImages, setEditImages] = useState<string[]>([])
 
 	const t = useCallback(
-		(key: string, options?: any) => {
-			let result: any = originalT(key as any, options)
+		(key: string, options?: Record<string, unknown>) => {
+			const result = originalT(key, options)
 			if (typeof result === "string" && modeName && result.includes("Jabberwock")) {
-				result = result.replace(/Jabberwock/g, modeName)
+				return result.replace(/Jabberwock/g, modeName)
 			}
 			return result
 		},
 		[originalT, modeName],
-	) as any
+	) as (key: string, options?: Record<string, unknown>) => string
 
 	// Handle message events for image selection during edit mode
 	useEffect(() => {
@@ -216,17 +206,12 @@ export const ChatRowContent = ({
 	// Handle save edit
 	const _handleSaveEdit = useCallback(() => {
 		setIsEditing(false)
-		vscode.postMessage({
-			type: "submitEditedMessage",
-			value: message.ts,
-			editedMessageContent: editedContent,
-			images: editImages,
-		})
+		rootStore.chat.submitEditedMessage(message.ts, editedContent, editImages)
 	}, [message.ts, editedContent, editImages])
 
 	// Handle image selection for editing
 	const _handleSelectImages = useCallback(() => {
-		vscode.postMessage({ type: "selectImages", context: "edit", messageTs: message.ts })
+		rootStore.chat.selectImagesForEdit("edit", message.ts)
 	}, [message.ts])
 
 	const [cost, apiReqCancelReason, _apiReqStreamingFailedMessage] = useMemo(() => {
@@ -409,14 +394,20 @@ export const ChatRowContent = ({
 	// ==================== RENDER LOGIC ====================
 
 	// 1. User role messages
-	if ((message as any).role === "user") {
+	if ((message as { role?: string }).role === "user") {
 		return <UserMessage message={message} t={t} />
 	}
 
 	// 2. Assistant role messages
-	if ((message as any).role === "assistant") {
+	if ((message as { role?: string }).role === "assistant") {
 		return (
-			<AssistantMessage message={message} modeName={modeName} isStreaming={isStreaming} isLast={isLast} t={t} />
+			<AssistantMessage
+				message={message}
+				modeName={modeName}
+				isStreaming={ui.isStreaming}
+				isLast={isLast}
+				t={t}
+			/>
 		)
 	}
 
@@ -431,7 +422,7 @@ export const ChatRowContent = ({
 				isRedundantTodo={isRedundantTodo}
 				effectiveHistory={effectiveHistory}
 				onToggleExpand={handleToggleExpand}
-				onBatchFileResponse={onBatchFileResponse}
+				onBatchFileResponse={rootStore.windowManager.batchFileResponse}
 				t={t}
 			/>
 		)
@@ -446,7 +437,7 @@ export const ChatRowContent = ({
 					lastModifiedMessage={lastModifiedMessage}
 					isExpanded={isExpanded}
 					isLast={isLast}
-					isStreaming={isStreaming}
+					isStreaming={ui.isStreaming}
 					isNested={!!isNested}
 					isRedundantDelegation={isRedundantDelegation}
 					isAgentSaidSummary={isAgentSaidSummary}
@@ -468,9 +459,9 @@ export const ChatRowContent = ({
 					isLast={isLast}
 					lastModifiedMessage={lastModifiedMessage}
 					onSuggestionClick={onSuggestionClick}
-					onFollowUpUnmount={onFollowUpUnmount}
+					onFollowUpUnmount={rootStore.chat.cancelAutoApproval}
 					isFollowUpAnswered={isFollowUpAnswered}
-					isFollowUpAutoApprovalPaused={isFollowUpAutoApprovalPaused}
+					isFollowUpAutoApprovalPaused={ui.isFollowUpAutoApprovalPaused}
 					t={t}
 				/>
 			)

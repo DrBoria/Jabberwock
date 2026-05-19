@@ -3,7 +3,7 @@
 import type { ToolUsage } from "@jabberwock/types"
 import * as vscode from "vscode"
 
-import { Task } from "../../task/Task"
+import { Task } from "../../../features/chat/task/Task"
 import { formatResponse } from "../../prompts/responses"
 import { ToolUse, AskApproval, HandleError, PushToolResult } from "../../../shared/tools"
 import { unescapeHtmlEntities } from "../../../utils/text-normalization"
@@ -34,7 +34,7 @@ vitest.mock("../../../integrations/terminal/TerminalRegistry", () => ({
 	},
 }))
 
-vitest.mock("../../task/Task")
+vitest.mock("../../../features/chat/task/Task")
 vitest.mock("../../prompts/responses")
 
 // Import the module

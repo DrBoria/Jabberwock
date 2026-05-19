@@ -1,7 +1,7 @@
 import i18next from "i18next"
 
 // Build translations object
-const translations: Record<string, Record<string, any>> = {}
+const translations: Record<string, Record<string, string>> = {}
 
 // Determine if running in test environment
 const isTestEnv = process.env.NODE_ENV === "test"

@@ -8,7 +8,7 @@ interface ToolRendererProps {
 	tool: ClineSayTool
 	isExpanded: boolean
 	onToggleExpand: () => void
-	t: (key: string, options?: any) => string
+	t: (key: string, options?: Record<string, unknown>) => string
 }
 
 /** Renders skill tool */

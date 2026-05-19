@@ -1,8 +1,6 @@
 import React from "react"
 import { ListChecks, LayoutList, Settings, CheckCheck, X } from "lucide-react"
 
-import { vscode } from "@jabberwock/devtool/react"
-
 import { cn } from "@/lib/utils"
 
 import { useExtensionState } from "@/context/ExtensionStateContext"
@@ -26,6 +24,7 @@ interface AutoApproveDropdownProps {
 	triggerClassName?: string
 }
 
+import { rootStore } from "@src/features/store"
 export const AutoApproveDropdown = ({ disabled = false, triggerClassName = "" }: AutoApproveDropdownProps) => {
 	const [open, setOpen] = React.useState(false)
 	const portalContainer = useJabberwockPortal("jabberwock-portal")
@@ -47,7 +46,7 @@ export const AutoApproveDropdown = ({ disabled = false, triggerClassName = "" }:
 
 	const onAutoApproveToggle = React.useCallback(
 		(key: AutoApproveSetting, value: boolean) => {
-			vscode.postMessage({ type: "updateSettings", updatedSettings: { [key]: value } })
+			rootStore.settings.updateSettings({ [key]: value })
 
 			switch (key) {
 				case "alwaysAllowReadOnly":
@@ -76,7 +75,7 @@ export const AutoApproveDropdown = ({ disabled = false, triggerClassName = "" }:
 			// If enabling any option, ensure autoApprovalEnabled is true.
 			if (value && !autoApprovalEnabled) {
 				setAutoApprovalEnabled(true)
-				vscode.postMessage({ type: "autoApprovalEnabled", bool: true })
+				rootStore.settings.setAutoApprovalEnabled(true)
 			}
 		},
 		[
@@ -100,7 +99,7 @@ export const AutoApproveDropdown = ({ disabled = false, triggerClassName = "" }:
 		// Enable master auto-approval
 		if (!autoApprovalEnabled) {
 			setAutoApprovalEnabled(true)
-			vscode.postMessage({ type: "autoApprovalEnabled", bool: true })
+			rootStore.settings.setAutoApprovalEnabled(true)
 		}
 	}, [onAutoApproveToggle, autoApprovalEnabled, setAutoApprovalEnabled])
 
@@ -121,7 +120,7 @@ export const AutoApproveDropdown = ({ disabled = false, triggerClassName = "" }:
 	const handleAutoApprovalToggle = React.useCallback(() => {
 		const newValue = !(autoApprovalEnabled ?? false)
 		setAutoApprovalEnabled(newValue)
-		vscode.postMessage({ type: "autoApprovalEnabled", bool: newValue })
+		rootStore.settings.setAutoApprovalEnabled(newValue)
 	}, [autoApprovalEnabled, setAutoApprovalEnabled])
 
 	// Calculate enabled and total counts as separate properties

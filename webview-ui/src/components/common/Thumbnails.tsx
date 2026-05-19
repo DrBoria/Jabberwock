@@ -1,6 +1,6 @@
 import React, { useState, useRef, useLayoutEffect, memo } from "react"
 import { useWindowSize } from "react-use"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 
 interface ThumbnailsProps {
 	images: string[]
@@ -33,7 +33,7 @@ const Thumbnails = ({ images, style, setImages, onHeightChange }: ThumbnailsProp
 	const isDeletable = setImages !== undefined
 
 	const handleImageClick = (image: string) => {
-		vscode.postMessage({ type: "openImage", text: image })
+		rootStore.settings.openImage(image)
 	}
 
 	return (

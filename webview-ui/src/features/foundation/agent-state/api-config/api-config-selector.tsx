@@ -6,7 +6,6 @@ import { useJabberwockPortal } from "@/components/ui/hooks/useJabberwockPortal"
 import { Popover, PopoverContent, PopoverTrigger } from "@src/components/ui/popover"
 import { StandardTooltip } from "@src/components/ui/standard-tooltip"
 import { useAppTranslation } from "@/i18n/TranslationContext"
-import { vscode } from "@jabberwock/devtool/react"
 import { Button } from "@src/components/ui/button"
 
 import { IconButton } from "@src/components/ui"
@@ -25,6 +24,7 @@ interface ApiConfigSelectorProps {
 	onToggleLockApiConfig: () => void
 }
 
+import { rootStore } from "@src/features/store"
 export const ApiConfigSelector = ({
 	value,
 	displayName,
@@ -86,7 +86,7 @@ export const ApiConfigSelector = ({
 	)
 
 	const handleEditClick = useCallback(() => {
-		vscode.postMessage({ type: "switchTab", tab: "settings" })
+		rootStore.windowManager.switchTab("settings")
 		setOpen(false)
 	}, [])
 
@@ -130,7 +130,7 @@ export const ApiConfigSelector = ({
 								onClick={(e) => {
 									e.stopPropagation()
 									togglePinnedApiConfig(config.id)
-									vscode.postMessage({ type: "toggleApiConfigPin", text: config.id })
+									rootStore.settings.toggleApiConfigPin(config.id)
 								}}
 								className={cn("size-5 flex items-center justify-center", {
 									"opacity-0 group-hover:opacity-100": !isPinned && !isCurrentConfig,

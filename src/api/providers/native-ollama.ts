@@ -171,8 +171,9 @@ export class NativeOllamaHandler extends BaseProvider implements SingleCompletio
 				}
 
 				this.client = new Ollama(clientOptions)
-			} catch (error: any) {
-				throw new Error(`Error creating Ollama client: ${error.message}`)
+			} catch (error) {
+				const message = error instanceof Error ? error.message : String(error)
+				throw new Error(`Error creating Ollama client: ${message}`)
 			}
 		}
 		return this.client
@@ -314,16 +315,18 @@ export class NativeOllamaHandler extends BaseProvider implements SingleCompletio
 						outputTokens: totalOutputTokens,
 					}
 				}
-			} catch (streamError: any) {
+			} catch (streamError) {
+				const streamErrMsg = streamError instanceof Error ? streamError.message : String(streamError)
 				console.error("Error processing Ollama stream:", streamError)
-				throw new Error(`Ollama stream processing error: ${streamError.message || "Unknown error"}`)
+				throw new Error(`Ollama stream processing error: ${streamErrMsg}`)
 			}
-		} catch (error: any) {
+		} catch (error) {
+			const err = error as { message?: string; code?: string; status?: number; statusCode?: number }
 			// Enhance error reporting
-			const statusCode = error.status || error.statusCode
-			const errorMessage = error.message || "Unknown error"
+			const statusCode = err.status || err.statusCode
+			const errorMessage = err.message || "Unknown error"
 
-			if (error.code === "ECONNREFUSED") {
+			if (err.code === "ECONNREFUSED") {
 				throw new Error(
 					`Ollama service is not running at ${this.options.ollamaBaseUrl || "http://localhost:11434"}. Please start Ollama first.`,
 				)

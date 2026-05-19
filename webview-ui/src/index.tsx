@@ -22,6 +22,7 @@ import { agentStateStore } from "./features/foundation/agent-state/store"
 import { mcpServersStore } from "./features/settings/mcp-servers/store"
 import { skillsStore } from "./features/settings/skills/store"
 import { taskHistoryStore } from "./features/history/store"
+import { chatTreeStore } from "./features/chat/messages-list/store"
 
 // Initialize Shiki early to hide initialization latency (async)
 getHighlighter().catch((error: Error) => console.error("Failed to initialize Shiki highlighter:", error))
@@ -42,6 +43,7 @@ mstBridge.registerStore("AgentStateStore", agentStateStore)
 mstBridge.registerStore("McpServersStore", mcpServersStore)
 mstBridge.registerStore("SkillsStore", skillsStore)
 mstBridge.registerStore("TaskHistoryStore", taskHistoryStore)
+mstBridge.registerStore("ChatStore", chatTreeStore)
 
 // Listen for mst-snapshot-batch messages from the extension
 window.addEventListener("message", (event) => {
@@ -53,7 +55,7 @@ window.addEventListener("message", (event) => {
 
 // Expose bridge for DevTools inspection
 if (typeof window !== "undefined") {
-	;(window as any).__JABBERWOCK_MST_BRIDGE__ = mstBridge
+	window.__JABBERWOCK_MST_BRIDGE__ = mstBridge
 }
 
 createRoot(document.getElementById("root")!).render(

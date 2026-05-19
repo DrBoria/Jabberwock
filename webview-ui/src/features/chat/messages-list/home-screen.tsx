@@ -3,8 +3,8 @@ import { observer } from "mobx-react-lite"
 import { Activity, Cloud } from "lucide-react"
 import { Trans } from "react-i18next"
 import { VSCodeLink } from "@vscode/webview-ui-toolkit/react"
-import { vscode } from "@jabberwock/devtool/react"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
+import { rootStore } from "@src/features/store"
 import { useChatUI } from "@src/features/chat/store"
 import { Container } from "@src/components/ui/Container"
 import JabberwockHero from "@src/components/welcome/JabberwockHero"
@@ -15,11 +15,6 @@ import DismissibleUpsell from "@src/components/common/DismissibleUpsell"
 import { ChatTextArea } from "../text-area/view"
 
 export interface HomeScreenProps {
-	devtoolEnabled: boolean
-	taskHistory: any[]
-	cloudIsAuthenticated: boolean
-	showAnnouncementModal: boolean
-	setShowAnnouncementModal: (v: boolean) => void
 	openUpsell: () => void
 }
 
@@ -27,27 +22,21 @@ export interface HomeScreenProps {
  * Landing page shown when no task is active.
  * Displays JabberwockHero, tips, history preview, and DevTools toggle.
  */
-const HomeScreenComponent: React.FC<HomeScreenProps> = ({
-	devtoolEnabled,
-	taskHistory,
-	cloudIsAuthenticated,
-	setShowAnnouncementModal,
-	openUpsell,
-}) => {
+const HomeScreenComponent: React.FC<HomeScreenProps> = ({ openUpsell }) => {
 	const { t } = useAppTranslation()
 	const ui = useChatUI()
+	const { devtoolEnabled, taskHistory, cloudIsAuthenticated } = rootStore.extensionState
 
 	const handleSend = React.useCallback(() => {
 		const text = ui.inputValue.trim()
 		const images = ui.selectedImages.slice()
 		if (text || images.length > 0) {
-			vscode.postMessage({ type: "newTask", text, images })
-			ui.clearInput()
+			rootStore.chat.sendMessage(text, images)
 		}
 	}, [ui])
 
 	const handleSelectImages = React.useCallback(() => {
-		vscode.postMessage({ type: "selectImages" })
+		rootStore.chat.selectImages()
 	}, [])
 
 	return (
@@ -55,7 +44,7 @@ const HomeScreenComponent: React.FC<HomeScreenProps> = ({
 			<Container className="flex flex-col items-start gap-2 justify-center h-full min-[400px]:px-6">
 				<Container className="absolute top-2 right-3 z-10 flex gap-2 items-center">
 					<button
-						onClick={() => vscode.postMessage({ type: "devtoolStatus", text: "toggle" })}
+						onClick={() => rootStore.settings.toggleDevtool()}
 						className={`flex items-center gap-1 px-2 py-1 rounded-md transition-colors cursor-pointer border-none font-sans text-[11px] font-semibold ${
 							devtoolEnabled
 								? "bg-vscode-button-hoverBackground text-[#ffaa00]"
@@ -65,7 +54,7 @@ const HomeScreenComponent: React.FC<HomeScreenProps> = ({
 						<Activity size={12} />
 						DevTools
 					</button>
-					<VersionIndicator onClick={() => setShowAnnouncementModal(true)} />
+					<VersionIndicator onClick={() => rootStore.chat.ui.setShowAnnouncementModal(true)} />
 				</Container>
 				<Container className="flex flex-col gap-4 w-full">
 					<JabberwockHero />

@@ -3,7 +3,12 @@
 import * as path from "path"
 import { Anthropic } from "@anthropic-ai/sdk"
 import type { ModelInfo } from "@jabberwock/types"
-import { TelemetryService } from "@jabberwock/telemetry"
+import {
+	TelemetryService,
+	getTelemetryService,
+	hasTelemetryService,
+	createTelemetryService,
+} from "@jabberwock/telemetry"
 import { BaseProvider } from "../../../api/providers/base-provider"
 
 // Mock the tree-sitter module
@@ -214,8 +219,8 @@ describe("foldedFileContext", () => {
 
 	describe("summarizeConversation with foldedFileContext", () => {
 		beforeEach(() => {
-			if (!TelemetryService.hasInstance()) {
-				TelemetryService.createInstance([])
+			if (!hasTelemetryService()) {
+				createTelemetryService([])
 			}
 		})
 

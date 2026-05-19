@@ -2,7 +2,7 @@ import { Anthropic } from "@anthropic-ai/sdk"
 import OpenAI from "openai"
 
 import { type XAIModelId, xaiDefaultModelId, xaiModels, ApiProviderError } from "@jabberwock/types"
-import { TelemetryService } from "@jabberwock/telemetry"
+import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 
 import { NativeToolCallParser } from "../../core/assistant-message/NativeToolCallParser"
 import type { ApiHandlerOptions } from "../../shared/api"
@@ -83,7 +83,7 @@ export class XAIHandler extends BaseProvider implements SingleCompletionHandler 
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
 			const apiError = new ApiProviderError(errorMessage, this.providerName, modelId, "createMessage")
-			TelemetryService.instance.captureException(apiError)
+			getTelemetryService().captureException(apiError)
 			throw handleOpenAIError(error, this.providerName)
 		}
 
@@ -136,9 +136,13 @@ export class XAIHandler extends BaseProvider implements SingleCompletionHandler 
 				// Fall back to direct fields in usage (used in test mocks)
 				const readTokens =
 					cachedTokens ||
-					("cache_read_input_tokens" in chunk.usage ? (chunk.usage as any).cache_read_input_tokens : 0)
+					("cache_read_input_tokens" in chunk.usage
+						? ((chunk.usage as Record<string, unknown>).$1 as number)
+						: 0)
 				const writeTokens =
-					"cache_creation_input_tokens" in chunk.usage ? (chunk.usage as any).cache_creation_input_tokens : 0
+					"cache_creation_input_tokens" in chunk.usage
+						? ((chunk.usage as Record<string, unknown>).$1 as number)
+						: 0
 
 				yield {
 					type: "usage",
@@ -165,7 +169,7 @@ export class XAIHandler extends BaseProvider implements SingleCompletionHandler 
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
 			const apiError = new ApiProviderError(errorMessage, this.providerName, modelId, "completePrompt")
-			TelemetryService.instance.captureException(apiError)
+			getTelemetryService().captureException(apiError)
 			throw handleOpenAIError(error, this.providerName)
 		}
 	}

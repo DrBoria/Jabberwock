@@ -1,13 +1,14 @@
-import { memo, useEffect, useRef, useState, useMemo } from "react"
+import { useEffect, useRef, useState, useMemo } from "react"
 import { useTranslation } from "react-i18next"
+import { observer } from "mobx-react-lite"
+import { Instance } from "mobx-state-tree"
 import { useCloudUpsell } from "@src/hooks/useCloudUpsell"
 import { CloudUpsellDialog } from "@src/components/cloud/CloudUpsellDialog"
 import DismissibleUpsell from "@src/components/common/DismissibleUpsell"
 import { ChevronUp, ChevronDown, HardDriveDownload, HardDriveUpload, FoldVertical, ArrowLeft, Bot } from "lucide-react"
 import prettyBytes from "pretty-bytes"
 
-import type { ClineMessage } from "@jabberwock/types"
-import { isAlive, isStateTreeNode } from "mobx-state-tree"
+import { getLatestTodo } from "@shared/todo"
 
 import { getModelMaxOutputTokens } from "@shared/api"
 import { findLastIndex } from "@shared/array"
@@ -15,11 +16,11 @@ import { findLastIndex } from "@shared/array"
 import { formatLargeNumber } from "@src/utils/formatNumber"
 import { cn } from "@src/lib/utils"
 import { StandardTooltip, Button, Table, TableBody, TableRow, TableCell, CircularProgress } from "@src/components/ui"
-import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { useSelectedModel } from "@/components/ui/hooks/useSelectedModel"
-import { vscode } from "@jabberwock/devtool/react"
-import { useChatTree } from "@src/features/chat/messages-list/store"
+import { useChatTree, TaskNode } from "@src/features/chat/messages-list/store"
 import { useWindowManager } from "@src/features/foundation/window-manager/store"
+import { rootStore } from "@src/features/store"
+import { useChatUI } from "@src/features/chat/store"
 
 import Thumbnails from "@src/components/common/Thumbnails"
 
@@ -29,47 +30,34 @@ import { Mention } from "../text-area/mention/mention"
 import { TodoListDisplay } from "./todo/todo-list-display"
 import { IconButton } from "@src/components/ui"
 
-export interface TaskHeaderProps {
-	task: ClineMessage
-	tokensIn: number
-	tokensOut: number
-	cacheWrites?: number
-	cacheReads?: number
-	totalCost: number
-	aggregatedCost?: number
-	hasSubtasks?: boolean
-	parentTaskId?: string
-	costBreakdown?: string
-	contextTokens: number
-	buttonsDisabled: boolean
-	handleCondenseContext: (taskId: string) => void
-	todos?: any[]
-	nodeTitle?: string
-}
-
-const TaskHeader = ({
-	task,
-	tokensIn,
-	tokensOut,
-	cacheWrites,
-	cacheReads,
-	totalCost,
-	aggregatedCost,
-	hasSubtasks,
-	parentTaskId,
-	costBreakdown,
-	contextTokens,
-	buttonsDisabled,
-	handleCondenseContext,
-	todos,
-	nodeTitle,
-}: TaskHeaderProps) => {
+const TaskHeaderComponent = () => {
 	// ALL HOOKS MUST BE CALLED BEFORE ANY EARLY RETURN (Rules of Hooks)
 	const { t } = useTranslation()
-	const { apiConfiguration, currentTaskItem, clineMessages } = useExtensionState()
-	const { nodes } = useChatTree()
+	const { apiConfiguration, currentTaskItem, clineMessages } = rootStore.extensionState
+	const tree = useChatTree()
+	const { nodes } = tree
+	const currentNodeId = tree.activeNodeId?.id || currentTaskItem?.id
 	const { id: modelId, info: model } = useSelectedModel(apiConfiguration)
 	const { pushWindow, popWindow, activeWindows } = useWindowManager()
+	const ui = useChatUI()
+	const { apiMetrics } = ui
+	const {
+		totalTokensIn: tokensIn,
+		totalTokensOut: tokensOut,
+		totalCacheWrites: cacheWrites,
+		totalCacheReads: cacheReads,
+		totalCost,
+		contextTokens,
+	} = apiMetrics
+	const buttonsDisabled = ui.sendingDisabled
+	const costBreakdown = useMemo(() => {
+		const details: string[] = []
+		if (tokensIn) details.push(`↑${tokensIn} in`)
+		if (tokensOut) details.push(`↓${tokensOut} out`)
+		if (cacheWrites) details.push(`CW:${cacheWrites}`)
+		if (cacheReads) details.push(`CR:${cacheReads}`)
+		return details.length > 0 ? details.join(" ") : undefined
+	}, [tokensIn, tokensOut, cacheWrites, cacheReads])
 	const [isTaskExpanded, setIsTaskExpanded] = useState(false)
 	const [showLongRunningTaskMessage, setShowLongRunningTaskMessage] = useState(false)
 	const { isOpen, openUpsell, closeUpsell, handleConnect } = useCloudUpsell({
@@ -119,30 +107,55 @@ const TaskHeader = ({
 		return () => clearTimeout(timer)
 	}, [currentTaskItem, isTaskComplete])
 
-	// Safety check for dead MST objects (MUST be after all hooks)
-	if (isStateTreeNode(task) && !isAlive(task)) {
-		return null
-	}
+	// ── Derived state (replaces prop-drilled task, aggregatedCost, hasSubtasks, todos) ──
+	const taskText = currentTaskItem?.task ?? ""
+	const taskImages = useMemo(() => {
+		if (!currentNodeId || !nodes.has(currentNodeId)) return []
+		const node = nodes.get(currentNodeId)
+		const firstTextMessage = (node as Instance<typeof TaskNode>)?.messages?.find((m) => m.say === "text")
+		return firstTextMessage?.images || []
+	}, [currentNodeId, nodes])
+	const aggregatedCost = useMemo(() => {
+		return currentNodeId && ui.aggregatedCostsMap.has(currentNodeId)
+			? (ui.aggregatedCostsMap.get(currentNodeId)!.totalCost as number)
+			: undefined
+	}, [currentNodeId, ui.aggregatedCostsMap])
+	const hasSubtasks = useMemo(() => {
+		return !!(
+			currentNodeId &&
+			ui.aggregatedCostsMap.has(currentNodeId) &&
+			(ui.aggregatedCostsMap.get(currentNodeId)!.childrenCost as number) > 0
+		)
+	}, [currentNodeId, ui.aggregatedCostsMap])
+	const todos = useMemo(() => {
+		const extensionTodos = rootStore.extensionState.currentTaskTodos
+		if (extensionTodos && extensionTodos.length > 0) {
+			const messageBasedTodos = getLatestTodo(clineMessages)
+			if (messageBasedTodos && messageBasedTodos.length > 0) return messageBasedTodos
+			return extensionTodos
+		}
+		return getLatestTodo(clineMessages)
+	}, [clineMessages])
 
 	const condenseButton = (
 		<IconButton
 			title={t("chat:task.condenseContext")}
 			icon={FoldVertical}
 			disabled={buttonsDisabled}
-			onClick={() => currentTaskItem && handleCondenseContext(currentTaskItem.id)}
+			onClick={() => currentTaskItem && rootStore.chat.condenseContext(currentTaskItem.id)}
 		/>
 	)
 
 	const hasTodos = todos && Array.isArray(todos) && todos.length > 0
 
 	// Determine if this is a subtask (has a parent)
-	const isSubtask = !!parentTaskId
+	const isSubtask = !!currentTaskItem?.parentTaskId
 
 	const handleBackToParent = () => {
 		if (activeWindows.length > 1) {
 			popWindow()
-		} else if (parentTaskId) {
-			vscode.postMessage({ type: "showTaskWithId", text: parentTaskId })
+		} else if (currentTaskItem?.parentTaskId) {
+			rootStore.chat.navigateToTask(currentTaskItem.parentTaskId)
 		}
 	}
 
@@ -210,11 +223,7 @@ const TaskHeader = ({
 							{isTaskExpanded && <span className="font-bold">{t("chat:task.title")}</span>}
 							{!isTaskExpanded && (
 								<div className="flex items-center gap-2 whitespace-nowrap overflow-hidden text-ellipsis">
-									{nodeTitle ? (
-										<span className="font-semibold truncate">{nodeTitle}</span>
-									) : (
-										<Mention text={task.text} />
-									)}
+									<Mention text={taskText} />
 								</div>
 							)}
 						</div>
@@ -352,10 +361,10 @@ const TaskHeader = ({
 									WebkitLineClamp: "unset",
 									WebkitBoxOrient: "vertical",
 								}}>
-								<Mention text={task.text} />
+								<Mention text={taskText} />
 							</div>
 						</div>
-						{task.images && task.images.length > 0 && <Thumbnails images={task.images} />}
+						{taskImages.length > 0 && <Thumbnails images={taskImages} />}
 
 						<div onClick={(e) => e.stopPropagation()}>
 							<TaskActions item={currentTaskItem} buttonsDisabled={buttonsDisabled} />
@@ -486,7 +495,7 @@ const TaskHeader = ({
 				{/* Todo list - always shown at bottom when todos exist */}
 				{hasTodos && (
 					<TodoListDisplay
-						todos={todos ?? (task as any)?.tool?.todos ?? []}
+						todos={todos}
 						onTodoClick={(taskId) => pushWindow("chat", { targetNodeId: taskId })}
 					/>
 				)}
@@ -499,38 +508,41 @@ const TaskHeader = ({
 								{t("chat:task.activeSubagents")}
 							</span>
 							<div className="flex flex-col gap-1 max-h-32 overflow-y-auto scrollable pr-1">
-								{nodes.get(currentTaskItem?.id || "")!.childTasks!.map((child: any) => (
-									<div
-										key={child.id}
-										onClick={(e) => {
-											e.stopPropagation()
-											pushWindow("chat", { targetNodeId: child.id })
-										}}
-										className="flex items-center justify-between p-2 rounded-lg bg-vscode-sideBarSectionHeader-background hover:bg-vscode-toolbar-hoverBackground cursor-pointer transition-colors group/child">
-										<div className="flex items-center gap-2 min-w-0">
-											<div className="p-1 bg-vscode-badge-background rounded group-hover/child:bg-vscode-focusBorder group-hover/child:text-white transition-colors">
-												<Bot size={12} />
-											</div>
-											<div className="flex flex-col min-w-0">
-												<span className="text-[11px] font-semibold truncate leading-tight italic opacity-90">
-													{child.mode || "Agent"}
-												</span>
-												<span className="text-[10px] truncate opacity-60 leading-tight">
-													{child.title || "Working..."}
-												</span>
-											</div>
-										</div>
+								{nodes
+									.get(currentTaskItem?.id || "")!
+									.childTasks!.filter((c): c is NonNullable<typeof c> => c != null)
+									.map((child) => (
 										<div
-											className={cn(
-												"text-[9px] px-1.5 py-0.5 rounded-full border border-current opacity-60",
-												child.status === "in_progress" && "text-vscode-charts-yellow",
-												child.status === "completed" && "text-vscode-charts-green",
-												child.status === "failed" && "text-vscode-charts-red",
-											)}>
-											{child.status}
+											key={child.id}
+											onClick={(e) => {
+												e.stopPropagation()
+												pushWindow("chat", { targetNodeId: child.id })
+											}}
+											className="flex items-center justify-between p-2 rounded-lg bg-vscode-sideBarSectionHeader-background hover:bg-vscode-toolbar-hoverBackground cursor-pointer transition-colors group/child">
+											<div className="flex items-center gap-2 min-w-0">
+												<div className="p-1 bg-vscode-badge-background rounded group-hover/child:bg-vscode-focusBorder group-hover/child:text-white transition-colors">
+													<Bot size={12} />
+												</div>
+												<div className="flex flex-col min-w-0">
+													<span className="text-[11px] font-semibold truncate leading-tight italic opacity-90">
+														{child.mode || "Agent"}
+													</span>
+													<span className="text-[10px] truncate opacity-60 leading-tight">
+														{child.title || "Working..."}
+													</span>
+												</div>
+											</div>
+											<div
+												className={cn(
+													"text-[9px] px-1.5 py-0.5 rounded-full border border-current opacity-60",
+													child.status === "in_progress" && "text-vscode-charts-yellow",
+													child.status === "completed" && "text-vscode-charts-green",
+													child.status === "failed" && "text-vscode-charts-red",
+												)}>
+												{child.status}
+											</div>
 										</div>
-									</div>
-								))}
+									))}
 							</div>
 						</div>
 					)}
@@ -540,4 +552,5 @@ const TaskHeader = ({
 	)
 }
 
-export default memo(TaskHeader)
+const TaskHeader = observer(TaskHeaderComponent)
+export default TaskHeader

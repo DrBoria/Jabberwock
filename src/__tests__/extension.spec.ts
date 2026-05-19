@@ -62,31 +62,24 @@ const mockCloudServiceInstance = {
 }
 
 vi.mock("@jabberwock/cloud", () => ({
-	CloudService: {
-		createInstance: vi.fn(),
-		hasInstance: vi.fn().mockReturnValue(true),
-		get instance() {
-			return mockCloudServiceInstance
-		},
-	},
+	createCloudService: vi.fn(),
+	hasCloudService: vi.fn().mockReturnValue(true),
+	getCloudService: vi.fn().mockReturnValue(mockCloudServiceInstance),
 	getJabberwockApiUrl: vi.fn().mockReturnValue("https://app.jabberwock.com"),
 }))
 
 vi.mock("@jabberwock/telemetry", () => ({
-	TelemetryService: {
-		createInstance: vi.fn().mockReturnValue({
-			register: vi.fn(),
-			setProvider: vi.fn(),
-			shutdown: vi.fn(),
-		}),
-		get instance() {
-			return {
-				register: vi.fn(),
-				setProvider: vi.fn(),
-				shutdown: vi.fn(),
-			}
-		},
-	},
+	createTelemetryService: vi.fn().mockReturnValue({
+		register: vi.fn(),
+		setProvider: vi.fn(),
+		shutdown: vi.fn(),
+	}),
+	getTelemetryService: vi.fn().mockReturnValue({
+		register: vi.fn(),
+		setProvider: vi.fn(),
+		shutdown: vi.fn(),
+	}),
+	hasTelemetryService: vi.fn().mockReturnValue(true),
 	PostHogTelemetryClient: vi.fn(),
 }))
 
@@ -130,23 +123,21 @@ vi.mock("../integrations/terminal/TerminalRegistry", () => ({
 }))
 
 vi.mock("../services/mcp/McpServerManager", () => ({
-	McpServerManager: {
-		cleanup: vi.fn().mockResolvedValue(undefined),
+	getMcpServerManager: vi.fn().mockReturnValue({
 		getInstance: vi.fn().mockResolvedValue(null),
+		cleanup: vi.fn().mockResolvedValue(undefined),
 		unregisterProvider: vi.fn(),
-	},
+	}),
 }))
 
 vi.mock("../services/code-index/manager", () => ({
-	CodeIndexManager: {
-		getInstance: vi.fn().mockReturnValue(null),
-	},
+	getCodeIndexManager: vi.fn().mockReturnValue(null),
 }))
 
 vi.mock("../services/mdm/MdmService", () => ({
-	MdmService: {
-		createInstance: vi.fn().mockResolvedValue(null),
-	},
+	MdmService: vi.fn().mockImplementation(() => ({
+		initialize: vi.fn().mockResolvedValue(undefined),
+	})),
 }))
 
 vi.mock("../utils/migrateSettings", () => ({
@@ -157,8 +148,15 @@ vi.mock("../utils/autoImportSettings", () => ({
 	autoImportSettings: vi.fn().mockResolvedValue(undefined),
 }))
 
-vi.mock("../extension/api", () => ({
-	API: vi.fn().mockImplementation(() => ({})),
+vi.mock("../extension/jabberwock-api-factory", () => ({
+	createJabberwockApi: vi.fn().mockReturnValue({}),
+}))
+
+vi.mock("../features/ipc/listeners", () => ({
+	registerIpcListeners: vi.fn().mockReturnValue({
+		ipc: { dispose: vi.fn() },
+		emit: vi.fn(),
+	}),
 }))
 
 vi.mock("../activate", () => ({
@@ -176,8 +174,8 @@ vi.mock("../i18n", () => ({
 	t: vi.fn((key) => key),
 }))
 
-// Mock ClineProvider
-vi.mock("../core/webview/ClineProvider", async () => {
+// Mock EventBridge
+vi.mock("../core/webview/EventBridge", async () => {
 	const mockInstance = {
 		resolveWebviewView: vi.fn(),
 		postMessageToWebview: vi.fn(),
@@ -191,7 +189,7 @@ vi.mock("../core/webview/ClineProvider", async () => {
 		upsertProviderProfile: vi.fn().mockResolvedValue(undefined),
 	}
 	return {
-		ClineProvider: Object.assign(
+		EventBridge: Object.assign(
 			vi.fn().mockImplementation(() => mockInstance),
 			{
 				// Static method used by extension.ts
@@ -273,9 +271,9 @@ describe("extension.ts", () => {
 				getSessionToken: vi.fn().mockReturnValue("test-session-token"),
 			}
 
-			const { CloudService } = await import("@jabberwock/cloud")
+			const { createCloudService, hasCloudService } = await import("@jabberwock/cloud")
 
-			vi.mocked(CloudService.createInstance).mockImplementation(async (_context, _logger, handlers) => {
+			vi.mocked(createCloudService).mockImplementation(async (_context, _logger, handlers) => {
 				if (handlers?.["auth-state-changed"]) {
 					authStateChangedHandler = handlers["auth-state-changed"]
 				}
@@ -288,7 +286,7 @@ describe("extension.ts", () => {
 				} as any
 			})
 
-			vi.mocked(CloudService.hasInstance).mockReturnValue(true)
+			vi.mocked(hasCloudService).mockReturnValue(true)
 
 			// Activate the extension
 			const { activate } = await import("../extension")
@@ -313,9 +311,9 @@ describe("extension.ts", () => {
 
 		test("flushModels is called when auth state changes to logged-out", async () => {
 			const { flushModels } = await import("../api/providers/fetchers/modelCache")
-			const { CloudService } = await import("@jabberwock/cloud")
+			const { createCloudService, hasCloudService } = await import("@jabberwock/cloud")
 
-			vi.mocked(CloudService.createInstance).mockImplementation(async (_context, _logger, handlers) => {
+			vi.mocked(createCloudService).mockImplementation(async (_context, _logger, handlers) => {
 				if (handlers?.["auth-state-changed"]) {
 					authStateChangedHandler = handlers["auth-state-changed"]
 				}
@@ -328,7 +326,7 @@ describe("extension.ts", () => {
 				} as any
 			})
 
-			vi.mocked(CloudService.hasInstance).mockReturnValue(true)
+			vi.mocked(hasCloudService).mockReturnValue(true)
 
 			// Activate the extension
 			const { activate } = await import("../extension")

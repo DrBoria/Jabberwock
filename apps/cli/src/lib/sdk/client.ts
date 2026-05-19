@@ -1,4 +1,4 @@
-import { createTRPCProxyClient, httpBatchLink } from "@trpc/client"
+import { createTRPCUntypedClient, httpBatchLink } from "@trpc/client"
 import superjson from "superjson"
 
 import type { User, Org } from "./types.js"
@@ -17,8 +17,7 @@ export interface RooClient {
 }
 
 export const createClient = ({ url, authToken }: ClientConfig): RooClient => {
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	return createTRPCProxyClient<any>({
+	const client = createTRPCUntypedClient({
 		links: [
 			httpBatchLink({
 				url: `${url}/trpc`,
@@ -26,5 +25,14 @@ export const createClient = ({ url, authToken }: ClientConfig): RooClient => {
 				headers: () => (authToken ? { Authorization: `Bearer ${authToken}` } : {}),
 			}),
 		],
-	}) as unknown as RooClient
+	})
+
+	return {
+		auth: {
+			me: {
+				query: () =>
+					client.query("auth.me") as Promise<{ type: "user"; user: User } | { type: "org"; org: Org } | null>,
+			},
+		},
+	}
 }

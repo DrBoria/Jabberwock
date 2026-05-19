@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next"
 
 import type { HistoryItem } from "@jabberwock/types"
 
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { useCopyToClipboard } from "@/features/chat/text-area/utils/clipboard"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 
@@ -28,7 +28,7 @@ export const TaskActions = ({ item, buttonsDisabled }: TaskActionsProps) => {
 			<IconButton
 				icon={DownloadIcon}
 				title={t("chat:task.export")}
-				onClick={() => vscode.postMessage({ type: "exportCurrentTask" })}
+				onClick={() => rootStore.history.exportCurrentTask()}
 			/>
 
 			{item?.task && (
@@ -47,7 +47,7 @@ export const TaskActions = ({ item, buttonsDisabled }: TaskActionsProps) => {
 						onClick={(e) => {
 							e.stopPropagation()
 							if (e.shiftKey) {
-								vscode.postMessage({ type: "deleteTaskWithId", text: item.id })
+								rootStore.history.deleteTaskWithId(item.id)
 							} else {
 								setDeleteTaskId(item.id)
 							}
@@ -68,12 +68,12 @@ export const TaskActions = ({ item, buttonsDisabled }: TaskActionsProps) => {
 					<IconButton
 						icon={FileJsonIcon}
 						title={t("chat:task.openApiHistory")}
-						onClick={() => vscode.postMessage({ type: "openDebugApiHistory" })}
+						onClick={() => rootStore.settings.openDebugApiHistory()}
 					/>
 					<IconButton
 						icon={MessageSquareCodeIcon}
 						title={t("chat:task.openUiHistory")}
-						onClick={() => vscode.postMessage({ type: "openDebugUiHistory" })}
+						onClick={() => rootStore.settings.openDebugUiHistory()}
 					/>
 				</>
 			)}

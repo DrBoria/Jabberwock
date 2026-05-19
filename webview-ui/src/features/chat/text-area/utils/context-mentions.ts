@@ -97,6 +97,7 @@ export function removeMention(text: string, position: number): { newText: string
 }
 
 export enum ContextMenuOptionType {
+	None = "none",
 	OpenedFile = "openedFile",
 	File = "file",
 	Folder = "folder",
@@ -123,7 +124,7 @@ export interface ContextMenuQueryItem {
 
 export function getContextMenuOptions(
 	query: string,
-	selectedType: ContextMenuOptionType | null = null,
+	selectedType: ContextMenuOptionType = ContextMenuOptionType.None,
 	queryItems: ContextMenuQueryItem[],
 	dynamicSearchResults: SearchResult[] = [],
 	modes?: ModeConfig[],

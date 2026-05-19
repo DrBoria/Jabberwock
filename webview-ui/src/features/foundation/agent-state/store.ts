@@ -9,10 +9,12 @@ import { ModeSelectorStore } from "./mode-selector/store"
  * This is the single entry point registered with MstBridge.
  */
 export const AgentStateStore = types.model("AgentStateStore", {
-	apiConfig: types.optional(ApiConfigStore, () => ApiConfigStore.create({})),
-	autoApprove: types.optional(AutoApproveStore, () => AutoApproveStore.create({})),
-	indexing: types.optional(IndexingStore, () => IndexingStore.create({})),
-	modeSelector: types.optional(ModeSelectorStore, () => ModeSelectorStore.create({})),
+	apiConfig: types.optional(ApiConfigStore, () =>
+		ApiConfigStore.create({ listApiConfigMeta: [], currentApiConfigId: "" }),
+	),
+	autoApprove: types.optional(AutoApproveStore, () => AutoApproveStore.create({ autoApproveSettings: {} })),
+	indexing: types.optional(IndexingStore, () => IndexingStore.create({ indexingStatus: {} })),
+	modeSelector: types.optional(ModeSelectorStore, () => ModeSelectorStore.create({ currentMode: "" })),
 })
 
 export type IAgentStateStore = Instance<typeof AgentStateStore>

@@ -3,7 +3,7 @@
 import type { Mock } from "vitest"
 
 import { Anthropic } from "@anthropic-ai/sdk"
-import { TelemetryService } from "@jabberwock/telemetry"
+import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 
 import { ApiHandler } from "../../../api"
 import { ApiMessage } from "../../task-persistence/apiMessages"
@@ -1151,7 +1151,7 @@ describe("summarizeConversation with custom settings", () => {
 		vi.clearAllMocks()
 
 		// Reset telemetry mock
-		;(TelemetryService.instance.captureContextCondensed as Mock).mockClear()
+		;(getTelemetryService().captureContextCondensed as Mock).mockClear()
 
 		// Setup mock API handler
 		mockMainApiHandler = {
@@ -1258,7 +1258,7 @@ describe("summarizeConversation with custom settings", () => {
 		})
 
 		// Verify telemetry was called with custom prompt flag
-		expect(TelemetryService.instance.captureContextCondensed).toHaveBeenCalledWith(
+		expect(getTelemetryService().captureContextCondensed).toHaveBeenCalledWith(
 			localTaskId,
 			false,
 			true, // usedCustomPrompt
@@ -1279,7 +1279,7 @@ describe("summarizeConversation with custom settings", () => {
 		})
 
 		// Verify telemetry was called with isAutomaticTrigger flag
-		expect(TelemetryService.instance.captureContextCondensed).toHaveBeenCalledWith(
+		expect(getTelemetryService().captureContextCondensed).toHaveBeenCalledWith(
 			localTaskId,
 			true, // isAutomaticTrigger
 			true, // usedCustomPrompt

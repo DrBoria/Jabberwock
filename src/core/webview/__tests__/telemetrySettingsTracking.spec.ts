@@ -1,5 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { TelemetryService } from "@jabberwock/telemetry"
+import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
+
+vi.mock("@jabberwock/telemetry", async () => {
+	const actual = await vi.importActual("@jabberwock/telemetry")
+	return {
+		...actual,
+		getTelemetryService: vi.fn(),
+		hasTelemetryService: vi.fn(),
+	}
+})
 import { TelemetryEventName, type TelemetrySetting } from "@jabberwock/types"
 
 describe("Telemetry Settings Tracking", () => {
@@ -21,8 +30,8 @@ describe("Telemetry Settings Tracking", () => {
 		}
 
 		// Mock the TelemetryService
-		vi.spyOn(TelemetryService, "hasInstance").mockReturnValue(true)
-		vi.spyOn(TelemetryService, "instance", "get").mockReturnValue(mockTelemetryService as any)
+		vi.mocked(getTelemetryService).mockReturnValue(mockTelemetryService as any)
+		vi.mocked(hasTelemetryService).mockReturnValue(true)
 	})
 
 	describe("when telemetry is turned OFF", () => {
@@ -35,12 +44,12 @@ describe("Telemetry Settings Tracking", () => {
 			const wasPreviouslyOptedIn = previousSetting !== "disabled"
 
 			// If turning telemetry OFF, fire event BEFORE disabling
-			if (wasPreviouslyOptedIn && !isOptedIn && TelemetryService.hasInstance()) {
-				TelemetryService.instance.captureTelemetrySettingsChanged(previousSetting, newSetting)
+			if (wasPreviouslyOptedIn && !isOptedIn && hasTelemetryService()) {
+				getTelemetryService().captureTelemetrySettingsChanged(previousSetting, newSetting)
 			}
 
 			// Update the telemetry state
-			TelemetryService.instance.updateTelemetryState(isOptedIn)
+			getTelemetryService().updateTelemetryState(isOptedIn)
 
 			// Verify the event was captured before updateTelemetryState
 			expect(mockTelemetryService.captureTelemetrySettingsChanged).toHaveBeenCalledWith("enabled", "disabled")
@@ -57,11 +66,11 @@ describe("Telemetry Settings Tracking", () => {
 			const isOptedIn = newSetting !== "disabled"
 			const wasPreviouslyOptedIn = previousSetting !== "disabled"
 
-			if (wasPreviouslyOptedIn && !isOptedIn && TelemetryService.hasInstance()) {
-				TelemetryService.instance.captureTelemetrySettingsChanged(previousSetting, newSetting)
+			if (wasPreviouslyOptedIn && !isOptedIn && hasTelemetryService()) {
+				getTelemetryService().captureTelemetrySettingsChanged(previousSetting, newSetting)
 			}
 
-			TelemetryService.instance.updateTelemetryState(isOptedIn)
+			getTelemetryService().updateTelemetryState(isOptedIn)
 
 			expect(mockTelemetryService.captureTelemetrySettingsChanged).toHaveBeenCalledWith("unset", "disabled")
 		})
@@ -76,11 +85,11 @@ describe("Telemetry Settings Tracking", () => {
 			const wasPreviouslyOptedIn = previousSetting !== "disabled"
 
 			// Update the telemetry state first
-			TelemetryService.instance.updateTelemetryState(isOptedIn)
+			getTelemetryService().updateTelemetryState(isOptedIn)
 
 			// If turning telemetry ON, fire event AFTER enabling
-			if (!wasPreviouslyOptedIn && isOptedIn && TelemetryService.hasInstance()) {
-				TelemetryService.instance.captureTelemetrySettingsChanged(previousSetting, newSetting)
+			if (!wasPreviouslyOptedIn && isOptedIn && hasTelemetryService()) {
+				getTelemetryService().captureTelemetrySettingsChanged(previousSetting, newSetting)
 			}
 
 			// Verify the event was captured after updateTelemetryState
@@ -99,14 +108,14 @@ describe("Telemetry Settings Tracking", () => {
 			const wasPreviouslyOptedIn = previousSetting !== "disabled"
 
 			// Neither condition should be met
-			if (wasPreviouslyOptedIn && !isOptedIn && TelemetryService.hasInstance()) {
-				TelemetryService.instance.captureTelemetrySettingsChanged(previousSetting, newSetting)
+			if (wasPreviouslyOptedIn && !isOptedIn && hasTelemetryService()) {
+				getTelemetryService().captureTelemetrySettingsChanged(previousSetting, newSetting)
 			}
 
-			TelemetryService.instance.updateTelemetryState(isOptedIn)
+			getTelemetryService().updateTelemetryState(isOptedIn)
 
-			if (!wasPreviouslyOptedIn && isOptedIn && TelemetryService.hasInstance()) {
-				TelemetryService.instance.captureTelemetrySettingsChanged(previousSetting, newSetting)
+			if (!wasPreviouslyOptedIn && isOptedIn && hasTelemetryService()) {
+				getTelemetryService().captureTelemetrySettingsChanged(previousSetting, newSetting)
 			}
 
 			// Should not fire any telemetry events
@@ -122,14 +131,14 @@ describe("Telemetry Settings Tracking", () => {
 			const wasPreviouslyOptedIn = previousSetting !== "disabled"
 
 			// For unset -> enabled, both are opted in, so no event should fire
-			if (wasPreviouslyOptedIn && !isOptedIn && TelemetryService.hasInstance()) {
-				TelemetryService.instance.captureTelemetrySettingsChanged(previousSetting, newSetting)
+			if (wasPreviouslyOptedIn && !isOptedIn && hasTelemetryService()) {
+				getTelemetryService().captureTelemetrySettingsChanged(previousSetting, newSetting)
 			}
 
-			TelemetryService.instance.updateTelemetryState(isOptedIn)
+			getTelemetryService().updateTelemetryState(isOptedIn)
 
-			if (!wasPreviouslyOptedIn && isOptedIn && TelemetryService.hasInstance()) {
-				TelemetryService.instance.captureTelemetrySettingsChanged(previousSetting, newSetting)
+			if (!wasPreviouslyOptedIn && isOptedIn && hasTelemetryService()) {
+				getTelemetryService().captureTelemetrySettingsChanged(previousSetting, newSetting)
 			}
 
 			// unset is treated as opted-in, so no event should fire

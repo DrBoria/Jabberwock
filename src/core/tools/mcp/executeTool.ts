@@ -1,5 +1,6 @@
-import { Task } from "../../task/Task"
+import { Task } from "../../../features/chat/task/Task"
 import { formatResponse } from "../../prompts/responses"
+import type { ToolResponse } from "../../../shared/tools"
 import { processToolContent, sendExecutionStatus } from "./processToolContent"
 import { processDeterministicDelegation } from "./deterministicDelegation"
 
@@ -30,7 +31,7 @@ export async function executeToolAndProcessResult(
 	toolName: string,
 	parsedArguments: Record<string, unknown> | undefined,
 	executionId: string,
-	pushToolResult: (content: string | Array<any>) => void,
+	pushToolResult: (content: ToolResponse) => void,
 ): Promise<ExecutionResult | void> {
 	await task.say("mcp_server_request_started")
 
@@ -54,7 +55,8 @@ export async function executeToolAndProcessResult(
 		},
 	}
 
-	const toolResult = await task.providerRef.deref()?.getMcpHub()?.callTool(serverName, toolName, argsWithMeta)
+	const mcpHub = await task.providerRef.deref()?.getMcpHub()
+	const toolResult = await mcpHub?.callTool(serverName, toolName, argsWithMeta)
 
 	let toolResultPretty = "(No response)"
 	let images: string[] = []
@@ -104,7 +106,7 @@ export async function executeToolAndProcessResult(
 							toolResultPretty =
 								"Plan cancelled: the user removed all tasks during review. No tasks to execute. Use attempt_completion to inform the user."
 							toolResult.content = [{ type: "text", text: toolResultPretty }]
-							task.todoList = [] as any
+							task.todoList = []
 						} else {
 							toolResultPretty = delegationResult.toolResultPretty
 							toolResult.content = [{ type: "text", text: toolResultPretty }]

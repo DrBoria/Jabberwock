@@ -5,7 +5,7 @@ import type OpenAI from "openai"
 import type { ProviderSettings, ModeConfig, ModelInfo } from "@jabberwock/types"
 import { customToolRegistry, formatNative } from "@jabberwock/core"
 
-import type { ClineProvider } from "../webview/ClineProvider"
+import type { EventBridge } from "../webview/EventBridge"
 import { getRooDirectoriesForCwd } from "../../services/jabberwock-config/index.js"
 
 import { getNativeTools, getMcpServerTools } from "../prompts/tools/native-tools"
@@ -16,7 +16,7 @@ import {
 } from "../prompts/tools/filter-tools-for-mode"
 
 interface BuildToolsOptions {
-	provider: ClineProvider
+	provider: EventBridge
 	cwd: string
 	mode: string | undefined
 	customModes: ModeConfig[] | undefined
@@ -92,11 +92,11 @@ export async function buildNativeToolsArrayWithRestrictions(options: BuildToolsO
 		includeAllToolsWithRestrictions,
 	} = options
 
-	const mcpHub = provider.getMcpHub()
+	const mcpHub = await provider.getMcpHub()
 
 	// Get CodeIndexManager for feature checking.
-	const { CodeIndexManager } = await import("../../services/code-index/manager")
-	const codeIndexManager = CodeIndexManager.getInstance(provider.context, cwd)
+	const { CodeIndexManager, getCodeIndexManager } = await import("../../services/code-index/manager")
+	const codeIndexManager = getCodeIndexManager(provider.context, cwd)
 
 	// Build settings object for tool filtering.
 	const filterSettings = {

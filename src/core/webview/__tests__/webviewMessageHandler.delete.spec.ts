@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest"
 import { webviewMessageHandler } from "../webviewMessageHandler"
 import * as vscode from "vscode"
-import { ClineProvider } from "../ClineProvider"
+import { EventBridge } from "../EventBridge"
 import { MessageManager } from "../../message-manager"
 
 // Mock the saveTaskMessages function

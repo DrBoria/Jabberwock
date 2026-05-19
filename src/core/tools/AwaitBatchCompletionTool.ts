@@ -1,5 +1,5 @@
 import { BaseTool, ToolCallbacks } from "./BaseTool"
-import { Task } from "../task/Task"
+import { Task } from "../../features/chat/task/Task"
 import { ToolUse } from "../../shared/tools"
 import { formatResponse } from "../prompts/responses"
 
@@ -18,7 +18,7 @@ export class AwaitBatchCompletionTool extends BaseTool<"await_batch_completion">
 			// Jabberwock: Barrier Synchronization
 			// We check the children tasks of this task
 			const children = task.childTasks || []
-			const pendingChildren = children.filter((c: any) => !c.isCompleted)
+			const pendingChildren = children.filter((c: Task) => !c.isCompleted)
 
 			if (pendingChildren.length === 0) {
 				// All completed!
@@ -44,7 +44,7 @@ export class AwaitBatchCompletionTool extends BaseTool<"await_batch_completion">
 				pollCount++
 
 				// Re-check completion status from the in-memory childTasks
-				const stillPending = children.filter((c: any) => !c.isCompleted)
+				const stillPending = children.filter((c: Task) => !c.isCompleted)
 
 				if (stillPending.length === 0) {
 					// All children completed!
@@ -66,8 +66,8 @@ export class AwaitBatchCompletionTool extends BaseTool<"await_batch_completion">
 			}
 
 			// Timeout — return partial results
-			const completedChildren = children.filter((c: any) => c.isCompleted)
-			const timedOutChildren = children.filter((c: any) => !c.isCompleted)
+			const completedChildren = children.filter((c: Task) => c.isCompleted)
+			const timedOutChildren = children.filter((c: Task) => !c.isCompleted)
 
 			let resultStr = `Batch completion timed out after 5 minutes.\n`
 			if (completedChildren.length > 0) {
@@ -84,7 +84,10 @@ export class AwaitBatchCompletionTool extends BaseTool<"await_batch_completion">
 			}
 			pushToolResult(resultStr)
 		} catch (error) {
-			callbacks.handleError("awaiting batch completion", error)
+			callbacks.handleError(
+				"awaiting batch completion",
+				error instanceof Error ? error : new Error(String(error)),
+			)
 		}
 	}
 

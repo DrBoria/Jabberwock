@@ -132,7 +132,7 @@ export class TerminalProcess extends BaseTerminalProcess {
 			stream = await streamAvailable
 		} catch (error) {
 			// Stream timeout or other error occurred
-			console.error("[Terminal Process] Stream error:", error.message)
+			console.error("[Terminal Process] Stream error:", (error as Error).message)
 
 			// Emit completed event with error message
 			this.emit(
@@ -388,31 +388,27 @@ export class TerminalProcess extends BaseTerminalProcess {
 	private removeVSCodeShellIntegration(text: string): string {
 		// Remove OSC 633 sequences: \x1B]633;....\x07 or \x1B]633;....\x1B\\
 		// Remove OSC 133 sequences: \x1B]133;....\x07 or \x1B]133;....\x1B\\
-		return (
-			text
-				// eslint-disable-next-line no-control-regex
-				.replace(/\x1B\]633;[^\x07\x1B]*(?:\x07|\x1B\\)/g, "")
-				// eslint-disable-next-line no-control-regex
-				.replace(/\x1B\]133;[^\x07\x1B]*(?:\x07|\x1B\\)/g, "")
-				// eslint-disable-next-line no-control-regex
-				.replace(/\x1B\][0-9]+;[^\x07\x1B]*(?:\x07|\x1B\\)/g, "")
-		) // Also remove other common OSC sequences that aren't color-related
+		const ESC = String.fromCharCode(0x1b)
+		const BEL = String.fromCharCode(0x07)
+		const osc633Regex = new RegExp(ESC + "\\]633;[^" + BEL + ESC + "]*(?:" + BEL + "|" + ESC + "\\\\)", "g")
+		const osc133Regex = new RegExp(ESC + "\\]133;[^" + BEL + ESC + "]*(?:" + BEL + "|" + ESC + "\\\\)", "g")
+		const oscOtherRegex = new RegExp(ESC + "\\][0-9]+;[^" + BEL + ESC + "]*(?:" + BEL + "|" + ESC + "\\\\)", "g")
+		return text.replace(osc633Regex, "").replace(osc133Regex, "").replace(oscOtherRegex, "")
 	}
 
 	private stripCursorSequences(text: string): string {
-		return (
-			text
-				// eslint-disable-next-line no-control-regex
-				.replace(/\x1B\[\d*[ABCDEFGHJ]/g, "") // Remove cursor movement: up, down, forward, back
-				// eslint-disable-next-line no-control-regex
-				.replace(/\x1B\[su/g, "") // Remove cursor position save/restore
-				// eslint-disable-next-line no-control-regex
-				.replace(/\x1B\[\d*[KJ]/g, "") // Remove erase in line/display
-				// eslint-disable-next-line no-control-regex
-				.replace(/\x1B\[\?25[hl]/g, "") // Remove cursor show/hide
-				// eslint-disable-next-line no-control-regex
-				.replace(/\x1B\[\d*;\d*r/g, "") // Remove scroll region
-		)
+		const ESC = String.fromCharCode(0x1b)
+		const cursorMoveRegex = new RegExp(ESC + "\\[\\d*[ABCDEFGHJ]", "g")
+		const cursorSaveRegex = new RegExp(ESC + "\\[su", "g")
+		const eraseRegex = new RegExp(ESC + "\\[\\d*[KJ]", "g")
+		const cursorHideRegex = new RegExp(ESC + "\\[\\?25[hl]", "g")
+		const scrollRegex = new RegExp(ESC + "\\[\\d*;\\d*r", "g")
+		return text
+			.replace(cursorMoveRegex, "") // Remove cursor movement: up, down, forward, back
+			.replace(cursorSaveRegex, "") // Remove cursor position save/restore
+			.replace(eraseRegex, "") // Remove erase in line/display
+			.replace(cursorHideRegex, "") // Remove cursor show/hide
+			.replace(scrollRegex, "") // Remove scroll region
 	}
 
 	/**

@@ -2,8 +2,7 @@ import { useState } from "react"
 
 const JabberwockHero = () => {
 	const [imagesBaseUri] = useState(() => {
-		const w = window as any
-		return w.IMAGES_BASE_URI || ""
+		return window.IMAGES_BASE_URI || ""
 	})
 	const [isHovered, setIsHovered] = useState(false)
 

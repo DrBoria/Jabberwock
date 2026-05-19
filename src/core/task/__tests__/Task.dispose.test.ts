@@ -1,10 +1,10 @@
 import { ProviderSettings } from "@jabberwock/types"
 
-import { Task } from "../Task"
-import { ClineProvider } from "../../webview/ClineProvider"
+import { Task } from "../../../features/chat/task/Task"
+import { EventBridge } from "../../webview/EventBridge"
 
 // Mock dependencies
-vi.mock("../../webview/ClineProvider")
+vi.mock("../../webview/EventBridge")
 vi.mock("../../../integrations/terminal/TerminalRegistry", () => ({
 	TerminalRegistry: {
 		releaseTerminalsForTask: vi.fn(),
@@ -57,7 +57,7 @@ describe("Task dispose method", () => {
 
 		// Create task instance without starting it
 		task = new Task({
-			provider: mockProvider as ClineProvider,
+			provider: mockProvider as EventBridge,
 			apiConfiguration: mockApiConfiguration,
 			startTask: false,
 		})

@@ -23,7 +23,7 @@ import { codeParser } from "./parser"
 import { CacheManager } from "../cache-manager"
 import { generateNormalizedAbsolutePath, generateRelativeFilePath } from "../shared/get-relative-path"
 import { isPathInIgnoredDirectory } from "../../glob/ignore-utils"
-import { TelemetryService } from "@jabberwock/telemetry"
+import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 import { TelemetryEventName } from "@jabberwock/types"
 import { sanitizeErrorMessage } from "../shared/validation-helpers"
 import { Package } from "../../../shared/package"
@@ -221,12 +221,16 @@ export class FileWatcher implements IFileWatcher {
 						currentFile: path,
 					})
 				}
-			} catch (error: any) {
-				const errorStatus = error?.status || error?.response?.status || error?.statusCode
+			} catch (error) {
+				const err = error as Record<string, unknown>
+				const errorStatus =
+					(err?.status as string) ||
+					((err?.response as Record<string, unknown>)?.status as string) ||
+					(err?.statusCode as string)
 				const errorMessage = error instanceof Error ? error.message : String(error)
 
 				// Log telemetry for deletion error
-				TelemetryService.instance.captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
+				getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
 					error: sanitizeErrorMessage(errorMessage),
 					location: "deletePointsByMultipleFilePaths",
 					errorType: "deletion_error",
@@ -323,7 +327,7 @@ export class FileWatcher implements IFileWatcher {
 					}
 				} else {
 					const error = settledResult.reason as Error
-					const rejectedPath = (settledResult.reason as any)?.path || "unknown"
+					const rejectedPath = (error as Error & { path?: string }).path || "unknown"
 					console.error("[FileWatcher] A file processing promise was rejected:", settledResult.reason)
 					batchResults.push({
 						path: rejectedPath,
@@ -372,7 +376,7 @@ export class FileWatcher implements IFileWatcher {
 							retryCount++
 							if (retryCount === MAX_BATCH_RETRIES) {
 								// Log telemetry for upsert failure
-								TelemetryService.instance.captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
+								getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
 									error: sanitizeErrorMessage(upsertError.message),
 									location: "upsertPoints",
 									errorType: "upsert_retry_exhausted",
@@ -399,7 +403,7 @@ export class FileWatcher implements IFileWatcher {
 				const err = error as Error
 				overallBatchError = overallBatchError || err
 				// Log telemetry for batch upsert error
-				TelemetryService.instance.captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
+				getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
 					error: sanitizeErrorMessage(err.message),
 					location: "executeBatchUpsertOperations",
 					errorType: "batch_upsert_error",

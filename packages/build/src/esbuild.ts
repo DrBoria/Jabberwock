@@ -264,41 +264,46 @@ export function generatePackageJson({
 	overrideJson,
 	substitution,
 }: {
-	packageJson: Record<string, any> // eslint-disable-line @typescript-eslint/no-explicit-any
-	overrideJson: Record<string, any> // eslint-disable-line @typescript-eslint/no-explicit-any
+	packageJson: Record<string, unknown>
+	overrideJson: Record<string, unknown>
 	substitution: [string, string]
 }) {
 	const { viewsContainers, views, commands, menus, submenus, keybindings, configuration } =
 		contributesSchema.parse(contributes)
 	const [from, to] = substitution
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	const result: Record<string, any> = {
-		...packageJson,
-		...overrideJson,
-		contributes: {
-			viewsContainers: transformArrayRecord<ViewsContainer>(viewsContainers, from, to, ["id"]),
-			views: transformArrayRecord<Views>(views, from, to, ["id"]),
-			commands: transformArray(commands, from, to, "command"),
-			menus: transformArrayRecord<Menus>(menus, from, to, ["command", "submenu", "when"]),
-			submenus: transformArray(submenus, from, to, "id"),
-			configuration: {
-				title: configuration.title,
-				properties: transformRecord<Configuration["properties"]>(configuration.properties, from, to),
-			},
+	const contributesObj: Record<string, unknown> = {
+		viewsContainers: transformArrayRecord<ViewsContainer>(viewsContainers, from, to, ["id"]),
+		views: transformArrayRecord<Views>(views, from, to, ["id"]),
+		commands: transformArray(commands, from, to, "command"),
+		menus: transformArrayRecord<Menus>(menus, from, to, ["command", "submenu", "when"]),
+		submenus: transformArray(submenus, from, to, "id"),
+		configuration: {
+			title: configuration.title,
+			properties: transformRecord<Configuration["properties"]>(configuration.properties, from, to),
 		},
 	}
 
 	// Only add keybindings if they exist
 	if (keybindings) {
-		result.contributes.keybindings = transformArray<Keybindings>(keybindings, from, to, "command")
+		contributesObj.keybindings = transformArray<Keybindings>(keybindings, from, to, "command")
+	}
+
+	const result: Record<string, unknown> = {
+		...packageJson,
+		...overrideJson,
+		contributes: contributesObj,
 	}
 
 	return result
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function transformArrayRecord<T>(obj: Record<string, any[]>, from: string, to: string, props: string[]): T {
+function transformArrayRecord<T>(
+	obj: Record<string, Record<string, unknown>[]>,
+	from: string,
+	to: string,
+	props: string[],
+): T {
 	return Object.entries(obj).reduce(
 		(acc, [key, ary]) => ({
 			...acc,
@@ -318,16 +323,18 @@ function transformArrayRecord<T>(obj: Record<string, any[]>, from: string, to: s
 	)
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function transformArray<T>(arr: any[], from: string, to: string, idProp: string): T[] {
-	return arr.map(({ [idProp]: id, ...rest }) => ({
-		[idProp]: id.replaceAll(from, to),
-		...rest,
-	}))
+function transformArray<T>(arr: Record<string, unknown>[], from: string, to: string, idProp: string): T[] {
+	return arr.map((item) => {
+		const id = item[idProp] as string
+		const { [idProp]: _unused, ...rest } = item
+		return {
+			[idProp]: id.replaceAll(from, to),
+			...rest,
+		} as T
+	})
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function transformRecord<T>(obj: Record<string, any>, from: string, to: string): T {
+function transformRecord<T>(obj: Record<string, unknown>, from: string, to: string): T {
 	return Object.entries(obj).reduce(
 		(acc, [key, value]) => ({
 			...acc,

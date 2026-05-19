@@ -75,7 +75,7 @@ export function validateMcpSettings(settings: unknown): {
  * Helper to check if a server configuration requires user interaction
  * This is used by the state machine to determine if auto-approval should be blocked
  */
-export function requiresUserInteraction(serverConfig: any): boolean {
+export function requiresUserInteraction(serverConfig: Record<string, unknown>): boolean {
 	return serverConfig?.requiresUserInteraction === true || serverConfig?.type === "interactiveApp"
 }
 
@@ -83,7 +83,11 @@ export function requiresUserInteraction(serverConfig: any): boolean {
  * Helper to check if a server should be visible to a specific agent
  * Based on the per-agent MCP isolation strategy
  */
-export function isServerVisibleToAgent(serverName: string, serverConfig: any, agentMcpList?: string[]): boolean {
+export function isServerVisibleToAgent(
+	serverName: string,
+	serverConfig: Record<string, unknown>,
+	agentMcpList?: string[],
+): boolean {
 	if (serverConfig?.disabled) {
 		return false
 	}

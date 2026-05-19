@@ -112,9 +112,9 @@ export async function directoryExists(dirPath: string): Promise<boolean> {
 	try {
 		const stat = await fs.stat(dirPath)
 		return stat.isDirectory()
-	} catch (error: any) {
+	} catch (error) {
 		// Only catch expected "not found" errors
-		if (error.code === "ENOENT" || error.code === "ENOTDIR") {
+		if ((error as NodeJS.ErrnoException).code === "ENOENT" || (error as NodeJS.ErrnoException).code === "ENOTDIR") {
 			return false
 		}
 		// Re-throw unexpected errors (permission, I/O, etc.)
@@ -129,9 +129,9 @@ export async function fileExists(filePath: string): Promise<boolean> {
 	try {
 		const stat = await fs.stat(filePath)
 		return stat.isFile()
-	} catch (error: any) {
+	} catch (error) {
 		// Only catch expected "not found" errors
-		if (error.code === "ENOENT" || error.code === "ENOTDIR") {
+		if ((error as NodeJS.ErrnoException).code === "ENOENT" || (error as NodeJS.ErrnoException).code === "ENOTDIR") {
 			return false
 		}
 		// Re-throw unexpected errors (permission, I/O, etc.)
@@ -145,9 +145,13 @@ export async function fileExists(filePath: string): Promise<boolean> {
 export async function readFileIfExists(filePath: string): Promise<string | null> {
 	try {
 		return await fs.readFile(filePath, "utf-8")
-	} catch (error: any) {
+	} catch (error) {
 		// Only catch expected "not found" errors
-		if (error.code === "ENOENT" || error.code === "ENOTDIR" || error.code === "EISDIR") {
+		if (
+			(error as NodeJS.ErrnoException).code === "ENOENT" ||
+			(error as NodeJS.ErrnoException).code === "ENOTDIR" ||
+			(error as NodeJS.ErrnoException).code === "EISDIR"
+		) {
 			return null
 		}
 		// Re-throw unexpected errors (permission, I/O, etc.)

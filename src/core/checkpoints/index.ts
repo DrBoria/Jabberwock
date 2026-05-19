@@ -1,10 +1,11 @@
 import pWaitFor from "p-wait-for"
 import * as vscode from "vscode"
 
-import type { ClineApiReqInfo } from "@jabberwock/types"
-import { TelemetryService } from "@jabberwock/telemetry"
+import type { ClineApiReqInfo, ExtensionMessage } from "@jabberwock/types"
+import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
+import { getMstState } from "../../features/foundation/mst/store"
 
-import { Task } from "../task/Task"
+import { Task } from "../../features/chat/task/Task"
 
 import { getWorkspacePath } from "../../utils/path"
 import { checkGitInstalled } from "../../utils/git"
@@ -115,21 +116,24 @@ export async function getCheckpointService(task: Task, { interval = 250 }: { int
 		}
 		return service
 	} catch (err) {
-		if (err.name === "TimeoutError" && task.enableCheckpoints) {
+		const error = err instanceof Error ? err : new Error(String(err))
+		if (error.name === "TimeoutError" && task.enableCheckpoints) {
 			sendCheckpointInitWarn(task, "INIT_TIMEOUT", task.checkpointTimeout)
 		}
-		log(`[Task#getCheckpointService] ${err.message}`)
+		log(`[Task#getCheckpointService] ${error.message}`)
 		task.enableCheckpoints = false
 		task.checkpointServiceInitializing = false
 		return undefined
 	}
 }
 
+import type { EventBridge } from "../webview/EventBridge"
+
 async function checkGitInstallation(
 	task: Task,
 	service: RepoPerTaskCheckpointService,
 	log: (message: string) => void,
-	provider: any,
+	provider: EventBridge,
 ) {
 	try {
 		const gitInstalled = await checkGitInstalled()
@@ -167,7 +171,9 @@ async function checkGitInstallation(
 					text: to,
 					suppressMessage: !!suppressMessage,
 				})
-				provider?.checkpointStore?.setCurrentCheckpoint(to)
+				if (provider) {
+					getMstState(provider).checkpointStore?.setCurrentCheckpoint(to)
+				}
 
 				// Always create the chat message but include the suppress flag in the payload
 				// so the chatview can choose not to render it while keeping it in history.
@@ -193,11 +199,13 @@ async function checkGitInstallation(
 		try {
 			await service.initShadowGit()
 		} catch (err) {
-			log(`[Task#getCheckpointService] initShadowGit -> ${err.message}`)
+			log(`[Task#getCheckpointService] initShadowGit -> ${err instanceof Error ? err.message : String(err)}`)
 			task.enableCheckpoints = false
 		}
 	} catch (err) {
-		log(`[Task#getCheckpointService] Unexpected error during Git check: ${err.message}`)
+		log(
+			`[Task#getCheckpointService] Unexpected error during Git check: ${err instanceof Error ? err.message : String(err)}`,
+		)
 		console.error("Git check error:", err)
 		task.enableCheckpoints = false
 		task.checkpointServiceInitializing = false
@@ -211,7 +219,7 @@ export async function checkpointSave(task: Task, force = false, suppressMessage 
 		return
 	}
 
-	TelemetryService.instance.captureCheckpointCreated(task.taskId)
+	getTelemetryService().captureCheckpointCreated(task.taskId)
 
 	// Start the checkpoint process in the background.
 	return service
@@ -249,9 +257,11 @@ export async function checkpointRestore(
 
 	try {
 		await service.restoreCheckpoint(commitHash)
-		TelemetryService.instance.captureCheckpointRestored(task.taskId)
+		getTelemetryService().captureCheckpointRestored(task.taskId)
 		await provider?.postMessageToWebview({ type: "currentCheckpointUpdated", text: commitHash })
-		provider?.checkpointStore?.setCurrentCheckpoint(commitHash)
+		if (provider) {
+			getMstState(provider).checkpointStore?.setCurrentCheckpoint(commitHash)
+		}
 
 		if (mode === "restore") {
 			// Calculate metrics from messages that will be deleted (must be done before rewind)
@@ -290,7 +300,7 @@ export async function checkpointRestore(
 		// I'd like to revisit this in the future and try to improve the
 		// task flow and the communication between the webview and the
 		// `Task` instance.
-		provider?.cancelTask()
+		provider?.postMessageToWebview({ type: "cancelTask" })
 	} catch (err) {
 		provider?.log("[checkpointRestore] disabling checkpoints for this task")
 		task.enableCheckpoints = false
@@ -317,7 +327,7 @@ export async function checkpointDiff(task: Task, { ts, previousCommitHash, commi
 		return
 	}
 
-	TelemetryService.instance.captureCheckpointDiffed(task.taskId)
+	getTelemetryService().captureCheckpointDiffed(task.taskId)
 
 	let fromHash: string | undefined
 	let toHash: string | undefined

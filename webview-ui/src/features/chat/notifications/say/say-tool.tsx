@@ -7,7 +7,7 @@ import { toolIcon, Container } from "@src/components/ui"
 
 interface SayToolProps {
 	message: ClineMessage
-	t: any
+	t: (key: string, options?: Record<string, unknown>) => string
 }
 
 const formatBytes = (bytes: number): string => {

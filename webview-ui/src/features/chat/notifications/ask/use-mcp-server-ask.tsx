@@ -9,25 +9,23 @@ import { Container } from "@src/components/ui"
 import { getAllModes } from "@shared/modes"
 
 import { McpIframeRenderer } from "@src/features/settings/mcp/McpIframeRenderer"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 
 interface UseMcpServerAskProps {
 	message: ClineMessage
 	icon: React.ReactNode
 	title: React.ReactNode
-	t: (key: string, options?: any) => string
+	t: (key: string, options?: Record<string, unknown>) => string
 }
 
 export const UseMcpServerAsk: React.FC<UseMcpServerAskProps> = ({ message, icon, title, t: _t }) => {
 	const [showRawArgs, setShowRawArgs] = React.useState(false)
 	const { mcpServers, alwaysAllowMcp, customModes } = useExtensionState()
 
-	const messageJson = safeJsonParse<any>(message.text, {})
-	const { response, ...mcpServerRequest } = messageJson
-	const useMcpServer: ClineAskUseMcpServer = {
-		...mcpServerRequest,
-		response,
-	}
+	const useMcpServer = safeJsonParse<ClineAskUseMcpServer>(message.text, {
+		serverName: "",
+		type: "use_mcp_tool",
+	})!
 
 	const server = mcpServers.find((s) => s.name === useMcpServer.serverName)
 
@@ -39,7 +37,7 @@ export const UseMcpServerAsk: React.FC<UseMcpServerAskProps> = ({ message, icon,
 	// This is generic — works for any MCP server with HTTP support, on any domain.
 	const allowedContextData = {
 		agents: getAllModes(customModes)
-			.map((m: any) => ({ slug: m.slug, name: m.name }))
+			.map((m: { slug: string; name: string }) => ({ slug: m.slug, name: m.name }))
 			.filter(Boolean),
 	}
 
@@ -137,16 +135,10 @@ export const UseMcpServerAsk: React.FC<UseMcpServerAskProps> = ({ message, icon,
 						agentsList={JSON.stringify(allowedContextData.agents)}
 						inputData={useMcpServer.arguments !== "{}" ? useMcpServer.arguments : undefined}
 						onResolve={() => {
-							vscode.postMessage({
-								type: "askResponse",
-								askResponse: "yesButtonClicked",
-							})
+							rootStore.chat.respondToAsk("yesButtonClicked")
 						}}
 						onCancel={() => {
-							vscode.postMessage({
-								type: "askResponse",
-								askResponse: "noButtonClicked",
-							})
+							rootStore.chat.respondToAsk("noButtonClicked")
 						}}
 					/>
 				</div>

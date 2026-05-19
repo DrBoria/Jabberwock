@@ -1,16 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import * as vscode from "vscode"
 
-import { API } from "../api"
-import { ClineProvider } from "../../core/webview/ClineProvider"
+import { deleteQueuedMessage } from "../../features/chat/api-methods"
+import { EventBridge } from "../../core/webview/EventBridge"
 
 vi.mock("vscode")
-vi.mock("../../core/webview/ClineProvider")
+vi.mock("../../core/webview/EventBridge")
 
 describe("API - DeleteQueuedMessage Command", () => {
-	let api: API
 	let mockOutputChannel: vscode.OutputChannel
-	let mockProvider: ClineProvider
+	let mockProvider: EventBridge
 	let mockRemoveMessage: ReturnType<typeof vi.fn>
 	let mockLog: ReturnType<typeof vi.fn>
 
@@ -31,32 +30,29 @@ describe("API - DeleteQueuedMessage Command", () => {
 					removeMessage: mockRemoveMessage,
 				},
 			}),
+			taskStack: [{}],
 			viewLaunched: true,
-		} as unknown as ClineProvider
+		} as unknown as EventBridge
 
 		mockLog = vi.fn()
-
-		api = new API(mockOutputChannel, mockProvider, undefined, true)
-		;(api as any).log = mockLog
 	})
 
 	it("should remove a queued message by id", () => {
 		const messageId = "msg-abc-123"
 
-		api.deleteQueuedMessage(messageId)
+		deleteQueuedMessage(mockProvider, messageId)
 
 		expect(mockRemoveMessage).toHaveBeenCalledWith(messageId)
 		expect(mockRemoveMessage).toHaveBeenCalledTimes(1)
 	})
 
-	it("should handle missing current task gracefully and log a message", () => {
+	it("should handle missing current task gracefully", () => {
 		;(mockProvider.getCurrentTask as ReturnType<typeof vi.fn>).mockReturnValue(undefined)
+		// Clear taskStack to simulate no current task
+		mockProvider.taskStack.length = 0
 
 		// Should not throw
-		expect(() => api.deleteQueuedMessage("msg-abc-123")).not.toThrow()
-		expect(mockLog).toHaveBeenCalledWith(
-			"[API#deleteQueuedMessage] no current task; ignoring delete for messageId msg-abc-123",
-		)
+		expect(() => deleteQueuedMessage(mockProvider, "msg-abc-123")).not.toThrow()
 		expect(mockRemoveMessage).not.toHaveBeenCalled()
 	})
 
@@ -64,7 +60,7 @@ describe("API - DeleteQueuedMessage Command", () => {
 		mockRemoveMessage.mockReturnValue(false)
 
 		// Should not throw even when removeMessage returns false
-		expect(() => api.deleteQueuedMessage("non-existent-id")).not.toThrow()
+		expect(() => deleteQueuedMessage(mockProvider, "non-existent-id")).not.toThrow()
 		expect(mockRemoveMessage).toHaveBeenCalledWith("non-existent-id")
 	})
 })

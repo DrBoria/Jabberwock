@@ -1,3 +1,3 @@
 export const noTransform = <T>(value: T) => value
 
-export const inputEventTransform = <E>(event: E) => (event as { target: HTMLInputElement })?.target?.value as any
+export const inputEventTransform = (event: { target: HTMLInputElement }): string => event.target.value

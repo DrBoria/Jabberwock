@@ -7,7 +7,7 @@ import { z } from "zod"
 
 import type { ProviderName, ModelRecord } from "@jabberwock/types"
 import { modelInfoSchema, TelemetryEventName } from "@jabberwock/types"
-import { TelemetryService } from "@jabberwock/telemetry"
+import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 
 import { safeWriteJson } from "../../../utils/safeWriteJson"
 
@@ -24,7 +24,6 @@ import { getLiteLLMModels } from "./litellm"
 import { GetModelsOptions } from "../../../shared/api"
 import { getOllamaModels } from "./ollama"
 import { getLMStudioModels } from "./lmstudio"
-import { getRooModels } from "./jabberwock"
 
 const memoryCache = new NodeCache({ stdTTL: 5 * 60, checkperiod: 5 * 60 })
 
@@ -86,11 +85,10 @@ async function fetchModelsFromProvider(options: GetModelsOptions): Promise<Model
 			models = await getVercelAiGatewayModels()
 			break
 		case "jabberwock": {
-			// Jabberwock Cloud provider requires baseUrl and optional apiKey
-			const rooBaseUrl =
-				options.baseUrl ?? process.env.JABBERWOCK_CODE_PROVIDER_URL ?? "https://api.jabberwock.com/proxy"
-			models = await getRooModels(rooBaseUrl, options.apiKey)
-			break
+			// Jabberwock Cloud does not exist as a service.
+			// Return empty models so the provider integration still works
+			// without making any network call.
+			return {}
 		}
 		default: {
 			// Ensures router is exhaustively checked if RouterName is a strict union.
@@ -135,7 +133,7 @@ export const getModels = async (options: GetModelsOptions): Promise<ModelRecord>
 				console.error(`[MODEL_CACHE] Error writing ${provider} models to file cache:`, err),
 			)
 		} else {
-			TelemetryService.instance.captureEvent(TelemetryEventName.MODEL_CACHE_EMPTY_RESPONSE, {
+			getTelemetryService().captureEvent(TelemetryEventName.MODEL_CACHE_EMPTY_RESPONSE, {
 				provider,
 				context: "getModels",
 				hasExistingCache: false,
@@ -183,7 +181,7 @@ export const refreshModels = async (options: GetModelsOptions): Promise<ModelRec
 			const existingCount = existingCache ? Object.keys(existingCache).length : 0
 
 			if (modelCount === 0) {
-				TelemetryService.instance.captureEvent(TelemetryEventName.MODEL_CACHE_EMPTY_RESPONSE, {
+				getTelemetryService().captureEvent(TelemetryEventName.MODEL_CACHE_EMPTY_RESPONSE, {
 					provider,
 					context: "refreshModels",
 					hasExistingCache: existingCount > 0,

@@ -80,10 +80,75 @@ export interface DevtoolBridgeProvider {
  * @param storeRegistry - Optional mapping of store names to provider property names
  * @returns An ExtensionBridge implementation
  */
+
+/**
+ * Register global error handlers to capture unhandled rejections and exceptions.
+ */
+function registerGlobalErrorHandlers(): void {
+	const g = globalThis as Record<string, unknown>
+	if (g.__JABBERWOCK_GLOBAL_ERROR_HANDLERS__) return
+	g.__JABBERWOCK_GLOBAL_ERROR_HANDLERS__ = true
+	process.on("unhandledRejection", (reason: unknown) => {
+		const message =
+			reason instanceof Error
+				? `[UNHANDLED_REJECTION] ${reason.stack || reason.message}`
+				: `[UNHANDLED_REJECTION] ${String(reason)}`
+		diagnosticsManager.log(message, "error")
+	})
+	process.on("uncaughtException", (error: Error) => {
+		const message = `[UNCAUGHT_EXCEPTION] ${error.stack || error.message}`
+		diagnosticsManager.log(message, "error")
+	})
+	diagnosticsManager.log("[DiagnosticsManager] Global error handlers registered", "info")
+}
+
+/**
+ * Intercept VS Code notification methods (showErrorMessage, showWarningMessage,
+ * showInformationMessage) so they are also captured in the diagnostics console.
+ */
+async function interceptVscodeNotifications(): Promise<void> {
+	try {
+		const vscode = await import("vscode")
+		const win = vscode.window as Record<string, unknown>
+		const levels = [
+			{ method: "showErrorMessage", level: "error" as const },
+			{ method: "showWarningMessage", level: "warn" as const },
+			{ method: "showInformationMessage", level: "info" as const },
+		]
+		for (const { method, level } of levels) {
+			const original = win[method] as (...args: unknown[]) => unknown
+			if (typeof original !== "function") continue
+			const wrapped = function (this: unknown, ...args: unknown[]): unknown {
+				const message = typeof args[0] === "string" ? args[0] : String(args[0])
+				diagnosticsManager.log(`[VSCODE_${method.toUpperCase()}] ${message}`, level)
+				return original.apply(vscode.window, args)
+			}
+			try {
+				Object.defineProperty(win, method, { value: wrapped, writable: true, configurable: true })
+			} catch {
+				/* skip */
+			}
+		}
+	} catch {
+		/* vscode module may not be available */
+	}
+}
+
 export function createDevtoolBridge(
 	provider: DevtoolBridgeProvider,
 	storeRegistry?: Record<string, string>,
+	backendRootStore?: { getSnapshot(): Record<string, unknown>; getActionBuffer(): unknown[] },
 ): ExtensionBridge {
+	// Activate console interception so all extension host console.log/warn/error/debug
+	// calls are captured in diagnosticsManager and available via get_console_logs / get_logs.
+	diagnosticsManager.registerConsoleInterceptor()
+
+	// Register global error handlers to capture unhandled rejections/exceptions.
+	registerGlobalErrorHandlers()
+
+	// Intercept VS Code notification methods so popup messages are captured.
+	interceptVscodeNotifications().catch(() => {})
+
 	return {
 		// ── DOM Interaction ──────────────────────────────────────────────────
 
@@ -158,12 +223,12 @@ export function createDevtoolBridge(
 				filtered = filtered.filter((l: { level: string }) => l.level === level)
 			}
 
-			// offset from the end (most recent entries)
+			// offset from the end (most recent entries), then reverse so newest is first
 			const start = Math.max(0, filtered.length - offset - limit)
 			const end = filtered.length - offset
 			const selected = filtered.slice(Math.max(0, start), Math.max(0, end))
 
-			return JSON.stringify(selected, null, 2)
+			return JSON.stringify(selected.reverse(), null, 2)
 		},
 
 		// ── Diagnostics ─────────────────────────────────────────────────────
@@ -171,6 +236,8 @@ export function createDevtoolBridge(
 		async getLogs(lines: number = 100): Promise<string> {
 			const snapshot = diagnosticsManager.getSnapshot({ limit: lines, includeLogs: true })
 			return (snapshot.logs || [])
+				.slice()
+				.reverse()
 				.map((l: { timestamp: number; level: string; message: string }) => {
 					const ts = new Date(l.timestamp).toISOString()
 					return `[${ts}] [${l.level.toUpperCase()}] ${l.message}`
@@ -437,6 +504,246 @@ export function createDevtoolBridge(
 			to: { l?: number; t?: number; r?: number; b?: number },
 		): Promise<string> {
 			return sendDomQuery(provider, "dragFromTo", { from, to })
+		},
+
+		// ── Store State (backend + frontend) ────────────────────────────────
+
+		async getStoreState(params: {
+			store: "backend" | "frontend"
+			path?: string
+			limit?: number
+			cursor?: number
+		}): Promise<string> {
+			if (params.store === "frontend") {
+				return sendDomQuery(provider, "getStoreSnapshot", {
+					store: "rootStore",
+					path: params.path,
+					limit: params.limit ?? 10,
+					cursor: params.cursor ?? 0,
+				})
+			}
+			if (!backendRootStore) return JSON.stringify({ error: "Backend root store is not available" })
+			try {
+				const snapshot = backendRootStore.getSnapshot()
+				if (params.path) {
+					const parts = params.path.split(".")
+					let value: unknown = snapshot
+					for (const part of parts) {
+						if (value && typeof value === "object" && part in (value as Record<string, unknown>)) {
+							value = (value as Record<string, unknown>)[part]
+						} else {
+							return JSON.stringify({ error: `Path '${params.path}' not found at '${part}'` })
+						}
+					}
+					if (value && typeof value === "object" && !Array.isArray(value)) {
+						const entries = Object.entries(value as Record<string, unknown>)
+						const start = (params.cursor ?? 0) * (params.limit ?? 10)
+						const limit = params.limit ?? 10
+						const sliced = entries.slice(start, start + limit)
+						return JSON.stringify({
+							items: sliced.map(([k, v]) => ({ key: k, value: v })),
+							cursor: (params.cursor ?? 0) + 1,
+							countLeft: Math.max(0, entries.length - (start + limit)),
+							prevCount: Math.min(start, entries.length),
+							total: entries.length,
+						})
+					}
+					return JSON.stringify({
+						items: [{ path: params.path, value }],
+						cursor: 1,
+						countLeft: 0,
+						prevCount: 0,
+						total: 1,
+					})
+				}
+				const entries = Object.entries(snapshot)
+				const start = (params.cursor ?? 0) * (params.limit ?? 10)
+				const limit = params.limit ?? 10
+				const sliced = entries.slice(start, start + limit)
+				return JSON.stringify({
+					items: sliced.map(([k, v]) => ({ key: k, value: v })),
+					cursor: (params.cursor ?? 0) + 1,
+					countLeft: Math.max(0, entries.length - (start + limit)),
+					prevCount: Math.min(start, entries.length),
+					total: entries.length,
+				})
+			} catch (error) {
+				return JSON.stringify({
+					error: `Error getting backend store state: ${error instanceof Error ? error.message : String(error)}`,
+				})
+			}
+		},
+
+		async getStoreActions(params: {
+			store: "backend" | "frontend"
+			limit?: number
+			cursor?: number
+		}): Promise<string> {
+			if (params.store === "frontend") {
+				return sendDomQuery(provider, "getStoreActions", {
+					store: "rootStore",
+					limit: params.limit ?? 10,
+					cursor: params.cursor ?? 0,
+				})
+			}
+			if (!backendRootStore) return JSON.stringify({ error: "Backend root store is not available" })
+			try {
+				const buffer = backendRootStore.getActionBuffer()
+				const names = (buffer as { action?: { name?: string } }[]).map((e) => e.action?.name || String(e))
+				const start = (params.cursor ?? 0) * (params.limit ?? 10)
+				const limit = params.limit ?? 10
+				const sliced = names.slice(start, start + limit)
+				return JSON.stringify({
+					items: sliced.map((name) => ({ name })),
+					cursor: (params.cursor ?? 0) + 1,
+					countLeft: Math.max(0, names.length - (start + limit)),
+					prevCount: Math.min(start, names.length),
+					total: names.length,
+				})
+			} catch (error) {
+				return JSON.stringify({
+					error: `Error getting backend store actions: ${error instanceof Error ? error.message : String(error)}`,
+				})
+			}
+		},
+
+		async filterState(params: {
+			store: "backend" | "frontend"
+			path: string
+			limit?: number
+			cursor?: number
+		}): Promise<string> {
+			if (params.store === "frontend") {
+				return sendDomQuery(provider, "filterStoreState", {
+					store: "rootStore",
+					path: params.path,
+					limit: params.limit ?? 10,
+					cursor: params.cursor ?? 0,
+				})
+			}
+			return this.getStoreState({
+				store: "backend",
+				path: params.path,
+				limit: params.limit,
+				cursor: params.cursor,
+			})
+		},
+
+		async filterActions(params: {
+			store: "backend" | "frontend"
+			pattern: string
+			limit?: number
+			cursor?: number
+		}): Promise<string> {
+			if (params.store === "frontend") {
+				return sendDomQuery(provider, "filterStoreActions", {
+					store: "rootStore",
+					pattern: params.pattern,
+					limit: params.limit ?? 10,
+					cursor: params.cursor ?? 0,
+				})
+			}
+			if (!backendRootStore) return JSON.stringify({ error: "Backend root store is not available" })
+			try {
+				const buffer = backendRootStore.getActionBuffer()
+				const names = (buffer as { action?: { name?: string } }[]).map((e) => e.action?.name || String(e))
+				const pattern = params.pattern.toLowerCase()
+				const filtered = names.filter((name) => name.toLowerCase().includes(pattern))
+				const start = (params.cursor ?? 0) * (params.limit ?? 10)
+				const limit = params.limit ?? 10
+				const sliced = filtered.slice(start, start + limit)
+				return JSON.stringify({
+					items: sliced.map((name) => ({ name })),
+					cursor: (params.cursor ?? 0) + 1,
+					countLeft: Math.max(0, filtered.length - (start + limit)),
+					prevCount: Math.min(start, filtered.length),
+					total: filtered.length,
+				})
+			} catch (error) {
+				return JSON.stringify({
+					error: `Error filtering backend store actions: ${error instanceof Error ? error.message : String(error)}`,
+				})
+			}
+		},
+
+		async searchActions(params: {
+			store: "backend" | "frontend"
+			query: string
+			limit?: number
+			cursor?: number
+		}): Promise<string> {
+			if (params.store === "frontend") {
+				return sendDomQuery(provider, "searchStoreActions", {
+					store: "rootStore",
+					query: params.query,
+					limit: params.limit ?? 10,
+					cursor: params.cursor ?? 0,
+				})
+			}
+			return this.filterActions({
+				store: "backend",
+				pattern: params.query,
+				limit: params.limit,
+				cursor: params.cursor,
+			})
+		},
+
+		async countActions(params: { store: "backend" | "frontend" }): Promise<string> {
+			if (params.store === "frontend") {
+				return sendDomQuery(provider, "countStoreActions", { store: "rootStore" })
+			}
+			if (!backendRootStore) return JSON.stringify({ error: "Backend root store is not available" })
+			try {
+				const buffer = backendRootStore.getActionBuffer()
+				return JSON.stringify({ store: "backend", count: (buffer as unknown[]).length })
+			} catch (error) {
+				return JSON.stringify({
+					error: `Error counting backend store actions: ${error instanceof Error ? error.message : String(error)}`,
+				})
+			}
+		},
+
+		async applyPreviousState(params: { store: "backend" | "frontend" }): Promise<string> {
+			if (params.store === "frontend") {
+				return sendDomQuery(provider, "applyStoreSnapshot", { store: params.store })
+			}
+			return JSON.stringify({ error: "applyPreviousState is not supported for backend store" })
+		},
+
+		async applyNextState(params: { store: "backend" | "frontend" }): Promise<string> {
+			if (params.store === "frontend") {
+				return sendDomQuery(provider, "applyStoreSnapshot", { store: params.store })
+			}
+			return JSON.stringify({ error: "applyNextState is not supported for backend store" })
+		},
+
+		async getStoreActionsLog(params: {
+			store: "backend" | "frontend"
+			before?: number
+			after?: number
+		}): Promise<string> {
+			if (params.store === "frontend") {
+				return sendDomQuery(provider, "getStoreActionsLog", {
+					store: "rootStore",
+					before: params.before,
+					after: params.after,
+				})
+			}
+			if (!backendRootStore) return JSON.stringify({ error: "Backend root store is not available" })
+			try {
+				const buffer = backendRootStore.getActionBuffer()
+				const entries = buffer as { timestamp?: number; action?: { name?: string } }[]
+				const before = params.before ?? entries.length
+				const after = params.after ?? 0
+				const start = Math.max(0, entries.length - before)
+				const end = Math.min(entries.length, start + after + before)
+				const sliced = entries.slice(start, end)
+				return JSON.stringify(sliced)
+			} catch (error) {
+				return JSON.stringify({
+					error: `Error getting backend store actions log: ${error instanceof Error ? error.message : String(error)}`,
+				})
+			}
 		},
 	}
 }

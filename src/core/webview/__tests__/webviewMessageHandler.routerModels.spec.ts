@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { webviewMessageHandler } from "../webviewMessageHandler"
-import type { ClineProvider } from "../ClineProvider"
+import type { EventBridge } from "../EventBridge"
 
 // Mock vscode (minimal)
 vi.mock("vscode", () => ({
@@ -43,7 +43,7 @@ vi.mock("../../../api/providers/fetchers/modelCache", () => ({
 }))
 
 describe("webviewMessageHandler - requestRouterModels provider filter", () => {
-	let mockProvider: ClineProvider & {
+	let mockProvider: EventBridge & {
 		postMessageToWebview: ReturnType<typeof vi.fn>
 		getState: ReturnType<typeof vi.fn>
 		contextProxy: any

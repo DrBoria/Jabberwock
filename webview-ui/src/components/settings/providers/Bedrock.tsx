@@ -30,16 +30,18 @@ export const Bedrock = ({ apiConfiguration, setApiConfigurationField, selectedMo
 
 	// Check if the selected model supports 1M context (supported Claude 4 models)
 	const supports1MContextBeta =
-		!!apiConfiguration?.apiModelId && BEDROCK_1M_CONTEXT_MODEL_IDS.includes(apiConfiguration.apiModelId as any)
+		!!apiConfiguration?.apiModelId &&
+		(BEDROCK_1M_CONTEXT_MODEL_IDS as readonly string[]).includes(apiConfiguration.apiModelId!)
 
 	// Check if the selected model supports Global Inference profile routing
 	const supportsGlobalInference =
 		!!apiConfiguration?.apiModelId &&
-		BEDROCK_GLOBAL_INFERENCE_MODEL_IDS.includes(apiConfiguration.apiModelId as any)
+		(BEDROCK_GLOBAL_INFERENCE_MODEL_IDS as readonly string[]).includes(apiConfiguration.apiModelId!)
 
 	// Check if the selected model supports service tiers
 	const supportsServiceTiers =
-		!!apiConfiguration?.apiModelId && BEDROCK_SERVICE_TIER_MODEL_IDS.includes(apiConfiguration.apiModelId as any)
+		!!apiConfiguration?.apiModelId &&
+		(BEDROCK_SERVICE_TIER_MODEL_IDS as readonly string[]).includes(apiConfiguration.apiModelId!)
 
 	// Update the endpoint enabled state when the configuration changes
 	useEffect(() => {
@@ -47,12 +49,14 @@ export const Bedrock = ({ apiConfiguration, setApiConfigurationField, selectedMo
 	}, [apiConfiguration?.awsBedrockEndpointEnabled])
 
 	const handleInputChange = useCallback(
-		<K extends keyof ProviderSettings, E>(
-			field: K,
-			transform: (event: E) => ProviderSettings[K] = inputEventTransform,
-		) =>
+		<K extends keyof ProviderSettings, E>(field: K, transform?: (event: E) => ProviderSettings[K]) =>
 			(event: E | Event) => {
-				setApiConfigurationField(field, transform(event as E))
+				setApiConfigurationField(
+					field,
+					transform
+						? transform(event as E)
+						: (inputEventTransform(event as { target: HTMLInputElement }) as ProviderSettings[K]),
+				)
 			},
 		[setApiConfigurationField],
 	)

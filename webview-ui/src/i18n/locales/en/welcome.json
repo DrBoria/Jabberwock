@@ -30,7 +30,8 @@
 		"noApiKeys": "Don't want to deal with API keys and separate accounts?",
 		"backToJabberwock": "Go with the Jabberwock Router.",
 		"goBack": "Back",
-		"finish": "Finish"
+		"finish": "Finish",
+		"selectProvider": "Please select an API provider from the list above."
 	},
 	"waitingForCloud": {
 		"heading": "Logging into Jabberwock Cloud...",

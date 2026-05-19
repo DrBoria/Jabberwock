@@ -8,7 +8,7 @@ import { type CommandExecutionStatus } from "@jabberwock/types"
 import { COMMAND_OUTPUT_STRING } from "@shared/combineCommandSequences"
 import { parseCommand } from "@shared/parse-command"
 
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { extractPatternsFromCommand } from "@src/utils/extractCommand"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { commandExecutionStore } from "@src/features/chat/messages-list/store"
@@ -89,10 +89,7 @@ export const CommandExecution = ({ executionId, text, icon, title }: CommandExec
 		setAllowedCommands(newAllowed)
 		setDeniedCommands(newDenied)
 
-		vscode.postMessage({
-			type: "updateSettings",
-			updatedSettings: { allowedCommands: newAllowed, deniedCommands: newDenied },
-		})
+		rootStore.settings.updateSettings({ allowedCommands: newAllowed, deniedCommands: newDenied })
 	}
 
 	const handleDenyPatternChange = (pattern: string) => {
@@ -103,10 +100,7 @@ export const CommandExecution = ({ executionId, text, icon, title }: CommandExec
 		setAllowedCommands(newAllowed)
 		setDeniedCommands(newDenied)
 
-		vscode.postMessage({
-			type: "updateSettings",
-			updatedSettings: { allowedCommands: newAllowed, deniedCommands: newDenied },
-		})
+		rootStore.settings.updateSettings({ allowedCommands: newAllowed, deniedCommands: newDenied })
 	}
 
 	// Subscribe to MST CommandExecutionStore snapshots instead of raw postMessage events.
@@ -114,23 +108,23 @@ export const CommandExecution = ({ executionId, text, icon, title }: CommandExec
 	// MstBridge propagates snapshots to the webview, and we react to them here.
 	useEffect(() => {
 		const disposer = onSnapshot(commandExecutionStore, (snapshot) => {
-			const execution = snapshot.executions.find((e: any) => e.executionId === executionId)
+			const execution = snapshot.executions.find((e: Record<string, unknown>) => e.executionId === executionId)
 			if (!execution) {
 				return
 			}
 
 			switch (execution.status) {
 				case "started":
-					setStatus(execution)
+					setStatus(execution as CommandExecutionStatus)
 					break
 				case "output":
-					setStreamingOutput(execution.output)
+					setStreamingOutput(execution.output as string)
 					break
 				case "fallback":
 					setIsExpanded(true)
 					break
 				default:
-					setStatus(execution)
+					setStatus(execution as CommandExecutionStatus)
 					break
 			}
 		})
@@ -169,12 +163,7 @@ export const CommandExecution = ({ executionId, text, icon, title }: CommandExec
 									<Button
 										variant="ghost"
 										size="icon"
-										onClick={() =>
-											vscode.postMessage({
-												type: "terminalOperation",
-												terminalOperation: "abort",
-											})
-										}>
+										onClick={() => rootStore.settings.terminalOperation("abort")}>
 										<OctagonX className="size-4" />
 									</Button>
 								</StandardTooltip>

@@ -12,7 +12,7 @@ import { Package } from "../../../shared/package"
 import { t } from "../../../i18n"
 import { withValidationErrorHandling, formatEmbeddingError, HttpError } from "../shared/validation-helpers"
 import { TelemetryEventName } from "@jabberwock/types"
-import { TelemetryService } from "@jabberwock/telemetry"
+import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 
 /**
  * Amazon Bedrock implementation of the embedder interface with batching and rate limiting
@@ -141,11 +141,11 @@ export class BedrockEmbedder implements IEmbedder {
 						totalTokens,
 					},
 				}
-			} catch (error: any) {
+			} catch (error) {
 				const hasMoreAttempts = attempts < MAX_RETRIES - 1
 
 				// Check if it's a rate limit error
-				if (error.name === "ThrottlingException" && hasMoreAttempts) {
+				if ((error as Record<string, unknown>).name === "ThrottlingException" && hasMoreAttempts) {
 					const delayMs = INITIAL_DELAY_MS * Math.pow(2, attempts)
 					console.warn(
 						t("embeddings:rateLimitRetry", {
@@ -159,7 +159,7 @@ export class BedrockEmbedder implements IEmbedder {
 				}
 
 				// Capture telemetry before reformatting the error
-				TelemetryService.instance.captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
+				getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
 					error: error instanceof Error ? error.message : String(error),
 					stack: error instanceof Error ? error.stack : undefined,
 					location: "BedrockEmbedder:_embedBatchWithRetries",
@@ -187,7 +187,7 @@ export class BedrockEmbedder implements IEmbedder {
 		text: string,
 		model: string,
 	): Promise<{ embedding: number[]; inputTextTokenCount?: number }> {
-		let requestBody: any
+		let requestBody: Record<string, unknown>
 		let modelId = model
 
 		// Prepare the request body based on the model
@@ -294,23 +294,23 @@ export class BedrockEmbedder implements IEmbedder {
 				}
 
 				return { valid: true }
-			} catch (error: any) {
+			} catch (error) {
 				// Check for specific AWS errors
-				if (error.name === "UnrecognizedClientException") {
+				if ((error as Record<string, unknown>).name === "UnrecognizedClientException") {
 					return {
 						valid: false,
 						error: t("embeddings:bedrock.invalidCredentials"),
 					}
 				}
 
-				if (error.name === "AccessDeniedException") {
+				if ((error as Record<string, unknown>).name === "AccessDeniedException") {
 					return {
 						valid: false,
 						error: t("embeddings:bedrock.accessDenied"),
 					}
 				}
 
-				if (error.name === "ResourceNotFoundException") {
+				if ((error as Record<string, unknown>).name === "ResourceNotFoundException") {
 					return {
 						valid: false,
 						error: t("embeddings:bedrock.modelNotFound", { model: this.defaultModelId }),
@@ -318,7 +318,7 @@ export class BedrockEmbedder implements IEmbedder {
 				}
 
 				// Capture telemetry for validation errors
-				TelemetryService.instance.captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
+				getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
 					error: error instanceof Error ? error.message : String(error),
 					stack: error instanceof Error ? error.stack : undefined,
 					location: "BedrockEmbedder:validateConfiguration",

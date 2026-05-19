@@ -74,7 +74,7 @@ const processQueue = async (): Promise<void> => {
 		})
 
 		await processQueue()
-	} catch (error: any) {
+	} catch (error) {
 		sayInstance = undefined
 		await processQueue()
 	}

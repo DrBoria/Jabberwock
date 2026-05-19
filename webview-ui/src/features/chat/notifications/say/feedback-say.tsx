@@ -3,8 +3,8 @@ import { User, Edit, Trash2 } from "lucide-react"
 import type { ClineMessage, ClineSayTool } from "@jabberwock/types"
 import { safeJsonParse } from "@shared/core"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
-import { vscode } from "@jabberwock/devtool/react"
 import { useSelectedModel } from "@src/components/ui/hooks/useSelectedModel"
+import { rootStore } from "@src/features/store"
 import { useChatUI } from "@src/features/chat/store"
 import { ChatTextArea } from "../../text-area/view"
 import { Mention } from "../../text-area/mention/mention"
@@ -17,7 +17,7 @@ import type { Mode } from "@shared/modes"
 interface UserFeedbackProps {
 	message: ClineMessage
 	isStreaming: boolean
-	t: any
+	t: (key: string, options?: Record<string, unknown>) => string
 }
 
 /** Renders user_feedback say messages with edit capability */
@@ -71,16 +71,11 @@ export const UserFeedbackSay: React.FC<UserFeedbackProps> = ({ message, isStream
 		}
 		setIsEditing(false)
 		const images = ui.selectedImages.slice()
-		vscode.postMessage({
-			type: "submitEditedMessage",
-			value: message.ts,
-			editedMessageContent: ui.inputValue,
-			images,
-		})
+		rootStore.chat.submitEditedMessage(message.ts, ui.inputValue, images)
 	}, [message.ts, ui, savedStoreState])
 
 	const handleSelectImages = React.useCallback(() => {
-		vscode.postMessage({ type: "selectImages", context: "edit", messageTs: message.ts })
+		rootStore.chat.selectImagesForEdit("edit", message.ts)
 	}, [message.ts])
 
 	return (
@@ -137,7 +132,7 @@ export const UserFeedbackSay: React.FC<UserFeedbackProps> = ({ message, isStream
 								style={{ visibility: isStreaming ? "hidden" : "visible" }}
 								onClick={(e) => {
 									e.stopPropagation()
-									vscode.postMessage({ type: "deleteMessage", value: message.ts })
+									rootStore.chat.deleteMessage(message.ts)
 								}}>
 								<Trash2 className="w-4" aria-label="Delete message icon" />
 							</div>

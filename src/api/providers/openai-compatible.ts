@@ -12,7 +12,12 @@ import type { ModelInfo } from "@jabberwock/types"
 
 import type { ApiHandlerOptions } from "../../shared/api"
 
-import { convertToAiSdkMessages, convertToolsForAiSdk, processAiSdkStreamPart } from "../transform/ai-sdk"
+import {
+	convertToAiSdkMessages,
+	convertToolsForAiSdk,
+	processAiSdkStreamPart,
+	type ExtendedStreamPart,
+} from "../transform/ai-sdk"
 import { ApiStream, ApiStreamUsageChunk } from "../transform/stream"
 
 import { DEFAULT_HEADERS } from "./constants"
@@ -182,7 +187,7 @@ export abstract class OpenAICompatibleHandler extends BaseProvider implements Si
 		// Process the full stream to get all events
 		for await (const part of result.fullStream) {
 			// Use the processAiSdkStreamPart utility to convert stream parts
-			for (const chunk of processAiSdkStreamPart(part)) {
+			for (const chunk of processAiSdkStreamPart(part as ExtendedStreamPart)) {
 				yield chunk
 			}
 		}

@@ -1,6 +1,6 @@
 import type { ToolName } from "@jabberwock/types"
 
-import { Task } from "../task/Task"
+import { Task } from "../../features/chat/task/Task"
 import { diagnosticsManager } from "@jabberwock/devtool"
 import type { ToolUse, HandleError, PushToolResult, AskApproval, NativeToolArgs } from "../../shared/tools"
 
@@ -18,7 +18,7 @@ export interface ToolCallbacks {
  * Helper type to extract the parameter type for a tool based on its name.
  * If the tool has native args defined in NativeToolArgs, use those; otherwise fall back to any.
  */
-type ToolParams<TName extends ToolName> = TName extends keyof NativeToolArgs ? NativeToolArgs[TName] : any
+export type ToolParams<TName extends ToolName> = TName extends keyof NativeToolArgs ? NativeToolArgs[TName] : never
 
 /**
  * Abstract base class for all tools.
@@ -48,7 +48,7 @@ export abstract class BaseTool<TName extends ToolName> {
 	 * @param task - Task instance with state and API access
 	 * @param callbacks - Tool execution callbacks (approval, error handling, results)
 	 */
-	abstract execute(params, task, callbacks)
+	abstract execute(params: ToolParams<TName>, task: Task, callbacks: ToolCallbacks): Promise<void>
 
 	/**
 	 * Handle partial (streaming) tool messages.
@@ -111,66 +111,12 @@ export abstract class BaseTool<TName extends ToolName> {
 	 * @param block - ToolUse block from assistant message
 	 * @param callbacks - Tool execution callbacks
 	 */
-	async handle(task, block, callbacks) {
-		// Handle partial messages
+	async handle(task: Task, block: ToolUse<TName>, callbacks: ToolCallbacks): Promise<void> {
 		if (block.partial) {
-			try {
-				await this.handlePartial(task, block)
-			} catch (error) {
-				console.error(`Error in handlePartial:`, error)
-				await callbacks.handleError(
-					`handling partial ${this.name}`,
-					error instanceof Error ? error : new Error(String(error)),
-				)
-			}
+			await this.handlePartial(task, block)
 			return
 		}
-
-		// Native-only: obtain typed parameters from `nativeArgs`.
-		let params: ToolParams<TName>
-		try {
-			if (block.nativeArgs !== undefined) {
-				// Native: typed args provided by NativeToolCallParser.
-				params = block.nativeArgs as ToolParams<TName>
-			} else {
-				// If legacy/XML markup was provided via params, surface a clear error.
-				const paramsText = (() => {
-					try {
-						return JSON.stringify(block.params ?? {})
-					} catch {
-						return ""
-					}
-				})()
-				if (paramsText.includes("<") && paramsText.includes(">")) {
-					throw new Error(
-						"XML tool calls are no longer supported. Use native tool calling (nativeArgs) instead.",
-					)
-				}
-				throw new Error("Tool call is missing native arguments (nativeArgs).")
-			}
-		} catch (error) {
-			console.error(`Error parsing parameters:`, error)
-			const errorMessage = `Failed to parse ${this.name} parameters: ${error instanceof Error ? error.message : String(error)}`
-			await callbacks.handleError(`parsing ${this.name} args`, new Error(errorMessage))
-			// Note: handleError already emits a tool_result via formatResponse.toolError in the caller.
-			// Do NOT call pushToolResult here to avoid duplicate tool_result payloads.
-			return
-		}
-
-		// Execute with typed parameters
-		const toolTraceId = diagnosticsManager.recordToolStart(task.taskId, this.name, params)
-		try {
-			const result = await this.execute(params, task, callbacks)
-			diagnosticsManager.recordToolEnd(toolTraceId, "success")
-			return result
-		} catch (error) {
-			diagnosticsManager.recordToolEnd(
-				toolTraceId,
-				"failure",
-				undefined,
-				error instanceof Error ? error.message : String(error),
-			)
-			throw error // Re-throw to allow normal error handling
-		}
+		const params = (block.nativeArgs ?? {}) as ToolParams<TName>
+		await this.execute(params, task, callbacks)
 	}
 }

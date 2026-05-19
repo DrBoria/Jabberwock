@@ -6,7 +6,7 @@ import { safeJsonParse } from "@shared/core"
 import { getAllModes } from "@shared/modes"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { useSelectedModel } from "@src/components/ui/hooks/useSelectedModel"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { appendImages } from "@src/features/chat/text-area/utils/image-utils"
 import { MAX_ATTACHED_IMAGES } from "../constants"
 import { useTranslation } from "react-i18next"
@@ -26,8 +26,8 @@ export interface UseChatRowOptions {
 
 export interface UseChatRowReturn {
 	/** Translation function with mode name replacement */
-	t: (key: string, options?: any) => string
-	i18n: any
+	t: (key: string, options?: Record<string, unknown>) => string
+	i18n: { exists: (key: string) => boolean }
 	/** Computed icon + title pair for the message */
 	iconTitle: [React.ReactNode, React.ReactNode]
 	/** Parsed tool from message text */
@@ -149,15 +149,15 @@ export function useChatRow(options: UseChatRowOptions): UseChatRowReturn {
 	}, [isEditing, message.ts])
 
 	const t = useCallback(
-		(key: string, options?: any) => {
-			let result: any = originalT(key as any, options)
+		(key: string, options?: Record<string, unknown>) => {
+			const result = originalT(key, options)
 			if (typeof result === "string" && modeName && result.includes("Jabberwock")) {
-				result = result.replace(/Jabberwock/g, modeName)
+				return result.replace(/Jabberwock/g, modeName)
 			}
 			return result
 		},
 		[originalT, modeName],
-	) as any
+	) as (key: string, options?: Record<string, unknown>) => string
 
 	const handleToggleExpand = useCallback(() => {
 		onToggleExpand(message.ts)
@@ -179,16 +179,11 @@ export function useChatRow(options: UseChatRowOptions): UseChatRowReturn {
 
 	const handleSaveEdit = useCallback(() => {
 		setIsEditing(false)
-		vscode.postMessage({
-			type: "submitEditedMessage",
-			value: message.ts,
-			editedMessageContent: editedContent,
-			images: editImages,
-		})
+		rootStore.chat.submitEditedMessage(message.ts, editedContent, editImages)
 	}, [message.ts, editedContent, editImages])
 
 	const handleSelectImages = useCallback(() => {
-		vscode.postMessage({ type: "selectImages", context: "edit", messageTs: message.ts })
+		rootStore.chat.selectImagesForEdit("edit", message.ts)
 	}, [message.ts])
 
 	const [cost, apiReqCancelReason, apiReqStreamingFailedMessage] = useMemo(() => {

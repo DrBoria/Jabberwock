@@ -6,8 +6,9 @@ import {
 	IMAGE_GENERATION_MODEL_IDS,
 	IMAGE_GENERATION_MODELS,
 	getImageGenerationProvider,
+	type ImageGenerationProvider,
 } from "@jabberwock/types"
-import { Task } from "../task/Task"
+import { Task } from "../../features/chat/task/Task"
 import { formatResponse } from "../prompts/responses"
 import { fileExistsAtPath } from "../../utils/fs"
 import { getReadablePath } from "../../utils/path"
@@ -15,6 +16,7 @@ import { isPathOutsideWorkspace } from "../../utils/pathUtils"
 import { EXPERIMENT_IDS, experiments } from "../../shared/experiments"
 import { OpenRouterHandler } from "../../api/providers/openrouter"
 import { RooHandler } from "../../api/providers/jabberwock"
+import { ApiHandlerOptions } from "../../shared/api"
 import { BaseTool, ToolCallbacks } from "./BaseTool"
 import type { ToolUse } from "../../shared/tools"
 import { t } from "../../i18n"
@@ -124,7 +126,7 @@ export class GenerateImageTool extends BaseTool<"generate_image"> {
 
 		// Use shared utility for backwards compatibility logic
 		const imageProvider = getImageGenerationProvider(
-			state?.imageGenerationProvider,
+			state?.imageGenerationProvider as ImageGenerationProvider | undefined,
 			!!state?.openRouterImageGenerationSelectedModel,
 		)
 
@@ -192,11 +194,11 @@ export class GenerateImageTool extends BaseTool<"generate_image"> {
 			let result
 			if (modelProvider === "jabberwock") {
 				// Use Jabberwock Cloud provider (supports both chat completions and images API)
-				const rooHandler = new RooHandler({} as any)
+				const rooHandler = new RooHandler({} as ApiHandlerOptions)
 				result = await rooHandler.generateImage(prompt, selectedModel, inputImageData, apiMethod)
 			} else {
 				// Use OpenRouter provider (only supports chat completions API)
-				const openRouterHandler = new OpenRouterHandler({} as any)
+				const openRouterHandler = new OpenRouterHandler({} as ApiHandlerOptions)
 				result = await openRouterHandler.generateImage(prompt, selectedModel, openRouterApiKey!, inputImageData)
 			}
 
@@ -250,7 +252,7 @@ export class GenerateImageTool extends BaseTool<"generate_image"> {
 
 			const fullImagePath = path.join(task.cwd, finalPath)
 
-			let imageUri = provider?.convertToWebviewUri?.(fullImagePath) ?? vscode.Uri.file(fullImagePath).toString()
+			let imageUri = vscode.Uri.file(fullImagePath).toString()
 
 			const cacheBuster = Date.now()
 			imageUri = imageUri.includes("?") ? `${imageUri}&t=${cacheBuster}` : `${imageUri}?t=${cacheBuster}`

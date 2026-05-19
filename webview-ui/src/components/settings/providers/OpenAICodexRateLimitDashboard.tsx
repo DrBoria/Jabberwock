@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useState } from "react"
+
 import type { OpenAiCodexRateLimitInfo } from "@jabberwock/types"
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 
 interface OpenAICodexRateLimitDashboardProps {
 	isAuthenticated: boolean
@@ -98,7 +99,7 @@ export const OpenAICodexRateLimitDashboard: React.FC<OpenAICodexRateLimitDashboa
 		}
 		setIsLoading(true)
 		setError(null)
-		vscode.postMessage({ type: "requestOpenAiCodexRateLimits" })
+		rootStore.settings.requestOpenaiCodexRateLimits()
 	}, [isAuthenticated])
 
 	useEffect(() => {

@@ -2,7 +2,8 @@ import { memo } from "react"
 import { ArrowRight, Folder } from "lucide-react"
 import type { DisplayHistoryItem } from "./types"
 
-import { vscode } from "@jabberwock/devtool/react"
+import { WINDOW_MANAGER_SHOW_TASK_WITH_ID as _WINDOW_MANAGER_SHOW_TASK_WITH_ID } from "@jabberwock/types"
+import { rootStore } from "@src/features/store"
 import { cn } from "@/lib/utils"
 import { Checkbox } from "../ui/checkbox"
 
@@ -36,7 +37,7 @@ const TaskItem = ({
 		if (isSelectionMode && onToggleSelection) {
 			onToggleSelection(item.id, !isSelected)
 		} else {
-			vscode.postMessage({ type: "showTaskWithId", text: item.id })
+			rootStore.chat.navigateToTask(item.id)
 		}
 	}
 

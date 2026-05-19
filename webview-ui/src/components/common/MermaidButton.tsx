@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react"
 import { useCopyToClipboard } from "@src/features/chat/text-area/utils/clipboard"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { MermaidActionButtons } from "./MermaidActionButtons"
 import { Modal } from "./Modal"
 import { TabButton } from "./TabButton"
@@ -76,10 +76,7 @@ export function MermaidButton({ containerRef, code, isLoading, svgToPng, childre
 			const pngDataUrl = await svgToPng(svgEl)
 
 			// Send message to VSCode to save the image
-			vscode.postMessage({
-				type: "saveImage",
-				dataUri: pngDataUrl,
-			})
+			rootStore.cloud.saveImage(pngDataUrl)
 		} catch (error) {
 			console.error("Error saving image:", error)
 		}

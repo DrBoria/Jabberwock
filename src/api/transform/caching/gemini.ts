@@ -5,12 +5,13 @@ export function addCacheBreakpoints(
 	messages: OpenAI.Chat.ChatCompletionMessageParam[],
 	frequency: number = 10,
 ) {
+	type CachedTextPart = OpenAI.Chat.ChatCompletionContentPartText & { cache_control?: { type: "ephemeral" } }
+
 	// *Always* cache the system prompt.
 	messages[0] = {
 		role: "system",
-		// @ts-ignore-next-line
-		content: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }],
-	}
+		content: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }] as CachedTextPart[],
+	} as OpenAI.Chat.ChatCompletionMessageParam
 
 	// Add breakpoints every N user messages based on frequency.
 	let count = 0
@@ -37,8 +38,7 @@ export function addCacheBreakpoints(
 					msg.content.push(lastTextPart)
 				}
 
-				// @ts-ignore-next-line - Add cache control property
-				lastTextPart["cache_control"] = { type: "ephemeral" }
+				;(lastTextPart as CachedTextPart)["cache_control"] = { type: "ephemeral" }
 			}
 		}
 

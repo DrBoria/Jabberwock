@@ -1,4 +1,4 @@
-import { Task } from "../task/Task"
+import { Task } from "../../features/chat/task/Task"
 import { formatResponse } from "../prompts/responses"
 import { BaseTool, ToolCallbacks } from "./BaseTool"
 import type { ToolUse } from "../../shared/tools"
@@ -205,7 +205,7 @@ export function setPendingTodoList(todos: TodoItem[]) {
 	approvedTodoList = todos
 }
 
-function validateTodos(todos: any[]): { valid: boolean; error?: string } {
+function validateTodos(todos: Record<string, unknown>[]): { valid: boolean; error?: string } {
 	if (!Array.isArray(todos)) return { valid: false, error: "todos must be an array" }
 	for (const [i, t] of todos.entries()) {
 		if (!t || typeof t !== "object") return { valid: false, error: `Item ${i + 1} is not an object` }

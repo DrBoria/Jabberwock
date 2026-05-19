@@ -47,7 +47,7 @@ vi.mock("fs/promises", () => {
 import * as vscode from "vscode"
 import * as fs from "fs/promises"
 import * as fsUtils from "../../../utils/fs"
-import { generateErrorDiagnostics } from "../diagnosticsHandler"
+import { generateErrorDiagnostics } from "../../../features/diagnostics/handlers"
 
 describe("generateErrorDiagnostics", () => {
 	const mockLog = vi.fn()

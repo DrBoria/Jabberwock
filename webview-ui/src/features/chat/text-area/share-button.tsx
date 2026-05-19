@@ -4,7 +4,7 @@ import { Share2Icon } from "lucide-react"
 
 import { type HistoryItem, type ShareVisibility, TelemetryEventName } from "@jabberwock/types"
 
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { telemetryClient } from "@/features/cloud/utils/TelemetryClient"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { useCloudUpsell } from "@/hooks/useCloudUpsell"
@@ -83,10 +83,7 @@ export const ShareButton = ({ item, disabled = false }: ShareButtonProps) => {
 			telemetryClient.capture(TelemetryEventName.SHARE_PUBLIC_CLICKED)
 		}
 
-		vscode.postMessage({
-			type: "shareCurrentTask",
-			visibility,
-		})
+		rootStore.windowManager.shareCurrentTask(visibility)
 		// Don't close the dropdown immediately - let success message show first
 	}
 

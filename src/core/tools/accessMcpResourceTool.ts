@@ -1,7 +1,7 @@
 import type { ClineAskUseMcpServer } from "@jabberwock/types"
 
 import type { ToolUse } from "../../shared/tools"
-import { Task } from "../task/Task"
+import { Task } from "../../features/chat/task/Task"
 import { formatResponse } from "../prompts/responses"
 
 import { BaseTool, ToolCallbacks } from "./BaseTool"
@@ -50,7 +50,8 @@ export class AccessMcpResourceTool extends BaseTool<"access_mcp_resource"> {
 
 			// Now execute the tool
 			await task.say("mcp_server_request_started")
-			const resourceResult = await task.providerRef.deref()?.getMcpHub()?.readResource(server_name, uri)
+			const mcpHub = await task.providerRef.deref()?.getMcpHub()
+			const resourceResult = await mcpHub?.readResource(server_name, uri)
 
 			const resourceResultPretty =
 				resourceResult?.contents

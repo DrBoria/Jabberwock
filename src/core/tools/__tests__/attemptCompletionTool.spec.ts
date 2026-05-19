@@ -39,7 +39,7 @@ vi.mock("../../../shared/package", () => ({
 }))
 
 import { attemptCompletionTool, AttemptCompletionCallbacks } from "../AttemptCompletionTool"
-import { Task } from "../../task/Task"
+import { Task } from "../../../features/chat/task/Task"
 import * as vscode from "vscode"
 
 describe("attemptCompletionTool", () => {

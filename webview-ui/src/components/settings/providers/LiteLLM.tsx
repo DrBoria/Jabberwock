@@ -13,7 +13,7 @@ import { RouterName } from "@shared/api"
 
 import { routerModelsStore } from "@src/features/settings/models/store"
 
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { Button } from "@src/components/ui"
@@ -73,12 +73,14 @@ export const LiteLLM = ({
 	}, [refreshStatus, refreshError, setRefreshStatus, setRefreshError])
 
 	const handleInputChange = useCallback(
-		<K extends keyof ProviderSettings, E>(
-			field: K,
-			transform: (event: E) => ProviderSettings[K] = inputEventTransform,
-		) =>
+		<K extends keyof ProviderSettings, E>(field: K, transform?: (event: E) => ProviderSettings[K]) =>
 			(event: E | Event) => {
-				setApiConfigurationField(field, transform(event as E))
+				setApiConfigurationField(
+					field,
+					transform
+						? transform(event as E)
+						: (inputEventTransform(event as { target: HTMLInputElement }) as ProviderSettings[K]),
+				)
 			},
 		[setApiConfigurationField],
 	)
@@ -97,7 +99,7 @@ export const LiteLLM = ({
 			return
 		}
 
-		vscode.postMessage({ type: "requestRouterModels", values: { litellmApiKey: key, litellmBaseUrl: url } })
+		rootStore.settings.requestRouterModels({ litellmApiKey: key, litellmBaseUrl: url })
 	}, [apiConfiguration, setRefreshStatus, setRefreshError, t])
 
 	return (
@@ -174,8 +176,11 @@ export const LiteLLM = ({
 						<div className="mt-4">
 							<VSCodeCheckbox
 								checked={apiConfiguration.litellmUsePromptCache || false}
-								onChange={(e: any) => {
-									setApiConfigurationField("litellmUsePromptCache", e.target.checked)
+								onChange={(e) => {
+									setApiConfigurationField(
+										"litellmUsePromptCache",
+										(e.target as HTMLInputElement).checked,
+									)
 								}}>
 								<span className="font-medium">{t("settings:providers.enablePromptCaching")}</span>
 							</VSCodeCheckbox>

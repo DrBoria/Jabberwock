@@ -28,10 +28,24 @@ export function findElementById(id: string): Element | null {
  * Find an element by CSS selector. Returns null on invalid selector
  * (instead of throwing) for graceful fallback chains.
  */
-export function findElementBySelector(selector: string): Element | null {
+/**
+ * Find all elements matching a CSS selector. Returns an empty array on invalid
+ * selector (instead of throwing) for graceful fallback chains.
+ * Replaces the old findElementBySelector which only returned the first match.
+ */
+export function findAllElementsBySelector(selector: string): Element[] {
 	try {
-		return document.querySelector(selector)
+		return Array.from(document.querySelectorAll(selector))
 	} catch {
-		return null
+		return []
 	}
+}
+
+/**
+ * Find the first element matching a CSS selector.
+ * Thin wrapper around findAllElementsBySelector for backward compatibility.
+ */
+export function findElementBySelector(selector: string): Element | null {
+	const results = findAllElementsBySelector(selector)
+	return results.length > 0 ? (results[0] ?? null) : null
 }

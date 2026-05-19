@@ -1,50 +1,63 @@
-import { types, Instance } from "mobx-state-tree"
+import { types, Instance, cast } from "mobx-state-tree"
+import { ContextMenuOptionType, type SearchResult, type ContextMenuQueryItem } from "./utils/context-mentions"
 
 /**
  * DynamicTextAreaStore — manages local state for the DynamicTextArea component.
  * This includes cursor position, context menu state, search state, and other
  * UI-level concerns that don't belong in the global ChatUIStore.
  */
+
 export const DynamicTextAreaStore = types
 	.model("DynamicTextAreaStore", {
 		// ── Cursor / selection ──
-		cursorPosition: types.optional(types.number, 0),
-		intendedCursorPosition: types.maybeNull(types.number),
+		cursorPosition: types.number,
+		intendedCursorPosition: types.number,
 
 		// ── Context menu ──
-		showContextMenu: types.optional(types.boolean, false),
-		selectedMenuIndex: types.optional(types.number, -1),
-		selectedType: types.maybeNull(types.string),
-		searchQuery: types.optional(types.string, ""),
-		searchLoading: types.optional(types.boolean, false),
-		searchRequestId: types.optional(types.string, ""),
-		isMouseDownOnMenu: types.optional(types.boolean, false),
-		justDeletedSpaceAfterMention: types.optional(types.boolean, false),
+		showContextMenu: types.boolean,
+		selectedMenuIndex: types.number,
+		selectedType: types.frozen<ContextMenuOptionType>(),
+		searchQuery: types.string,
+		searchLoading: types.boolean,
+		searchRequestId: types.string,
+		isMouseDownOnMenu: types.boolean,
+		justDeletedSpaceAfterMention: types.boolean,
 
 		// ── Drag / focus ──
-		isDraggingOver: types.optional(types.boolean, false),
-		isFocused: types.optional(types.boolean, false),
+		isDraggingOver: types.boolean,
+		isFocused: types.boolean,
+		showDropdown: types.boolean,
+
+		// ── Search results ──
+		gitCommits: types.array(types.frozen<ContextMenuQueryItem>()),
+		fileSearchResults: types.array(types.frozen<SearchResult>()),
 
 		// ── Enhancement ──
-		isEnhancingPrompt: types.optional(types.boolean, false),
+		isEnhancingPrompt: types.boolean,
 
 		// ── TTS ──
-		isTtsPlaying: types.optional(types.boolean, false),
+		isTtsPlaying: types.boolean,
+
+		// ── Sizing ──
+		textAreaBaseHeight: types.number,
 	})
 	.actions((self) => ({
+		// ── Cursor / selection actions ──
 		setCursorPosition(pos: number) {
 			self.cursorPosition = pos
 		},
-		setIntendedCursorPosition(pos: number | null) {
+		setIntendedCursorPosition(pos: number) {
 			self.intendedCursorPosition = pos
 		},
+
+		// ── Context menu actions ──
 		setShowContextMenu(val: boolean) {
 			self.showContextMenu = val
 		},
 		setSelectedMenuIndex(index: number) {
 			self.selectedMenuIndex = index
 		},
-		setSelectedType(type: string | null) {
+		setSelectedType(type: ContextMenuOptionType) {
 			self.selectedType = type
 		},
 		setSearchQuery(query: string) {
@@ -62,11 +75,25 @@ export const DynamicTextAreaStore = types
 		setJustDeletedSpaceAfterMention(val: boolean) {
 			self.justDeletedSpaceAfterMention = val
 		},
+
+		// ── Drag / focus actions ──
 		setIsDraggingOver(val: boolean) {
 			self.isDraggingOver = val
 		},
 		setIsFocused(val: boolean) {
 			self.isFocused = val
+		},
+		setShowDropdown(val: boolean) {
+			self.showDropdown = val
+		},
+		setGitCommits(commits: ContextMenuQueryItem[]) {
+			self.gitCommits = cast(commits)
+		},
+		setFileSearchResults(results: SearchResult[]) {
+			self.fileSearchResults = cast(results)
+		},
+		setTextAreaBaseHeight(height: number) {
+			self.textAreaBaseHeight = height
 		},
 		setIsEnhancingPrompt(val: boolean) {
 			self.isEnhancingPrompt = val
@@ -76,10 +103,10 @@ export const DynamicTextAreaStore = types
 		},
 		reset() {
 			self.cursorPosition = 0
-			self.intendedCursorPosition = null
+			self.intendedCursorPosition = -1
 			self.showContextMenu = false
 			self.selectedMenuIndex = -1
-			self.selectedType = null
+			self.selectedType = ContextMenuOptionType.None
 			self.searchQuery = ""
 			self.searchLoading = false
 			self.searchRequestId = ""
@@ -87,9 +114,73 @@ export const DynamicTextAreaStore = types
 			self.justDeletedSpaceAfterMention = false
 			self.isDraggingOver = false
 			self.isFocused = false
+			self.showDropdown = false
+			self.gitCommits = cast([])
+			self.fileSearchResults = cast([])
+			self.textAreaBaseHeight = -1
 			self.isEnhancingPrompt = false
 			self.isTtsPlaying = false
 		},
 	}))
 
 export type IDynamicTextAreaStore = Instance<typeof DynamicTextAreaStore>
+
+// ── Action factory for ChatStore composition ──────────────────────────
+
+import { vscode } from "@jabberwock/devtool/react"
+import type { WebviewMessage } from "@jabberwock/types"
+import {
+	CHAT_TEXT_AREA_DRAGGED_IMAGES,
+	CHAT_TEXT_AREA_ENHANCE_PROMPT,
+	CHAT_TEXT_AREA_SEARCH_FILES,
+	CHAT_TEXT_AREA_SELECT_IMAGES,
+} from "@jabberwock/types"
+
+/**
+ * Creates text-area related actions for the ChatStore.
+ * These handle image selection, file search, prompt enhancement, etc.
+ */
+export function createTextAreaActions(_self: unknown) {
+	return {
+		// ── Select images ──────────────────────────────────────────
+		selectImages() {
+			vscode.postMessage({
+				type: CHAT_TEXT_AREA_SELECT_IMAGES,
+			} satisfies WebviewMessage)
+		},
+
+		// ── Search files ───────────────────────────────────────────
+		searchFiles(query: string, requestId: string) {
+			vscode.postMessage({
+				type: CHAT_TEXT_AREA_SEARCH_FILES,
+				query,
+				requestId,
+			} satisfies WebviewMessage)
+		},
+
+		// ── Dragged images ─────────────────────────────────────────
+		draggedImages(dataUrls: string[]) {
+			vscode.postMessage({
+				type: CHAT_TEXT_AREA_DRAGGED_IMAGES,
+				dataUrls,
+			} satisfies WebviewMessage)
+		},
+
+		// ── Enhance prompt ─────────────────────────────────────────
+		enhancePrompt(text: string) {
+			vscode.postMessage({
+				type: CHAT_TEXT_AREA_ENHANCE_PROMPT,
+				text,
+			} satisfies WebviewMessage)
+		},
+
+		// ── Select images for edit ─────────────────────────────────
+		selectImagesForEdit(context: string, messageTs: number) {
+			vscode.postMessage({
+				type: CHAT_TEXT_AREA_SELECT_IMAGES,
+				context,
+				messageTs,
+			} satisfies WebviewMessage)
+		},
+	}
+}

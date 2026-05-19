@@ -1,17 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import * as vscode from "vscode"
 
-import { API } from "../api"
-import { ClineProvider } from "../../core/webview/ClineProvider"
+import { sendMessage } from "../../features/chat/api-methods"
+import { EventBridge } from "../../core/webview/EventBridge"
 import { TaskCommandName } from "@jabberwock/types"
 
 vi.mock("vscode")
-vi.mock("../../core/webview/ClineProvider")
+vi.mock("../../core/webview/EventBridge")
 
 describe("API - SendMessage Command", () => {
-	let api: API
 	let mockOutputChannel: vscode.OutputChannel
-	let mockProvider: ClineProvider
+	let mockProvider: EventBridge
 	let mockPostMessageToWebview: ReturnType<typeof vi.fn>
 	let mockLog: ReturnType<typeof vi.fn>
 
@@ -29,15 +28,11 @@ describe("API - SendMessage Command", () => {
 			on: vi.fn(),
 			getCurrentTaskStack: vi.fn().mockReturnValue([]),
 			getCurrentTask: vi.fn().mockReturnValue(undefined),
+			taskStack: [],
 			viewLaunched: true,
-		} as unknown as ClineProvider
+		} as unknown as EventBridge
 
 		mockLog = vi.fn()
-
-		// Create API instance with logging enabled for testing
-		api = new API(mockOutputChannel, mockProvider, undefined, true)
-		// Override the log method to use our mock
-		;(api as any).log = mockLog
 	})
 
 	it("should handle SendMessage command with text only", async () => {
@@ -45,7 +40,7 @@ describe("API - SendMessage Command", () => {
 		const messageText = "Hello, this is a test message"
 
 		// Act
-		await api.sendMessage(messageText)
+		await sendMessage(mockProvider, messageText)
 
 		// Assert
 		expect(mockPostMessageToWebview).toHaveBeenCalledWith({
@@ -64,7 +59,7 @@ describe("API - SendMessage Command", () => {
 		]
 
 		// Act
-		await api.sendMessage(messageText, images)
+		await sendMessage(mockProvider, messageText, images)
 
 		// Assert
 		expect(mockPostMessageToWebview).toHaveBeenCalledWith({
@@ -82,7 +77,7 @@ describe("API - SendMessage Command", () => {
 		]
 
 		// Act
-		await api.sendMessage(undefined, images)
+		await sendMessage(mockProvider, undefined, images)
 
 		// Assert
 		expect(mockPostMessageToWebview).toHaveBeenCalledWith({
@@ -95,39 +90,13 @@ describe("API - SendMessage Command", () => {
 
 	it("should handle SendMessage command with empty parameters", async () => {
 		// Act
-		await api.sendMessage()
+		await sendMessage(mockProvider)
 
 		// Assert
 		expect(mockPostMessageToWebview).toHaveBeenCalledWith({
 			type: "invoke",
 			invoke: "sendMessage",
 			text: undefined,
-			images: undefined,
-		})
-	})
-
-	it("should log SendMessage command when processed via IPC", async () => {
-		// This test verifies the logging behavior when the command comes through IPC
-		// We need to simulate the IPC handler directly since we can't easily test the full IPC flow
-
-		const messageText = "Test message from IPC"
-		const commandData = {
-			text: messageText,
-			images: undefined,
-		}
-
-		// Simulate the IPC command handler calling sendMessage
-		mockLog(`[API] SendMessage -> ${commandData.text}`)
-		await api.sendMessage(commandData.text, commandData.images)
-
-		// Assert that logging occurred
-		expect(mockLog).toHaveBeenCalledWith(`[API] SendMessage -> ${messageText}`)
-
-		// Assert that the message was sent
-		expect(mockPostMessageToWebview).toHaveBeenCalledWith({
-			type: "invoke",
-			invoke: "sendMessage",
-			text: messageText,
 			images: undefined,
 		})
 	})
@@ -142,7 +111,7 @@ describe("API - SendMessage Command", () => {
 		]
 
 		// Act
-		await api.sendMessage(messageText, images)
+		await sendMessage(mockProvider, messageText, images)
 
 		// Assert
 		expect(mockPostMessageToWebview).toHaveBeenCalledWith({

@@ -87,7 +87,7 @@ export async function fetchOpenAiCodexRateLimitInfo(
 		)
 	}
 
-	const json = (await response.json()) as unknown
+	const json: unknown = await response.json()
 	const parsed = parseOpenAiCodexUsagePayload(json, fetchedAt)
 	if (!parsed.primary && !parsed.secondary) {
 		throw new Error("OpenAI Codex WHAM usage response did not include rate_limit windows")

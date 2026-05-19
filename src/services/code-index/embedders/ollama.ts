@@ -4,7 +4,7 @@ import { getModelQueryPrefix } from "../../../shared/embeddingModels"
 import { MAX_ITEM_TOKENS } from "../constants"
 import { t } from "../../../i18n"
 import { withValidationErrorHandling, sanitizeErrorMessage } from "../shared/validation-helpers"
-import { TelemetryService } from "@jabberwock/telemetry"
+import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 import { TelemetryEventName } from "@jabberwock/types"
 
 // Timeout constants for Ollama API requests
@@ -112,9 +112,9 @@ export class CodeIndexOllamaEmbedder implements IEmbedder {
 			return {
 				embeddings: embeddings,
 			}
-		} catch (error: any) {
+		} catch (error) {
 			// Capture telemetry before reformatting the error
-			TelemetryService.instance.captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
+			getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
 				error: sanitizeErrorMessage(error instanceof Error ? error.message : String(error)),
 				stack: error instanceof Error ? sanitizeErrorMessage(error.stack || "") : undefined,
 				location: "OllamaEmbedder:createEmbeddings",
@@ -124,16 +124,17 @@ export class CodeIndexOllamaEmbedder implements IEmbedder {
 			console.error("Ollama embedding failed:", error)
 
 			// Handle specific error types with better messages
-			if (error.name === "AbortError") {
+			const err = error as Record<string, unknown>
+			if (err.name === "AbortError") {
 				throw new Error(t("embeddings:validation.connectionFailed"))
-			} else if (error.message?.includes("fetch failed") || error.code === "ECONNREFUSED") {
+			} else if ((err.message as string)?.includes("fetch failed") || err.code === "ECONNREFUSED") {
 				throw new Error(t("embeddings:ollama.serviceNotRunning", { baseUrl: this.baseUrl }))
-			} else if (error.code === "ENOTFOUND") {
+			} else if (err.code === "ENOTFOUND") {
 				throw new Error(t("embeddings:ollama.hostNotFound", { baseUrl: this.baseUrl }))
 			}
 
 			// Re-throw a more specific error for the caller
-			throw new Error(t("embeddings:ollama.embeddingFailed", { message: error.message }))
+			throw new Error(t("embeddings:ollama.embeddingFailed", { message: err.message as string }))
 		}
 	}
 
@@ -181,7 +182,7 @@ export class CodeIndexOllamaEmbedder implements IEmbedder {
 				const models = modelsData.models || []
 
 				// Check both with and without :latest suffix
-				const modelExists = models.some((m: any) => {
+				const modelExists = models.some((m: { name?: string }) => {
 					const modelName = m.name || ""
 					return (
 						modelName === this.defaultModelId ||
@@ -191,7 +192,7 @@ export class CodeIndexOllamaEmbedder implements IEmbedder {
 				})
 
 				if (!modelExists) {
-					const availableModels = models.map((m: any) => m.name).join(", ")
+					const availableModels = models.map((m: { name?: string }) => m.name).join(", ")
 					return {
 						valid: false,
 						error: t("embeddings:ollama.modelNotFound", {
@@ -232,16 +233,19 @@ export class CodeIndexOllamaEmbedder implements IEmbedder {
 			},
 			"ollama",
 			{
-				beforeStandardHandling: (error: any) => {
+				beforeStandardHandling: (error: unknown) => {
+					const err = error as Record<string, unknown>
 					// Handle Ollama-specific connection errors
 					// Check for fetch failed errors which indicate Ollama is not running
+					const errMessage = typeof err?.message === "string" ? err.message : ""
+					const errCode = typeof err?.code === "string" ? err.code : ""
 					if (
-						error?.message?.includes("fetch failed") ||
-						error?.code === "ECONNREFUSED" ||
-						error?.message?.includes("ECONNREFUSED")
+						errMessage.includes("fetch failed") ||
+						errCode === "ECONNREFUSED" ||
+						errMessage.includes("ECONNREFUSED")
 					) {
 						// Capture telemetry for connection failed error
-						TelemetryService.instance.captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
+						getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
 							error: sanitizeErrorMessage(error instanceof Error ? error.message : String(error)),
 							stack: error instanceof Error ? sanitizeErrorMessage(error.stack || "") : undefined,
 							location: "OllamaEmbedder:validateConfiguration:connectionFailed",
@@ -250,9 +254,9 @@ export class CodeIndexOllamaEmbedder implements IEmbedder {
 							valid: false,
 							error: t("embeddings:ollama.serviceNotRunning", { baseUrl: this.baseUrl }),
 						}
-					} else if (error?.code === "ENOTFOUND" || error?.message?.includes("ENOTFOUND")) {
+					} else if (errCode === "ENOTFOUND" || errMessage.includes("ENOTFOUND")) {
 						// Capture telemetry for host not found error
-						TelemetryService.instance.captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
+						getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
 							error: sanitizeErrorMessage(error instanceof Error ? error.message : String(error)),
 							stack: error instanceof Error ? sanitizeErrorMessage(error.stack || "") : undefined,
 							location: "OllamaEmbedder:validateConfiguration:hostNotFound",
@@ -261,9 +265,9 @@ export class CodeIndexOllamaEmbedder implements IEmbedder {
 							valid: false,
 							error: t("embeddings:ollama.hostNotFound", { baseUrl: this.baseUrl }),
 						}
-					} else if (error?.name === "AbortError") {
+					} else if (typeof err?.name === "string" && err.name === "AbortError") {
 						// Capture telemetry for timeout error
-						TelemetryService.instance.captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
+						getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
 							error: sanitizeErrorMessage(error instanceof Error ? error.message : String(error)),
 							stack: error instanceof Error ? sanitizeErrorMessage(error.stack || "") : undefined,
 							location: "OllamaEmbedder:validateConfiguration:timeout",

@@ -19,8 +19,8 @@ interface BedrockMessageContent {
 	// Tool use and result fields
 	toolUseId?: string
 	name?: string
-	input?: any
-	output?: any // Used for tool_result type
+	input?: Record<string, unknown>
+	output?: unknown // Used for tool_result type
 }
 
 /**
@@ -149,11 +149,12 @@ export function convertToBedrockConverseMessages(anthropicMessages: Anthropic.Me
 						toolResult: {
 							toolUseId: sanitizeOpenAiCallId(messageBlock.tool_use_id || ""),
 							content: messageBlock.output.map((part) => {
-								if (typeof part === "object" && "text" in part) {
-									return { text: part.text }
+								const partObj = part as { text?: string; type?: string }
+								if (partObj.text) {
+									return { text: partObj.text }
 								}
 								// Skip images in tool results as they're handled separately
-								if (typeof part === "object" && "type" in part && part.type === "image") {
+								if (partObj.type === "image") {
 									return { text: "(see following message for image)" }
 								}
 								return { text: String(part) }

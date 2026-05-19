@@ -93,7 +93,9 @@ export const ThinkingBudget = ({ apiConfiguration, setApiConfigurationField, mod
 	// When the model provides an explicit array, respect those exact values.
 	type ReasoningEffortOption = ReasoningEffortWithMinimal | "none" | "disable"
 	const shouldAutoAddDisable =
-		!modelInfo?.requiredReasoningEffort && supports === true && !baseAvailableOptions.includes("disable" as any)
+		!modelInfo?.requiredReasoningEffort &&
+		supports === true &&
+		!(baseAvailableOptions as readonly string[]).includes("disable")
 	const availableOptions: ReadonlyArray<ReasoningEffortOption> = shouldAutoAddDisable
 		? (["disable", ...baseAvailableOptions] as ReasoningEffortOption[])
 		: (baseAvailableOptions as ReadonlyArray<ReasoningEffortOption>)

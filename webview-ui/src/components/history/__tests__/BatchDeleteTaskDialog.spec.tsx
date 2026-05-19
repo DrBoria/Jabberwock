@@ -1,10 +1,16 @@
 import { render, screen, fireEvent } from "@/utils/test-utils"
 
-import { vscode } from "@jabberwock/devtool/react"
-
 import { BatchDeleteTaskDialog } from "../BatchDeleteTaskDialog"
 
-vi.mock("@jabberwock/devtool/react")
+const mockDeleteMultipleTasksWithIds = vi.fn()
+
+vi.mock("@src/features/store", () => ({
+	rootStore: {
+		history: {
+			deleteMultipleTasksWithIds: mockDeleteMultipleTasksWithIds,
+		},
+	},
+}))
 
 vi.mock("@/i18n/TranslationContext", () => ({
 	useAppTranslation: () => ({
@@ -39,16 +45,13 @@ describe("BatchDeleteTaskDialog", () => {
 		expect(screen.getByText("Delete 3 items")).toBeInTheDocument()
 	})
 
-	it("calls vscode.postMessage when delete is confirmed", () => {
+	it("calls chatStore.deleteMultipleTasksWithIds when delete is confirmed", () => {
 		render(<BatchDeleteTaskDialog taskIds={mockTaskIds} open={true} onOpenChange={mockOnOpenChange} />)
 
 		const deleteButton = screen.getByText("Delete 3 items")
 		fireEvent.click(deleteButton)
 
-		expect(vscode.postMessage).toHaveBeenCalledWith({
-			type: "deleteMultipleTasksWithIds",
-			ids: mockTaskIds,
-		})
+		expect(mockDeleteMultipleTasksWithIds).toHaveBeenCalledWith(mockTaskIds)
 		expect(mockOnOpenChange).toHaveBeenCalledWith(false)
 	})
 
@@ -58,17 +61,17 @@ describe("BatchDeleteTaskDialog", () => {
 		const cancelButton = screen.getByText("Cancel")
 		fireEvent.click(cancelButton)
 
-		expect(vscode.postMessage).not.toHaveBeenCalled()
+		expect(mockDeleteMultipleTasksWithIds).not.toHaveBeenCalled()
 		expect(mockOnOpenChange).toHaveBeenCalledWith(false)
 	})
 
-	it("does not call vscode.postMessage when taskIds is empty", () => {
+	it("does not call chatStore.deleteMultipleTasksWithIds when taskIds is empty", () => {
 		render(<BatchDeleteTaskDialog taskIds={[]} open={true} onOpenChange={mockOnOpenChange} />)
 
 		const deleteButton = screen.getByText("Delete 0 items")
 		fireEvent.click(deleteButton)
 
-		expect(vscode.postMessage).not.toHaveBeenCalled()
+		expect(mockDeleteMultipleTasksWithIds).not.toHaveBeenCalled()
 		expect(mockOnOpenChange).toHaveBeenCalledWith(false)
 	})
 

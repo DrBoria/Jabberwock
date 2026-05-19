@@ -5,10 +5,15 @@ import * as path from "path"
 import * as vscode from "vscode"
 
 import type { GlobalState, ProviderSettings } from "@jabberwock/types"
-import { TelemetryService } from "@jabberwock/telemetry"
+import {
+	TelemetryService,
+	getTelemetryService,
+	hasTelemetryService,
+	createTelemetryService,
+} from "@jabberwock/telemetry"
 
-import { Task } from "../Task"
-import { ClineProvider } from "../../webview/ClineProvider"
+import { Task } from "../../../features/chat/task/Task"
+import { EventBridge } from "../../webview/EventBridge"
 import { ContextProxy } from "../../config/ContextProxy"
 
 // ─── Hoisted mocks ───────────────────────────────────────────────────────────
@@ -195,7 +200,7 @@ vi.mock("../../../utils/fs", () => ({
 // ─── Test suite ──────────────────────────────────────────────────────────────
 
 describe("Task persistence", () => {
-	let mockProvider: ClineProvider & Record<string, any>
+	let mockProvider: EventBridge & Record<string, any>
 	let mockApiConfig: ProviderSettings
 	let mockOutputChannel: vscode.OutputChannel
 	let mockExtensionContext: vscode.ExtensionContext
@@ -203,8 +208,8 @@ describe("Task persistence", () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
 
-		if (!TelemetryService.hasInstance()) {
-			TelemetryService.createInstance([])
+		if (!hasTelemetryService()) {
+			createTelemetryService([])
 		}
 
 		const storageUri = { fsPath: path.join(os.tmpdir(), "test-storage") }
@@ -239,12 +244,12 @@ describe("Task persistence", () => {
 			dispose: vi.fn(),
 		} as unknown as vscode.OutputChannel
 
-		mockProvider = new ClineProvider(
+		mockProvider = new EventBridge(
 			mockExtensionContext,
 			mockOutputChannel,
 			"sidebar",
 			new ContextProxy(mockExtensionContext),
-		) as ClineProvider & Record<string, any>
+		) as EventBridge & Record<string, any>
 
 		mockApiConfig = {
 			apiProvider: "anthropic",

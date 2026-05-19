@@ -18,7 +18,7 @@ export const ExperimentalFeature = ({ enabled, onChange, experimentKey }: Experi
 	return (
 		<div>
 			<div className="flex items-center gap-2">
-				<VSCodeCheckbox checked={enabled} onChange={(e: any) => onChange(e.target.checked)}>
+				<VSCodeCheckbox checked={enabled} onChange={(e) => onChange((e.target as HTMLInputElement).checked)}>
 					<span className="font-medium">{t(nameKey)}</span>
 				</VSCodeCheckbox>
 			</div>

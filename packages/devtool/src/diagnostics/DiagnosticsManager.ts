@@ -45,12 +45,16 @@ export class DiagnosticsManager {
 		const originalMethods: Array<keyof Console> = ["log", "warn", "error", "debug"]
 		originalMethods.forEach((method) => {
 			const original = console[method] as (...args: unknown[]) => void
-			;(console[method] as unknown) = (...args: unknown[]) => {
-				const message = util.format(...args)
-				// Use the static log if available, or just ignore if no manager is active
-				DiagnosticsManager.instance?.log(message, method === "log" ? "info" : (method as DiagnosticLevel))
-				original.apply(console, args)
-			}
+			Object.defineProperty(console, method, {
+				value: (...args: unknown[]) => {
+					const message = util.format(...args)
+					// Use the static log if available, or just ignore if no manager is active
+					DiagnosticsManager.instance?.log(message, method === "log" ? "info" : (method as DiagnosticLevel))
+					original.apply(console, args)
+				},
+				writable: true,
+				configurable: true,
+			})
 		})
 		this.log("[DiagnosticsManager] Console interceptor registered successfully", "info")
 	}
@@ -111,6 +115,10 @@ export class DiagnosticsManager {
 	public setCurrentAction(action: string) {
 		this.currentAction = action
 		this.log(`[ACTION] ${action}`, "debug")
+	}
+
+	public getAllLogs(): DiagnosticLog[] {
+		return [...this.logs]
 	}
 
 	public getTimeline(filters: TimelineFilters = {}) {

@@ -16,10 +16,21 @@ vi.mock("@vscode/webview-ui-toolkit/react", () => ({
 }))
 
 // Mock ExtensionStateContext since we use useExtensionState
+const mockCurrentTaskItem = {
+	id: "test-id",
+	number: 1,
+	task: "Test task",
+	ts: Date.now(),
+	tokensIn: 100,
+	tokensOut: 50,
+	totalCost: 0.001,
+	size: 1024,
+}
 vi.mock("@src/context/ExtensionStateContext", () => ({
 	useExtensionState: vi.fn(() => ({
 		apiConfiguration: { apiProvider: "openai" },
-		currentTaskItem: { id: "test-id", number: 1, size: 1024 },
+		currentTaskItem: mockCurrentTaskItem,
+		clineMessages: [],
 	})),
 }))
 
@@ -41,26 +52,69 @@ vi.mock("@src/components/ui/hooks/useSelectedModel", () => ({
 	})),
 }))
 
+// Mock useChatTree
+vi.mock("@src/features/chat/messages-list/store", () => ({
+	useChatTree: vi.fn(() => ({
+		nodes: new Map(),
+		activeNodeId: undefined,
+	})),
+}))
+
+// Mock useWindowManager
+vi.mock("@src/features/foundation/window-manager/store", () => ({
+	useWindowManager: vi.fn(() => ({
+		pushWindow: vi.fn(),
+		popWindow: vi.fn(),
+		activeWindows: [],
+	})),
+}))
+
+// Mock rootStore
+vi.mock("@src/features/store", () => ({
+	rootStore: {
+		extensionState: {
+			currentTaskTodos: undefined,
+			diagnostics: undefined,
+		},
+		chat: {
+			condenseContext: vi.fn(),
+			navigateToTask: vi.fn(),
+		},
+	},
+}))
+
+// Mock useChatUI
+const mockApiMetrics = {
+	totalTokensIn: 100,
+	totalTokensOut: 50,
+	totalCacheWrites: 0,
+	totalCacheReads: 0,
+	totalCost: 0.001,
+	contextTokens: 1000,
+}
+vi.mock("@src/features/chat/store", () => ({
+	useChatUI: vi.fn(() => ({
+		apiMetrics: mockApiMetrics,
+		aggregatedCostsMap: new Map(),
+		sendingDisabled: false,
+		setCheckpointWarning: vi.fn(),
+		setShowScrollToBottom: vi.fn(),
+	})),
+}))
+
 describe("ContextWindowProgress", () => {
 	const queryClient = new QueryClient()
 
 	// Helper function to render just the ContextWindowProgress part through TaskHeader
 	const renderComponent = (props: Record<string, any>) => {
-		// Create a simple mock of the task that avoids importing the actual types
-		const defaultProps = {
-			task: { ts: Date.now(), type: "say" as const, say: "text" as const, text: "Test task" },
-			tokensIn: 100,
-			tokensOut: 50,
-			totalCost: 0.001,
-			contextTokens: 1000,
-			onClose: vi.fn(),
-			buttonsDisabled: false,
-			handleCondenseContext: vi.fn((_taskId: string) => {}),
-		}
+		// Update mockApiMetrics based on test props
+		if (props.contextTokens !== undefined) mockApiMetrics.contextTokens = props.contextTokens
+		if (props.tokensIn !== undefined) mockApiMetrics.totalTokensIn = props.tokensIn
+		if (props.tokensOut !== undefined) mockApiMetrics.totalTokensOut = props.tokensOut
 
 		return render(
 			<QueryClientProvider client={queryClient}>
-				<TaskHeader {...defaultProps} {...props} />
+				<TaskHeader />
 			</QueryClientProvider>,
 		)
 	}

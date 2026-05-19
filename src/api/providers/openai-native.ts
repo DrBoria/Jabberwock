@@ -16,7 +16,7 @@ import {
 	type ServiceTier,
 	ApiProviderError,
 } from "@jabberwock/types"
-import { TelemetryService } from "@jabberwock/telemetry"
+import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 
 import type { ApiHandlerOptions } from "../../shared/api"
 
@@ -31,6 +31,85 @@ import { isMcpTool } from "../../utils/mcp-name"
 import { sanitizeOpenAiCallId } from "../../utils/tool-id"
 
 export type OpenAiNativeModel = ReturnType<OpenAiNativeHandler["getModel"]>
+
+/**
+ * Request body for OpenAI Responses API.
+ */
+interface ResponsesRequestBody {
+	model: string
+	input: Array<
+		| { role: "user" | "assistant"; content: Record<string, unknown>[] }
+		| { type: string; content: string }
+		| { type: string; call_id: string; output: string }
+		| { type: string; call_id: string; name: string; arguments: string }
+		| { type: "reasoning"; text: string }
+	>
+	stream: boolean
+	reasoning?: { effort?: ReasoningEffortExtended; summary?: "auto" }
+	text?: { verbosity: VerbosityLevel }
+	temperature?: number
+	max_output_tokens?: number
+	store?: boolean
+	instructions?: string
+	service_tier?: ServiceTier
+	include?: string[]
+	/** Prompt cache retention policy: "in_memory" (default) or "24h" for extended caching */
+	prompt_cache_retention?: "in_memory" | "24h"
+	tools?: Array<{
+		type: "function"
+		name: string
+		description?: string
+		parameters?: Record<string, unknown>
+		strict?: boolean
+	}>
+	tool_choice?: unknown
+	parallel_tool_calls?: boolean
+}
+
+/**
+ * Typed interface for the OpenAI SDK's responses API.
+ * The standard OpenAI SDK type may not include `responses.create`,
+ * so we define it here for type-safe access.
+ */
+interface ResponsesClient {
+	responses: {
+		create: (...args: unknown[]) => unknown
+	}
+}
+
+/**
+ * Extracts a reasoning conversation item from a message if it has type="reasoning".
+ * The messages array may contain reasoning items from API response history
+ * that are not part of the standard Anthropic MessageParam type.
+ */
+function getReasoningConversationItem(message: unknown): { type: "reasoning"; text: string } | null {
+	if (typeof message === "object" && message !== null && "type" in message) {
+		const candidate = message as { type: string; text?: string }
+		if (candidate.type === "reasoning" && typeof candidate.text === "string") {
+			return { type: "reasoning" as const, text: candidate.text }
+		}
+	}
+	return null
+}
+
+/**
+ * Raw usage object from OpenAI API responses.
+ * Various API versions and providers use different field names.
+ */
+interface RawUsage {
+	input_tokens?: number
+	output_tokens?: number
+	prompt_tokens?: number
+	completion_tokens?: number
+	cache_creation_input_tokens?: number
+	cache_write_tokens?: number
+	cache_read_input_tokens?: number
+	cache_read_tokens?: number
+	cached_tokens?: number
+	input_tokens_details?: Record<string, unknown>
+	prompt_tokens_details?: Record<string, unknown>
+	output_tokens_details?: Record<string, unknown>
+}
 
 export class OpenAiNativeHandler extends BaseProvider implements SingleCompletionHandler {
 	protected options: ApiHandlerOptions
@@ -54,7 +133,7 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 	// Resolved service tier from Responses API (actual tier used by OpenAI)
 	private lastServiceTier: ServiceTier | undefined
 	// Complete response output array (includes reasoning items with encrypted_content)
-	private lastResponseOutput: any[] | undefined
+	private lastResponseOutput: Record<string, unknown>[] | undefined
 	// Last top-level response id from Responses API (for troubleshooting)
 	private lastResponseId: string | undefined
 	// Abort controller for cancelling ongoing requests
@@ -107,7 +186,7 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 		})
 	}
 
-	private normalizeUsage(usage: any, model: OpenAiNativeModel): ApiStreamUsageChunk | undefined {
+	private normalizeUsage(usage: RawUsage, model: OpenAiNativeModel): ApiStreamUsageChunk | undefined {
 		if (!usage) return undefined
 
 		// Prefer detailed shapes when available (Responses API)
@@ -116,23 +195,23 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 		// Extract cache information from details with better readability
 		const hasCachedTokens = typeof inputDetails?.cached_tokens === "number"
 		const hasCacheMissTokens = typeof inputDetails?.cache_miss_tokens === "number"
-		const cachedFromDetails = hasCachedTokens ? inputDetails.cached_tokens : 0
-		const missFromDetails = hasCacheMissTokens ? inputDetails.cache_miss_tokens : 0
+		const cachedFromDetails = hasCachedTokens ? (inputDetails.cached_tokens as number) : 0
+		const missFromDetails = hasCacheMissTokens ? (inputDetails.cache_miss_tokens as number) : 0
 
 		// If total input tokens are missing but we have details, derive from them
-		let totalInputTokens = usage.input_tokens ?? usage.prompt_tokens ?? 0
+		let totalInputTokens: number = usage.input_tokens ?? usage.prompt_tokens ?? 0
 		if (totalInputTokens === 0 && inputDetails && (cachedFromDetails > 0 || missFromDetails > 0)) {
 			totalInputTokens = cachedFromDetails + missFromDetails
 		}
 
-		const totalOutputTokens = usage.output_tokens ?? usage.completion_tokens ?? 0
+		const totalOutputTokens: number = usage.output_tokens ?? usage.completion_tokens ?? 0
 
 		// Note: missFromDetails is NOT used as fallback for cache writes
 		// Cache miss tokens represent tokens that weren't found in cache (part of input)
 		// Cache write tokens represent tokens being written to cache for future use
-		const cacheWriteTokens = usage.cache_creation_input_tokens ?? usage.cache_write_tokens ?? 0
+		const cacheWriteTokens: number = usage.cache_creation_input_tokens ?? usage.cache_write_tokens ?? 0
 
-		const cacheReadTokens =
+		const cacheReadTokens: number =
 			usage.cache_read_input_tokens ?? usage.cache_read_tokens ?? usage.cached_tokens ?? cachedFromDetails ?? 0
 
 		// Resolve effective tier: prefer actual tier from response; otherwise requested tier
@@ -151,9 +230,10 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 			effectiveTier,
 		)
 
+		const outputTokensDetails = usage.output_tokens_details
 		const reasoningTokens =
-			typeof usage.output_tokens_details?.reasoning_tokens === "number"
-				? usage.output_tokens_details.reasoning_tokens
+			typeof outputTokensDetails?.reasoning_tokens === "number"
+				? (outputTokensDetails.reasoning_tokens as number)
 				: undefined
 
 		const out: ApiStreamUsageChunk = {
@@ -224,15 +304,15 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 
 	private buildRequestBody(
 		model: OpenAiNativeModel,
-		formattedInput: any,
+		formattedInput: ResponsesRequestBody["input"],
 		systemPrompt: string,
-		verbosity: any,
+		verbosity: VerbosityLevel | undefined,
 		reasoningEffort: ReasoningEffortExtended | undefined,
 		metadata?: ApiHandlerCreateMessageMetadata,
-	): any {
+	): ResponsesRequestBody {
 		// Ensure all properties are in the required array for OpenAI's strict mode
 		// This recursively processes nested objects and array items
-		const ensureAllRequired = (schema: any): any => {
+		const ensureAllRequired = (schema: Record<string, unknown>): Record<string, unknown> => {
 			if (!schema || typeof schema !== "object" || schema.type !== "object") {
 				return schema
 			}
@@ -246,19 +326,23 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 			}
 
 			if (result.properties) {
-				const allKeys = Object.keys(result.properties)
+				const propsMap = result.properties as Record<string, unknown>
+				const allKeys = Object.keys(propsMap)
 				result.required = allKeys
 
 				// Recursively process nested objects
-				const newProps = { ...result.properties }
+				const newProps: Record<string, unknown> = { ...propsMap }
 				for (const key of allKeys) {
-					const prop = newProps[key]
-					if (prop.type === "object") {
+					const prop = newProps[key] as Record<string, unknown> | undefined
+					if (prop?.type === "object") {
 						newProps[key] = ensureAllRequired(prop)
-					} else if (prop.type === "array" && prop.items?.type === "object") {
+					} else if (
+						prop?.type === "array" &&
+						(prop.items as Record<string, unknown> | undefined)?.type === "object"
+					) {
 						newProps[key] = {
 							...prop,
-							items: ensureAllRequired(prop.items),
+							items: ensureAllRequired(prop.items as Record<string, unknown>),
 						}
 					}
 				}
@@ -271,7 +355,7 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 		// Adds additionalProperties: false to all object schemas recursively
 		// without modifying required array. Used for MCP tools with strict: false
 		// to comply with OpenAI Responses API requirements.
-		const ensureAdditionalPropertiesFalse = (schema: any): any => {
+		const ensureAdditionalPropertiesFalse = (schema: Record<string, unknown>): Record<string, unknown> => {
 			if (!schema || typeof schema !== "object" || schema.type !== "object") {
 				return schema
 			}
@@ -285,16 +369,20 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 			}
 
 			if (result.properties) {
+				const propsMap = result.properties as Record<string, unknown>
 				// Recursively process nested objects
-				const newProps = { ...result.properties }
-				for (const key of Object.keys(result.properties)) {
-					const prop = newProps[key]
-					if (prop && prop.type === "object") {
+				const newProps: Record<string, unknown> = { ...propsMap }
+				for (const key of Object.keys(propsMap)) {
+					const prop = newProps[key] as Record<string, unknown> | undefined
+					if (prop?.type === "object") {
 						newProps[key] = ensureAdditionalPropertiesFalse(prop)
-					} else if (prop && prop.type === "array" && prop.items?.type === "object") {
+					} else if (
+						prop?.type === "array" &&
+						(prop.items as Record<string, unknown> | undefined)?.type === "object"
+					) {
 						newProps[key] = {
 							...prop,
-							items: ensureAdditionalPropertiesFalse(prop.items),
+							items: ensureAdditionalPropertiesFalse(prop.items as Record<string, unknown>),
 						}
 					}
 				}
@@ -302,34 +390,6 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 			}
 
 			return result
-		}
-
-		// Build a request body for the OpenAI Responses API.
-		// Ensure we explicitly pass max_output_tokens based on Jabberwock's reserved model response calculation
-		// so requests do not default to very large limits (e.g., 120k).
-		interface ResponsesRequestBody {
-			model: string
-			input: Array<{ role: "user" | "assistant"; content: any[] } | { type: string; content: string }>
-			stream: boolean
-			reasoning?: { effort?: ReasoningEffortExtended; summary?: "auto" }
-			text?: { verbosity: VerbosityLevel }
-			temperature?: number
-			max_output_tokens?: number
-			store?: boolean
-			instructions?: string
-			service_tier?: ServiceTier
-			include?: string[]
-			/** Prompt cache retention policy: "in_memory" (default) or "24h" for extended caching */
-			prompt_cache_retention?: "in_memory" | "24h"
-			tools?: Array<{
-				type: "function"
-				name: string
-				description?: string
-				parameters?: any
-				strict?: boolean
-			}>
-			tool_choice?: any
-			parallel_tool_calls?: boolean
 		}
 
 		// Validate requested tier against model support; if not supported, omit.
@@ -386,8 +446,8 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 						name: tool.function.name,
 						description: tool.function.description,
 						parameters: isMcp
-							? ensureAdditionalPropertiesFalse(tool.function.parameters)
-							: ensureAllRequired(tool.function.parameters),
+							? ensureAdditionalPropertiesFalse(tool.function.parameters ?? {})
+							: ensureAllRequired(tool.function.parameters ?? {}),
 						strict: !isMcp,
 					}
 				}),
@@ -404,7 +464,7 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 	}
 
 	private async *executeRequest(
-		requestBody: any,
+		requestBody: ResponsesRequestBody,
 		model: OpenAiNativeModel,
 		metadata?: ApiHandlerCreateMessageMetadata,
 		systemPrompt?: string,
@@ -424,12 +484,13 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 
 		try {
 			// Use the official SDK with per-request headers
-			const stream = (await (this.client as any).responses.create(requestBody, {
+			const responsesClient = this.client as ResponsesClient
+			const stream = (await responsesClient.responses.create(requestBody, {
 				signal: this.abortController.signal,
 				headers: requestHeaders,
-			})) as AsyncIterable<any>
+			})) as AsyncIterable<unknown>
 
-			if (typeof (stream as any)[Symbol.asyncIterator] !== "function") {
+			if (typeof (stream as AsyncIterable<unknown>)[Symbol.asyncIterator] !== "function") {
 				throw new Error(
 					"OpenAI SDK did not return an AsyncIterable for Responses API streaming. Falling back to SSE.",
 				)
@@ -441,11 +502,11 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 					break
 				}
 
-				for await (const outChunk of this.processEvent(event, model)) {
+				for await (const outChunk of this.processEvent(event as Record<string, unknown>, model)) {
 					yield outChunk
 				}
 			}
-		} catch (sdkErr: any) {
+		} catch (sdkErr) {
 			// For errors, fallback to manual SSE via fetch
 			yield* this.makeResponsesApiRequest(requestBody, model, metadata, systemPrompt, messages)
 		} finally {
@@ -453,10 +514,13 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 		}
 	}
 
-	private formatFullConversation(systemPrompt: string, messages: Anthropic.Messages.MessageParam[]): any {
+	private formatFullConversation(
+		systemPrompt: string,
+		messages: Anthropic.Messages.MessageParam[],
+	): ResponsesRequestBody["input"] {
 		// Format the entire conversation history for the Responses API using structured format
 		// The Responses API (like Realtime API) accepts a list of items, which can be messages, function calls, or function call outputs.
-		const formattedInput: any[] = []
+		const formattedInput: ResponsesRequestBody["input"] = []
 
 		// Do NOT embed the system prompt as a developer message in the Responses API input.
 		// The Responses API treats roles as free-form; use the top-level `instructions` field instead.
@@ -464,15 +528,16 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 		// Process each message
 		for (const message of messages) {
 			// Check if this is a reasoning item (already formatted in API history)
-			if ((message as any).type === "reasoning") {
+			const reasoningItem = getReasoningConversationItem(message)
+			if (reasoningItem) {
 				// Pass through reasoning items as-is
-				formattedInput.push(message)
+				formattedInput.push(reasoningItem)
 				continue
 			}
 
 			if (message.role === "user") {
-				const content: any[] = []
-				const toolResults: any[] = []
+				const content: Record<string, unknown>[] = []
+				const toolResults: Array<{ type: "function_call_output"; call_id: string; output: string }> = []
 
 				if (typeof message.content === "string") {
 					content.push({ type: "input_text", text: message.content })
@@ -507,11 +572,13 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 
 				// Add tool results as separate items
 				if (toolResults.length > 0) {
-					formattedInput.push(...toolResults)
+					for (const tr of toolResults) {
+						formattedInput.push(tr)
+					}
 				}
 			} else if (message.role === "assistant") {
-				const content: any[] = []
-				const toolCalls: any[] = []
+				const content: Record<string, unknown>[] = []
+				const toolCalls: Array<{ type: "function_call"; call_id: string; name: string; arguments: string }> = []
 
 				if (typeof message.content === "string") {
 					content.push({ type: "output_text", text: message.content })
@@ -539,7 +606,9 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 
 				// Add tool calls as separate items
 				if (toolCalls.length > 0) {
-					formattedInput.push(...toolCalls)
+					for (const tc of toolCalls) {
+						formattedInput.push(tc)
+					}
 				}
 			}
 		}
@@ -548,7 +617,7 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 	}
 
 	private async *makeResponsesApiRequest(
-		requestBody: any,
+		requestBody: ResponsesRequestBody,
 		model: OpenAiNativeModel,
 		metadata?: ApiHandlerCreateMessageMetadata,
 		systemPrompt?: string,
@@ -645,7 +714,7 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 			const model = this.getModel()
 			const errorMessage = error instanceof Error ? error.message : String(error)
 			const apiError = new ApiProviderError(errorMessage, this.providerName, model.id, "createMessage")
-			TelemetryService.instance.captureException(apiError)
+			getTelemetryService().captureException(apiError)
 
 			if (error instanceof Error) {
 				// Re-throw with the original error message if it's already formatted
@@ -1127,7 +1196,7 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
 			const apiError = new ApiProviderError(errorMessage, this.providerName, model.id, "createMessage")
-			TelemetryService.instance.captureException(apiError)
+			getTelemetryService().captureException(apiError)
 
 			if (error instanceof Error) {
 				throw new Error(`Error processing response stream: ${error.message}`)
@@ -1141,26 +1210,31 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 	/**
 	 * Shared processor for Responses API events.
 	 */
-	private async *processEvent(event: any, model: OpenAiNativeModel): ApiStream {
+	private async *processEvent(event: Record<string, unknown>, model: OpenAiNativeModel): ApiStream {
+		const evResponse = event.response as
+			| { output?: unknown[]; id?: string; service_tier?: string; usage?: unknown }
+			| undefined
+
 		// Capture resolved service tier when available
-		if (event?.response?.service_tier) {
-			this.lastServiceTier = event.response.service_tier as ServiceTier
+		if (evResponse?.service_tier) {
+			this.lastServiceTier = evResponse.service_tier as ServiceTier
 		}
 		// Capture complete output array (includes reasoning items with encrypted_content)
-		if (event?.response?.output && Array.isArray(event.response.output)) {
-			this.lastResponseOutput = event.response.output
+		if (evResponse?.output && Array.isArray(evResponse.output)) {
+			this.lastResponseOutput = evResponse.output as Record<string, unknown>[]
 		}
 		// Capture top-level response id
-		if (event?.response?.id) {
-			this.lastResponseId = event.response.id as string
+		if (evResponse?.id) {
+			this.lastResponseId = evResponse.id
 		}
 
 		// Handle text deltas
 		if (event?.type === "response.text.delta" || event?.type === "response.output_text.delta") {
-			if (event?.delta) {
+			const delta = event.delta as string | undefined
+			if (delta) {
 				this.sawTextDeltaInCurrentResponse = true
 				this.sawTextOutputInCurrentResponse = true
-				yield { type: "text", text: event.delta }
+				yield { type: "text", text: delta }
 			}
 			return
 		}
@@ -1169,11 +1243,11 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 		if (event?.type === "response.text.done" || event?.type === "response.output_text.done") {
 			const doneText =
 				typeof event?.text === "string"
-					? event.text
-					: typeof event?.output_text === "string"
-						? event.output_text
+					? (event.text as string)
+					: typeof (event as Record<string, unknown>).output_text === "string"
+						? (event.output_text as string)
 						: typeof event?.delta === "string"
-							? event.delta
+							? (event.delta as string)
 							: undefined
 			if (!this.sawTextOutputInCurrentResponse && doneText) {
 				this.sawTextOutputInCurrentResponse = true
@@ -1184,16 +1258,18 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 
 		// Handle content-part text for structured streaming payloads.
 		if (event?.type === "response.content_part.added" || event?.type === "response.content_part.done") {
-			const part = event?.part
+			const part = event?.part as { type?: string; text?: string | { value?: string } } | undefined
 			if (
 				!this.sawTextDeltaInCurrentResponse &&
 				(part?.type === "text" || part?.type === "output_text") &&
-				(typeof part?.text === "string" || typeof part?.text?.value === "string")
+				(typeof part?.text === "string" ||
+					typeof (part?.text as { value?: string } | undefined)?.value === "string")
 			) {
-				const partText = typeof part.text === "string" ? part.text : part.text.value
+				const partText =
+					typeof part?.text === "string" ? part.text : (part?.text as { value?: string } | undefined)?.value
 				if (partText) {
 					this.sawTextOutputInCurrentResponse = true
-					yield { type: "text", text: partText }
+					yield { type: "text", text: partText as string }
 				}
 			}
 			return
@@ -1206,17 +1282,19 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 			event?.type === "response.reasoning_summary.delta" ||
 			event?.type === "response.reasoning_summary_text.delta"
 		) {
-			if (event?.delta) {
-				yield { type: "reasoning", text: event.delta }
+			const delta = event.delta as string | undefined
+			if (delta) {
+				yield { type: "reasoning", text: delta }
 			}
 			return
 		}
 
 		// Handle refusal deltas
 		if (event?.type === "response.refusal.delta") {
-			if (event?.delta) {
+			const delta = event.delta as string | undefined
+			if (delta) {
 				this.sawTextOutputInCurrentResponse = true
-				yield { type: "text", text: `[Refusal] ${event.delta}` }
+				yield { type: "text", text: `[Refusal] ${delta}` }
 			}
 			return
 		}
@@ -1228,9 +1306,10 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 		) {
 			// Some streams omit stable identity on delta events; fall back to the
 			// most recently observed tool identity from output_item events.
-			const callId = event.call_id || event.tool_call_id || event.id || this.pendingToolCallId || undefined
-			const name = event.name || event.function_name || this.pendingToolCallName || undefined
-			const args = event.delta || event.arguments
+			const callId =
+				((event.call_id || event.tool_call_id || event.id) as string | undefined) || this.pendingToolCallId
+			const name = ((event.name || event.function_name) as string | undefined) || this.pendingToolCallName
+			const args = (event.delta || event.arguments) as string | undefined
 
 			// Avoid emitting incomplete tool_call_partial chunks; the downstream
 			// NativeToolCallParser needs a name to start a call.
@@ -1238,7 +1317,7 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 				this.streamedToolCallIds.add(callId)
 				yield {
 					type: "tool_call_partial",
-					index: event.index ?? 0,
+					index: (event.index ?? 0) as number,
 					id: callId,
 					name,
 					arguments: args,
@@ -1258,12 +1337,14 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 
 		// Handle output item additions/completions (SDK or Responses API alternative format)
 		if (event?.type === "response.output_item.added" || event?.type === "response.output_item.done") {
-			const item = event?.item
+			const item = event?.item as Record<string, unknown> | undefined
 			if (item) {
 				// Capture tool identity so subsequent argument deltas can be attributed.
 				if (item.type === "function_call" || item.type === "tool_call") {
-					const callId = item.call_id || item.tool_call_id || item.id
-					const name = item.name || item.function?.name || item.function_name
+					const callId = (item.call_id || item.tool_call_id || item.id) as string | undefined
+					const name = (item.name ||
+						(item.function as Record<string, unknown> | undefined)?.name ||
+						item.function_name) as string | undefined
 					if (typeof callId === "string" && callId.length > 0) {
 						this.pendingToolCallId = callId
 						this.pendingToolCallName = typeof name === "string" ? name : undefined
@@ -1276,18 +1357,18 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 				if (event.type === "response.output_item.added") {
 					if (item.type === "text" && item.text) {
 						this.sawTextOutputInCurrentResponse = true
-						yield { type: "text", text: item.text }
+						yield { type: "text", text: item.text as string }
 					} else if (item.type === "output_text" && item.text) {
 						this.sawTextOutputInCurrentResponse = true
-						yield { type: "text", text: item.text }
+						yield { type: "text", text: item.text as string }
 					} else if (item.type === "reasoning" && item.text) {
-						yield { type: "reasoning", text: item.text }
+						yield { type: "reasoning", text: item.text as string }
 					} else if (item.type === "message" && Array.isArray(item.content)) {
-						for (const content of item.content) {
+						for (const content of item.content as Record<string, unknown>[]) {
 							// Some implementations send 'text'; others send 'output_text'
 							if ((content?.type === "text" || content?.type === "output_text") && content?.text) {
 								this.sawTextOutputInCurrentResponse = true
-								yield { type: "text", text: content.text }
+								yield { type: "text", text: content.text as string }
 							}
 						}
 					}
@@ -1295,9 +1376,14 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 					event.type === "response.output_item.done" &&
 					(item.type === "function_call" || item.type === "tool_call")
 				) {
-					const callId = item.call_id || item.tool_call_id || item.id
-					const name = item.name || item.function?.name || item.function_name
-					const argsRaw = item.arguments || item.function?.arguments || item.input
+					const callId = (item.call_id || item.tool_call_id || item.id) as string | undefined
+					const name = (item.name ||
+						(item.function as Record<string, unknown> | undefined)?.name ||
+						item.function_name) as string | undefined
+					const argsRaw =
+						item.arguments ||
+						(item.function as Record<string, unknown> | undefined)?.arguments ||
+						item.input
 					const args =
 						typeof argsRaw === "string"
 							? argsRaw
@@ -1324,12 +1410,12 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 				} else if (!this.sawTextOutputInCurrentResponse) {
 					if ((item.type === "text" || item.type === "output_text") && item.text) {
 						this.sawTextOutputInCurrentResponse = true
-						yield { type: "text", text: item.text }
+						yield { type: "text", text: item.text as string }
 					} else if (item.type === "message" && Array.isArray(item.content)) {
-						for (const content of item.content) {
+						for (const content of item.content as Record<string, unknown>[]) {
 							if ((content?.type === "text" || content?.type === "output_text") && content?.text) {
 								this.sawTextOutputInCurrentResponse = true
-								yield { type: "text", text: content.text }
+								yield { type: "text", text: content.text as string }
 							}
 						}
 					}
@@ -1344,27 +1430,27 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 		// Completion events that may carry usage
 		if (event?.type === "response.done" || event?.type === "response.completed") {
 			// Some OpenAI variants only provide assistant text in the final completed payload.
-			if (!this.sawTextOutputInCurrentResponse && Array.isArray(event?.response?.output)) {
-				for (const outputItem of event.response.output) {
+			if (!this.sawTextOutputInCurrentResponse && Array.isArray(evResponse?.output)) {
+				for (const outputItem of evResponse.output as Record<string, unknown>[]) {
 					if ((outputItem?.type === "text" || outputItem?.type === "output_text") && outputItem?.text) {
 						this.sawTextOutputInCurrentResponse = true
-						yield { type: "text", text: outputItem.text }
+						yield { type: "text", text: outputItem.text as string }
 						continue
 					}
 
 					if (outputItem?.type === "message" && Array.isArray(outputItem.content)) {
-						for (const content of outputItem.content) {
+						for (const content of outputItem.content as Record<string, unknown>[]) {
 							if ((content?.type === "text" || content?.type === "output_text") && content?.text) {
 								this.sawTextOutputInCurrentResponse = true
-								yield { type: "text", text: content.text }
+								yield { type: "text", text: content.text as string }
 							}
 						}
 					}
 				}
 			}
 
-			const usage = event?.response?.usage || event?.usage || undefined
-			const usageData = this.normalizeUsage(usage, model)
+			const usage = (evResponse?.usage || event.usage) as Record<string, unknown> | undefined
+			const usageData = this.normalizeUsage(usage ?? ({} as Record<string, unknown>), model)
 			if (usageData) {
 				yield usageData
 			}
@@ -1372,15 +1458,17 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 		}
 
 		// Fallbacks for older formats or unexpected objects
-		if (event?.choices?.[0]?.delta?.content) {
+		const choices = event.choices as Array<{ delta?: { content?: string } }> | undefined
+		if (choices?.[0]?.delta?.content) {
 			this.sawTextDeltaInCurrentResponse = true
 			this.sawTextOutputInCurrentResponse = true
-			yield { type: "text", text: event.choices[0].delta.content }
+			yield { type: "text", text: choices[0].delta.content }
 			return
 		}
 
-		if (event?.usage) {
-			const usageData = this.normalizeUsage(event.usage, model)
+		const usage = event.usage as Record<string, unknown> | undefined
+		if (usage) {
+			const usageData = this.normalizeUsage(usage, model)
 			if (usageData) {
 				yield usageData
 			}
@@ -1389,8 +1477,8 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 
 	private getReasoningEffort(model: OpenAiNativeModel): ReasoningEffortExtended | undefined {
 		// Single source of truth: user setting overrides, else model default (from types).
-		const selected = (this.options.reasoningEffort as any) ?? (model.info.reasoningEffort as any)
-		return selected && selected !== "disable" ? (selected as any) : undefined
+		const selected = this.options.reasoningEffort ?? model.info.reasoningEffort
+		return selected && selected !== "disable" ? selected : undefined
 	}
 
 	/**
@@ -1473,8 +1561,8 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 		if (!reasoningItem?.encrypted_content) return undefined
 
 		return {
-			encrypted_content: reasoningItem.encrypted_content,
-			...(reasoningItem.id ? { id: reasoningItem.id } : {}),
+			encrypted_content: reasoningItem.encrypted_content as string,
+			...(reasoningItem.id ? { id: reasoningItem.id as string } : {}),
 		}
 	}
 
@@ -1494,7 +1582,7 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 			const reasoningEffort = this.getReasoningEffort(model)
 
 			// Build request body for Responses API
-			const requestBody: any = {
+			const requestBody: Record<string, unknown> = {
 				model: model.id,
 				input: [
 					{
@@ -1545,17 +1633,18 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 			}
 
 			// Make the non-streaming request
-			const response = await (this.client as any).responses.create(requestBody, {
+			const responsesClient = this.client as ResponsesClient
+			const response = (await responsesClient.responses.create(requestBody, {
 				signal: this.abortController.signal,
-			})
+			})) as Record<string, unknown>
 
 			// Extract text from the response
 			if (response?.output && Array.isArray(response.output)) {
-				for (const outputItem of response.output) {
-					if (outputItem.type === "message" && outputItem.content) {
-						for (const content of outputItem.content) {
-							if (content.type === "output_text" && content.text) {
-								return content.text
+				for (const outputItem of response.output as Record<string, unknown>[]) {
+					if ((outputItem.type as string) === "message" && outputItem.content) {
+						for (const content of outputItem.content as Record<string, unknown>[]) {
+							if ((content.type as string) === "output_text" && content.text) {
+								return content.text as string
 							}
 						}
 					}
@@ -1564,7 +1653,7 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 
 			// Fallback: check for direct text in response
 			if (response?.text) {
-				return response.text
+				return response.text as string
 			}
 
 			return ""
@@ -1572,7 +1661,7 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 			const errorModel = this.getModel()
 			const errorMessage = error instanceof Error ? error.message : String(error)
 			const apiError = new ApiProviderError(errorMessage, this.providerName, errorModel.id, "completePrompt")
-			TelemetryService.instance.captureException(apiError)
+			getTelemetryService().captureException(apiError)
 
 			if (error instanceof Error) {
 				throw new Error(`OpenAI Native completion error: ${error.message}`)

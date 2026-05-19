@@ -13,7 +13,7 @@ import {
 	SearchResult,
 } from "../utils/context-mentions"
 import { removeLeadingNonAlphanumeric } from "@src/utils/removeLeadingNonAlphanumeric"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 
 import { buildDocLink } from "@/features/settings/utils/docLinks"
 
@@ -24,7 +24,7 @@ interface ContextMenuProps {
 	onMouseDown: () => void
 	selectedIndex: number
 	setSelectedIndex: (index: number) => void
-	selectedType: ContextMenuOptionType | null
+	selectedType: ContextMenuOptionType
 	queryItems: ContextMenuQueryItem[]
 	modes?: ModeConfig[]
 	loading?: boolean
@@ -69,8 +69,8 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
 
 	// get the icons base uri on mount
 	useEffect(() => {
-		const w = window as any
-		setMaterialIconsBaseUri(w.MATERIAL_ICONS_BASE_URI)
+		const w = window as Window & { MATERIAL_ICONS_BASE_URI?: string }
+		setMaterialIconsBaseUri(w.MATERIAL_ICONS_BASE_URI ?? "")
 	}, [])
 
 	const renderOptionContent = (option: ContextMenuQueryItem) => {
@@ -258,11 +258,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
 		// Prevent any default behavior
 		e.preventDefault()
 		// Switch to settings tab and navigate to slash commands section
-		vscode.postMessage({
-			type: "switchTab",
-			tab: "settings",
-			values: { section: "slashCommands" },
-		})
+		rootStore.windowManager.switchTab("settings", { section: "slashCommands" })
 	}
 
 	return (

@@ -192,7 +192,11 @@ function getSelectedModel({
 			}
 
 			// Apply 1M context for supported Claude 4 models when enabled
-			if (BEDROCK_1M_CONTEXT_MODEL_IDS.includes(id as any) && apiConfiguration.awsBedrock1MContext && baseInfo) {
+			if (
+				(BEDROCK_1M_CONTEXT_MODEL_IDS as readonly string[]).includes(id) &&
+				apiConfiguration.awsBedrock1MContext &&
+				baseInfo
+			) {
 				// Create a new ModelInfo object with updated context window
 				const info: ModelInfo = {
 					...baseInfo,
@@ -208,7 +212,11 @@ function getSelectedModel({
 			const baseInfo = vertexModels[id as keyof typeof vertexModels]
 
 			// Apply 1M context for supported Claude 4 models when enabled
-			if (VERTEX_1M_CONTEXT_MODEL_IDS.includes(id as any) && apiConfiguration.vertex1MContext && baseInfo) {
+			if (
+				(VERTEX_1M_CONTEXT_MODEL_IDS as readonly string[]).includes(id) &&
+				apiConfiguration.vertex1MContext &&
+				baseInfo
+			) {
 				const modelInfo: ModelInfo = baseInfo
 				const tier = modelInfo.tiers?.[0]
 				if (tier) {

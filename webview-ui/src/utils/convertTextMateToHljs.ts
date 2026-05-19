@@ -131,7 +131,7 @@ function fallbackTheme() {
 			}
 }
 
-export function convertTextMateToHljs(fullColorTheme: any) {
+export function convertTextMateToHljs(fullColorTheme: Record<string, unknown>) {
 	return constructTheme(fullColorTheme || {})
 }
 

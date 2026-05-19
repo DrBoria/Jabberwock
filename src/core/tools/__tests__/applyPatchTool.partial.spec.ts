@@ -4,7 +4,7 @@ import type { MockedFunction } from "vitest"
 
 import type { ToolUse } from "../../../shared/tools"
 import { isPathOutsideWorkspace } from "../../../utils/pathUtils"
-import type { Task } from "../../task/Task"
+import type { Task } from "../../../features/chat/task/Task"
 import { ApplyPatchTool } from "../ApplyPatchTool"
 
 vi.mock("../../../utils/pathUtils", () => ({

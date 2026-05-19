@@ -1,5 +1,5 @@
 import { Anthropic } from "@anthropic-ai/sdk"
-import { TelemetryService } from "@jabberwock/telemetry"
+import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 import { findLastIndex } from "../../shared/array"
 
 /**
@@ -132,8 +132,8 @@ export function validateAndFixToolResultIds(
 	const toolUseIdList = toolUseBlocks.map((b) => b.id)
 
 	// Report missing tool_results to PostHog error tracking
-	if (missingToolUseIds.length > 0 && TelemetryService.hasInstance()) {
-		TelemetryService.instance.captureException(
+	if (missingToolUseIds.length > 0 && hasTelemetryService()) {
+		getTelemetryService().captureException(
 			new MissingToolResultError(
 				`Detected missing tool_result blocks. Missing tool_use IDs: [${missingToolUseIds.join(", ")}], existing tool_result IDs: [${toolResultIdList.join(", ")}]`,
 				missingToolUseIds,
@@ -149,8 +149,8 @@ export function validateAndFixToolResultIds(
 	}
 
 	// Report ID mismatches to PostHog error tracking
-	if (hasInvalidIds && TelemetryService.hasInstance()) {
-		TelemetryService.instance.captureException(
+	if (hasInvalidIds && hasTelemetryService()) {
+		getTelemetryService().captureException(
 			new ToolResultIdMismatchError(
 				`Detected tool_result ID mismatch. tool_result IDs: [${toolResultIdList.join(", ")}], tool_use IDs: [${toolUseIdList.join(", ")}]`,
 				toolResultIdList,

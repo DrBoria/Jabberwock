@@ -1,15 +1,9 @@
 import { Volume, createFsFromVolume } from "memfs"
-import { Union } from "unionfs"
 import * as fs from "fs"
 
 export class VirtualWorkspace {
 	vol = new Volume()
-	overlayFs = new Union()
-
-	constructor() {
-		this.overlayFs.use(createFsFromVolume(this.vol) as any)
-		this.overlayFs.use(fs as any)
-	}
+	private mfs = createFsFromVolume(this.vol)
 
 	async writeFile(path = "", content: string | Buffer | Uint8Array = "", _encoding?: string) {
 		return new Promise((resolve, reject) => {
@@ -18,14 +12,43 @@ export class VirtualWorkspace {
 	}
 
 	async readFile(path = "", _encoding?: string): Promise<string> {
-		return new Promise((resolve, reject) => {
-			this.overlayFs.readFile(path, "utf8", (err, data) => (err ? reject(err) : resolve(data as string)))
-		})
+		try {
+			return await fs.promises.readFile(path, "utf-8")
+		} catch {
+			return this.readFromMemfs<string>(path, "utf8") as Promise<string>
+		}
 	}
 
 	async readBuffer(path = ""): Promise<Buffer> {
-		return new Promise((resolve, reject) => {
-			this.overlayFs.readFile(path, (err, data) => (err ? reject(err) : resolve(data as Buffer)))
+		try {
+			return await fs.promises.readFile(path)
+		} catch {
+			return this.readFromMemfs<Buffer>(path) as Promise<Buffer>
+		}
+	}
+
+	private readFromMemfs<T>(path: string, encoding?: string): Promise<T> {
+		return new Promise<T>((resolve, reject) => {
+			const cb = (err: Error | null | undefined, data?: string | Buffer) => {
+				if (err) reject(err)
+				else resolve(data as T)
+			}
+			if (encoding) {
+				;(
+					this.mfs.readFile as (
+						path: string,
+						encoding: string,
+						cb: (err: Error | null | undefined, data?: string | Buffer) => void,
+					) => void
+				)(path, encoding, cb)
+			} else {
+				;(
+					this.mfs.readFile as (
+						path: string,
+						cb: (err: Error | null | undefined, data?: Buffer) => void,
+					) => void
+				)(path, cb)
+			}
 		})
 	}
 
@@ -35,7 +58,7 @@ export class VirtualWorkspace {
 		})
 	}
 
-	async mkdir(path = "", _options?: any): Promise<boolean> {
+	async mkdir(path = "", _options?: Record<string, unknown> | string): Promise<boolean> {
 		return new Promise((resolve, reject) => {
 			this.vol.mkdir(path, { recursive: true }, (err) => (err ? reject(err) : resolve(true)))
 		})
@@ -48,23 +71,58 @@ export class VirtualWorkspace {
 	}
 
 	async stat(path = ""): Promise<fs.Stats> {
-		return new Promise((resolve, reject) => {
-			this.overlayFs.stat(path, (err, stats) => (err ? reject(err) : resolve(stats as fs.Stats)))
-		})
+		try {
+			return await fs.promises.stat(path)
+		} catch {
+			return new Promise<fs.Stats>((resolve, reject) => {
+				;(
+					this.mfs.stat as (
+						path: string,
+						cb: (err: Error | null | undefined, stats?: fs.Stats) => void,
+					) => void
+				)(path, (err, stats) => {
+					if (err) reject(err)
+					else resolve(stats!)
+				})
+			})
+		}
 	}
 
-	async readdir(path = "", options?: { withFileTypes?: boolean }): Promise<any[]> {
-		return new Promise((resolve, reject) => {
-			this.overlayFs.readdir(path, options as any, (err, entries) =>
-				err ? reject(err) : resolve(entries as any[]),
-			)
-		})
+	async readdir(path?: string, options?: { withFileTypes?: false | undefined }): Promise<string[]>
+	async readdir(path?: string, options?: { withFileTypes: true }): Promise<fs.Dirent[]>
+	async readdir(path = "", options?: { withFileTypes?: boolean }): Promise<string[] | fs.Dirent[]> {
+		try {
+			if (options?.withFileTypes) {
+				return await fs.promises.readdir(path, { withFileTypes: true })
+			}
+			return await fs.promises.readdir(path)
+		} catch {
+			return new Promise<string[] | fs.Dirent[]>((resolve, reject) => {
+				;(
+					this.mfs.readdir as (
+						path: string,
+						options: { withFileTypes: boolean },
+						cb: (err: Error | null | undefined, entries?: string[] | fs.Dirent[]) => void,
+					) => void
+				)(path, { withFileTypes: true }, (err, entries) => {
+					if (err) reject(err)
+					else resolve(entries!)
+				})
+			})
+		}
 	}
 
 	async access(path = ""): Promise<void> {
-		return new Promise((resolve, reject) => {
-			this.overlayFs.access(path, (err) => (err ? reject(err) : resolve()))
-		})
+		try {
+			return await fs.promises.access(path)
+		} catch {
+			return new Promise<void>((resolve, reject) => {
+				this.mfs.access(path, (err: Error | null | undefined) => {
+					if (err) reject(err)
+					else resolve()
+				})
+			})
+		}
 	}
 
 	rollback() {

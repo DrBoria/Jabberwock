@@ -3,7 +3,7 @@ import { onSnapshot } from "mobx-state-tree"
 
 import { type ModelRecord } from "@jabberwock/types"
 
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { routerModelsStore } from "@src/features/settings/models/store"
 
 const getOllamaModels = async () =>
@@ -29,7 +29,7 @@ const getOllamaModels = async () =>
 			reject(new Error("Ollama models request timed out"))
 		}, 10000)
 
-		vscode.postMessage({ type: "requestOllamaModels" })
+		rootStore.settings.requestOllamaModels()
 	})
 
 export const useOllamaModels = (modelId?: string) =>

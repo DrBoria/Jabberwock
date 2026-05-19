@@ -1,4 +1,4 @@
-import { Task } from "../Task"
+import { Task } from "../../../features/chat/task/Task"
 
 // Keep this test focused: if a queued message arrives while Task.ask() is blocked,
 // it should be consumed and used to fulfill the ask.

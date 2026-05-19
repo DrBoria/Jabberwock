@@ -11,7 +11,7 @@ export function handleRunCommand(ctx: DomHandlerContext, req: Record<string, unk
 
 	// Temporarily shadow acquireVsCodeApi to prevent agents from
 	// bypassing the message bus to send arbitrary messages to VS Code.
-	const win = window as unknown as Record<string, unknown>
+	const win = window as { acquireVsCodeApi?: () => void; vscodeApi?: unknown; __vscodeApi?: unknown }
 	const originalAcquire = win.acquireVsCodeApi
 	const originalVscodeApi = win.vscodeApi
 	const originalVscode = win.__vscodeApi

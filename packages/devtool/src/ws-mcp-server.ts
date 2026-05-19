@@ -2,32 +2,6 @@ import { WebSocketServer, WebSocket } from "ws"
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import { WebSocketServerTransport } from "./transport.js"
 
-// ── globalThis state ──────────────────────────────────────────────────────────
-// Module-scoped variables are re-created on every extension hot-reload, but the
-// old WebSocket server may still be alive and bound to the same port.  We store
-// everything in globalThis so the reloaded module can find and tear down the
-// previous incarnation before starting a new one.
-interface WsGlobalState {
-	wss: WebSocketServer | undefined
-	mcpServer: McpServer | undefined
-}
-
-const GLOBAL_KEY = "__jabberwock_ws_mcp_global_state"
-
-const globalState = globalThis as Record<string, unknown>
-
-function getOrCreateGlobalState(): WsGlobalState {
-	if (!globalState[GLOBAL_KEY]) {
-		globalState[GLOBAL_KEY] = {
-			wss: undefined,
-			mcpServer: undefined,
-		} satisfies WsGlobalState
-	}
-	return globalState[GLOBAL_KEY] as WsGlobalState
-}
-
-const gs = getOrCreateGlobalState()
-
 const STATIC_PORT = 60060
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -74,68 +48,34 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
  * - No heartbeat interval (WebSocket has built-in ping/pong)
  * - No POST /messages fallback loop (WebSocket is bidirectional)
  * - No healthcheck endpoint (WebSocket onclose/onerror handles disconnection)
+ *
+ * NOTE: This class does NOT use globalThis for HMR survival. The MST
+ * BackendRootStore snapshot persistence handles state recovery across
+ * extension host reloads. On re-activation, the EADDRINUSE retry loop
+ * handles the brief TIME_WAIT window from the previous incarnation.
  */
 export class WsMcpServer {
 	private port: number
+	private _mcpServer: McpServer | null = null
+	private _wss: WebSocketServer | null = null
 
 	constructor(port: number = STATIC_PORT) {
 		this.port = port
 	}
 
 	/**
-	 * Start (or restart after HMR) the WebSocket MCP server.
-	 * If a previous server exists in globalThis, it is reused.
-	 * Retries up to `maxRetries` times with exponential backoff if the
-	 * port is still in TIME_WAIT from a previous incarnation.
+	 * Start the WebSocket MCP server.
+	 * Retries up to `maxRetries` times with short delay if the
+	 * port is still in TIME_WAIT from a previous process.
 	 */
 	async start(maxRetries: number = 3): Promise<number> {
-		// Always create a fresh McpServer so new tool handlers (from the current
-		// module load) are registered. On HMR, this replaces the old McpServer's
-		// tool set — existing client connections are "upgraded" below.
-		const mcpServer = new McpServer({ name: "Jabberwock DevTools", version: "1.0.0" })
-		gs.mcpServer = mcpServer
+		this._mcpServer = new McpServer({ name: "Jabberwock DevTools", version: "1.0.0" })
 
-		if (gs.wss) {
-			// ── Hot-module replacement path ──────────────────────────────
-			// The WebSocket server survived across an extension reload. We must
-			// reconnect every existing client to the *new* McpServer so that
-			// tool calls route to the freshly-loaded module's handlers instead
-			// of stale references from the previous module.
-			//
-			// First, remove ALL event listeners from every existing WebSocket
-			// connection. The old transports (created by the previous module)
-			// attached message/close/error listeners — leaving them active
-			// would cause duplicate message processing (both the old and new
-			// McpServer would respond to the same JSON-RPC request).
-			for (const ws of gs.wss.clients) {
-				ws.removeAllListeners("message")
-				ws.removeAllListeners("close")
-				ws.removeAllListeners("error")
-			}
-
-			// Now create fresh transports and connect them to the new McpServer.
-			for (const ws of gs.wss.clients) {
-				const transport = new WebSocketServerTransport(ws)
-				mcpServer.connect(transport)
-			}
-
-			// Replace the wss "connection" handler so any *new* clients that
-			// connect after HMR also get routed to the new McpServer.
-			gs.wss.removeAllListeners("connection")
-			gs.wss.on("connection", (ws: WebSocket) => {
-				const transport = new WebSocketServerTransport(ws)
-				mcpServer.connect(transport)
-			})
-
-			return this.port
-		}
-
-		// ── First-time initialization path ──────────────────────────────
 		let lastError: Error | null = null
 
 		for (let attempt = 0; attempt <= maxRetries; attempt++) {
 			try {
-				return await this.tryBind(mcpServer, attempt)
+				return await this.tryBind(attempt)
 			} catch (err: unknown) {
 				lastError = err as Error
 				// Only retry on EADDRINUSE (port still held by previous process)
@@ -149,25 +89,25 @@ export class WsMcpServer {
 		}
 
 		// Exhausted retries
-		gs.mcpServer = undefined
+		this._mcpServer = null
 		throw lastError ?? new Error(`Failed to bind to port ${this.port} after ${maxRetries + 1} attempts`)
 	}
 
-	private tryBind(mcpServer: McpServer, attempt: number): Promise<number> {
+	private tryBind(attempt: number): Promise<number> {
 		return new Promise((resolve, reject) => {
 			const wss = new WebSocketServer({ port: this.port, host: "127.0.0.1" })
-			gs.wss = wss
+			this._wss = wss
 
 			wss.on("connection", (ws: WebSocket) => {
 				const transport = new WebSocketServerTransport(ws)
-				mcpServer.connect(transport).catch((err) => {
+				this._mcpServer!.connect(transport).catch((err) => {
 					console.error(`[WsMcpServer] MCP connect error: ${err.message}`)
 				})
 			})
 
 			wss.on("error", (err: Error) => {
 				console.error(`[WsMcpServer] Server error: ${err.message}`)
-				gs.wss = undefined
+				this._wss = null
 				// Close the failed server so it doesn't linger
 				try {
 					wss.close()
@@ -188,22 +128,22 @@ export class WsMcpServer {
 	 * Get the underlying McpServer instance so tools can be registered on it.
 	 */
 	getMcpServer(): McpServer {
-		if (!gs.mcpServer) {
+		if (!this._mcpServer) {
 			throw new Error("WsMcpServer not started. Call start() first.")
 		}
-		return gs.mcpServer
+		return this._mcpServer
 	}
 
 	/**
-	 * Stop the WebSocket server and clean up global state.
+	 * Stop the WebSocket server.
 	 * Awaits the underlying server's close event so the port is
 	 * released before this promise settles.
 	 */
 	async stop(): Promise<void> {
-		if (gs.wss) {
-			const server = gs.wss
-			gs.wss = undefined
-			gs.mcpServer = undefined
+		if (this._wss) {
+			const server = this._wss
+			this._wss = null
+			this._mcpServer = null
 
 			// Close all existing client connections first.
 			for (const ws of server.clients) {
@@ -215,7 +155,7 @@ export class WsMcpServer {
 				server.close(() => resolve())
 			})
 		} else {
-			gs.mcpServer = undefined
+			this._mcpServer = null
 		}
 	}
 }

@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react"
 import { MarketplaceItem, TelemetryEventName } from "@jabberwock/types"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { telemetryClient } from "@/features/cloud/utils/TelemetryClient"
 import { ViewState } from "../MarketplaceViewStateManager"
 import { useAppTranslation } from "@/i18n/TranslationContext"
@@ -50,9 +50,7 @@ export const MarketplaceItemCard: React.FC<MarketplaceItemCardProps> = ({ item, 
 			if (message.type === "marketplaceRemoveResult" && message.slug === item.id) {
 				if (message.success) {
 					// Removal succeeded - refresh marketplace data
-					vscode.postMessage({
-						type: "fetchMarketplaceData",
-					})
+					rootStore.marketplace.fetchMarketplaceData()
 				} else {
 					// Removal failed - show error message to user
 					setRemoveError(message.error || t("marketplace:items.unknownError"))
@@ -100,7 +98,7 @@ export const MarketplaceItemCard: React.FC<MarketplaceItemCardProps> = ({ item, 
 									<Button
 										variant="link"
 										className="p-0 h-auto text-lg font-semibold text-vscode-foreground hover:underline"
-										onClick={() => vscode.postMessage({ type: "openExternal", url: item.url })}>
+										onClick={() => rootStore.settings.openExternal(item.url)}>
 										{item.name}
 									</Button>
 								) : (
@@ -232,11 +230,7 @@ export const MarketplaceItemCard: React.FC<MarketplaceItemCardProps> = ({ item, 
 								// Clear any previous error
 								setRemoveError(null)
 
-								vscode.postMessage({
-									type: "removeInstalledMarketplaceItem",
-									mpItem: item,
-									mpInstallOptions: { target: removeTarget },
-								})
+								rootStore.marketplace.removeInstalledMarketplaceItem(item, { target: removeTarget })
 
 								setShowRemoveConfirm(false)
 							}}>
@@ -259,7 +253,7 @@ const AuthorInfo: React.FC<AuthorInfoProps> = ({ item, typeLabel }) => {
 
 	const handleOpenAuthorUrl = () => {
 		if (item.authorUrl && isValidUrl(item.authorUrl)) {
-			vscode.postMessage({ type: "openExternal", url: item.authorUrl })
+			rootStore.settings.openExternal(item.authorUrl)
 		}
 	}
 

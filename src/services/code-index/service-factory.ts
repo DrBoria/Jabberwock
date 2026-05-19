@@ -2,7 +2,7 @@ import * as vscode from "vscode"
 import { Ignore } from "ignore"
 
 import type { EmbedderProvider } from "@jabberwock/types"
-import { TelemetryService } from "@jabberwock/telemetry"
+import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 import { TelemetryEventName } from "@jabberwock/types"
 
 import { t } from "../../i18n"
@@ -120,7 +120,7 @@ export class CodeIndexServiceFactory {
 			return await embedder.validateConfiguration()
 		} catch (error) {
 			// Capture telemetry for the error
-			TelemetryService.instance.captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
+			getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
 				error: error instanceof Error ? error.message : String(error),
 				stack: error instanceof Error ? error.stack : undefined,
 				location: "validateEmbedder",

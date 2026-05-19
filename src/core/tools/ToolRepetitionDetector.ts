@@ -84,7 +84,7 @@ export class ToolRepetitionDetector {
 	 * @returns JSON string representation of the tool use with sorted parameter keys
 	 */
 	private serializeToolUse(toolUse: ToolUse): string {
-		const toolObject: Record<string, any> = {
+		const toolObject: Record<string, unknown> = {
 			name: toolUse.name,
 			params: toolUse.params,
 		}

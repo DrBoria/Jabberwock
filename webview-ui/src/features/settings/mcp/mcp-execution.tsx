@@ -128,7 +128,9 @@ export const McpExecution = ({
 	// Listen for MCP execution status via MST snapshot
 	useEffect(() => {
 		const unsubscribe = onSnapshot(mcpExecutionStore, (snapshot) => {
-			const execution = snapshot.executions.find((e: any) => e.executionId === executionId)
+			const execution = snapshot.executions.find(
+				(e: { executionId: string; status: string; response?: string }) => e.executionId === executionId,
+			)
 			if (execution) {
 				setStatus(execution)
 

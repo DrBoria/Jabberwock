@@ -241,23 +241,30 @@ export const Plot = ({ tableData }: PlotProps) => {
 	)
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const renderQuadrant = (props: any) => (
-	<Cross
-		width={props.width}
-		height={props.height}
-		x={props.width / 2 + 35}
-		y={props.height / 2 - 15}
-		top={0}
-		left={0}
-		stroke="currentColor"
-		opacity={0.1}
-	/>
-)
+const renderQuadrant = (props: { width?: number; height?: number }) => {
+	const w = props.width ?? 0
+	const h = props.height ?? 0
+	return (
+		<Cross
+			width={w}
+			height={h}
+			x={w / 2 + 35}
+			y={h / 2 - 15}
+			top={0}
+			left={0}
+			stroke="currentColor"
+			opacity={0.1}
+		/>
+	)
+}
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const renderCustomLabel = (props: any, position: LabelPosition) => {
-	const { x, y, value } = props
+const renderCustomLabel = (
+	props: { x?: string | number; y?: string | number; value?: string | number },
+	position: LabelPosition,
+) => {
+	const { value } = props
+	const x = Number(props.x ?? 0)
+	const y = Number(props.y ?? 0)
 	const maxWidth = 80 // Maximum width in pixels - adjust as needed.
 
 	const truncateText = (text: string, maxChars: number = 20) => {
@@ -316,7 +323,7 @@ const renderCustomLabel = (props: any, position: LabelPosition) => {
 				textOverflow: "ellipsis",
 				whiteSpace: "nowrap",
 			}}>
-			{truncateText(value)}
+			{truncateText(String(value ?? ""))}
 		</text>
 	)
 }

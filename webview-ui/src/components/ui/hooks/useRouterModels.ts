@@ -3,7 +3,7 @@ import { onSnapshot } from "mobx-state-tree"
 
 import { type RouterModels } from "@jabberwock/types"
 
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { routerModelsStore } from "@src/features/settings/models/store"
 
 type UseRouterModelsOptions = {
@@ -40,9 +40,9 @@ const getRouterModels = async (provider?: string) =>
 		}, 10000)
 
 		if (provider) {
-			vscode.postMessage({ type: "requestRouterModels", values: { provider } })
+			rootStore.settings.requestRouterModels({ provider })
 		} else {
-			vscode.postMessage({ type: "requestRouterModels" })
+			rootStore.settings.requestRouterModels()
 		}
 	})
 

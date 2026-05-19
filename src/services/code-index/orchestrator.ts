@@ -5,7 +5,7 @@ import { CodeIndexStateManager, IndexingState } from "./state-manager"
 import { IFileWatcher, IVectorStore, BatchProcessingSummary } from "./interfaces"
 import { DirectoryScanner } from "./processors"
 import { CacheManager } from "./cache-manager"
-import { TelemetryService } from "@jabberwock/telemetry"
+import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 import { TelemetryEventName } from "@jabberwock/types"
 import { t } from "../../i18n"
 
@@ -79,7 +79,7 @@ export class CodeIndexOrchestrator {
 			]
 		} catch (error) {
 			console.error("[CodeIndexOrchestrator] Failed to start file watcher:", error)
-			TelemetryService.instance.captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
+			getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
 				error: error instanceof Error ? error.message : String(error),
 				stack: error instanceof Error ? error.stack : undefined,
 				location: "_startWatcher",
@@ -300,9 +300,9 @@ export class CodeIndexOrchestrator {
 
 				this.stateManager.setSystemState("Indexed", t("embeddings:orchestrator.fileWatcherStarted"))
 			}
-		} catch (error: any) {
+		} catch (error) {
 			// Handle abort gracefully — not an error, just a user-initiated stop
-			if (error?.name === "AbortError" || signal.aborted) {
+			if ((error as Record<string, unknown>)?.name === "AbortError" || signal.aborted) {
 				console.log("[CodeIndexOrchestrator] Indexing aborted by user.")
 				await this.cacheManager.flush()
 				this.stopWatcher()
@@ -311,7 +311,7 @@ export class CodeIndexOrchestrator {
 			}
 
 			console.error("[CodeIndexOrchestrator] Error during indexing:", error)
-			TelemetryService.instance.captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
+			getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
 				error: error instanceof Error ? error.message : String(error),
 				stack: error instanceof Error ? error.stack : undefined,
 				location: "startIndexing",
@@ -321,7 +321,7 @@ export class CodeIndexOrchestrator {
 					await this.vectorStore.clearCollection()
 				} catch (cleanupError) {
 					console.error("[CodeIndexOrchestrator] Failed to clean up after error:", cleanupError)
-					TelemetryService.instance.captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
+					getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
 						error: cleanupError instanceof Error ? cleanupError.message : String(cleanupError),
 						stack: cleanupError instanceof Error ? cleanupError.stack : undefined,
 						location: "startIndexing.cleanup",
@@ -347,7 +347,9 @@ export class CodeIndexOrchestrator {
 			this.stateManager.setSystemState(
 				"Error",
 				t("embeddings:orchestrator.failedDuringInitialScan", {
-					errorMessage: error.message || t("embeddings:orchestrator.unknownError"),
+					errorMessage:
+						((error as Record<string, unknown>).message as string) ||
+						t("embeddings:orchestrator.unknownError"),
 				}),
 			)
 			this.stopWatcher()
@@ -399,14 +401,17 @@ export class CodeIndexOrchestrator {
 				} else {
 					console.warn("[CodeIndexOrchestrator] Service not configured, skipping vector collection clear.")
 				}
-			} catch (error: any) {
+			} catch (error) {
 				console.error("[CodeIndexOrchestrator] Failed to clear vector collection:", error)
-				TelemetryService.instance.captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
+				getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
 					error: error instanceof Error ? error.message : String(error),
 					stack: error instanceof Error ? error.stack : undefined,
 					location: "clearIndexData",
 				})
-				this.stateManager.setSystemState("Error", `Failed to clear vector collection: ${error.message}`)
+				this.stateManager.setSystemState(
+					"Error",
+					`Failed to clear vector collection: ${(error as Record<string, unknown>).message as string}`,
+				)
 			}
 
 			await this.cacheManager.clearCacheFile()

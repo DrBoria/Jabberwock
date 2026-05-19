@@ -18,7 +18,7 @@ import {
 	isProviderName,
 	isRetiredProvider,
 } from "@jabberwock/types"
-import { TelemetryService } from "@jabberwock/telemetry"
+import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 
 import { logger } from "../../utils/logging"
 import { supportPrompt } from "../../shared/support-prompt"
@@ -252,28 +252,29 @@ export class ContextProxy {
 	private async migrateImageGenerationSettings() {
 		try {
 			// Check if there's an old nested structure
-			const oldNestedSettings = this.originalContext.globalState.get<any>("openRouterImageGenerationSettings")
+			const oldNestedSettings = this.originalContext.globalState.get<unknown>("openRouterImageGenerationSettings")
 
 			if (oldNestedSettings && typeof oldNestedSettings === "object") {
 				logger.info("Migrating old nested image generation settings to flattened structure")
+				const nestedSettings = oldNestedSettings as Record<string, unknown>
 
 				// Migrate the API key if it exists and we don't already have one
-				if (oldNestedSettings.openRouterApiKey && !this.secretCache.openRouterImageApiKey) {
+				if (nestedSettings.openRouterApiKey && !this.secretCache.openRouterImageApiKey) {
 					await this.originalContext.secrets.store(
 						"openRouterImageApiKey",
-						oldNestedSettings.openRouterApiKey,
+						nestedSettings.openRouterApiKey as string,
 					)
-					this.secretCache.openRouterImageApiKey = oldNestedSettings.openRouterApiKey
+					this.secretCache.openRouterImageApiKey = nestedSettings.openRouterApiKey as string
 					logger.info("Migrated openRouterImageApiKey to secrets")
 				}
 
 				// Migrate the selected model if it exists and we don't already have one
-				if (oldNestedSettings.selectedModel && !this.stateCache.openRouterImageGenerationSelectedModel) {
+				if (nestedSettings.selectedModel && !this.stateCache.openRouterImageGenerationSelectedModel) {
 					await this.originalContext.globalState.update(
 						"openRouterImageGenerationSelectedModel",
-						oldNestedSettings.selectedModel,
+						nestedSettings.selectedModel as string,
 					)
-					this.stateCache.openRouterImageGenerationSelectedModel = oldNestedSettings.selectedModel
+					this.stateCache.openRouterImageGenerationSelectedModel = nestedSettings.selectedModel as string
 					logger.info("Migrated openRouterImageGenerationSelectedModel to global state")
 				}
 
@@ -407,7 +408,7 @@ export class ContextProxy {
 			return globalSettingsSchema.parse(values)
 		} catch (error) {
 			if (error instanceof ZodError) {
-				TelemetryService.instance.captureSchemaValidationError({ schemaName: "GlobalSettings", error })
+				getTelemetryService().captureSchemaValidationError({ schemaName: "GlobalSettings", error })
 			}
 
 			return GLOBAL_SETTINGS_KEYS.reduce((acc, key) => ({ ...acc, [key]: values[key] }), {} as GlobalSettings)
@@ -431,7 +432,7 @@ export class ContextProxy {
 			return providerSettingsSchema.parse(sanitizedValues)
 		} catch (error) {
 			if (error instanceof ZodError) {
-				TelemetryService.instance.captureSchemaValidationError({ schemaName: "ProviderSettings", error })
+				getTelemetryService().captureSchemaValidationError({ schemaName: "ProviderSettings", error })
 			}
 
 			return PROVIDER_SETTINGS_KEYS.reduce(
@@ -539,7 +540,7 @@ export class ContextProxy {
 			return Object.fromEntries(Object.entries(globalSettings).filter(([_, value]) => value !== undefined))
 		} catch (error) {
 			if (error instanceof ZodError) {
-				TelemetryService.instance.captureSchemaValidationError({ schemaName: "GlobalSettings", error })
+				getTelemetryService().captureSchemaValidationError({ schemaName: "GlobalSettings", error })
 			}
 
 			return undefined

@@ -409,7 +409,7 @@ export class ExtensionHost extends EventEmitter implements ExtensionHostInterfac
 			isPreloading: false,
 			parent: null,
 			require: require,
-		} as unknown as NodeJS.Module
+		} as NodeJS.Module
 
 		try {
 			this.extensionModule = require(bundlePath) as ExtensionModule

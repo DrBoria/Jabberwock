@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react"
 import { useCopyToClipboard } from "@src/features/chat/text-area/utils/clipboard"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { MermaidActionButtons } from "./MermaidActionButtons"
 import { Modal } from "./Modal"
 import { TabButton } from "./TabButton"
@@ -74,10 +74,7 @@ export function ImageViewer({
 
 		try {
 			// Request VSCode to save the image
-			vscode.postMessage({
-				type: "saveImage",
-				dataUri: imageUri,
-			})
+			rootStore.cloud.saveImage(imageUri)
 		} catch (error) {
 			console.error("Error saving image:", error)
 		}
@@ -92,16 +89,10 @@ export function ImageViewer({
 		// The backend will handle both cases appropriately
 		if (imagePath) {
 			// Use the actual file path for opening
-			vscode.postMessage({
-				type: "openImage",
-				text: imagePath,
-			})
+			rootStore.settings.openImage(imagePath)
 		} else if (imageUri) {
 			// Fallback to opening image URI if no path is available (for Mermaid diagrams)
-			vscode.postMessage({
-				type: "openImage",
-				text: imageUri,
-			})
+			rootStore.settings.openImage(imageUri)
 		}
 	}
 

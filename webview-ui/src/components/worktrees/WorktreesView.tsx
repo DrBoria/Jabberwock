@@ -1,11 +1,15 @@
 import { useState, useEffect, useCallback } from "react"
 
 import type { Worktree, WorktreeListResponse, WorktreeIncludeStatus } from "@jabberwock/types"
+import {
+	SETTINGS_LIST_WORKTREES as _SETTINGS_LIST_WORKTREES,
+	SETTINGS_GET_WORKTREE_INCLUDE_STATUS as _SETTINGS_GET_WORKTREE_INCLUDE_STATUS,
+} from "@jabberwock/types"
 
 import { Badge, Button, StandardTooltip, ToggleSwitch } from "@/components/ui"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { useAppTranslation } from "@/i18n/TranslationContext"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 
 import { SectionHeader } from "../settings/SectionHeader"
 
@@ -36,12 +40,12 @@ export const WorktreesView = () => {
 
 	// Fetch worktrees list
 	const fetchWorktrees = useCallback(() => {
-		vscode.postMessage({ type: "listWorktrees" })
+		rootStore.settings.listWorktrees()
 	}, [])
 
 	// Fetch worktree include status
 	const fetchIncludeStatus = useCallback(() => {
-		vscode.postMessage({ type: "getWorktreeIncludeStatus" })
+		rootStore.settings.getWorktreeIncludeStatus()
 	}, [])
 
 	// Handle messages from extension
@@ -102,10 +106,7 @@ export const WorktreesView = () => {
 			"[WorktreesView] Sending createWorktreeInclude with content length:",
 			includeStatus.gitignoreContent.length,
 		)
-		vscode.postMessage({
-			type: "createWorktreeInclude",
-			worktreeIncludeContent: includeStatus.gitignoreContent,
-		} as const)
+		rootStore.settings.createWorktreeInclude(includeStatus.gitignoreContent)
 		// Refresh status after a short delay
 		setTimeout(() => {
 			fetchIncludeStatus()
@@ -115,21 +116,14 @@ export const WorktreesView = () => {
 
 	// Handle switch worktree
 	const handleSwitchWorktree = useCallback((worktreePath: string, newWindow: boolean) => {
-		vscode.postMessage({
-			type: "switchWorktree",
-			worktreePath: worktreePath,
-			worktreeNewWindow: newWindow,
-		})
+		rootStore.settings.switchWorktree(worktreePath, newWindow)
 	}, [])
 
 	// Handle toggle show in home screen
 	const handleToggleShowInHomeScreen = useCallback(() => {
 		const newValue = !showWorktreesInHomeScreen
 		setShowWorktreesInHomeScreen(newValue)
-		vscode.postMessage({
-			type: "updateSettings",
-			updatedSettings: { showWorktreesInHomeScreen: newValue },
-		})
+		rootStore.settings.updateSettings({ showWorktreesInHomeScreen: newValue })
 	}, [showWorktreesInHomeScreen, setShowWorktreesInHomeScreen])
 
 	// Render error states

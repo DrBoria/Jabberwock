@@ -1,15 +1,17 @@
 import * as vscode from "vscode"
 import { WebviewMessage } from "../../shared/WebviewMessage"
 import { defaultModeSlug } from "../../shared/modes"
+import type { ProviderSettings } from "@jabberwock/types"
 import { buildApiHandler } from "../../api"
 
 import { SYSTEM_PROMPT } from "../prompts/system"
 import { MultiSearchReplaceDiffStrategy } from "../diff/strategies/multi-search-replace"
 import { Package } from "../../shared/package"
 
-import { ClineProvider } from "./ClineProvider"
+import { EventBridge } from "./EventBridge"
+import { getSkillsManager } from "../../features/settings/skills/store"
 
-export const generateSystemPrompt = async (provider: ClineProvider, message: WebviewMessage) => {
+export const generateSystemPrompt = async (provider: EventBridge, message: WebviewMessage) => {
 	const {
 		apiConfiguration,
 		customModePrompts,
@@ -25,7 +27,7 @@ export const generateSystemPrompt = async (provider: ClineProvider, message: Web
 	const cwd = provider.cwd
 
 	const mode = message.mode ?? defaultModeSlug
-	const customModes = await provider.customModesManager.getCustomModes()
+	const customModes = (await provider.customModesManager?.getCustomModes()) ?? []
 
 	const jabberwockIgnoreInstructions = provider.getCurrentTask()?.jabberwockIgnoreController?.getInstructions()
 
@@ -33,7 +35,7 @@ export const generateSystemPrompt = async (provider: ClineProvider, message: Web
 	// This avoids relying on an active Cline instance which might not exist during preview.
 	let modelInfo: { isStealthModel?: boolean } | undefined
 	try {
-		const tempApiHandler = buildApiHandler(apiConfiguration)
+		const tempApiHandler = buildApiHandler(apiConfiguration as ProviderSettings)
 		modelInfo = tempApiHandler.getModel().info
 	} catch (error) {
 		console.error("Error fetching model info for system prompt preview:", error)
@@ -43,7 +45,7 @@ export const generateSystemPrompt = async (provider: ClineProvider, message: Web
 		provider.context,
 		cwd,
 		false, // supportsComputerUse — browser removed
-		mcpEnabled ? provider.getMcpHub() : undefined,
+		mcpEnabled ? await provider.getMcpHub() : undefined,
 		diffStrategy,
 		mode,
 		customModePrompts,
@@ -53,7 +55,7 @@ export const generateSystemPrompt = async (provider: ClineProvider, message: Web
 		language,
 		jabberwockIgnoreInstructions,
 		{
-			todoListEnabled: apiConfiguration?.todoListEnabled ?? true,
+			todoListEnabled: (apiConfiguration?.todoListEnabled as boolean) ?? true,
 			useAgentRules: vscode.workspace.getConfiguration(Package.name).get<boolean>("useAgentRules") ?? true,
 			enableSubfolderRules: enableSubfolderRules ?? false,
 			newTaskRequireTodos: vscode.workspace
@@ -63,7 +65,7 @@ export const generateSystemPrompt = async (provider: ClineProvider, message: Web
 		},
 		undefined, // todoList
 		undefined, // modelId
-		provider.getSkillsManager(),
+		getSkillsManager(provider),
 		(await provider.getState()).systemPromptTemplates,
 	)
 

@@ -2,9 +2,9 @@
 
 import { describe, it, expect, vi } from "vitest"
 import { JabberwockEventName } from "@jabberwock/types"
-import { ClineProvider } from "../core/webview/ClineProvider"
+import { EventBridge } from "../core/webview/EventBridge"
 
-describe("ClineProvider.delegateParentAndOpenChild()", () => {
+describe("EventBridge.delegateParentAndOpenChild()", () => {
 	it("persists parent delegation metadata and emits TaskDelegated", async () => {
 		const providerEmit = vi.fn()
 		const parentTask = { taskId: "parent-1", emit: vi.fn() } as any
@@ -48,7 +48,7 @@ describe("ClineProvider.delegateParentAndOpenChild()", () => {
 			updateTaskHistory,
 			handleModeSwitch,
 			log: vi.fn(),
-		} as unknown as ClineProvider
+		} as unknown as EventBridge
 
 		const params = {
 			parentTaskId: "parent-1",
@@ -57,7 +57,7 @@ describe("ClineProvider.delegateParentAndOpenChild()", () => {
 			mode: "code",
 		}
 
-		const child = await (ClineProvider.prototype as any).delegateParentAndOpenChild.call(provider, params)
+		const child = await (EventBridge.prototype as any).delegateParentAndOpenChild.call(provider, params)
 
 		expect(child.taskId).toBe("child-1")
 
@@ -130,9 +130,9 @@ describe("ClineProvider.delegateParentAndOpenChild()", () => {
 			updateTaskHistory,
 			handleModeSwitch,
 			log: vi.fn(),
-		} as unknown as ClineProvider
+		} as unknown as EventBridge
 
-		await (ClineProvider.prototype as any).delegateParentAndOpenChild.call(provider, {
+		await (EventBridge.prototype as any).delegateParentAndOpenChild.call(provider, {
 			parentTaskId: "parent-1",
 			message: "Do something",
 			initialTodos: [],

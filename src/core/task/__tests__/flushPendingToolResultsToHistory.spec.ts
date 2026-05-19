@@ -5,10 +5,15 @@ import * as path from "path"
 import * as vscode from "vscode"
 
 import type { GlobalState, ProviderSettings } from "@jabberwock/types"
-import { TelemetryService } from "@jabberwock/telemetry"
+import {
+	TelemetryService,
+	getTelemetryService,
+	hasTelemetryService,
+	createTelemetryService,
+} from "@jabberwock/telemetry"
 
-import { Task } from "../Task"
-import { ClineProvider } from "../../webview/ClineProvider"
+import { Task } from "../../../features/chat/task/Task"
+import { EventBridge } from "../../webview/EventBridge"
 import { ContextProxy } from "../../config/ContextProxy"
 
 // Mock delay before any imports that might use it
@@ -159,8 +164,8 @@ describe("flushPendingToolResultsToHistory", () => {
 	let mockExtensionContext: vscode.ExtensionContext
 
 	beforeEach(() => {
-		if (!TelemetryService.hasInstance()) {
-			TelemetryService.createInstance([])
+		if (!hasTelemetryService()) {
+			createTelemetryService([])
 		}
 
 		const storageUri = {
@@ -203,7 +208,7 @@ describe("flushPendingToolResultsToHistory", () => {
 			dispose: vi.fn(),
 		}
 
-		mockProvider = new ClineProvider(
+		mockProvider = new EventBridge(
 			mockExtensionContext,
 			mockOutputChannel,
 			"sidebar",

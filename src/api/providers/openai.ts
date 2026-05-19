@@ -114,9 +114,8 @@ export class OpenAiHandler extends BaseProvider implements SingleCompletionHandl
 							{
 								type: "text",
 								text: systemPrompt,
-								// @ts-ignore-next-line
-								cache_control: { type: "ephemeral" },
-							},
+								cache_control: { type: "ephemeral" } as const,
+							} as OpenAI.Chat.ChatCompletionContentPartText & { cache_control: { type: "ephemeral" } },
 						],
 					}
 				}
@@ -143,8 +142,11 @@ export class OpenAiHandler extends BaseProvider implements SingleCompletionHandl
 								msg.content.push(lastTextPart)
 							}
 
-							// @ts-ignore-next-line
-							lastTextPart["cache_control"] = { type: "ephemeral" }
+							;(
+								lastTextPart as OpenAI.Chat.ChatCompletionContentPartText & {
+									cache_control?: { type: "ephemeral" }
+								}
+							)["cache_control"] = { type: "ephemeral" }
 						}
 					})
 				}
@@ -269,13 +271,20 @@ export class OpenAiHandler extends BaseProvider implements SingleCompletionHandl
 		}
 	}
 
-	protected processUsageMetrics(usage: any, _modelInfo?: ModelInfo): ApiStreamUsageChunk {
+	protected processUsageMetrics(
+		usage: OpenAI.CompletionUsage | undefined,
+		_modelInfo?: ModelInfo,
+	): ApiStreamUsageChunk {
+		const usageExtended = usage as OpenAI.CompletionUsage & {
+			cache_creation_input_tokens?: number
+			cache_read_input_tokens?: number
+		}
 		return {
 			type: "usage",
-			inputTokens: usage?.prompt_tokens || 0,
-			outputTokens: usage?.completion_tokens || 0,
-			cacheWriteTokens: usage?.cache_creation_input_tokens || undefined,
-			cacheReadTokens: usage?.cache_read_input_tokens || undefined,
+			inputTokens: (usage?.prompt_tokens ?? 0) as number,
+			outputTokens: (usage?.completion_tokens ?? 0) as number,
+			cacheWriteTokens: usageExtended?.cache_creation_input_tokens as number | undefined,
+			cacheReadTokens: usageExtended?.cache_read_input_tokens as number | undefined,
 		}
 	}
 
@@ -547,7 +556,7 @@ export async function getOpenAiModels(baseUrl?: string, apiKey?: string, openAiH
 			return []
 		}
 
-		const config: Record<string, any> = {}
+		const config: Record<string, unknown> = {}
 		const headers: Record<string, string> = {
 			...DEFAULT_HEADERS,
 			...(openAiHeaders || {}),
@@ -562,7 +571,7 @@ export async function getOpenAiModels(baseUrl?: string, apiKey?: string, openAiH
 		}
 
 		const response = await axios.get(`${trimmedBaseUrl}/models`, config)
-		const modelsArray = response.data?.data?.map((model: any) => model.id) || []
+		const modelsArray = response.data?.data?.map((model: { id: string }) => model.id) || []
 		return [...new Set<string>(modelsArray)]
 	} catch (error) {
 		return []

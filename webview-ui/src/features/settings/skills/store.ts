@@ -1,15 +1,17 @@
 import { types, Instance } from "mobx-state-tree"
 
+import type { SkillMetadata } from "@jabberwock/types"
+
 /**
  * SkillsStore — tracks available skills.
  * Receives snapshots from the extension-side SkillsStore via MstBridge.
  */
 export const SkillsStore = types
 	.model("SkillsStore", {
-		skills: types.optional(types.array(types.frozen<any>()), []),
+		skills: types.array(types.frozen<SkillMetadata>()),
 	})
 	.actions((self) => ({
-		setSkills(skills: any[]) {
+		setSkills(skills: SkillMetadata[]) {
 			self.skills.replace(skills)
 		},
 	}))

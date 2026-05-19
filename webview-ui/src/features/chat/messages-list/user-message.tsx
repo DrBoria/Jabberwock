@@ -6,7 +6,7 @@ import Thumbnails from "@src/components/common/Thumbnails"
 
 interface UserMessageProps {
 	message: ClineMessage
-	t: (key: string, options?: any) => string
+	t: (key: string, options?: Record<string, unknown>) => string
 }
 
 const headerStyle: React.CSSProperties = {

@@ -4,7 +4,7 @@ import { fileExistsAtPath } from "../../utils/fs"
 import { getReadablePath } from "../../utils/path"
 import { BaseTool, ToolCallbacks } from "./BaseTool"
 import type { ToolUse } from "../../shared/tools"
-import { Task } from "../task/Task"
+import { Task } from "../../features/chat/task/Task"
 import { buildApiHandler } from "../../api"
 
 export class AnalyzeImageTool extends BaseTool<"analyze_image"> {
@@ -119,7 +119,7 @@ export class AnalyzeImageTool extends BaseTool<"analyze_image"> {
 			task.recordToolUsage("analyze_image")
 			pushToolResult(`Analysis of ${relPath}:\n\n${resultText}`)
 		} catch (error) {
-			await handleError("analyzing image", error)
+			await handleError("analyzing image", error instanceof Error ? error : new Error(String(error)))
 		}
 	}
 

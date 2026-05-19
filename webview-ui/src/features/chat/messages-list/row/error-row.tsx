@@ -4,7 +4,7 @@ import { VSCodeButton } from "@vscode/webview-ui-toolkit/react"
 import { BookOpenText, MessageCircleWarning, Copy, Check, Microscope, Info } from "lucide-react"
 
 import { useCopyToClipboard } from "@src/features/chat/text-area/utils/clipboard"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import CodeBlock from "@src/components/common/CodeBlock"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@src/components/ui/dialog"
 import { Button } from "@src/components/ui/button"
@@ -74,6 +74,7 @@ export interface ErrorRowProps {
 /**
  * Unified error display component for all error types in the chat
  */
+
 export const ErrorRow = memo(
 	({
 		type,
@@ -119,15 +120,12 @@ export const ErrorRow = memo(
 		const handleDownloadDiagnostics = useCallback(
 			(e: React.MouseEvent) => {
 				e.stopPropagation()
-				vscode.postMessage({
-					type: "downloadErrorDiagnostics",
-					values: {
-						timestamp: new Date().toISOString(),
-						version,
-						provider,
-						model: modelId,
-						details: errorDetails || "",
-					},
+				rootStore.settings.downloadErrorDiagnostics({
+					timestamp: new Date().toISOString(),
+					version,
+					provider,
+					model: modelId,
+					details: errorDetails || "",
 				})
 			},
 			[version, provider, modelId, errorDetails],
@@ -246,13 +244,9 @@ export const ErrorRow = memo(
 											e.preventDefault()
 											// Handle internal navigation to settings
 											if (docsURL.startsWith("jabberwock://settings")) {
-												vscode.postMessage({
-													type: "switchTab",
-													tab: "settings",
-													values: { section: "providers" },
-												})
+												rootStore.windowManager.switchTab("settings", { section: "providers" })
 											} else {
-												vscode.postMessage({ type: "openExternal", url: docsURL })
+												rootStore.settings.openExternal(docsURL)
 											}
 										}}>
 										<BookOpenText className="size-3 mt-[3px]" />

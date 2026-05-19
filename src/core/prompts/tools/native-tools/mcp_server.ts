@@ -34,7 +34,7 @@ export function getMcpServerTools(
 	const seenToolNames = new Set<string>()
 
 	for (const server of servers) {
-		let serverConfig: any = {}
+		let serverConfig: Record<string, unknown> = {}
 		try {
 			serverConfig = JSON.parse(server.config)
 		} catch (e) {

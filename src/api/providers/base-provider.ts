@@ -2,6 +2,8 @@ import { Anthropic } from "@anthropic-ai/sdk"
 
 import type { ModelInfo } from "@jabberwock/types"
 
+import type OpenAI from "openai"
+
 import type { ApiHandler, ApiHandlerCreateMessageMetadata } from "../index"
 import { ApiStream } from "../transform/stream"
 import { countTokens } from "../../utils/countTokens"
@@ -24,7 +26,9 @@ export abstract class BaseProvider implements ApiHandler {
 	 * Filters for function tools, applies schema conversion to their parameters,
 	 * and ensures all tools have consistent strict: true values.
 	 */
-	protected convertToolsForOpenAI(tools: any[] | undefined): any[] | undefined {
+	protected convertToolsForOpenAI(
+		tools: OpenAI.Chat.ChatCompletionTool[] | undefined,
+	): OpenAI.Chat.ChatCompletionTool[] | undefined {
 		if (!tools) {
 			return undefined
 		}
@@ -45,7 +49,7 @@ export abstract class BaseProvider implements ApiHandler {
 					strict: !isMcp,
 					parameters: isMcp
 						? tool.function.parameters
-						: this.convertToolSchemaForOpenAI(tool.function.parameters),
+						: this.convertToolSchemaForOpenAI(tool.function.parameters ?? {}),
 				},
 			}
 		})
@@ -60,49 +64,70 @@ export abstract class BaseProvider implements ApiHandler {
 	 *
 	 * This matches the behavior of ensureAllRequired in openai-native.ts
 	 */
-	protected convertToolSchemaForOpenAI(schema: any): any {
-		if (!schema || typeof schema !== "object" || schema.type !== "object") {
+	/**
+	 * Internal type representing a JSON Schema node with known structural properties.
+	 * Index signature allows passing unknown extra keys through.
+	 */
+	private static jsonSchemaForOpenAI(schema: Record<string, unknown>): Record<string, unknown> {
+		if (!schema || typeof schema !== "object") {
+			return schema
+		}
+		const typeVal = schema["type"]
+		if (typeVal !== "object") {
 			return schema
 		}
 
-		const result = { ...schema }
+		const result: Record<string, unknown> = { ...schema }
 
 		// OpenAI Responses API requires additionalProperties: false on all object schemas
 		// Only add if not already set to false (to avoid unnecessary mutations)
-		if (result.additionalProperties !== false) {
-			result.additionalProperties = false
+		if (result["additionalProperties"] !== false) {
+			result["additionalProperties"] = false
 		}
 
-		if (result.properties) {
-			const allKeys = Object.keys(result.properties)
+		const properties = result["properties"]
+		if (properties && typeof properties === "object" && !Array.isArray(properties)) {
+			const allKeys = Object.keys(properties)
 			// OpenAI strict mode requires ALL properties to be in required array
-			result.required = allKeys
+			result["required"] = allKeys
 
 			// Recursively process nested objects and convert nullable types
-			const newProps = { ...result.properties }
+			const newProps: Record<string, unknown> = { ...(properties as Record<string, unknown>) }
 			for (const key of allKeys) {
 				const prop = newProps[key]
+				if (!prop || typeof prop !== "object") {
+					continue
+				}
+				const propObj = prop as Record<string, unknown>
 
 				// Handle nullable types by removing null
-				if (prop && Array.isArray(prop.type) && prop.type.includes("null")) {
-					const nonNullTypes = prop.type.filter((t: string) => t !== "null")
-					prop.type = nonNullTypes.length === 1 ? nonNullTypes[0] : nonNullTypes
+				const propType = propObj["type"]
+				if (Array.isArray(propType) && propType.includes("null")) {
+					const nonNullTypes = propType.filter((t: string) => t !== "null")
+					propObj["type"] = nonNullTypes.length === 1 ? nonNullTypes[0] : nonNullTypes
 				}
 
 				// Recursively process nested objects
-				if (prop && prop.type === "object") {
-					newProps[key] = this.convertToolSchemaForOpenAI(prop)
-				} else if (prop && prop.type === "array" && prop.items?.type === "object") {
-					newProps[key] = {
-						...prop,
-						items: this.convertToolSchemaForOpenAI(prop.items),
+				if (propObj["type"] === "object") {
+					newProps[key] = this.jsonSchemaForOpenAI(propObj)
+				} else if (propObj["type"] === "array") {
+					const items = propObj["items"]
+					if (items && typeof items === "object" && (items as Record<string, unknown>)["type"] === "object") {
+						newProps[key] = {
+							...propObj,
+							items: this.jsonSchemaForOpenAI(items as Record<string, unknown>),
+						}
 					}
 				}
 			}
-			result.properties = newProps
+			result["properties"] = newProps
 		}
 
 		return result
+	}
+
+	protected convertToolSchemaForOpenAI(schema: Record<string, unknown>): Record<string, unknown> {
+		return BaseProvider.jsonSchemaForOpenAI(schema)
 	}
 
 	/**

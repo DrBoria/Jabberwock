@@ -11,7 +11,7 @@ interface ReasoningBlockProps {
 	ts: number
 	isStreaming: boolean
 	isLast: boolean
-	metadata?: any
+	metadata?: Record<string, unknown>
 }
 
 export const ReasoningBlock = ({ content, isStreaming, isLast }: ReasoningBlockProps) => {

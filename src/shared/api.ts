@@ -60,7 +60,7 @@ export const shouldUseReasoningEffort = ({
 	if (settings?.enableReasoningEffort === false) return false
 
 	// Selected effort from settings or model default
-	const selectedEffort = (settings?.reasoningEffort ?? (model as any).reasoningEffort) as
+	const selectedEffort = (settings?.reasoningEffort ?? model.reasoningEffort) as
 		| "disable"
 		| "none"
 		| "minimal"
@@ -72,11 +72,11 @@ export const shouldUseReasoningEffort = ({
 	// "disable" explicitly omits reasoning
 	if (selectedEffort === "disable") return false
 
-	const cap = model.supportsReasoningEffort as unknown
+	const cap = model.supportsReasoningEffort
 
 	// Capability array: use only if selected is included (treat "none"/"minimal" as valid)
 	if (Array.isArray(cap)) {
-		return !!selectedEffort && (cap as ReadonlyArray<string>).includes(selectedEffort as string)
+		return !!selectedEffort && (cap as string[]).includes(selectedEffort)
 	}
 
 	// Boolean capability: true → require a selected effort
@@ -86,13 +86,7 @@ export const shouldUseReasoningEffort = ({
 
 	// Not explicitly supported: only allow when the model itself defines a default effort
 	// Ignore settings-only selections when capability is absent/false
-	const modelDefaultEffort = (model as any).reasoningEffort as
-		| "none"
-		| "minimal"
-		| "low"
-		| "medium"
-		| "high"
-		| undefined
+	const modelDefaultEffort = model.reasoningEffort as "none" | "minimal" | "low" | "medium" | "high" | undefined
 	return !!modelDefaultEffort
 }
 
@@ -169,13 +163,13 @@ type CommonFetchParams = {
 // If a new dynamic provider is added in packages/types, this will fail to compile
 // until a corresponding entry is added here.
 const dynamicProviderExtras = {
-	openrouter: {} as {}, // eslint-disable-line @typescript-eslint/no-empty-object-type
-	"vercel-ai-gateway": {} as {}, // eslint-disable-line @typescript-eslint/no-empty-object-type
+	openrouter: {} as Record<string, unknown>,
+	"vercel-ai-gateway": {} as Record<string, unknown>,
 	litellm: {} as { apiKey: string; baseUrl: string },
 	requesty: {} as { apiKey?: string; baseUrl?: string },
 	unbound: {} as { apiKey?: string },
-	ollama: {} as {}, // eslint-disable-line @typescript-eslint/no-empty-object-type
-	lmstudio: {} as {}, // eslint-disable-line @typescript-eslint/no-empty-object-type
+	ollama: {} as Record<string, unknown>,
+	lmstudio: {} as Record<string, unknown>,
 	jabberwock: {} as { apiKey?: string; baseUrl?: string },
 } as const satisfies Record<RouterName, object>
 

@@ -10,24 +10,22 @@ interface ToolRendererProps {
 	tool: ClineSayTool
 	isExpanded: boolean
 	onToggleExpand: () => void
-	t: (key: string, options?: any) => string
+	t: (key: string, options?: Record<string, unknown>) => string
 }
 
 /** Renders codebaseSearch tool */
-export const CodebaseSearchRenderer: React.FC<Pick<ToolRendererProps, "tool" | "t">> = ({ tool, t }) => (
+export const CodebaseSearchRenderer: React.FC<Pick<ToolRendererProps, "tool">> = ({ tool }) => (
 	<Container $preset="header" $p="0">
 		{toolIcon("search")}
 		<span style={{ fontWeight: "bold" }}>
 			{tool.path ? (
 				<Trans
-					t={t as any}
 					i18nKey="chat:codebaseSearch.wantsToSearchWithPath"
 					components={{ code: <code></code> }}
 					values={{ query: tool.query, path: tool.path }}
 				/>
 			) : (
 				<Trans
-					t={t as any}
 					i18nKey="chat:codebaseSearch.wantsToSearch"
 					components={{ code: <code></code> }}
 					values={{ query: tool.query }}
@@ -78,13 +76,12 @@ export const ListFilesRenderer: React.FC<ToolRendererProps> = ({ message, tool, 
 }
 
 /** Renders searchFiles tool */
-export const SearchFilesRenderer: React.FC<ToolRendererProps> = ({ tool, isExpanded, onToggleExpand, t }) => (
+export const SearchFilesRenderer: React.FC<ToolRendererProps> = ({ tool, isExpanded, onToggleExpand }) => (
 	<>
 		<Container $preset="header" $p="0">
 			{toolIcon("search")}
 			<span style={{ fontWeight: "bold" }}>
 				<Trans
-					t={t as any}
 					i18nKey={
 						tool.isOutsideWorkspace
 							? "chat:directoryOperations.wantsToSearchOutsideWorkspace"

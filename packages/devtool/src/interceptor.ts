@@ -2,7 +2,7 @@
  * MessageInterceptor — generic message interception and tracing for integration testing.
  *
  * Lives in @jabberwock/devtool (packages/devtool) as a standalone class.
- * ClineProvider imports it and calls onBeforeSend/onBeforeReceive as hooks.
+ * EventBridge imports it and calls onBeforeSend/onBeforeReceive as hooks.
  *
  * Usage:
  *   const interceptor = new MessageInterceptor()
@@ -119,7 +119,7 @@ export class MessageInterceptor {
 			direction: "backend→webview",
 			message,
 			intercepted: result.intercepted,
-			mockResponse: result.response as unknown,
+			mockResponse: result.response,
 			timestamp: new Date().toISOString(),
 		})
 		this.trimTrace()
@@ -135,7 +135,7 @@ export class MessageInterceptor {
 			direction: "webview→backend",
 			message,
 			intercepted: result.intercepted,
-			mockResponse: result.response as unknown,
+			mockResponse: result.response,
 			timestamp: new Date().toISOString(),
 		})
 		this.trimTrace()

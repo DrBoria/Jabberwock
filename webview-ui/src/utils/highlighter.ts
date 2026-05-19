@@ -1,6 +1,7 @@
 import { LRUCache } from "lru-cache"
 import { ReactNode } from "react"
 import { toJsxRuntime } from "hast-util-to-jsx-runtime"
+import type { ElementContent } from "hast"
 import { Fragment, jsx, jsxs } from "react/jsx-runtime"
 import {
 	createHighlighter,
@@ -313,30 +314,37 @@ export async function highlightHunks(
 
 			try {
 				// Use Shiki's line transformer to get per-line highlighting
-				const hast: any = highlighter.codeToHast(text, {
+				const hast = highlighter.codeToHast(text, {
 					lang,
 					theme: shikiTheme,
 					transformers: [
 						{
-							pre(node: any) {
+							pre(node: { properties: Record<string, unknown> }) {
 								node.properties.style = "padding:0;margin:0;background:none;"
-								return node
 							},
-							code(node: any) {
+							code(node: { properties: Record<string, unknown> }) {
 								node.properties.class = `hljs language-${lang}`
-								return node
 							},
-							line(node: any, line: number) {
+							line(node: { properties: Record<string, unknown> }, line: number) {
 								// Add a line marker to help with extraction
 								node.properties["data-line"] = line
-								return node
 							},
 						},
 					],
 				})
 
 				// Extract the <code> element's children (which should be line elements)
-				const codeEl = hast?.children?.[0]?.children?.[0]
+				const codeEl = (
+					hast as {
+						children: Array<{
+							children?: Array<{
+								tagName?: string
+								properties?: { className?: string[] }
+								children?: ElementContent[]
+							}>
+						}>
+					}
+				)?.children?.[0]?.children?.[0]
 				if (!codeEl || !codeEl.children) {
 					return textLines.map((line) => line || "")
 				}
@@ -344,7 +352,12 @@ export async function highlightHunks(
 				// Convert each line element to a ReactNode
 				const highlightedLines: ReactNode[] = []
 
-				for (const lineNode of codeEl.children) {
+				for (const rawNode of codeEl.children) {
+					const lineNode = rawNode as {
+						tagName?: string
+						properties?: { className?: string[] }
+						children?: ElementContent[]
+					}
 					if (lineNode.tagName === "span" && lineNode.properties?.className?.includes("line")) {
 						// This is a line span from Shiki
 						const reactNode = toJsxRuntime(
@@ -362,24 +375,32 @@ export async function highlightHunks(
 						if (!line.trim()) return line
 
 						try {
-							const lineHast: any = highlighter.codeToHast(line, {
+							const lineHast = highlighter.codeToHast(line, {
 								lang,
 								theme: shikiTheme,
 								transformers: [
 									{
-										pre(node: any) {
+										pre(node: { properties: Record<string, unknown> }) {
 											node.properties.style = "padding:0;margin:0;background:none;"
-											return node
 										},
-										code(node: any) {
+										code(node: { properties: Record<string, unknown> }) {
 											node.properties.class = `hljs language-${lang}`
-											return node
 										},
 									},
 								],
 							})
 
-							const lineCodeEl = lineHast?.children?.[0]?.children?.[0]
+							const lineCodeEl = (
+								lineHast as {
+									children: Array<{
+										children?: Array<{
+											tagName?: string
+											properties?: { className?: string[] }
+											children?: ElementContent[]
+										}>
+									}>
+								}
+							)?.children?.[0]?.children?.[0]
 							if (!lineCodeEl || !lineCodeEl.children) {
 								return line
 							}

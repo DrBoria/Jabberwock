@@ -60,9 +60,7 @@ describe("JabberwockIgnoreController", () => {
 			onDidDelete: vi.fn().mockReturnValue({ dispose: vi.fn() }),
 			dispose: vi.fn(),
 		}
-
-		// @ts-expect-error - Mocking
-		vscode.workspace.createFileSystemWatcher.mockReturnValue(mockWatcher)
+		;(vscode.workspace.createFileSystemWatcher as any).mockReturnValue(mockWatcher)
 
 		// Setup fs mocks
 		mockFileExists = fileExistsAtPath as Mock<typeof fileExistsAtPath>

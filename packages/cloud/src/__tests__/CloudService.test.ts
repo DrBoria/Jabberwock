@@ -5,7 +5,13 @@ import * as vscode from "vscode"
 import type { ClineMessage } from "@jabberwock/types"
 
 import { TaskNotFoundError } from "../errors.ts"
-import { CloudService } from "../CloudService.ts"
+import {
+	CloudService,
+	createCloudService,
+	getCloudService,
+	hasCloudService,
+	resetCloudService,
+} from "../CloudService.ts"
 import { WebAuthService } from "../WebAuthService.ts"
 import { CloudSettingsService } from "../CloudSettingsService.ts"
 import { CloudShareService } from "../CloudShareService.ts"
@@ -75,7 +81,7 @@ describe("CloudService", () => {
 	}
 
 	beforeEach(() => {
-		CloudService.resetInstance()
+		resetCloudService()
 
 		mockContext = {
 			subscriptions: [],
@@ -157,14 +163,14 @@ describe("CloudService", () => {
 
 	afterEach(() => {
 		vi.clearAllMocks()
-		CloudService.resetInstance()
+		resetCloudService()
 	})
 
 	describe("createInstance", () => {
 		it("should create and initialize CloudService instance", async () => {
 			const mockLog = vi.fn()
 
-			const cloudService = await CloudService.createInstance(mockContext, mockLog)
+			const cloudService = await createCloudService(mockContext, mockLog)
 
 			expect(cloudService).toBeInstanceOf(CloudService)
 			expect(WebAuthService).toHaveBeenCalledWith(mockContext, expect.any(Function))
@@ -174,17 +180,15 @@ describe("CloudService", () => {
 		it("should set up event listeners for CloudSettingsService", async () => {
 			const mockLog = vi.fn()
 
-			await CloudService.createInstance(mockContext, mockLog)
+			await createCloudService(mockContext, mockLog)
 
 			expect(mockSettingsService.on).toHaveBeenCalledWith("settings-updated", expect.any(Function))
 		})
 
 		it("should throw error if instance already exists", async () => {
-			await CloudService.createInstance(mockContext)
+			await createCloudService(mockContext)
 
-			await expect(CloudService.createInstance(mockContext)).rejects.toThrow(
-				"CloudService instance already created",
-			)
+			await expect(createCloudService(mockContext)).rejects.toThrow("CloudService instance already created")
 		})
 	})
 
@@ -192,7 +196,7 @@ describe("CloudService", () => {
 		let cloudService: CloudService
 
 		beforeEach(async () => {
-			cloudService = await CloudService.createInstance(mockContext)
+			cloudService = await createCloudService(mockContext)
 		})
 
 		it("should delegate login to AuthService", async () => {
@@ -348,7 +352,7 @@ describe("CloudService", () => {
 		let cloudService: CloudService
 
 		beforeEach(async () => {
-			cloudService = await CloudService.createInstance(mockContext)
+			cloudService = await createCloudService(mockContext)
 		})
 
 		it("should delegate getAllowList to SettingsService", () => {
@@ -365,28 +369,28 @@ describe("CloudService", () => {
 
 	describe("error handling", () => {
 		it("should throw error when accessing methods before initialization", () => {
-			expect(() => CloudService.instance.login()).toThrow("CloudService not initialized")
+			expect(() => getCloudService().login()).toThrow("CloudService not initialized")
 		})
 
 		it("should throw error when accessing instance before creation", () => {
-			expect(() => CloudService.instance).toThrow("CloudService not initialized")
+			expect(() => getCloudService()).toThrow("CloudService not initialized")
 		})
 	})
 
 	describe("hasInstance", () => {
 		it("should return false when no instance exists", () => {
-			expect(CloudService.hasInstance()).toBe(false)
+			expect(hasCloudService()).toBe(false)
 		})
 
 		it("should return true when instance exists and is initialized", async () => {
-			await CloudService.createInstance(mockContext)
-			expect(CloudService.hasInstance()).toBe(true)
+			await createCloudService(mockContext)
+			expect(hasCloudService()).toBe(true)
 		})
 	})
 
 	describe("dispose", () => {
 		it("should dispose of all services and clean up", async () => {
-			const cloudService = await CloudService.createInstance(mockContext)
+			const cloudService = await createCloudService(mockContext)
 			cloudService.dispose()
 
 			expect(mockSettingsService.dispose).toHaveBeenCalled()
@@ -407,7 +411,7 @@ describe("CloudService", () => {
 			// Override the mock to return our properly typed instance
 			vi.mocked(CloudSettingsService).mockImplementation(() => mockCloudSettingsService)
 
-			const cloudService = await CloudService.createInstance(mockContext)
+			const cloudService = await createCloudService(mockContext)
 
 			// Verify the listener was added
 			expect(mockCloudSettingsService.on).toHaveBeenCalledWith("settings-updated", expect.any(Function))
@@ -425,7 +429,7 @@ describe("CloudService", () => {
 
 		it("should handle disposal when using StaticSettingsService", async () => {
 			// Reset the instance first
-			CloudService.resetInstance()
+			resetCloudService()
 
 			// Mock a StaticSettingsService (which doesn't extend CloudSettingsService)
 			const mockStaticSettingsService = {
@@ -443,7 +447,7 @@ describe("CloudService", () => {
 			)
 
 			// This should not throw even though the service doesn't pass instanceof check
-			const _cloudService = await CloudService.createInstance(mockContext)
+			const _cloudService = await createCloudService(mockContext)
 
 			// Should not throw when disposing
 			expect(() => _cloudService.dispose()).not.toThrow()
@@ -459,7 +463,7 @@ describe("CloudService", () => {
 		let _cloudService: CloudService
 
 		beforeEach(async () => {
-			_cloudService = await CloudService.createInstance(mockContext)
+			_cloudService = await createCloudService(mockContext)
 		})
 
 		it("should emit settings-updated event when settings are updated", async () => {
@@ -505,7 +509,7 @@ describe("CloudService", () => {
 			mockAuthService.hasOrIsAcquiringActiveSession.mockReturnValue(true)
 			mockAuthService.getState.mockReturnValue("active")
 
-			cloudService = await CloudService.createInstance(mockContext)
+			cloudService = await createCloudService(mockContext)
 		})
 
 		it("should call shareTask without retry when successful", async () => {

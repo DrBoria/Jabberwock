@@ -11,14 +11,12 @@ vi.mock("os", () => ({
 }))
 
 vi.mock("@jabberwock/cloud", () => ({
-	CloudService: {
-		hasInstance: vi.fn(),
-		instance: {
-			hasActiveSession: vi.fn(),
-			hasOrIsAcquiringActiveSession: vi.fn(),
-			getOrganizationId: vi.fn(),
-		},
-	},
+	hasCloudService: vi.fn(),
+	getCloudService: vi.fn().mockReturnValue({
+		hasActiveSession: vi.fn(),
+		hasOrIsAcquiringActiveSession: vi.fn(),
+		getOrganizationId: vi.fn(),
+	}),
 	getClerkBaseUrl: vi.fn(),
 	PRODUCTION_CLERK_BASE_URL: "https://clerk.jabberwock.com",
 }))
@@ -58,12 +56,13 @@ vi.mock("../../../i18n", () => ({
 import * as fs from "fs"
 import * as os from "os"
 import * as vscode from "vscode"
-import { MdmService } from "../MdmService"
-import { CloudService, getClerkBaseUrl, PRODUCTION_CLERK_BASE_URL } from "@jabberwock/cloud"
+import { MdmService, getMdmService, resetMdmService } from "../MdmService"
+import { hasCloudService, getCloudService, getClerkBaseUrl, PRODUCTION_CLERK_BASE_URL } from "@jabberwock/cloud"
 
 const mockFs = fs as any
 const mockOs = os as any
-const mockCloudService = CloudService as any
+const mockHasCloudService = hasCloudService as any
+const mockGetCloudService = getCloudService as any
 const mockVscode = vscode as any
 const mockGetClerkBaseUrl = getClerkBaseUrl as any
 
@@ -72,7 +71,7 @@ describe("MdmService", () => {
 
 	beforeEach(() => {
 		// Reset singleton
-		MdmService.resetInstance()
+		resetMdmService()
 
 		// Store original platform
 		originalPlatform = process.platform
@@ -107,7 +106,7 @@ describe("MdmService", () => {
 		it("should create instance successfully", async () => {
 			mockFs.existsSync.mockReturnValue(false)
 
-			const service = await MdmService.createInstance()
+			const service = new MdmService()
 			expect(service).toBeInstanceOf(MdmService)
 		})
 
@@ -120,7 +119,7 @@ describe("MdmService", () => {
 			mockFs.existsSync.mockReturnValue(true)
 			mockFs.readFileSync.mockReturnValue(JSON.stringify(mockConfig))
 
-			const service = await MdmService.createInstance()
+			const service = new MdmService()
 
 			expect(service.requiresCloudAuth()).toBe(true)
 			expect(service.getRequiredOrganizationId()).toBe("test-org-123")
@@ -129,7 +128,7 @@ describe("MdmService", () => {
 		it("should handle missing MDM config file gracefully", async () => {
 			mockFs.existsSync.mockReturnValue(false)
 
-			const service = await MdmService.createInstance()
+			const service = new MdmService()
 
 			expect(service.requiresCloudAuth()).toBe(false)
 			expect(service.getRequiredOrganizationId()).toBeUndefined()
@@ -139,7 +138,7 @@ describe("MdmService", () => {
 			mockFs.existsSync.mockReturnValue(true)
 			mockFs.readFileSync.mockReturnValue("invalid json")
 
-			const service = await MdmService.createInstance()
+			const service = new MdmService()
 
 			expect(service.requiresCloudAuth()).toBe(false)
 		})
@@ -167,7 +166,7 @@ describe("MdmService", () => {
 
 			mockFs.existsSync.mockReturnValue(false)
 
-			await MdmService.createInstance()
+			new MdmService()
 
 			expect(mockFs.existsSync).toHaveBeenCalledWith(path.join("C:\\ProgramData", "Jabberwock", "mdm.json"))
 		})
@@ -179,7 +178,7 @@ describe("MdmService", () => {
 
 			mockFs.existsSync.mockReturnValue(false)
 
-			await MdmService.createInstance()
+			new MdmService()
 
 			expect(mockFs.existsSync).toHaveBeenCalledWith(path.join("C:\\ProgramData", "Jabberwock", "mdm.dev.json"))
 		})
@@ -190,7 +189,7 @@ describe("MdmService", () => {
 
 			mockFs.existsSync.mockReturnValue(false)
 
-			await MdmService.createInstance()
+			new MdmService()
 
 			expect(mockFs.existsSync).toHaveBeenCalledWith("/Library/Application Support/Jabberwock/mdm.json")
 		})
@@ -201,7 +200,7 @@ describe("MdmService", () => {
 
 			mockFs.existsSync.mockReturnValue(false)
 
-			await MdmService.createInstance()
+			new MdmService()
 
 			expect(mockFs.existsSync).toHaveBeenCalledWith("/Library/Application Support/Jabberwock/mdm.dev.json")
 		})
@@ -212,7 +211,7 @@ describe("MdmService", () => {
 
 			mockFs.existsSync.mockReturnValue(false)
 
-			await MdmService.createInstance()
+			new MdmService()
 
 			expect(mockFs.existsSync).toHaveBeenCalledWith("/etc/jabberwock/mdm.json")
 		})
@@ -223,7 +222,7 @@ describe("MdmService", () => {
 
 			mockFs.existsSync.mockReturnValue(false)
 
-			await MdmService.createInstance()
+			new MdmService()
 
 			expect(mockFs.existsSync).toHaveBeenCalledWith("/etc/jabberwock/mdm.dev.json")
 		})
@@ -234,7 +233,7 @@ describe("MdmService", () => {
 
 			mockFs.existsSync.mockReturnValue(false)
 
-			await MdmService.createInstance()
+			new MdmService()
 
 			expect(mockFs.existsSync).toHaveBeenCalledWith("/Library/Application Support/Jabberwock/mdm.dev.json")
 		})
@@ -244,7 +243,7 @@ describe("MdmService", () => {
 		it("should be compliant when no MDM policy exists", async () => {
 			mockFs.existsSync.mockReturnValue(false)
 
-			const service = await MdmService.createInstance()
+			const service = new MdmService()
 			const compliance = service.isCompliant()
 
 			expect(compliance.compliant).toBe(true)
@@ -255,10 +254,10 @@ describe("MdmService", () => {
 			mockFs.existsSync.mockReturnValue(true)
 			mockFs.readFileSync.mockReturnValue(JSON.stringify(mockConfig))
 
-			mockCloudService.hasInstance.mockReturnValue(true)
-			mockCloudService.instance.hasOrIsAcquiringActiveSession.mockReturnValue(true)
+			mockHasCloudService.mockReturnValue(true)
+			mockGetCloudService().hasOrIsAcquiringActiveSession.mockReturnValue(true)
 
-			const service = await MdmService.createInstance()
+			const service = new MdmService()
 			const compliance = service.isCompliant()
 
 			expect(compliance.compliant).toBe(true)
@@ -270,9 +269,9 @@ describe("MdmService", () => {
 			mockFs.readFileSync.mockReturnValue(JSON.stringify(mockConfig))
 
 			// Mock CloudService to indicate no instance or no active session
-			mockCloudService.hasInstance.mockReturnValue(false)
+			mockHasCloudService.mockReturnValue(false)
 
-			const service = await MdmService.createInstance()
+			const service = new MdmService()
 			const compliance = service.isCompliant()
 
 			expect(compliance.compliant).toBe(false)
@@ -291,11 +290,11 @@ describe("MdmService", () => {
 			mockFs.readFileSync.mockReturnValue(JSON.stringify(mockConfig))
 
 			// Mock CloudService to have instance and active session but wrong org
-			mockCloudService.hasInstance.mockReturnValue(true)
-			mockCloudService.instance.hasOrIsAcquiringActiveSession.mockReturnValue(true)
-			mockCloudService.instance.getOrganizationId.mockReturnValue("different-org-456")
+			mockHasCloudService.mockReturnValue(true)
+			mockGetCloudService().hasOrIsAcquiringActiveSession.mockReturnValue(true)
+			mockGetCloudService().getOrganizationId.mockReturnValue("different-org-456")
 
-			const service = await MdmService.createInstance()
+			const service = new MdmService()
 			const compliance = service.isCompliant()
 
 			expect(compliance.compliant).toBe(false)
@@ -313,11 +312,11 @@ describe("MdmService", () => {
 			mockFs.existsSync.mockReturnValue(true)
 			mockFs.readFileSync.mockReturnValue(JSON.stringify(mockConfig))
 
-			mockCloudService.hasInstance.mockReturnValue(true)
-			mockCloudService.instance.hasOrIsAcquiringActiveSession.mockReturnValue(true)
-			mockCloudService.instance.getOrganizationId.mockReturnValue("correct-org-123")
+			mockHasCloudService.mockReturnValue(true)
+			mockGetCloudService().hasOrIsAcquiringActiveSession.mockReturnValue(true)
+			mockGetCloudService().getOrganizationId.mockReturnValue("correct-org-123")
 
-			const service = await MdmService.createInstance()
+			const service = new MdmService()
 			const compliance = service.isCompliant()
 
 			expect(compliance.compliant).toBe(true)
@@ -328,11 +327,11 @@ describe("MdmService", () => {
 			mockFs.existsSync.mockReturnValue(true)
 			mockFs.readFileSync.mockReturnValue(JSON.stringify(mockConfig))
 
-			mockCloudService.hasInstance.mockReturnValue(true)
+			mockHasCloudService.mockReturnValue(true)
 			// Mock attempting session (not active, but acquiring)
-			mockCloudService.instance.hasOrIsAcquiringActiveSession.mockReturnValue(true)
+			mockGetCloudService().hasOrIsAcquiringActiveSession.mockReturnValue(true)
 
-			const service = await MdmService.createInstance()
+			const service = new MdmService()
 			const compliance = service.isCompliant()
 
 			expect(compliance.compliant).toBe(true)
@@ -341,22 +340,22 @@ describe("MdmService", () => {
 
 	describe("singleton pattern", () => {
 		it("should throw error when accessing instance before creation", () => {
-			expect(() => MdmService.getInstance()).toThrow("MdmService not initialized")
+			expect(() => getMdmService()).toThrow("MdmService not initialized")
 		})
 
 		it("should throw error when creating instance twice", async () => {
 			mockFs.existsSync.mockReturnValue(false)
 
-			await MdmService.createInstance()
+			new MdmService()
 
-			await expect(MdmService.createInstance()).rejects.toThrow("instance already exists")
+			await expect(new MdmService()).rejects.toThrow("instance already exists")
 		})
 
 		it("should return same instance", async () => {
 			mockFs.existsSync.mockReturnValue(false)
 
-			const service1 = await MdmService.createInstance()
-			const service2 = MdmService.getInstance()
+			const service1 = new MdmService()
+			const service2 = getMdmService()
 
 			expect(service1).toBe(service2)
 		})

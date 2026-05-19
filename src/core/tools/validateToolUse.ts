@@ -63,7 +63,7 @@ export function validateToolUse(
 	}
 
 	// Finally, check AgentStore specific permissions (Phase 2 Agent Profiles)
-	const agent = agentStore.agents.get((mode as any).slug || String(mode))
+	const agent = agentStore.agents.get(typeof mode === "string" ? mode : (mode as { slug: string }).slug)
 	if (agent && !agent.canUseTool(toolName)) {
 		throw new Error(`Agent profile "${agent.name}" (${agent.role}) is not authorized to use tool "${toolName}".`)
 	}
@@ -129,7 +129,7 @@ export function isToolAllowedForMode(
 	modeSlug: string,
 	customModes: ModeConfig[],
 	toolRequirements?: Record<string, boolean> | false,
-	toolParams?: Record<string, any>, // All tool parameters
+	toolParams?: Record<string, unknown>, // All tool parameters
 	experiments?: Record<string, boolean>,
 	includedTools?: string[], // Opt-in tools explicitly included (e.g., from modelInfo)
 ): boolean {
@@ -153,7 +153,7 @@ export function isToolAllowedForMode(
 	}
 
 	// Always allow these tools (unless explicitly disabled above)
-	if (ALWAYS_AVAILABLE_TOOLS.includes(tool as any)) {
+	if (ALWAYS_AVAILABLE_TOOLS.includes(tool as (typeof ALWAYS_AVAILABLE_TOOLS)[number])) {
 		return true
 	}
 
@@ -211,12 +211,12 @@ export function isToolAllowedForMode(
 
 		// For the edit group, check file regex if specified
 		if (groupName === "edit" && options.fileRegex) {
-			const filePath = toolParams?.path || toolParams?.file_path
+			const filePath = (toolParams?.path ?? toolParams?.file_path) as string | undefined
 			// Check if this is an actual edit operation (not just path-only for streaming)
 			const isEditOperation = EDIT_OPERATION_PARAMS.some((param) => toolParams?.[param])
 
 			// Handle single file path validation
-			if (filePath && isEditOperation && !doesFileMatchRegex(filePath, options.fileRegex)) {
+			if (filePath && isEditOperation && !doesFileMatchRegex(filePath as string, options.fileRegex)) {
 				throw new FileRestrictionError(mode.name, options.fileRegex, options.description, filePath, tool)
 			}
 

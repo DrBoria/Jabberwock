@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next"
 import { Button, Popover, PopoverContent, PopoverTrigger, StandardTooltip } from "@/components/ui"
 import { useJabberwockPortal } from "@/components/ui/hooks"
 
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { Checkpoint } from "./schema"
 
 type CheckpointMenuBaseProps = {
@@ -21,6 +21,10 @@ type CheckpointMenuUncontrolledProps = {
 }
 type CheckpointMenuProps = CheckpointMenuBaseProps & (CheckpointMenuControlledProps | CheckpointMenuUncontrolledProps)
 
+import {
+	CHAT_NOTIFICATIONS_CHECKPOINT_DIFF as _CHAT_NOTIFICATIONS_CHECKPOINT_DIFF,
+	CHAT_NOTIFICATIONS_CHECKPOINT_RESTORE as _CHAT_NOTIFICATIONS_CHECKPOINT_RESTORE,
+} from "@jabberwock/types"
 export const CheckpointMenu = ({ ts, commitHash, checkpoint, onOpenChange }: CheckpointMenuProps) => {
 	const { t } = useTranslation()
 	const [internalRestoreOpen, setInternalRestoreOpen] = useState(false)
@@ -53,33 +57,24 @@ export const CheckpointMenu = ({ ts, commitHash, checkpoint, onOpenChange }: Che
 	)
 
 	const onCheckpointDiff = useCallback(() => {
-		vscode.postMessage({
-			type: "checkpointDiff",
-			payload: { ts, previousCommitHash, commitHash, mode: "checkpoint" },
-		})
+		rootStore.chat.checkpointDiff({ ts, previousCommitHash, commitHash, mode: "checkpoint" })
 	}, [ts, previousCommitHash, commitHash])
 
 	const onDiffFromInit = useCallback(() => {
-		vscode.postMessage({
-			type: "checkpointDiff",
-			payload: { ts, commitHash, mode: "from-init" },
-		})
+		rootStore.chat.checkpointDiff({ ts, commitHash, mode: "from-init" })
 	}, [ts, commitHash])
 
 	const onDiffWithCurrent = useCallback(() => {
-		vscode.postMessage({
-			type: "checkpointDiff",
-			payload: { ts, commitHash, mode: "to-current" },
-		})
+		rootStore.chat.checkpointDiff({ ts, commitHash, mode: "to-current" })
 	}, [ts, commitHash])
 
 	const onPreview = useCallback(() => {
-		vscode.postMessage({ type: "checkpointRestore", payload: { ts, commitHash, mode: "preview" } })
+		rootStore.chat.checkpointRestore({ ts, commitHash, mode: "preview" })
 		setRestoreOpen(false)
 	}, [ts, commitHash, setRestoreOpen])
 
 	const onRestore = useCallback(() => {
-		vscode.postMessage({ type: "checkpointRestore", payload: { ts, commitHash, mode: "restore" } })
+		rootStore.chat.checkpointRestore({ ts, commitHash, mode: "restore" })
 		setRestoreOpen(false)
 	}, [ts, commitHash, setRestoreOpen])
 

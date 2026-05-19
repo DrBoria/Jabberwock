@@ -3,7 +3,7 @@ import { PocketKnife, Split, ArrowRight } from "lucide-react"
 import type { ClineMessage, ClineSayTool } from "@jabberwock/types"
 import { getModeBySlug } from "@shared/modes"
 import { safeJsonParse } from "@shared/core"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { toolIcon, TextButton, Container } from "@src/components/ui"
 import MarkdownBlock from "@src/components/common/MarkdownBlock"
@@ -11,7 +11,7 @@ import MarkdownBlock from "@src/components/common/MarkdownBlock"
 interface ToolRendererProps {
 	message: ClineMessage
 	tool: ClineSayTool
-	t: (key: string, options?: any) => string
+	t: (key: string, options?: Record<string, unknown>) => string
 }
 
 /** Renders switchMode tool */
@@ -87,7 +87,7 @@ export const NewTaskRenderer: React.FC<ToolRendererProps> = ({ message, tool, t 
 				<MarkdownBlock markdown={tool.content} />
 				<div>
 					{childTaskId && !isFollowedBySubtaskResult && (
-						<TextButton onClick={() => vscode.postMessage({ type: "showTaskWithId", text: childTaskId })}>
+						<TextButton onClick={() => rootStore.chat.navigateToTask(childTaskId)}>
 							{t("chat:subtasks.goToSubtask")}
 							<ArrowRight className="size-3" />
 						</TextButton>

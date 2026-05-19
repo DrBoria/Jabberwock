@@ -48,6 +48,30 @@ const actionHandlers: Record<string, (ctx: DomHandlerContext, req: Record<string
 	getScreenshot: handleGetScreenshot,
 	dragElement: handleDragElement,
 	dragFromTo: handleDragFromTo,
+	// Store query actions — these have no-op handlers here because they are
+	// handled directly in App.tsx where rootStore is available. The no-op
+	// prevents "NO HANDLER" warnings in the console.
+	getStoreSnapshot: async (_ctx, _req) => {
+		/* handled in App.tsx */
+	},
+	getStoreActions: async (_ctx, _req) => {
+		/* handled in App.tsx */
+	},
+	filterStoreState: async (_ctx, _req) => {
+		/* handled in App.tsx */
+	},
+	filterStoreActions: async (_ctx, _req) => {
+		/* handled in App.tsx */
+	},
+	searchStoreActions: async (_ctx, _req) => {
+		/* handled in App.tsx */
+	},
+	countStoreActions: async (_ctx, _req) => {
+		/* handled in App.tsx */
+	},
+	applyStoreSnapshot: async (_ctx, _req) => {
+		/* handled in App.tsx */
+	},
 }
 
 /**
@@ -60,28 +84,45 @@ const actionHandlers: Record<string, (ctx: DomHandlerContext, req: Record<string
 export function createDomMessageHandler(postMessage: (msg: unknown) => void): (e: MessageEvent) => void {
 	const ctx = createIframeContext(postMessage)
 
+	let msgCount = 0
 	return (e: MessageEvent) => {
 		const message = e.data as Record<string, unknown>
+		msgCount++
+		const msgType = message.type as string
+		const msgAction = message.action as string
+		const msgReqId = message.requestId as string
 
 		// ── dom-response (from iframe content after dom-query/dom-action) ──
 		if (message.type === "dom-response") {
+			console.log(`[DEBUG:DOMHANDLER] #${msgCount} dom-response: req=${msgReqId}`)
 			handleDomResponse(ctx, message)
 			return
 		}
 
 		// ── getActivePage (special: returns activePageResponse, not domResponse) ──
 		if (message.type === "action" && message.action === "getActivePage") {
+			console.log(`[DEBUG:DOMHANDLER] #${msgCount} getActivePage: req=${msgReqId}`)
 			handleGetActivePage(ctx, message)
 			return
 		}
 
 		// All other actions require type="action" and a requestId
-		if (message.type !== "action" || !message.requestId) return
+		if (message.type !== "action" || !message.requestId) {
+			if (message.type !== "state" && message.type !== "theme") {
+				console.log(
+					`[DEBUG:DOMHANDLER] #${msgCount} SKIP (not action or no requestId): type=${msgType} action=${msgAction} req=${msgReqId}`,
+				)
+			}
+			return
+		}
 
 		const action = message.action as string
 		const handler = actionHandlers[action]
 		if (handler) {
+			console.log(`[DEBUG:DOMHANDLER] #${msgCount} ROUTING: action=${action} req=${msgReqId}`)
 			handler(ctx, message)
+		} else {
+			console.warn(`[DEBUG:DOMHANDLER] #${msgCount} NO HANDLER for action=${action} req=${msgReqId}`)
 		}
 	}
 }

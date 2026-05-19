@@ -1,9 +1,9 @@
-import type { ClineMessage } from "@jabberwock/types"
+import type { ClineMessage, TodoItem } from "@jabberwock/types"
 
 /**
  * Get previous todos before a specific message
  */
-export function getPreviousTodos(messages: ClineMessage[], currentMessageTs: number): any[] {
+export function getPreviousTodos(messages: ClineMessage[], currentMessageTs: number): TodoItem[] {
 	const previousUpdateIndex = messages
 		.slice()
 		.reverse()

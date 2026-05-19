@@ -1,11 +1,18 @@
 import { render, screen, fireEvent } from "@/utils/test-utils"
 
-import { vscode } from "@jabberwock/devtool/react"
-
 import SubtaskRow from "../SubtaskRow"
 import type { SubtaskTreeNode, DisplayHistoryItem } from "../types"
 
-vi.mock("@jabberwock/devtool/react")
+const mockNavigateToTask = vi.fn()
+
+vi.mock("@src/features/store", () => ({
+	rootStore: {
+		chat: {
+			navigateToTask: mockNavigateToTask,
+		},
+	},
+}))
+
 vi.mock("@src/i18n/TranslationContext", () => ({
 	useAppTranslation: () => ({
 		t: (key: string, options?: Record<string, unknown>) => {
@@ -111,7 +118,7 @@ describe("SubtaskRow", () => {
 	})
 
 	describe("click behavior", () => {
-		it("sends showTaskWithId message when task row is clicked", () => {
+		it("calls chatStore.navigateToTask when task row is clicked", () => {
 			const node = createMockNode({ id: "task-42", task: "Clickable task" })
 
 			render(<SubtaskRow node={node} depth={1} onToggleExpand={vi.fn()} />)
@@ -119,10 +126,7 @@ describe("SubtaskRow", () => {
 			const row = screen.getByRole("button")
 			fireEvent.click(row)
 
-			expect(vscode.postMessage).toHaveBeenCalledWith({
-				type: "showTaskWithId",
-				text: "task-42",
-			})
+			expect(mockNavigateToTask).toHaveBeenCalledWith("task-42")
 		})
 
 		it("calls onToggleExpand with correct task ID when collapsible row is clicked", () => {

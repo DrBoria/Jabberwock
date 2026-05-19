@@ -4,7 +4,7 @@ import { IEmbedder } from "./interfaces/embedder"
 import { IVectorStore } from "./interfaces/vector-store"
 import { CodeIndexConfigManager } from "./config-manager"
 import { CodeIndexStateManager } from "./state-manager"
-import { TelemetryService } from "@jabberwock/telemetry"
+import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 import { TelemetryEventName } from "@jabberwock/types"
 
 /**
@@ -62,7 +62,7 @@ export class CodeIndexSearchService {
 			this.stateManager.setSystemState("Error", `Search failed: ${(error as Error).message}`)
 
 			// Capture telemetry for the error
-			TelemetryService.instance.captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
+			getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
 				error: (error as Error).message,
 				stack: (error as Error).stack,
 				location: "searchIndex",

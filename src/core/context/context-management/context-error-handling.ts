@@ -1,5 +1,28 @@
 import { APIError } from "openai"
 
+/**
+ * Shape of unknown error objects from various providers for context-window checks.
+ * All fields are optional since we're accessing potentially missing properties.
+ */
+interface ErrorResponseShape {
+	status?: unknown
+	code?: unknown
+	error?: {
+		status?: unknown
+		message?: unknown
+		error?: {
+			type?: string
+			message?: string
+			code?: string
+		}
+	}
+	response?: {
+		status?: unknown
+	}
+	message?: unknown
+	name?: string
+}
+
 export function checkContextWindowExceededError(error: unknown): boolean {
 	return (
 		checkIsOpenAIContextWindowError(error) ||
@@ -14,8 +37,8 @@ function checkIsOpenRouterContextWindowError(error: unknown): boolean {
 			return false
 		}
 
-		// Use Record<string, any> for proper type narrowing
-		const err = error as Record<string, any>
+		// Use type assertion for error property access
+		const err = error as ErrorResponseShape
 		const status = err.status ?? err.code ?? err.error?.status ?? err.response?.status
 		const message: string = String(err.message || err.error?.message || "")
 
@@ -62,7 +85,7 @@ function checkIsAnthropicContextWindowError(response: unknown): boolean {
 		}
 
 		// Use type assertions with proper checks
-		const res = response as Record<string, any>
+		const res = response as ErrorResponseShape
 
 		// Check for Anthropic-specific error structure with more specific validation
 		if (res.error?.error?.type === "invalid_request_error") {

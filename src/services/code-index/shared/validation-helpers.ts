@@ -88,25 +88,30 @@ export function getErrorMessageForStatus(status: number | undefined, embedderTyp
 /**
  * Extracts status code from various error formats
  */
-export function extractStatusCode(error: any): number | undefined {
+export function extractStatusCode(error: unknown): number | undefined {
 	// Direct status property
-	if (error?.status) return error.status
+	const errorRecord = error as Record<string, unknown>
+	if (errorRecord.status !== undefined && typeof errorRecord.status === "number") return errorRecord.status
 
 	// Response status property
-	if (error?.response?.status) return error.response.status
+	const response = errorRecord.response as Record<string, unknown> | undefined
+	if (response?.status !== undefined && typeof response.status === "number") return response.status
 
 	// Extract from error message (e.g., "HTTP 404: Not Found")
-	if (error?.message) {
-		const match = error.message.match(/HTTP (\d+):/)
+	const message = errorRecord.message
+	if (typeof message === "string") {
+		const match = message.match(/HTTP (\d+):/)
 		if (match) {
 			return parseInt(match[1], 10)
 		}
 	}
 
 	// Use serialize-error as fallback for complex objects
-	const serialized = serializeError(error)
-	if (serialized?.status) return serialized.status
-	if (serialized?.response?.status) return serialized.response.status
+	const serialized = serializeError(error) as Record<string, unknown>
+	if (serialized.status !== undefined && typeof serialized.status === "number") return serialized.status
+	const serializedResponse = serialized.response as Record<string, unknown> | undefined
+	if (serializedResponse?.status !== undefined && typeof serializedResponse.status === "number")
+		return serializedResponse.status
 
 	return undefined
 }
@@ -114,9 +119,11 @@ export function extractStatusCode(error: any): number | undefined {
 /**
  * Extracts error message from various error formats
  */
-export function extractErrorMessage(error: any): string {
-	if (error?.message) {
-		return error.message
+export function extractErrorMessage(error: unknown): string {
+	const errorRecord = error as Record<string, unknown>
+	const message = errorRecord.message
+	if (typeof message === "string") {
+		return message
 	}
 
 	if (typeof error === "string") {
@@ -132,9 +139,10 @@ export function extractErrorMessage(error: any): string {
 	}
 
 	// Use serialize-error as fallback for complex objects
-	const serialized = serializeError(error)
-	if (serialized?.message) {
-		return serialized.message
+	const serialized = serializeError(error) as Record<string, unknown>
+	const serializedMessage = serialized.message
+	if (typeof serializedMessage === "string") {
+		return serializedMessage
 	}
 
 	return "Unknown error"
@@ -145,10 +153,10 @@ export function extractErrorMessage(error: any): string {
  * Returns a consistent error response based on the error type
  */
 export function handleValidationError(
-	error: any,
+	error: unknown,
 	embedderType: string,
 	customHandlers?: {
-		beforeStandardHandling?: (error: any) => { valid: boolean; error: string } | undefined
+		beforeStandardHandling?: (error: unknown) => { valid: boolean; error: string } | undefined
 	},
 ): { valid: boolean; error: string } {
 	// Serialize the error to ensure we have access to all properties
@@ -215,7 +223,7 @@ export async function withValidationErrorHandling<T extends { valid: boolean; er
 /**
  * Formats an embedding error message based on the error type and context
  */
-export function formatEmbeddingError(error: any, maxRetries: number): Error {
+export function formatEmbeddingError(error: unknown, maxRetries: number): Error {
 	const errorMessage = extractErrorMessage(error)
 	const statusCode = extractStatusCode(error)
 

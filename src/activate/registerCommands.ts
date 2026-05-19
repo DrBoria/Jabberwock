@@ -2,30 +2,30 @@ import * as vscode from "vscode"
 import delay from "delay"
 
 import type { CommandId } from "@jabberwock/types"
-import { TelemetryService } from "@jabberwock/telemetry"
+import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 
 import { Package } from "../shared/package"
 import { getCommand } from "../utils/commands"
-import { ClineProvider } from "../core/webview/ClineProvider"
+import { EventBridge } from "../core/webview/EventBridge"
 import { ContextProxy } from "../core/config/ContextProxy"
 import { focusPanel } from "../utils/focusPanel"
 import { handleNewTask } from "./handleTask"
-import { CodeIndexManager } from "../services/code-index/manager"
+import { getCodeIndexManager } from "../services/code-index/manager"
 import { importSettingsWithFeedback } from "../core/config/importExport"
-import { MdmService } from "../services/mdm/MdmService"
+import { MdmService, getMdmService } from "../services/mdm/MdmService"
 import { t } from "../i18n"
 
 /**
- * Helper to get the visible ClineProvider instance or log if not found.
+ * Helper to get the visible EventBridge instance or log if not found.
  * Falls back to the first available (non-disposed) instance when no visible
  * instance exists, so that VSCode toolbar commands (settings, history, etc.)
  * still work even when the sidebar is hidden or in another tab group.
  */
-export function getVisibleProviderOrLog(outputChannel: vscode.OutputChannel): ClineProvider | undefined {
-	const visibleProvider = ClineProvider.getVisibleInstance()
+export async function getVisibleProviderOrLog(outputChannel: vscode.OutputChannel): Promise<EventBridge | undefined> {
+	const visibleProvider = await EventBridge.getVisibleInstance()
 	if (!visibleProvider) {
 		// Fallback: try the first available (non-disposed) instance
-		const fallback = ClineProvider.getFirstAvailableInstance()
+		const fallback = EventBridge.getFirstAvailableInstance()
 		if (fallback) {
 			outputChannel.appendLine(
 				"No visible Jabberwock instance found; using first available instance as fallback.",
@@ -69,7 +69,7 @@ export function setPanel(
 export type RegisterCommandOptions = {
 	context: vscode.ExtensionContext
 	outputChannel: vscode.OutputChannel
-	provider: ClineProvider
+	provider: EventBridge
 }
 
 export const registerCommands = (options: RegisterCommandOptions) => {
@@ -81,89 +81,102 @@ export const registerCommands = (options: RegisterCommandOptions) => {
 	}
 }
 
-const getCommandsMap = ({ context, outputChannel, provider }: RegisterCommandOptions): Record<CommandId, any> => ({
+const getCommandsMap = ({
+	context,
+	outputChannel,
+	provider,
+}: RegisterCommandOptions): Record<CommandId, (...args: unknown[]) => unknown> => ({
 	activationCompleted: () => {},
-	cloudButtonClicked: () => {
-		const visibleProvider = getVisibleProviderOrLog(outputChannel)
+	cloudButtonClicked: async () => {
+		const visibleProvider = await getVisibleProviderOrLog(outputChannel)
 
 		if (!visibleProvider) {
 			return
 		}
 
-		TelemetryService.instance.captureTitleButtonClicked("cloud")
+		getTelemetryService().captureTitleButtonClicked("cloud")
 
 		visibleProvider.postMessageToWebview({ type: "action", action: "cloudButtonClicked" })
 	},
 	plusButtonClicked: async () => {
-		const visibleProvider = getVisibleProviderOrLog(outputChannel)
+		const visibleProvider = await getVisibleProviderOrLog(outputChannel)
 
 		if (!visibleProvider) {
 			return
 		}
 
-		TelemetryService.instance.captureTitleButtonClicked("plus")
+		getTelemetryService().captureTitleButtonClicked("plus")
 
 		// Only clear task stack if there are active tasks to prevent memory leaks
-		if (visibleProvider.getTaskStackSize() > 0) {
-			await visibleProvider.clearTaskStack()
+		const vp = visibleProvider as { taskStack?: unknown[] }
+		const taskStack = vp.taskStack
+		if (taskStack && taskStack.length > 0) {
+			taskStack.splice(0, taskStack.length)
 		}
-		await visibleProvider.refreshWorkspace()
 		await visibleProvider.postMessageToWebview({ type: "action", action: "chatButtonClicked" })
 		// Send focusInput action immediately after chatButtonClicked
 		// This ensures the focus happens after the view has switched
 		await visibleProvider.postMessageToWebview({ type: "action", action: "focusInput" })
 	},
 	popoutButtonClicked: () => {
-		TelemetryService.instance.captureTitleButtonClicked("popout")
+		getTelemetryService().captureTitleButtonClicked("popout")
 
 		return openClineInNewTab({ context, outputChannel })
 	},
 	openInNewTab: () => openClineInNewTab({ context, outputChannel }),
-	settingsButtonClicked: () => {
-		const visibleProvider = getVisibleProviderOrLog(outputChannel)
+	settingsButtonClicked: async () => {
+		console.log("[DEBUG:CMD] settingsButtonClicked ENTER")
+		const t0 = performance.now()
+		const visibleProvider = await getVisibleProviderOrLog(outputChannel)
 
 		if (!visibleProvider) {
+			console.warn("[DEBUG:CMD] settingsButtonClicked: no visible provider")
 			return
 		}
 
-		TelemetryService.instance.captureTitleButtonClicked("settings")
+		getTelemetryService().captureTitleButtonClicked("settings")
 
+		const t1 = performance.now()
+		console.log(
+			`[DEBUG:CMD] settingsButtonClicked: posting settingsButtonClicked msg (after ${(t1 - t0).toFixed(1)}ms)`,
+		)
 		visibleProvider.postMessageToWebview({ type: "action", action: "settingsButtonClicked" })
-		// Also explicitly post the visibility message to trigger scroll reliably
-		visibleProvider.postMessageToWebview({ type: "action", action: "didBecomeVisible" })
+		const t3 = performance.now()
+		console.log(`[DEBUG:CMD] settingsButtonClicked EXIT (total ${(t3 - t0).toFixed(1)}ms)`)
 	},
-	historyButtonClicked: () => {
-		const visibleProvider = getVisibleProviderOrLog(outputChannel)
+	historyButtonClicked: async () => {
+		const visibleProvider = await getVisibleProviderOrLog(outputChannel)
 
 		if (!visibleProvider) {
 			return
 		}
 
-		TelemetryService.instance.captureTitleButtonClicked("history")
+		getTelemetryService().captureTitleButtonClicked("history")
 
 		visibleProvider.postMessageToWebview({ type: "action", action: "historyButtonClicked" })
 	},
-	marketplaceButtonClicked: () => {
-		const visibleProvider = getVisibleProviderOrLog(outputChannel)
+	marketplaceButtonClicked: async () => {
+		const visibleProvider = await getVisibleProviderOrLog(outputChannel)
 		if (!visibleProvider) return
 		visibleProvider.postMessageToWebview({ type: "action", action: "marketplaceButtonClicked" })
 	},
-	newTask: handleNewTask,
+	newTask: (...args: unknown[]) => handleNewTask(args[0] as { prompt?: string } | null | undefined),
 	setCustomStoragePath: async () => {
 		const { promptForCustomStoragePath } = await import("../utils/storage")
 		await promptForCustomStoragePath()
 	},
-	importSettings: async (filePath?: string) => {
-		const visibleProvider = getVisibleProviderOrLog(outputChannel)
+	importSettings: async (...args: unknown[]) => {
+		const filePath = args[0] as string | undefined
+		const visibleProvider = await getVisibleProviderOrLog(outputChannel)
 		if (!visibleProvider) {
 			return
 		}
 
 		await importSettingsWithFeedback(
 			{
-				providerSettingsManager: visibleProvider.providerSettingsManager,
+				providerSettingsManager: visibleProvider.providerSettingsManager!,
 				contextProxy: visibleProvider.contextProxy,
-				customModesManager: visibleProvider.customModesManager,
+				customModesManager: visibleProvider.customModesManager!,
 				provider: visibleProvider,
 			},
 			filePath,
@@ -188,8 +201,8 @@ const getCommandsMap = ({ context, outputChannel, provider }: RegisterCommandOpt
 			outputChannel.appendLine(`Error focusing panel: ${error}`)
 		}
 	},
-	acceptInput: () => {
-		const visibleProvider = getVisibleProviderOrLog(outputChannel)
+	acceptInput: async () => {
+		const visibleProvider = await getVisibleProviderOrLog(outputChannel)
 
 		if (!visibleProvider) {
 			return
@@ -198,7 +211,7 @@ const getCommandsMap = ({ context, outputChannel, provider }: RegisterCommandOpt
 		visibleProvider.postMessageToWebview({ type: "acceptInput" })
 	},
 	toggleAutoApprove: async () => {
-		const visibleProvider = getVisibleProviderOrLog(outputChannel)
+		const visibleProvider = await getVisibleProviderOrLog(outputChannel)
 
 		if (!visibleProvider) {
 			return
@@ -217,18 +230,18 @@ export const openClineInNewTab = async ({ context, outputChannel }: Omit<Registe
 	// don't need to use that event).
 	// https://github.com/microsoft/vscode-extension-samples/blob/main/webview-sample/src/extension.ts
 	const contextProxy = await ContextProxy.getInstance(context)
-	const codeIndexManager = CodeIndexManager.getInstance(context)
+	const codeIndexManager = getCodeIndexManager(context)
 
 	// Get the existing MDM service instance to ensure consistent policy enforcement
 	let mdmService: MdmService | undefined
 	try {
-		mdmService = MdmService.getInstance()
+		mdmService = getMdmService()
 	} catch (error) {
 		// MDM service not initialized, which is fine - extension can work without it
 		mdmService = undefined
 	}
 
-	const tabProvider = new ClineProvider(context, outputChannel, "editor", contextProxy, mdmService)
+	const tabProvider = new EventBridge(context, outputChannel, "editor", contextProxy, mdmService)
 	const lastCol = Math.max(...vscode.window.visibleTextEditors.map((editor) => editor.viewColumn || 0))
 
 	// Check if there are any visible text editors, otherwise open a new group
@@ -241,7 +254,7 @@ export const openClineInNewTab = async ({ context, outputChannel }: Omit<Registe
 
 	const targetCol = hasVisibleEditors ? Math.max(lastCol + 1, 1) : vscode.ViewColumn.Two
 
-	const newPanel = vscode.window.createWebviewPanel(ClineProvider.tabPanelId, "Jabberwock", targetCol, {
+	const newPanel = vscode.window.createWebviewPanel(EventBridge.tabPanelId, "Jabberwock", targetCol, {
 		enableScripts: true,
 		retainContextWhenHidden: true,
 		localResourceRoots: [context.extensionUri],

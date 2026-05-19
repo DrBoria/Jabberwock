@@ -1,15 +1,17 @@
 import { types, Instance } from "mobx-state-tree"
 
+import type { McpServer } from "@jabberwock/types"
+
 /**
  * McpServersStore — tracks MCP server list.
  * Receives snapshots from the extension-side McpServersStore via MstBridge.
  */
 export const McpServersStore = types
 	.model("McpServersStore", {
-		servers: types.optional(types.array(types.frozen<any>()), []),
+		servers: types.array(types.frozen<McpServer>()),
 	})
 	.actions((self) => ({
-		setServers(servers: any[]) {
+		setServers(servers: McpServer[]) {
 			self.servers.replace(servers)
 		},
 	}))

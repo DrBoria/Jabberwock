@@ -15,7 +15,7 @@ import { useAppTranslation } from "@/i18n/TranslationContext"
 import { Tab, TabContent, TabHeader } from "../common/Tab"
 import { useTaskSearch } from "./useTaskSearch"
 import { useGroupedTasks } from "./useGroupedTasks"
-import { countAllSubtasks } from "./types"
+import { countAllSubtasks, type DisplayHistoryItem, type TaskGroup } from "./types"
 import TaskItem from "./TaskItem"
 import TaskGroupItem from "./TaskGroupItem"
 
@@ -25,9 +25,9 @@ type HistoryViewProps = {
 
 type SortOption = "newest" | "oldest" | "mostExpensive" | "mostTokens" | "mostRelevant"
 
-const VirtuosoList = React.forwardRef<HTMLDivElement>((props, ref) => (
-	<div {...props} ref={ref} data-testid="virtuoso-item-list" />
-)) as any
+const VirtuosoList = React.forwardRef<HTMLDivElement, { style?: React.CSSProperties; className?: string }>(
+	(props, ref) => <div {...props} ref={ref} data-testid="virtuoso-item-list" />,
+)
 
 const HistoryView = ({ onDone }: HistoryViewProps) => {
 	const {
@@ -104,7 +104,7 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 
 	// Stable itemContent callbacks for Virtuoso to prevent re-render loops
 	const searchItemContent = useCallback(
-		(_index: number, item: any) => (
+		(_index: number, item: DisplayHistoryItem) => (
 			<TaskItem
 				key={item.id}
 				item={item}
@@ -121,7 +121,7 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 	)
 
 	const groupItemContent = useCallback(
-		(_index: number, group: any) => (
+		(_index: number, group: TaskGroup) => (
 			<TaskGroupItem
 				key={group.parent.id}
 				group={group}

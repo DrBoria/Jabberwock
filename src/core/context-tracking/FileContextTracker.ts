@@ -7,7 +7,7 @@ import { fileExistsAtPath } from "../../utils/fs"
 import fs from "fs/promises"
 import { ContextProxy } from "../config/ContextProxy"
 import type { FileMetadataEntry, RecordSource, TaskMetadata } from "./FileContextTrackerTypes"
-import { ClineProvider } from "../webview/ClineProvider"
+import { EventBridge } from "../webview/EventBridge"
 
 // This class is responsible for tracking file operations that may result in stale context.
 // If a user modifies a file outside of Jabberwock, the context may become stale and need to be updated.
@@ -22,7 +22,7 @@ import { ClineProvider } from "../webview/ClineProvider"
 // If a file is modified outside of Jabberwock, we detect and track this change to prevent stale context.
 export class FileContextTracker {
 	readonly taskId: string
-	private providerRef: WeakRef<ClineProvider>
+	private providerRef: WeakRef<EventBridge>
 
 	// File tracking and watching
 	private fileWatchers = new Map<string, vscode.FileSystemWatcher>()
@@ -30,7 +30,7 @@ export class FileContextTracker {
 	private recentlyEditedByRoo = new Set<string>()
 	private checkpointPossibleFiles = new Set<string>()
 
-	constructor(provider: ClineProvider, taskId: string) {
+	constructor(provider: EventBridge, taskId: string) {
 		this.providerRef = new WeakRef(provider)
 		this.taskId = taskId
 	}
@@ -97,7 +97,7 @@ export class FileContextTracker {
 	public getContextProxy(): ContextProxy | undefined {
 		const provider = this.providerRef.deref()
 		if (!provider) {
-			console.error("ClineProvider reference is no longer valid")
+			console.error("EventBridge reference is no longer valid")
 			return undefined
 		}
 		const context = provider.contextProxy

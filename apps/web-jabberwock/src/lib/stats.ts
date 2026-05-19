@@ -46,13 +46,14 @@ export async function getVSCodeReviews() {
 			return []
 		}
 
-		/* eslint-disable  @typescript-eslint/no-explicit-any */
-		return reviews.map((review: any) => ({
-			name: review.reviewer?.displayName || "Anonymous",
-			rating: review.rating,
-			content: review.text,
-			date: new Date(review.date).toLocaleDateString(),
-		}))
+		return reviews.map(
+			(review: { reviewer?: { displayName?: string }; rating: number; text: string; date: string }) => ({
+				name: review.reviewer?.displayName || "Anonymous",
+				rating: review.rating,
+				content: review.text,
+				date: new Date(review.date).toLocaleDateString(),
+			}),
+		)
 	} catch (error) {
 		console.error("Error fetching VSCode reviews:", error)
 		return []
@@ -89,8 +90,9 @@ export async function getVSCodeDownloads() {
 			return null
 		}
 
-		/* eslint-disable  @typescript-eslint/no-explicit-any */
-		const installStat = statistics.find((stat: any) => stat.statisticName === "install")
+		const installStat = statistics.find(
+			(stat: { statisticName: string; value: number }) => stat.statisticName === "install",
+		)
 		if (!installStat) {
 			console.error("VSCode API: Install count not found")
 			return null

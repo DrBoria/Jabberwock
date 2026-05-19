@@ -1,8 +1,8 @@
 import * as vscode from "vscode"
 import path from "path"
 
-import { Task } from "../task/Task"
-import { CodeIndexManager } from "../../services/code-index/manager"
+import { Task } from "../../features/chat/task/Task"
+import { CodeIndexManager, getCodeIndexManager } from "../../services/code-index/manager"
 import { getWorkspacePath } from "../../utils/path"
 import { formatResponse } from "../prompts/responses"
 import { VectorStoreSearchResult } from "../../services/code-index/interfaces"
@@ -57,7 +57,7 @@ export class CodebaseSearchTool extends BaseTool<"codebase_search"> {
 				throw new Error("Extension context is not available.")
 			}
 
-			const manager = CodeIndexManager.getInstance(context)
+			const manager = getCodeIndexManager(context)
 
 			if (!manager) {
 				throw new Error("CodeIndexManager is not available.")
@@ -123,8 +123,8 @@ Code Chunk: ${result.codeChunk}
 	.join("\n")}`
 
 			pushToolResult(output)
-		} catch (error: any) {
-			await handleError("codebase_search", error)
+		} catch (error) {
+			await handleError("codebase_search", error instanceof Error ? error : new Error(String(error)))
 		}
 	}
 

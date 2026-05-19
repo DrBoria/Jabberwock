@@ -18,8 +18,7 @@ import { CustomToolsSettings } from "./CustomToolsSettings"
 type ExperimentalSettingsProps = HTMLAttributes<HTMLDivElement> & {
 	experiments: Experiments
 	setExperimentEnabled: SetExperimentEnabled
-	apiConfiguration?: any
-	setApiConfigurationField?: any
+	apiConfiguration?: Record<string, unknown>
 	imageGenerationProvider?: ImageGenerationProvider
 	openRouterImageApiKey?: string
 	openRouterImageGenerationSelectedModel?: string
@@ -32,7 +31,6 @@ export const ExperimentalSettings = ({
 	experiments,
 	setExperimentEnabled,
 	apiConfiguration,
-	setApiConfigurationField,
 	imageGenerationProvider,
 	openRouterImageApiKey,
 	openRouterImageGenerationSelectedModel,

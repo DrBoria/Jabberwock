@@ -1,8 +1,9 @@
 import delay from "delay"
 
-import { Task } from "../task/Task"
+import { Task } from "../../features/chat/task/Task"
 import { formatResponse } from "../prompts/responses"
 import { defaultModeSlug, getModeBySlug } from "../../shared/modes"
+import type { ModeConfig } from "@jabberwock/types"
 import { BaseTool, ToolCallbacks } from "./BaseTool"
 import type { ToolUse } from "../../shared/tools"
 
@@ -29,7 +30,10 @@ export class SwitchModeTool extends BaseTool<"switch_mode"> {
 			task.consecutiveMistakeCount = 0
 
 			// Verify the mode exists
-			const targetMode = getModeBySlug(mode_slug, (await task.providerRef.deref()?.getState())?.customModes)
+			const targetMode = getModeBySlug(
+				mode_slug,
+				(await task.providerRef.deref()?.getState())?.customModes as ModeConfig[] | undefined,
+			)
 
 			if (!targetMode) {
 				task.recordToolError("switch_mode")
@@ -61,7 +65,11 @@ export class SwitchModeTool extends BaseTool<"switch_mode"> {
 			}
 
 			// Switch the mode using shared handler
-			await task.providerRef.deref()?.handleModeSwitch(mode_slug)
+			// Switch the mode using shared handler
+			const deref = task.providerRef.deref()
+			if (deref) {
+				await handleModeSwitch(deref, mode_slug)
+			}
 
 			pushToolResult(
 				`Successfully switched from ${getModeBySlug(currentMode)?.name ?? currentMode} mode to ${
@@ -88,5 +96,7 @@ export class SwitchModeTool extends BaseTool<"switch_mode"> {
 		await task.ask("tool", partialMessage, block.partial).catch(() => {})
 	}
 }
+
+import { handleModeSwitch } from "../../features/foundation/window-manager/store"
 
 export const switchModeTool = new SwitchModeTool()

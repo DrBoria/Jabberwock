@@ -1,13 +1,16 @@
-import { Task } from "../task/Task"
-import { ClineProvider } from "./ClineProvider"
+import { Task } from "../../features/chat/task/Task"
+import { EventBridge, type CurrentTask } from "./EventBridge"
 import { saveTaskMessages } from "../task-persistence"
 import * as vscode from "vscode"
 import pWaitFor from "p-wait-for"
 import { t } from "../../i18n"
+import { getState } from "../../features/storeSingleton"
+import { getTaskWithId } from "../../features/history/store"
+import { createTaskWithHistoryItem } from "../../features/chat/task/actions/startTask"
 
 export interface CheckpointRestoreConfig {
-	provider: ClineProvider
-	currentCline: Task
+	provider: EventBridge
+	currentCline: CurrentTask
 	messageTs: number
 	messageIndex: number
 	checkpoint: { hash: string }
@@ -44,13 +47,16 @@ export async function handleCheckpointRestoreOperation(config: CheckpointRestore
 		// For edit operations, set up pending edit data before restoration
 		if (operation === "edit" && editData) {
 			const operationId = `task-${currentCline.taskId}`
-			provider.setPendingEditOperation(operationId, {
-				messageTs,
-				editedContent: editData.editedContent,
-				images: editData.images,
-				messageIndex: config.messageIndex,
-				apiConversationHistoryIndex: editData.apiConversationHistoryIndex,
-			})
+			getState(provider).foundation.agentState.pendingEditOp = {
+				id: operationId,
+				data: {
+					messageTs,
+					editedContent: editData.editedContent,
+					images: editData.images,
+					messageIndex: config.messageIndex,
+					apiConversationHistoryIndex: editData.apiConversationHistoryIndex,
+				},
+			}
 		}
 
 		// Perform the checkpoint restoration
@@ -73,8 +79,8 @@ export async function handleCheckpointRestoreOperation(config: CheckpointRestore
 			})
 
 			// Get the updated history item and reinitialize
-			const { historyItem } = await provider.getTaskWithId(currentCline.taskId)
-			await provider.createTaskWithHistoryItem(historyItem)
+			const { historyItem } = await getTaskWithId(provider, currentCline.taskId)
+			await createTaskWithHistoryItem(provider, historyItem)
 		}
 		// For edit operations, the task cancellation in checkpointRestore
 		// will trigger reinitialization, which will process pendingEditAfterRestore
@@ -91,7 +97,7 @@ export async function handleCheckpointRestoreOperation(config: CheckpointRestore
  * Common checkpoint restore validation and initialization utility.
  * This can be used by any checkpoint restore flow that needs to wait for initialization.
  */
-export async function waitForClineInitialization(provider: ClineProvider, timeoutMs: number = 3000): Promise<boolean> {
+export async function waitForClineInitialization(provider: EventBridge, timeoutMs: number = 3000): Promise<boolean> {
 	try {
 		await pWaitFor(() => provider.getCurrentTask()?.isInitialized === true, {
 			timeout: timeoutMs,

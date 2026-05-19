@@ -1,10 +1,16 @@
 import { render, screen, fireEvent } from "@/utils/test-utils"
 
-import { vscode } from "@jabberwock/devtool/react"
-
 import { ExportButton } from "../ExportButton"
 
-vi.mock("@jabberwock/devtool/react")
+const mockExportTaskWithId = vi.fn()
+
+vi.mock("@src/features/store", () => ({
+	rootStore: {
+		history: {
+			exportTaskWithId: mockExportTaskWithId,
+		},
+	},
+}))
 
 vi.mock("@src/i18n/TranslationContext", () => ({
 	useAppTranslation: () => ({
@@ -23,9 +29,6 @@ describe("ExportButton", () => {
 		const exportButton = screen.getByRole("button")
 		fireEvent.click(exportButton)
 
-		expect(vscode.postMessage).toHaveBeenCalledWith({
-			type: "exportTaskWithId",
-			text: "1",
-		})
+		expect(mockExportTaskWithId).toHaveBeenCalledWith("1")
 	})
 })

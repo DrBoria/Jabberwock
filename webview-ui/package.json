@@ -99,6 +99,7 @@
 		"@testing-library/react": "^16.2.0",
 		"@testing-library/user-event": "^14.6.1",
 		"@types/diff": "^5.2.1",
+		"@types/hast": "^3.0.4",
 		"@types/jest": "^29.0.0",
 		"@types/katex": "^0.16.7",
 		"@types/node": "20.x",
@@ -106,12 +107,14 @@
 		"@types/react-dom": "^18.3.5",
 		"@types/shell-quote": "^1.7.5",
 		"@types/stacktrace-js": "^2.0.3",
+		"@types/unist": "^3.0.3",
 		"@types/vscode-webview": "^1.57.5",
 		"@vitejs/plugin-react": "^4.3.4",
 		"@vitest/ui": "^3.2.3",
 		"babel-plugin-react-compiler": "^1.0.0",
 		"identity-obj-proxy": "^3.0.0",
 		"jsdom": "^26.0.0",
+		"unified": "^11.0.5",
 		"vite": "6.3.6",
 		"vitest": "^3.2.3"
 	}

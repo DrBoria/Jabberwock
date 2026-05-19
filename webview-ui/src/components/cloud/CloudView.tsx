@@ -1,11 +1,20 @@
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { VSCodeProgressRing, VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
 
-import { type CloudUserInfo, type CloudOrganizationMembership, TelemetryEventName } from "@jabberwock/types"
+import {
+	type CloudUserInfo,
+	type CloudOrganizationMembership,
+	TelemetryEventName,
+	CLOUD_JABBERWOCK_CLOUD_SIGN_IN as _CLOUD_JABBERWOCK_CLOUD_SIGN_IN,
+	CLOUD_JABBERWOCK_CLOUD_MANUAL_URL as _CLOUD_JABBERWOCK_CLOUD_MANUAL_URL,
+	CLOUD_JABBERWOCK_CLOUD_SIGN_OUT as _CLOUD_JABBERWOCK_CLOUD_SIGN_OUT,
+	SETTINGS_OPEN_EXTERNAL as _SETTINGS_OPEN_EXTERNAL,
+	CHAT_TASK_TASK_SYNC_ENABLED as _CHAT_TASK_TASK_SYNC_ENABLED,
+} from "@jabberwock/types"
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { telemetryClient } from "@src/features/cloud/utils/TelemetryClient"
 import { ToggleSwitch } from "@/components/ui/toggle-switch"
 import { renderCloudBenefitsContent } from "./CloudUpsellDialog"
@@ -31,7 +40,10 @@ export const CloudView = ({ userInfo, isAuthenticated, cloudApiUrl, organization
 	const { taskSyncEnabled, setTaskSyncEnabled } = useExtensionState()
 	const wasAuthenticatedRef = useRef(false)
 	const timeoutRef = useRef<NodeJS.Timeout | null>(null)
-	const manualUrlInputRef = useRef<HTMLInputElement | null>(null)
+	const manualUrlInputRef = useRef<HTMLElement | null>(null)
+	const handleManualUrlRef = useCallback((element: unknown) => {
+		manualUrlInputRef.current = element instanceof HTMLElement ? element : null
+	}, [])
 	// Manual URL entry state
 	const [authInProgress, setAuthInProgress] = useState(false)
 	const [showManualEntry, setShowManualEntry] = useState(false)
@@ -80,29 +92,31 @@ export const CloudView = ({ userInfo, isAuthenticated, cloudApiUrl, organization
 		// Send telemetry for cloud connect action
 		// NOTE: Using ACCOUNT_* telemetry events for backward compatibility with analytics
 		telemetryClient.capture(TelemetryEventName.ACCOUNT_CONNECT_CLICKED)
-		vscode.postMessage({ type: "jabberwockCloudSignIn" })
+		rootStore.cloud.cloudSignIn()
 
 		// Start auth in progress state - show "Having trouble?" immediately for debugging
 		setAuthInProgress(true)
 	}
 
-	const handleManualUrlChange = (e: any) => {
-		const url = e.target.value
+	const handleManualUrlChange = (e: Event | React.FormEvent<HTMLElement>) => {
+		const target = e.target as HTMLInputElement | null
+		const url = target?.value ?? ""
 		setManualUrl(url)
 
 		// Auto-trigger authentication when a complete URL is pasted (with slight delay to ensure full paste is processed)
 		setTimeout(() => {
 			if (url.trim() && url.includes("://") && url.includes("/auth/clerk/callback")) {
-				vscode.postMessage({ type: "jabberwockCloudManualUrl", text: url.trim() })
+				rootStore.cloud.cloudManualUrl(url.trim())
 			}
 		}, 100)
 	}
 
-	const handleKeyDown = (e: any) => {
-		if (e.key === "Enter") {
+	const handleKeyDown = (e: Event | React.FormEvent<HTMLElement>) => {
+		const keyboardEvent = e as KeyboardEvent
+		if (keyboardEvent.key === "Enter") {
 			const url = manualUrl.trim()
 			if (url && url.includes("://") && url.includes("/auth/clerk/callback")) {
-				vscode.postMessage({ type: "jabberwockCloudManualUrl", text: url })
+				rootStore.cloud.cloudManualUrl(url)
 			}
 		}
 	}
@@ -121,7 +135,7 @@ export const CloudView = ({ userInfo, isAuthenticated, cloudApiUrl, organization
 		// Send telemetry for cloud logout action
 		// NOTE: Using ACCOUNT_* telemetry events for backward compatibility with analytics
 		telemetryClient.capture(TelemetryEventName.ACCOUNT_LOGOUT_CLICKED)
-		vscode.postMessage({ type: "jabberwockCloudSignOut" })
+		rootStore.cloud.cloudSignOut()
 	}
 
 	const handleVisitCloudWebsite = () => {
@@ -129,19 +143,19 @@ export const CloudView = ({ userInfo, isAuthenticated, cloudApiUrl, organization
 		// NOTE: Using ACCOUNT_* telemetry events for backward compatibility with analytics
 		telemetryClient.capture(TelemetryEventName.ACCOUNT_CONNECT_CLICKED)
 		const cloudUrl = cloudApiUrl || PRODUCTION_JABBERWOCK_CODE_API_URL
-		vscode.postMessage({ type: "openExternal", url: cloudUrl })
+		rootStore.settings.openExternal(cloudUrl)
 	}
 
 	const handleOpenCloudUrl = () => {
 		if (cloudApiUrl) {
-			vscode.postMessage({ type: "openExternal", url: cloudApiUrl })
+			rootStore.settings.openExternal(cloudApiUrl)
 		}
 	}
 
 	const handleTaskSyncToggle = () => {
 		const newValue = !taskSyncEnabled
 		setTaskSyncEnabled(newValue)
-		vscode.postMessage({ type: "taskSyncEnabled", bool: newValue })
+		rootStore.cloud.taskSyncEnabled(newValue)
 	}
 
 	return (
@@ -260,7 +274,7 @@ export const CloudView = ({ userInfo, isAuthenticated, cloudApiUrl, organization
 										{t("cloud:pasteCallbackUrl")}
 									</p>
 									<VSCodeTextField
-										ref={manualUrlInputRef as any}
+										ref={handleManualUrlRef}
 										value={manualUrl}
 										onChange={handleManualUrlChange}
 										onKeyDown={handleKeyDown}

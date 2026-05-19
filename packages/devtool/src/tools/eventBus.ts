@@ -6,11 +6,19 @@ import type { MessageInterceptor } from "../interceptor.js"
  * Register event bus tools on the MCP server.
  * These tools provide message interception, tracing, and sending for integration testing.
  *
- * The interceptor instance is shared with ClineProvider via the same MessageInterceptor
+ * The interceptor instance is shared with EventBridge via the same MessageInterceptor
  * reference — hooks in postMessageToWebview() and setWebviewMessageListener() check
  * the same interceptor map that these tools modify.
  */
-export function registerEventBusTools(mcpServer: McpServer, interceptor: MessageInterceptor) {
+export function registerEventBusTools(
+	mcpServer: McpServer,
+	interceptor: MessageInterceptor,
+	eventSchema?: { directions: readonly string[] },
+) {
+	const dirEnum = eventSchema
+		? z.enum(eventSchema.directions as [string, ...string[]])
+		: z.enum(["backend→webview", "webview→backend"])
+
 	// ── Send message to webview ──────────────────────────────────────────
 
 	mcpServer.tool(
@@ -52,9 +60,7 @@ export function registerEventBusTools(mcpServer: McpServer, interceptor: Message
 	mcpServer.tool(
 		"set_message_interceptor",
 		{
-			direction: z
-				.enum(["backend→webview", "webview→backend"])
-				.describe("Direction: 'backend→webview' (send) or 'webview→backend' (receive)"),
+			direction: dirEnum.describe("Direction: 'backend→webview' (send) or 'webview→backend' (receive)"),
 			type: z.string().describe("Message type to match (e.g. 'action', 'command')"),
 			action: z.string().optional().describe("Optional action/command name to match (e.g. 'chatButtonClicked')"),
 			response: z.any().describe("Mock response to return when intercepted"),
@@ -89,9 +95,7 @@ export function registerEventBusTools(mcpServer: McpServer, interceptor: Message
 	mcpServer.tool(
 		"remove_message_interceptor",
 		{
-			direction: z
-				.enum(["backend→webview", "webview→backend"])
-				.describe("Direction of the interceptor to remove"),
+			direction: dirEnum.describe("Direction of the interceptor to remove"),
 			type: z.string().describe("Message type of the interceptor to remove"),
 			action: z.string().optional().describe("Optional action name of the interceptor to remove"),
 		},
@@ -143,7 +147,7 @@ export function registerEventBusTools(mcpServer: McpServer, interceptor: Message
 	mcpServer.tool(
 		"get_message_trace",
 		{
-			direction: z.enum(["backend→webview", "webview→backend"]).optional().describe("Filter by direction"),
+			direction: dirEnum.optional().describe("Filter by direction"),
 			type: z.string().optional().describe("Filter by message type"),
 			action: z.string().optional().describe("Filter by action/command name"),
 		},

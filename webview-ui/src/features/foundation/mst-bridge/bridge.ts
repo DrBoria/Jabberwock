@@ -11,7 +11,7 @@ export type BridgeConnectionState = "connected" | "disconnected" | "reconnecting
 export interface SnapshotBatch {
 	snapshots: Array<{
 		storeName: string
-		snapshot: any
+		snapshot: Record<string, unknown>
 	}>
 }
 
@@ -59,7 +59,7 @@ export class MstBridge {
 	/**
 	 * Handle a single snapshot message (non-batched).
 	 */
-	handleSnapshot(storeName: string, snapshot: any): void {
+	handleSnapshot(storeName: string, snapshot: Record<string, unknown>): void {
 		const store = this.storeRegistry.get(storeName)
 		if (store) {
 			try {
@@ -104,6 +104,13 @@ export class MstBridge {
 	 */
 	hasStore(storeName: string): boolean {
 		return this.storeRegistry.has(storeName)
+	}
+
+	/**
+	 * Get a registered store by name.
+	 */
+	getStore<T = unknown>(id: string): T | undefined {
+		return this.storeRegistry.get(id) as T | undefined
 	}
 
 	/**

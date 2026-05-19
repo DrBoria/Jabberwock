@@ -1,46 +1,48 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from "react"
-
-import {
-	type ProviderSettings,
-	type ProviderSettingsEntry,
-	type CustomModePrompts,
-	type ModeConfig,
-	type ExperimentId,
-	type TodoItem,
-	type TelemetrySetting,
-	type OrganizationAllowList,
-	type CloudOrganizationMembership,
-	type ExtensionMessage,
-	type ExtensionState,
-	type MarketplaceInstalledMetadata,
-	type SkillMetadata,
-	type Command,
-	type McpServer,
+import type {
+	ExtensionState,
+	ProviderSettings,
+	ProviderSettingsEntry,
+	CustomModePrompts,
+	ModeConfig,
+	ExperimentId,
+	TelemetrySetting,
+	OrganizationAllowList,
+	CloudOrganizationMembership,
+	MarketplaceItem,
+	MarketplaceInstalledMetadata,
+	SkillMetadata,
+	Command,
+	McpServer,
 	RouterModels,
-	ORGANIZATION_ALLOW_ALL,
-	DEFAULT_CHECKPOINT_TIMEOUT_SECONDS,
+	TodoItem,
 } from "@jabberwock/types"
 
-import { findLastIndex } from "@shared/array"
-
-import { checkExistKey } from "@shared/checkExistApiConfig"
-import { Mode, defaultModeSlug, defaultPrompts } from "@shared/modes"
+import { Mode } from "@shared/modes"
 import { CustomSupportPrompts } from "@shared/support-prompt"
-import { experimentDefault } from "@shared/experiments"
 
-import { vscode } from "@jabberwock/devtool/react"
-import { convertTextMateToHljs } from "@src/utils/convertTextMateToHljs"
+import React from "react"
 
+import { rootStore } from "@src/features/store"
+
+/**
+ * Compatibility interface that mirrors the shape of ExtensionStateContextType
+ * for components that have not yet been migrated to use rootStore directly.
+ *
+ * @deprecated Migrate to using `rootStore` from `@src/features/store` directly.
+ *   Components should wrap with `observer()` from mobx-react-lite and read
+ *   state from `rootStore.extensionState.*` or `rootStore.*` for local state.
+ */
 export interface ExtensionStateContextType extends ExtensionState {
-	historyPreviewCollapsed?: boolean // Add the new state property
+	historyPreviewCollapsed?: boolean
 	didHydrateState: boolean
 	showWelcome: boolean
-	theme: any
+	setShowWelcome: (value: boolean) => void
+	theme: Record<string, string> | undefined
 	mcpServers: McpServer[]
 	interactiveAppUri?: string
-	setInteractiveAppUri: (uri?: string) => void
+	setInteractiveAppUri: (uri: string) => void
 	currentCheckpoint?: string
-	currentTaskTodos?: TodoItem[] // Initial todos for the current task
+	currentTaskTodos?: TodoItem[]
 	filePaths: string[]
 	openedTabs: Array<{ label: string; isActive: boolean; path?: string }>
 	commands: Command[]
@@ -51,13 +53,13 @@ export interface ExtensionStateContextType extends ExtensionState {
 	sharingEnabled: boolean
 	publicSharingEnabled: boolean
 	mdmCompliant?: boolean
-	hasOpenedModeSelector: boolean // New property to track if user has opened mode selector
-	setHasOpenedModeSelector: (value: boolean) => void // Setter for the new property
-	alwaysAllowFollowupQuestions: boolean // New property for follow-up questions auto-approve
-	setAlwaysAllowFollowupQuestions: (value: boolean) => void // Setter for the new property
-	followupAutoApproveTimeoutMs: number | undefined // Timeout in ms for auto-approving follow-up questions
-	setFollowupAutoApproveTimeoutMs: (value: number) => void // Setter for the timeout
-	marketplaceItems?: any[]
+	hasOpenedModeSelector: boolean
+	setHasOpenedModeSelector: (value: boolean) => void
+	alwaysAllowFollowupQuestions: boolean
+	setAlwaysAllowFollowupQuestions: (value: boolean) => void
+	followupAutoApproveTimeoutMs: number | undefined
+	setFollowupAutoApproveTimeoutMs: (value: number) => void
+	marketplaceItems?: MarketplaceItem[]
 	marketplaceInstalledMetadata?: MarketplaceInstalledMetadata
 	profileThresholds: Record<string, number>
 	setProfileThresholds: (value: Record<string, number>) => void
@@ -152,518 +154,152 @@ export interface ExtensionStateContextType extends ExtensionState {
 	skills?: SkillMetadata[]
 }
 
-export const ExtensionStateContext = createContext<ExtensionStateContextType | undefined>(undefined)
-
-export const mergeExtensionState = (prevState: ExtensionState, newState: Partial<ExtensionState>) => {
-	const { customModePrompts: prevCustomModePrompts, experiments: prevExperiments, ...prevRest } = prevState
-
-	const {
-		apiConfiguration,
-		customModePrompts: newCustomModePrompts,
-		customSupportPrompts,
-		experiments: newExperiments,
-		...newRest
-	} = newState
-
-	const customModePrompts = { ...prevCustomModePrompts, ...(newCustomModePrompts ?? {}) }
-	const experiments = { ...prevExperiments, ...(newExperiments ?? {}) }
-	const rest = { ...prevRest, ...newRest }
-
-	// Protect clineMessages from stale state pushes using sequence numbering.
-	// Multiple async event sources (cloud auth, settings, task streaming) can trigger
-	// concurrent state pushes. If a stale push arrives after a newer one, its clineMessages
-	// would overwrite the newer messages. The sequence number prevents this by only applying
-	// clineMessages when the incoming seq is strictly greater than the last applied seq.
-	if (
-		newState.clineMessagesSeq !== undefined &&
-		prevState.clineMessagesSeq !== undefined &&
-		newState.clineMessagesSeq <= prevState.clineMessagesSeq &&
-		newState.clineMessages !== undefined
-	) {
-		rest.clineMessages = prevState.clineMessages
-		rest.clineMessagesSeq = prevState.clineMessagesSeq
-	}
-
-	// Note that we completely replace the previous apiConfiguration and customSupportPrompts objects
-	// with new ones since the state that is broadcast is the entire objects so merging is not necessary.
+/**
+ * Reads the current extension state from the RootStore.
+ * Components using this hook should be wrapped with `observer()` from mobx-react-lite
+ * to reactively re-render when state changes.
+ *
+ * @deprecated Use `rootStore` directly from `@src/features/store` instead.
+ */
+export const useExtensionState = (): ExtensionStateContextType => {
+	const s = rootStore.extensionState
 	return {
-		...rest,
-		apiConfiguration: apiConfiguration ?? prevState.apiConfiguration,
-		customModePrompts,
-		customSupportPrompts: customSupportPrompts ?? prevState.customSupportPrompts,
-		experiments,
+		...s,
+		historyPreviewCollapsed: s.historyPreviewCollapsed,
+		didHydrateState: rootStore.didHydrateState,
+		showWelcome: rootStore.showWelcome,
+		setShowWelcome: (value: boolean) => rootStore.setShowWelcome(value),
+		theme: rootStore.theme,
+		mcpServers: rootStore.settings.mcpServers,
+		interactiveAppUri: rootStore.interactiveAppUri,
+		setInteractiveAppUri: (uri: string) => rootStore.setInteractiveAppUri(uri),
+		currentCheckpoint: rootStore.currentCheckpoint,
+		filePaths: rootStore.filePaths,
+		openedTabs: rootStore.openedTabs,
+		commands: rootStore.extensionCommands,
+		organizationAllowList: rootStore.settings.organizationAllowList,
+		organizationSettingsVersion: rootStore.settings.organizationSettingsVersion,
+		cloudIsAuthenticated: rootStore.cloud.cloudIsAuthenticated,
+		cloudOrganizations: rootStore.cloud.cloudOrganizations,
+		sharingEnabled: rootStore.cloud.sharingEnabled,
+		publicSharingEnabled: rootStore.cloud.publicSharingEnabled,
+		hasOpenedModeSelector: rootStore.settings.hasOpenedModeSelector,
+		setHasOpenedModeSelector: (value: boolean) => rootStore.setHasOpenedModeSelector(value),
+		alwaysAllowFollowupQuestions: rootStore.settings.alwaysAllowFollowupQuestions,
+		setAlwaysAllowFollowupQuestions: (value: boolean) => rootStore.setAlwaysAllowFollowupQuestions(value),
+		followupAutoApproveTimeoutMs: rootStore.settings.followupAutoApproveTimeoutMs,
+		setFollowupAutoApproveTimeoutMs: (value: number) => rootStore.setFollowupAutoApproveTimeoutMs(value),
+		marketplaceItems: rootStore.marketplace.marketplaceItems,
+		marketplaceInstalledMetadata: rootStore.marketplace.marketplaceInstalledMetadata,
+		profileThresholds: rootStore.settings.profileThresholds,
+		setProfileThresholds: (value: Record<string, number>) => rootStore.setProfileThresholds(value),
+		setApiConfiguration: (config: ProviderSettings) => rootStore.setApiConfiguration(config),
+		setCustomInstructions: (value?: string) => rootStore.setCustomInstructions(value),
+		setAlwaysAllowReadOnly: (value: boolean) => rootStore.setAlwaysAllowReadOnly(value),
+		setAlwaysAllowReadOnlyOutsideWorkspace: (value: boolean) =>
+			rootStore.setAlwaysAllowReadOnlyOutsideWorkspace(value),
+		setAlwaysAllowWrite: (value: boolean) => rootStore.setAlwaysAllowWrite(value),
+		setAlwaysAllowWriteOutsideWorkspace: (value: boolean) => rootStore.setAlwaysAllowWriteOutsideWorkspace(value),
+		setAlwaysAllowExecute: (value: boolean) => rootStore.setAlwaysAllowExecute(value),
+		setAlwaysAllowMcp: (value: boolean) => rootStore.setAlwaysAllowMcp(value),
+		setAlwaysAllowModeSwitch: (value: boolean) => rootStore.setAlwaysAllowModeSwitch(value),
+		setAlwaysAllowSubtasks: (value: boolean) => rootStore.setAlwaysAllowSubtasks(value),
+		setShowRooIgnoredFiles: (value: boolean) => rootStore.setShowRooIgnoredFiles(value),
+		setEnableSubfolderRules: (value: boolean) => rootStore.setEnableSubfolderRules(value),
+		setShowAnnouncement: (value: boolean) => rootStore.setShowAnnouncement(value),
+		setAllowedCommands: (value: string[]) => rootStore.setAllowedCommands(value),
+		setDeniedCommands: (value: string[]) => rootStore.setDeniedCommands(value),
+		setAllowedMaxRequests: (value: number | undefined) => rootStore.setAllowedMaxRequests(value),
+		setAllowedMaxCost: (value: number | undefined) => rootStore.setAllowedMaxCost(value),
+		setSoundEnabled: (value: boolean) => rootStore.setSoundEnabled(value),
+		setSoundVolume: (value: number) => rootStore.setSoundVolume(value),
+		terminalShellIntegrationTimeout: s.terminalShellIntegrationTimeout,
+		setTerminalShellIntegrationTimeout: (value: number) => rootStore.setTerminalShellIntegrationTimeout(value),
+		terminalShellIntegrationDisabled: s.terminalShellIntegrationDisabled,
+		setTerminalShellIntegrationDisabled: (value: boolean) => rootStore.setTerminalShellIntegrationDisabled(value),
+		terminalZdotdir: s.terminalZdotdir,
+		setTerminalZdotdir: (value: boolean) => rootStore.setTerminalZdotdir(value),
+		setTtsEnabled: (value: boolean) => rootStore.setTtsEnabled(value),
+		setTtsSpeed: (value: number) => rootStore.setTtsSpeed(value),
+		setEnableCheckpoints: (value: boolean) => rootStore.setEnableCheckpoints(value),
+		checkpointTimeout: s.checkpointTimeout,
+		setCheckpointTimeout: (value: number) => rootStore.setCheckpointTimeout(value),
+		setWriteDelayMs: (value: number) => rootStore.setWriteDelayMs(value),
+		terminalOutputPreviewSize: s.terminalOutputPreviewSize,
+		setTerminalOutputPreviewSize: (value: "small" | "medium" | "large") =>
+			rootStore.setTerminalOutputPreviewSize(value),
+		mcpEnabled: s.mcpEnabled,
+		setMcpEnabled: (value: boolean) => rootStore.setMcpEnabled(value),
+		taskSyncEnabled: s.taskSyncEnabled,
+		setTaskSyncEnabled: (value: boolean) => rootStore.setTaskSyncEnabled(value),
+		setCurrentApiConfigName: (value: string) => rootStore.setCurrentApiConfigName(value),
+		setListApiConfigMeta: (value: ProviderSettingsEntry[]) => rootStore.setListApiConfigMeta(value),
+		mode: s.mode as Mode,
+		setMode: (value: Mode) => rootStore.setMode(value),
+		setCustomModePrompts: (value: CustomModePrompts) => rootStore.setCustomModePrompts(value),
+		setCustomSupportPrompts: (value: CustomSupportPrompts) => rootStore.setCustomSupportPrompts(value),
+		systemPromptTemplates: s.systemPromptTemplates,
+		setSystemPromptTemplates: (value: Record<string, string>) => rootStore.setSystemPromptTemplates(value),
+		enhancementApiConfigId: s.enhancementApiConfigId,
+		setEnhancementApiConfigId: (value: string) => rootStore.setEnhancementApiConfigId(value),
+		setExperimentEnabled: (id: ExperimentId, enabled: boolean) => rootStore.setExperimentEnabled(id, enabled),
+		setAutoApprovalEnabled: (value: boolean) => rootStore.setAutoApprovalEnabled(value),
+		customModes: s.customModes,
+		setCustomModes: (value: ModeConfig[]) => rootStore.setCustomModes(value),
+		setMaxOpenTabsContext: (value: number) => rootStore.setMaxOpenTabsContext(value),
+		maxWorkspaceFiles: s.maxWorkspaceFiles,
+		setMaxWorkspaceFiles: (value: number) => rootStore.setMaxWorkspaceFiles(value),
+		setTelemetrySetting: (value: TelemetrySetting) => rootStore.setTelemetrySetting(value),
+		awsUsePromptCache: s.apiConfiguration?.awsUsePromptCache,
+		setAwsUsePromptCache: (value: boolean) => rootStore.setAwsUsePromptCache(value),
+		maxImageFileSize: s.maxImageFileSize,
+		setMaxImageFileSize: (value: number) => rootStore.setMaxImageFileSize(value),
+		maxTotalImageSize: s.maxTotalImageSize,
+		setMaxTotalImageSize: (value: number) => rootStore.setMaxTotalImageSize(value),
+		machineId: s.machineId,
+		pinnedApiConfigs: s.pinnedApiConfigs,
+		setPinnedApiConfigs: (value: Record<string, boolean>) => rootStore.setPinnedApiConfigs(value),
+		togglePinnedApiConfig: (configName: string) => rootStore.togglePinnedApiConfig(configName),
+		setHistoryPreviewCollapsed: (value: boolean) => rootStore.setHistoryPreviewCollapsed(value),
+		setReasoningBlockCollapsed: (value: boolean) => rootStore.setReasoningBlockCollapsed(value),
+		enterBehavior: s.enterBehavior,
+		setEnterBehavior: (value: "send" | "newline") => rootStore.setEnterBehavior(value),
+		autoCondenseContext: s.autoCondenseContext,
+		setAutoCondenseContext: (value: boolean) => rootStore.setAutoCondenseContext(value),
+		autoCondenseContextPercent: s.autoCondenseContextPercent,
+		setAutoCondenseContextPercent: (value: number) => rootStore.setAutoCondenseContextPercent(value),
+		routerModels: rootStore.settings.routerModels,
+		includeDiagnosticMessages: s.includeDiagnosticMessages,
+		setIncludeDiagnosticMessages: (value: boolean) => rootStore.setIncludeDiagnosticMessages(value),
+		maxDiagnosticMessages: s.maxDiagnosticMessages,
+		setMaxDiagnosticMessages: (value: number) => rootStore.setMaxDiagnosticMessages(value),
+		includeTaskHistoryInEnhance: rootStore.settings.includeTaskHistoryInEnhance,
+		setIncludeTaskHistoryInEnhance: (value: boolean) => rootStore.setIncludeTaskHistoryInEnhance(value),
+		includeCurrentTime: rootStore.settings.includeCurrentTime,
+		setIncludeCurrentTime: (value: boolean) => rootStore.setIncludeCurrentTime(value),
+		includeCurrentCost: rootStore.settings.includeCurrentCost,
+		setIncludeCurrentCost: (value: boolean) => rootStore.setIncludeCurrentCost(value),
+		showWorktreesInHomeScreen: s.showWorktreesInHomeScreen ?? true,
+		setShowWorktreesInHomeScreen: (value: boolean) => rootStore.setShowWorktreesInHomeScreen(value),
+		locatorTarget: s.locatorTarget ?? "code",
+		setLocatorTarget: (value: string) => rootStore.setLocatorTarget(value),
+		skills: rootStore.marketplace.skills,
 	}
 }
 
+/**
+ * Deprecated React Context for backward compatibility.
+ * @deprecated Use useExtensionState() hook or rootStore directly from @src/features/store.
+ */
+export const ExtensionStateContext = React.createContext<ExtensionStateContextType | undefined>(undefined)
+
+/**
+ * No-op provider for backward compatibility.
+ * Components no longer need to be wrapped in this provider since state
+ * is read directly from the RootStore singleton.
+ *
+ * @deprecated Remove from component tree. All state is read from rootStore directly.
+ */
 export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-	const [state, setState] = useState<ExtensionState>({
-		apiConfiguration: {},
-		version: "",
-		clineMessages: [],
-		taskHistory: [],
-		shouldShowAnnouncement: false,
-		allowedCommands: [],
-		deniedCommands: [],
-		soundEnabled: false,
-		soundVolume: 0.5,
-		ttsEnabled: false,
-		ttsSpeed: 1.0,
-		enableCheckpoints: true,
-		checkpointTimeout: DEFAULT_CHECKPOINT_TIMEOUT_SECONDS, // Default to 15 seconds
-		language: "en", // Default language code
-		writeDelayMs: 1000,
-		terminalShellIntegrationTimeout: 4000,
-		mcpEnabled: true,
-		taskSyncEnabled: false,
-		currentApiConfigName: "default",
-		listApiConfigMeta: [],
-		mode: defaultModeSlug,
-		customModePrompts: defaultPrompts,
-		customSupportPrompts: {},
-		experiments: experimentDefault,
-		enhancementApiConfigId: "",
-		hasOpenedModeSelector: false, // Default to false (not opened yet)
-		autoApprovalEnabled: false,
-		customModes: [],
-		maxOpenTabsContext: 20,
-		maxWorkspaceFiles: 200,
-		cwd: "",
-		telemetrySetting: "unset",
-		showJabberwockIgnoredFiles: true, // Default to showing .jabberwockignore'd files with lock symbol (current behavior).
-		enableSubfolderRules: false, // Default to disabled - must be enabled to load rules from subdirectories
-		renderContext: "sidebar",
-		maxReadFileLine: -1, // Default max line limit for read_file tool (-1 for default)
-		maxImageFileSize: 5, // Default max image file size in MB
-		maxTotalImageSize: 20, // Default max total image size in MB
-		pinnedApiConfigs: {}, // Empty object for pinned API configs
-		terminalZshOhMy: false, // Default Oh My Zsh integration setting
-		terminalZshP10k: false, // Default Powerlevel10k integration setting
-		terminalZdotdir: false, // Default ZDOTDIR handling setting
-		historyPreviewCollapsed: false, // Initialize the new state (default to expanded)
-		reasoningBlockCollapsed: true, // Default to collapsed
-		enterBehavior: "send", // Default: Enter sends, Shift+Enter creates newline
-		cloudUserInfo: null,
-		cloudIsAuthenticated: false,
-		cloudOrganizations: [],
-		sharingEnabled: false,
-		publicSharingEnabled: false,
-		organizationAllowList: ORGANIZATION_ALLOW_ALL,
-		organizationSettingsVersion: -1,
-		autoCondenseContext: true,
-		autoCondenseContextPercent: 100,
-		profileThresholds: {},
-		locatorTarget: "code",
-		codebaseIndexConfig: {
-			codebaseIndexEnabled: true,
-			codebaseIndexQdrantUrl: "http://localhost:6333",
-			codebaseIndexEmbedderProvider: "openai",
-			codebaseIndexEmbedderBaseUrl: "",
-			codebaseIndexEmbedderModelId: "",
-			codebaseIndexSearchMaxResults: undefined,
-			codebaseIndexSearchMinScore: undefined,
-		},
-		codebaseIndexModels: { ollama: {}, openai: {} },
-		includeDiagnosticMessages: true,
-		maxDiagnosticMessages: 50,
-		openRouterImageApiKey: "",
-		openRouterImageGenerationSelectedModel: "",
-		includeCurrentTime: true,
-		includeCurrentCost: true,
-		lockApiConfigAcrossModes: false,
-		devtoolEnabled: false,
-	})
-
-	const [didHydrateState, setDidHydrateState] = useState(false)
-	const [showWelcome, setShowWelcome] = useState(false)
-	const [theme, setTheme] = useState<any>(undefined)
-	const [filePaths, setFilePaths] = useState<string[]>([])
-	const [openedTabs, setOpenedTabs] = useState<Array<{ label: string; isActive: boolean; path?: string }>>([])
-	const [commands, setCommands] = useState<Command[]>([])
-	const [mcpServers, setMcpServers] = useState<McpServer[]>([])
-	const [interactiveAppUri, setInteractiveAppUri] = useState<string | undefined>()
-	const [currentCheckpoint, setCurrentCheckpoint] = useState<string>()
-	const [extensionRouterModels, setExtensionRouterModels] = useState<RouterModels | undefined>(undefined)
-	const [marketplaceItems, setMarketplaceItems] = useState<any[]>([])
-	const [alwaysAllowFollowupQuestions, setAlwaysAllowFollowupQuestions] = useState(false) // Add state for follow-up questions auto-approve
-	const [followupAutoApproveTimeoutMs, setFollowupAutoApproveTimeoutMs] = useState<number | undefined>(undefined) // Will be set from global settings
-	const [marketplaceInstalledMetadata, setMarketplaceInstalledMetadata] = useState<MarketplaceInstalledMetadata>({
-		project: {},
-		global: {},
-	})
-	const [skills, setSkills] = useState<SkillMetadata[]>([])
-	const [includeTaskHistoryInEnhance, setIncludeTaskHistoryInEnhance] = useState(true)
-	const [prevCloudIsAuthenticated, setPrevCloudIsAuthenticated] = useState(false)
-	const [includeCurrentTime, setIncludeCurrentTime] = useState(true)
-	const [includeCurrentCost, setIncludeCurrentCost] = useState(true)
-
-	const setListApiConfigMeta = useCallback(
-		(value: ProviderSettingsEntry[]) => setState((prevState) => ({ ...prevState, listApiConfigMeta: value })),
-		[],
-	)
-
-	const setApiConfiguration = useCallback((value: ProviderSettings) => {
-		setState((prevState) => ({
-			...prevState,
-			apiConfiguration: {
-				...prevState.apiConfiguration,
-				...value,
-			},
-		}))
-	}, [])
-
-	const handleMessage = useCallback(
-		(event: MessageEvent) => {
-			const message: ExtensionMessage = event.data
-			switch (message.type) {
-				case "showInteractiveApp": {
-					setInteractiveAppUri(message.uri)
-					break
-				}
-				case "state": {
-					const newState = message.state ?? {}
-					setState((prevState) => mergeExtensionState(prevState, newState))
-					setShowWelcome(!checkExistKey(newState.apiConfiguration))
-					setDidHydrateState(true)
-					// Update alwaysAllowFollowupQuestions if present in state message
-					if ((newState as any).alwaysAllowFollowupQuestions !== undefined) {
-						setAlwaysAllowFollowupQuestions((newState as any).alwaysAllowFollowupQuestions)
-					}
-					// Update followupAutoApproveTimeoutMs if present in state message
-					if ((newState as any).followupAutoApproveTimeoutMs !== undefined) {
-						setFollowupAutoApproveTimeoutMs((newState as any).followupAutoApproveTimeoutMs)
-					}
-					// Update includeTaskHistoryInEnhance if present in state message
-					if ((newState as any).includeTaskHistoryInEnhance !== undefined) {
-						setIncludeTaskHistoryInEnhance((newState as any).includeTaskHistoryInEnhance)
-					}
-					// Update includeCurrentTime if present in state message
-					if ((newState as any).includeCurrentTime !== undefined) {
-						setIncludeCurrentTime((newState as any).includeCurrentTime)
-					}
-					// Update includeCurrentCost if present in state message
-					if ((newState as any).includeCurrentCost !== undefined) {
-						setIncludeCurrentCost((newState as any).includeCurrentCost)
-					}
-					// Update locatorTarget if present in state message
-					if ((newState as any).locatorTarget !== undefined) {
-						setState((prev) => ({ ...prev, locatorTarget: (newState as any).locatorTarget }))
-					}
-					// Handle marketplace data if present in state message
-					if (newState.marketplaceItems !== undefined) {
-						setMarketplaceItems(newState.marketplaceItems)
-					}
-					if (newState.marketplaceInstalledMetadata !== undefined) {
-						setMarketplaceInstalledMetadata(newState.marketplaceInstalledMetadata)
-					}
-					break
-				}
-				case "action": {
-					if (message.action === "toggleAutoApprove") {
-						// Toggle the auto-approval state
-						setState((prevState) => {
-							const newValue = !(prevState.autoApprovalEnabled ?? false)
-							// Also send the update to the extension
-							vscode.postMessage({ type: "autoApprovalEnabled", bool: newValue })
-							return { ...prevState, autoApprovalEnabled: newValue }
-						})
-					}
-					break
-				}
-				case "theme": {
-					if (message.text) {
-						setTheme(convertTextMateToHljs(JSON.parse(message.text)))
-					}
-					break
-				}
-				case "workspaceUpdated": {
-					const paths = message.filePaths ?? []
-					const tabs = message.openedTabs ?? []
-
-					setFilePaths(paths)
-					setOpenedTabs(tabs)
-					break
-				}
-				case "commands": {
-					setCommands(message.commands ?? [])
-					break
-				}
-				case "messageUpdated": {
-					const clineMessage = message.clineMessage!
-					setState((prevState) => {
-						// worth noting it will never be possible for a more up-to-date message to be sent here or in normal messages post since the presentAssistantContent function uses lock
-						const lastIndex = findLastIndex(prevState.clineMessages, (msg) => msg.ts === clineMessage.ts)
-						if (lastIndex !== -1) {
-							const newClineMessages = [...prevState.clineMessages]
-							newClineMessages[lastIndex] = clineMessage
-							return { ...prevState, clineMessages: newClineMessages }
-						}
-						// Log a warning if messageUpdated arrives for a timestamp not in the
-						// frontend's clineMessages. With the seq guard and cloud event isolation
-						// (layers 1+2), this should not happen under normal conditions. If it
-						// does, it signals a state synchronization issue worth investigating.
-						console.warn(
-							`[messageUpdated] Received update for unknown message ts=${clineMessage.ts}, dropping. ` +
-								`Frontend has ${prevState.clineMessages.length} messages.`,
-						)
-						return prevState
-					})
-					break
-				}
-				case "skills": {
-					if (message.skills) {
-						setSkills(message.skills)
-					}
-					break
-				}
-				case "mcpServers": {
-					setMcpServers(message.mcpServers ?? [])
-					break
-				}
-				case "currentCheckpointUpdated": {
-					setCurrentCheckpoint(message.text)
-					break
-				}
-				case "listApiConfig": {
-					setListApiConfigMeta(message.listApiConfig ?? [])
-					break
-				}
-				case "routerModels": {
-					setExtensionRouterModels(message.routerModels)
-					break
-				}
-				case "marketplaceData": {
-					if (message.marketplaceItems !== undefined) {
-						setMarketplaceItems(message.marketplaceItems)
-					}
-					if (message.marketplaceInstalledMetadata !== undefined) {
-						setMarketplaceInstalledMetadata(message.marketplaceInstalledMetadata)
-					}
-					break
-				}
-				case "taskHistoryUpdated": {
-					// Efficiently update just the task history without replacing entire state
-					if (message.taskHistory !== undefined) {
-						setState((prevState) => ({
-							...prevState,
-							taskHistory: message.taskHistory!,
-						}))
-					}
-					break
-				}
-				case "taskHistoryItemUpdated": {
-					const item = message.taskHistoryItem
-					if (!item) {
-						break
-					}
-					setState((prevState) => {
-						const existingIndex = prevState.taskHistory.findIndex((h) => h.id === item.id)
-						let nextHistory: typeof prevState.taskHistory
-						if (existingIndex === -1) {
-							nextHistory = [item, ...prevState.taskHistory]
-						} else {
-							nextHistory = [...prevState.taskHistory]
-							nextHistory[existingIndex] = item
-						}
-						// Keep UI semantics consistent with extension: newest-first ordering.
-						nextHistory.sort((a, b) => b.ts - a.ts)
-						return {
-							...prevState,
-							taskHistory: nextHistory,
-							currentTaskItem:
-								prevState.currentTaskItem?.id === item.id ? item : prevState.currentTaskItem,
-						}
-					})
-					break
-				}
-				case "diagnostics": {
-					if (message.diagnostics) {
-						setState((prevState) => ({
-							...prevState,
-							diagnostics: message.diagnostics,
-						}))
-					}
-					break
-				}
-			}
-		},
-		[setListApiConfigMeta],
-	)
-
-	useEffect(() => {
-		window.addEventListener("message", handleMessage)
-		return () => {
-			window.removeEventListener("message", handleMessage)
-		}
-	}, [handleMessage])
-
-	useEffect(() => {
-		vscode.postMessage({ type: "webviewDidLaunch" })
-	}, [])
-
-	// Watch for authentication state changes and refresh Jabberwock models
-	useEffect(() => {
-		const currentAuth = state.cloudIsAuthenticated ?? false
-		const currentProvider = state.apiConfiguration?.apiProvider
-		if (!prevCloudIsAuthenticated && currentAuth && currentProvider === "jabberwock") {
-			// User just authenticated and Jabberwock is the active provider - refresh Jabberwock models
-			vscode.postMessage({ type: "requestRooModels" })
-		}
-		setPrevCloudIsAuthenticated(currentAuth)
-	}, [state.cloudIsAuthenticated, prevCloudIsAuthenticated, state.apiConfiguration?.apiProvider])
-
-	const contextValue: ExtensionStateContextType = {
-		...state,
-		reasoningBlockCollapsed: state.reasoningBlockCollapsed ?? true,
-		didHydrateState,
-		showWelcome,
-		theme,
-		mcpServers,
-		interactiveAppUri,
-		setInteractiveAppUri,
-		currentCheckpoint,
-		filePaths,
-		openedTabs,
-		commands,
-		soundVolume: state.soundVolume,
-		ttsSpeed: state.ttsSpeed,
-		writeDelayMs: state.writeDelayMs,
-		routerModels: extensionRouterModels,
-		cloudIsAuthenticated: state.cloudIsAuthenticated ?? false,
-		cloudOrganizations: state.cloudOrganizations ?? [],
-		organizationSettingsVersion: state.organizationSettingsVersion ?? -1,
-		marketplaceItems,
-		marketplaceInstalledMetadata,
-		profileThresholds: state.profileThresholds ?? {},
-		alwaysAllowFollowupQuestions,
-		followupAutoApproveTimeoutMs,
-		taskSyncEnabled: state.taskSyncEnabled,
-		setExperimentEnabled: (id, enabled) =>
-			setState((prevState) => ({ ...prevState, experiments: { ...prevState.experiments, [id]: enabled } })),
-		setApiConfiguration,
-		setCustomInstructions: (value) => setState((prevState) => ({ ...prevState, customInstructions: value })),
-		setAlwaysAllowReadOnly: (value) => setState((prevState) => ({ ...prevState, alwaysAllowReadOnly: value })),
-		setAlwaysAllowReadOnlyOutsideWorkspace: (value) =>
-			setState((prevState) => ({ ...prevState, alwaysAllowReadOnlyOutsideWorkspace: value })),
-		setAlwaysAllowWrite: (value) => setState((prevState) => ({ ...prevState, alwaysAllowWrite: value })),
-		setAlwaysAllowWriteOutsideWorkspace: (value) =>
-			setState((prevState) => ({ ...prevState, alwaysAllowWriteOutsideWorkspace: value })),
-		setAlwaysAllowExecute: (value) => setState((prevState) => ({ ...prevState, alwaysAllowExecute: value })),
-		setAlwaysAllowMcp: (value) => setState((prevState) => ({ ...prevState, alwaysAllowMcp: value })),
-		setAlwaysAllowModeSwitch: (value) => setState((prevState) => ({ ...prevState, alwaysAllowModeSwitch: value })),
-		setAlwaysAllowSubtasks: (value) => setState((prevState) => ({ ...prevState, alwaysAllowSubtasks: value })),
-		setAlwaysAllowFollowupQuestions,
-		setFollowupAutoApproveTimeoutMs: (value) =>
-			setState((prevState) => ({ ...prevState, followupAutoApproveTimeoutMs: value })),
-		setShowAnnouncement: (value) => setState((prevState) => ({ ...prevState, shouldShowAnnouncement: value })),
-		setAllowedCommands: (value) => setState((prevState) => ({ ...prevState, allowedCommands: value })),
-		setDeniedCommands: (value) => setState((prevState) => ({ ...prevState, deniedCommands: value })),
-		setAllowedMaxRequests: (value) => setState((prevState) => ({ ...prevState, allowedMaxRequests: value })),
-		setAllowedMaxCost: (value) => setState((prevState) => ({ ...prevState, allowedMaxCost: value })),
-		setSoundEnabled: (value) => setState((prevState) => ({ ...prevState, soundEnabled: value })),
-		setSoundVolume: (value) => setState((prevState) => ({ ...prevState, soundVolume: value })),
-		setTtsEnabled: (value) => setState((prevState) => ({ ...prevState, ttsEnabled: value })),
-		setTtsSpeed: (value) => setState((prevState) => ({ ...prevState, ttsSpeed: value })),
-		setEnableCheckpoints: (value) => setState((prevState) => ({ ...prevState, enableCheckpoints: value })),
-		setCheckpointTimeout: (value) => setState((prevState) => ({ ...prevState, checkpointTimeout: value })),
-		setWriteDelayMs: (value) => setState((prevState) => ({ ...prevState, writeDelayMs: value })),
-		setTerminalOutputPreviewSize: (value) =>
-			setState((prevState) => ({ ...prevState, terminalOutputPreviewSize: value })),
-		setTerminalShellIntegrationTimeout: (value) =>
-			setState((prevState) => ({ ...prevState, terminalShellIntegrationTimeout: value })),
-		setTerminalShellIntegrationDisabled: (value) =>
-			setState((prevState) => ({ ...prevState, terminalShellIntegrationDisabled: value })),
-		setTerminalZdotdir: (value) => setState((prevState) => ({ ...prevState, terminalZdotdir: value })),
-		setMcpEnabled: (value) => setState((prevState) => ({ ...prevState, mcpEnabled: value })),
-		setTaskSyncEnabled: (value) => setState((prevState) => ({ ...prevState, taskSyncEnabled: value }) as any),
-		setCurrentApiConfigName: (value) => setState((prevState) => ({ ...prevState, currentApiConfigName: value })),
-		setListApiConfigMeta,
-		setMode: (value: Mode) => setState((prevState) => ({ ...prevState, mode: value })),
-		setCustomModePrompts: (value) => setState((prevState) => ({ ...prevState, customModePrompts: value })),
-		setCustomSupportPrompts: (value) => setState((prevState) => ({ ...prevState, customSupportPrompts: value })),
-		setSystemPromptTemplates: (value) => setState((prevState) => ({ ...prevState, systemPromptTemplates: value })),
-		setEnhancementApiConfigId: (value) =>
-			setState((prevState) => ({ ...prevState, enhancementApiConfigId: value })),
-		setAutoApprovalEnabled: (value) => setState((prevState) => ({ ...prevState, autoApprovalEnabled: value })),
-		setCustomModes: (value) => setState((prevState) => ({ ...prevState, customModes: value })),
-		setMaxOpenTabsContext: (value) => setState((prevState) => ({ ...prevState, maxOpenTabsContext: value })),
-		setMaxWorkspaceFiles: (value) => setState((prevState) => ({ ...prevState, maxWorkspaceFiles: value })),
-		setTelemetrySetting: (value) => setState((prevState) => ({ ...prevState, telemetrySetting: value })),
-		setShowRooIgnoredFiles: (value) =>
-			setState((prevState) => ({ ...prevState, showJabberwockIgnoredFiles: value })),
-		setEnableSubfolderRules: (value) => setState((prevState) => ({ ...prevState, enableSubfolderRules: value })),
-		setAwsUsePromptCache: (value) => setState((prevState) => ({ ...prevState, awsUsePromptCache: value })),
-		setMaxImageFileSize: (value) => setState((prevState) => ({ ...prevState, maxImageFileSize: value })),
-		setMaxTotalImageSize: (value) => setState((prevState) => ({ ...prevState, maxTotalImageSize: value })),
-		setPinnedApiConfigs: (value) => setState((prevState) => ({ ...prevState, pinnedApiConfigs: value })),
-		togglePinnedApiConfig: (configId) =>
-			setState((prevState) => {
-				const currentPinned = prevState.pinnedApiConfigs || {}
-				const newPinned = {
-					...currentPinned,
-					[configId]: !currentPinned[configId],
-				}
-
-				// If the config is now unpinned, remove it from the object
-				if (!newPinned[configId]) {
-					delete newPinned[configId]
-				}
-
-				return { ...prevState, pinnedApiConfigs: newPinned }
-			}),
-		setHistoryPreviewCollapsed: (value) =>
-			setState((prevState) => ({ ...prevState, historyPreviewCollapsed: value })),
-		setReasoningBlockCollapsed: (value) =>
-			setState((prevState) => ({ ...prevState, reasoningBlockCollapsed: value })),
-		enterBehavior: state.enterBehavior ?? "send",
-		setEnterBehavior: (value) => setState((prevState) => ({ ...prevState, enterBehavior: value })),
-		setHasOpenedModeSelector: (value) => setState((prevState) => ({ ...prevState, hasOpenedModeSelector: value })),
-		setAutoCondenseContext: (value) => setState((prevState) => ({ ...prevState, autoCondenseContext: value })),
-		setAutoCondenseContextPercent: (value) =>
-			setState((prevState) => ({ ...prevState, autoCondenseContextPercent: value })),
-		setProfileThresholds: (value) => setState((prevState) => ({ ...prevState, profileThresholds: value })),
-		includeDiagnosticMessages: state.includeDiagnosticMessages,
-		setIncludeDiagnosticMessages: (value) => {
-			setState((prevState) => ({ ...prevState, includeDiagnosticMessages: value }))
-		},
-		maxDiagnosticMessages: state.maxDiagnosticMessages,
-		setMaxDiagnosticMessages: (value) => {
-			setState((prevState) => ({ ...prevState, maxDiagnosticMessages: value }))
-		},
-		includeTaskHistoryInEnhance,
-		setIncludeTaskHistoryInEnhance,
-		includeCurrentTime,
-		setIncludeCurrentTime,
-		includeCurrentCost,
-		setIncludeCurrentCost,
-		skills,
-		showWorktreesInHomeScreen: state.showWorktreesInHomeScreen ?? true,
-		setShowWorktreesInHomeScreen: (value: boolean) =>
-			setState((prevState) => ({ ...prevState, showWorktreesInHomeScreen: value })),
-		locatorTarget: state.locatorTarget ?? "code",
-		setLocatorTarget: (value) => setState((prevState) => ({ ...prevState, locatorTarget: value })),
-	}
-
-	// DevTools: expose state accessor on window for agent inspection
-	useEffect(() => {
-		if (state.devtoolEnabled) {
-			;(window as unknown as Record<string, unknown>).__JABBERWOCK_GET_STATE__ = () => ({ ...state })
-		} else {
-			delete (window as unknown as Record<string, unknown>).__JABBERWOCK_GET_STATE__
-		}
-		return () => {
-			delete (window as unknown as Record<string, unknown>).__JABBERWOCK_GET_STATE__
-		}
-	}, [state, state.devtoolEnabled])
-
-	return <ExtensionStateContext.Provider value={contextValue}>{children}</ExtensionStateContext.Provider>
-}
-
-export const useExtensionState = () => {
-	const context = useContext(ExtensionStateContext)
-
-	if (context === undefined) {
-		throw new Error("useExtensionState must be used within an ExtensionStateContextProvider")
-	}
-
-	return context
+	return <>{children}</>
 }

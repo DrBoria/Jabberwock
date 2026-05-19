@@ -1,6 +1,7 @@
 import { render } from "ink-testing-library"
 
 import { Icon, isNerdFontSupported, resetNerdFontCache, getIconChar } from "../Icon.js"
+import type { IconName } from "../Icon.js"
 
 describe("Icon", () => {
 	beforeEach(() => {
@@ -43,8 +44,7 @@ describe("Icon", () => {
 		})
 
 		it("should return null for unknown icon name", () => {
-			// @ts-expect-error - testing invalid icon name
-			const { lastFrame } = render(<Icon name="unknown-icon" />)
+			const { lastFrame } = render(<Icon name={"unknown-icon" as IconName} />)
 			expect(lastFrame()).toBe("")
 		})
 	})
@@ -155,8 +155,7 @@ describe("Icon", () => {
 		})
 
 		it("should return empty string for unknown icon", () => {
-			// @ts-expect-error - testing invalid icon name
-			expect(getIconChar("unknown")).toBe("")
+			expect(getIconChar("unknown" as IconName)).toBe("")
 		})
 	})
 })

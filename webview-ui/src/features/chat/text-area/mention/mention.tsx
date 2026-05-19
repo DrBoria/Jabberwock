@@ -1,6 +1,6 @@
 import { mentionRegexGlobal } from "@shared/context-mentions"
 
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 
 interface MentionProps {
 	text?: string
@@ -22,7 +22,7 @@ export const Mention = ({ text, withShadow = false }: MentionProps) => {
 				<span
 					key={index}
 					className={`${withShadow ? "mention-context-highlight-with-shadow" : "mention-context-highlight"} text-[0.9em] cursor-pointer`}
-					onClick={() => vscode.postMessage({ type: "openMention", text: part })}>
+					onClick={() => rootStore.settings.openMention(part)}>
 					@{part}
 				</span>
 			)

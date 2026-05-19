@@ -29,7 +29,7 @@ describe("Marketplace General Availability", () => {
 			filters: { type: "mcp", search: "", tags: [] },
 		}
 
-		await webviewMessageHandler(mockProvider, message, mockMarketplaceManager)
+		await webviewMessageHandler(mockProvider, message)
 
 		// Should call marketplace manager methods since marketplace is generally available
 		expect(mockMarketplaceManager.updateWithFilteredItems).toHaveBeenCalledWith({
@@ -64,7 +64,7 @@ describe("Marketplace General Availability", () => {
 			mpInstallOptions: { target: "project" as const },
 		}
 
-		await webviewMessageHandler(mockProvider, message, mockMarketplaceManagerWithInstall as any)
+		await webviewMessageHandler(mockProvider, message)
 
 		// Should call install method since marketplace is generally available
 		expect(mockInstallMarketplaceItem).toHaveBeenCalledWith(message.mpItem, message.mpInstallOptions)

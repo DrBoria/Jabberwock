@@ -188,7 +188,7 @@ export class LmStudioHandler extends BaseProvider implements SingleCompletionHan
 	async completePrompt(prompt: string): Promise<string> {
 		try {
 			// Create params object with optional draft model
-			const params: any = {
+			const params: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming & { draft_model?: string } = {
 				model: this.getModel().id,
 				messages: [{ role: "user", content: prompt }],
 				temperature: this.options.modelTemperature ?? LMSTUDIO_DEFAULT_TEMPERATURE,
@@ -202,7 +202,9 @@ export class LmStudioHandler extends BaseProvider implements SingleCompletionHan
 
 			let response
 			try {
-				response = await this.client.chat.completions.create(params)
+				response = await this.client.chat.completions.create(
+					params as OpenAI.Chat.ChatCompletionCreateParamsNonStreaming,
+				)
 			} catch (error) {
 				throw handleOpenAIError(error, this.providerName)
 			}
@@ -222,7 +224,7 @@ export async function getLmStudioModels(baseUrl = "http://localhost:1234") {
 		}
 
 		const response = await axios.get(`${baseUrl}/v1/models`)
-		const modelsArray = response.data?.data?.map((model: any) => model.id) || []
+		const modelsArray = response.data?.data?.map((model: { id: string }) => model.id) || []
 		return [...new Set<string>(modelsArray)]
 	} catch (error) {
 		return []

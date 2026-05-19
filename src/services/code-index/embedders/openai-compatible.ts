@@ -10,13 +10,13 @@ import { getDefaultModelId, getModelQueryPrefix } from "../../../shared/embeddin
 import { t } from "../../../i18n"
 import { withValidationErrorHandling, HttpError, formatEmbeddingError } from "../shared/validation-helpers"
 import { TelemetryEventName } from "@jabberwock/types"
-import { TelemetryService } from "@jabberwock/telemetry"
+import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 import { Mutex } from "async-mutex"
 import { handleOpenAIError } from "../../../api/providers/utils/openai-error-handler"
 
 interface EmbeddingItem {
 	embedding: string | number[]
-	[key: string]: any
+	[key: string]: unknown
 }
 
 interface OpenAIEmbeddingResponse {
@@ -272,14 +272,20 @@ export class OpenAICompatibleEmbedder implements IEmbedder {
 					response = await this.makeDirectEmbeddingRequest(this.baseUrl, batchTexts, model)
 				} else {
 					// Use OpenAI SDK for base URLs
-					response = (await this.embeddingsClient.embeddings.create({
+					const sdkResponse = await this.embeddingsClient.embeddings.create({
 						input: batchTexts,
 						model: model,
 						// OpenAI package (as of v4.78.1) has a parsing issue that truncates embedding dimensions to 256
 						// when processing numeric arrays, which breaks compatibility with models using larger dimensions.
 						// By requesting base64 encoding, we bypass the package's parser and handle decoding ourselves.
 						encoding_format: "base64",
-					})) as OpenAIEmbeddingResponse
+					})
+					response = {
+						data: sdkResponse.data.map((item) => ({
+							embedding: item.embedding,
+						})),
+						usage: sdkResponse.usage,
+					}
 				}
 
 				// Convert base64 embeddings to float32 arrays
@@ -312,7 +318,7 @@ export class OpenAICompatibleEmbedder implements IEmbedder {
 				}
 			} catch (error) {
 				// Capture telemetry before error is reformatted
-				TelemetryService.instance.captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
+				getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
 					error: error instanceof Error ? error.message : String(error),
 					stack: error instanceof Error ? error.stack : undefined,
 					location: "OpenAICompatibleEmbedder:_embedBatchWithRetries",
@@ -374,11 +380,17 @@ export class OpenAICompatibleEmbedder implements IEmbedder {
 					response = await this.makeDirectEmbeddingRequest(this.baseUrl, testTexts, modelToUse)
 				} else {
 					// Test using OpenAI SDK for base URLs
-					response = (await this.embeddingsClient.embeddings.create({
+					const sdkResponse = await this.embeddingsClient.embeddings.create({
 						input: testTexts,
 						model: modelToUse,
 						encoding_format: "base64",
-					})) as OpenAIEmbeddingResponse
+					})
+					response = {
+						data: sdkResponse.data.map((item) => ({
+							embedding: item.embedding,
+						})),
+						usage: sdkResponse.usage,
+					}
 				}
 
 				// Check if we got a valid response
@@ -392,7 +404,7 @@ export class OpenAICompatibleEmbedder implements IEmbedder {
 				return { valid: true }
 			} catch (error) {
 				// Capture telemetry for validation errors
-				TelemetryService.instance.captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
+				getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
 					error: error instanceof Error ? error.message : String(error),
 					stack: error instanceof Error ? error.stack : undefined,
 					location: "OpenAICompatibleEmbedder:validateConfiguration",

@@ -5,7 +5,7 @@ import { types, Instance } from "mobx-state-tree"
  * Receives snapshots from the extension-side store via MstBridge.
  */
 export const AutoApproveStore = types.model("AutoApproveStore", {
-	autoApproveSettings: types.optional(types.frozen<Record<string, boolean>>(), {}),
+	autoApproveSettings: types.frozen<Record<string, boolean>>(),
 	isAutoApprovalEnabled: false,
 })
 

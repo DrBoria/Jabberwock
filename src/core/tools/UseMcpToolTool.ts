@@ -1,6 +1,6 @@
 import type { ClineAskUseMcpServer } from "@jabberwock/types"
 
-import { Task } from "../task/Task"
+import { Task } from "../../features/chat/task/Task"
 import type { ToolUse } from "../../shared/tools"
 
 import { BaseTool, ToolCallbacks } from "./BaseTool"
@@ -16,11 +16,7 @@ import { executeToolAndProcessResult } from "./mcp/executeTool"
 export class UseMcpToolTool extends BaseTool<"use_mcp_tool"> {
 	readonly name = "use_mcp_tool" as const
 
-	async execute(
-		params: UseMcpToolParams,
-		task: Task,
-		callbacks: ToolCallbacks,
-	): Promise<{ isDelegated: boolean } | void> {
+	async execute(params: UseMcpToolParams, task: Task, callbacks: ToolCallbacks): Promise<void> {
 		const { askApproval, handleError, pushToolResult } = callbacks
 
 		try {
@@ -56,7 +52,7 @@ export class UseMcpToolTool extends BaseTool<"use_mcp_tool"> {
 
 			// Auto-approve for interactiveApp MCP servers (they have their own approval UI via _meta.ui)
 			// The interactive_app ask at line 349 provides the iframe-based approval flow instead.
-			const mcpHub = task.providerRef.deref()?.getMcpHub()
+			const mcpHub = await task.providerRef.deref()?.getMcpHub()
 			const servers = mcpHub?.getAllServers() || []
 			const server = servers.find((s) => s.name === serverName)
 			const isInteractiveApp = server ? isInteractiveAppServer(server.config || "{}") : false
@@ -69,7 +65,7 @@ export class UseMcpToolTool extends BaseTool<"use_mcp_tool"> {
 
 			// Execute the tool and process results
 			// Return delegation status to signal presentAssistantMessage to abort loop
-			return await executeToolAndProcessResult(
+			await executeToolAndProcessResult(
 				task,
 				serverName,
 				resolvedToolName,

@@ -42,7 +42,7 @@ export class DiagnosticsModel {
 	async verifyNoNewApiRequests(waitMs: number = 30000): Promise<void> {
 		// First, wait for the task to be settled (not streaming)
 		try {
-			const status = await this.client.getCurrentState()
+			const status = (await this.client.getCurrentState()) as { taskId?: string } | undefined
 			if (status && status.taskId) {
 				await this.waitForTaskIdle(10000)
 			}
@@ -76,7 +76,9 @@ export class DiagnosticsModel {
 	private async waitForTaskIdle(timeoutMs: number = 10000): Promise<void> {
 		const startTime = Date.now()
 		while (Date.now() - startTime < timeoutMs) {
-			const state = await this.client.getCurrentState()
+			const state = (await this.client.getCurrentState()) as
+				| { isLoading?: boolean; isStreaming?: boolean }
+				| undefined
 			if (state) {
 				const isIdle = !state.isLoading && !state.isStreaming
 				if (isIdle) {

@@ -14,7 +14,6 @@ import { AlertTriangle } from "lucide-react"
 
 import { type IndexingStatus, type EmbedderProvider, CODEBASE_INDEX_DEFAULTS } from "@jabberwock/types"
 
-import { vscode } from "@jabberwock/devtool/react"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { buildDocLink } from "@src/features/settings/utils/docLinks"
@@ -84,7 +83,10 @@ interface LocalCodeIndexSettings {
 }
 
 // Validation schema for codebase index settings
-const createValidationSchema = (provider: EmbedderProvider, t: any) => {
+const createValidationSchema = (
+	provider: EmbedderProvider,
+	t: (key: string, options?: Record<string, unknown>) => string,
+) => {
 	const baseSchema = z.object({
 		codebaseIndexEnabled: z.boolean(),
 		codebaseIndexQdrantUrl: z
@@ -181,6 +183,7 @@ const createValidationSchema = (provider: EmbedderProvider, t: any) => {
 	}
 }
 
+import { rootStore } from "@src/features/store"
 export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 	children,
 	indexingStatus: externalIndexingStatus,
@@ -270,22 +273,22 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 			setCurrentSettings(settings)
 
 			// Request secret status to check if secrets exist
-			vscode.postMessage({ type: "requestCodeIndexSecretStatus" })
+			rootStore.settings.requestCodeIndexSecretStatus()
 		}
 	}, [codebaseIndexConfig])
 
 	// Request initial indexing status
 	useEffect(() => {
 		if (open) {
-			vscode.postMessage({ type: "requestIndexingStatus" })
-			vscode.postMessage({ type: "requestCodeIndexSecretStatus" })
+			rootStore.settings.requestIndexingStatus()
+			rootStore.settings.requestCodeIndexSecretStatus()
 		}
 		const handleMessage = (event: MessageEvent) => {
 			if (event.data.type === "workspaceUpdated") {
 				// When workspace changes, request updated indexing status
 				if (open) {
-					vscode.postMessage({ type: "requestIndexingStatus" })
-					vscode.postMessage({ type: "requestCodeIndexSecretStatus" })
+					rootStore.settings.requestIndexingStatus()
+					rootStore.settings.requestCodeIndexSecretStatus()
 				}
 			}
 		}
@@ -323,7 +326,7 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 					// Request secret status to ensure we have the latest state
 					// This is important to maintain placeholder display after save
 
-					vscode.postMessage({ type: "requestCodeIndexSecretStatus" })
+					rootStore.settings.requestCodeIndexSecretStatus()
 
 					setSaveStatus("idle")
 				} else {
@@ -435,7 +438,7 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 		return false
 	}, [currentSettings, initialSettings])
 
-	const updateSetting = (key: keyof LocalCodeIndexSettings, value: any) => {
+	const updateSetting = (key: keyof LocalCodeIndexSettings, value: unknown) => {
 		setCurrentSettings((prev) => ({ ...prev, [key]: value }))
 		// Clear validation error for this field when user starts typing
 		if (formErrors[key]) {
@@ -452,7 +455,7 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 		const schema = createValidationSchema(currentSettings.codebaseIndexEmbedderProvider, t)
 
 		// Prepare data for validation
-		const dataToValidate: any = {}
+		const dataToValidate: Record<string, unknown> = {}
 		for (const [key, value] of Object.entries(currentSettings)) {
 			// For secret fields with placeholder values, treat them as valid (they exist in backend)
 			if (value === SECRET_PLACEHOLDER) {
@@ -537,7 +540,7 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 		setSaveError(null)
 
 		// Prepare settings to save
-		const settingsToSave: any = {}
+		const settingsToSave: Record<string, unknown> = {}
 
 		// Iterate through all current settings
 		for (const [key, value] of Object.entries(currentSettings)) {
@@ -557,10 +560,7 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 		settingsToSave.codebaseIndexEnabled = currentSettings.codebaseIndexEnabled
 
 		// Save settings to backend
-		vscode.postMessage({
-			type: "saveCodeIndexSettingsAtomic",
-			codeIndexSettings: settingsToSave,
-		})
+		rootStore.settings.saveCodeIndexSettings(settingsToSave)
 	}
 
 	const progressPercentage = useMemo(
@@ -638,7 +638,9 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 							<div className="flex items-center gap-2">
 								<VSCodeCheckbox
 									checked={currentSettings.codebaseIndexEnabled}
-									onChange={(e: any) => updateSetting("codebaseIndexEnabled", e.target.checked)}>
+									onChange={(e) =>
+										updateSetting("codebaseIndexEnabled", (e.target as HTMLInputElement).checked)
+									}>
 									<span className="font-medium">{t("settings:codeIndex.enableLabel")}</span>
 								</VSCodeCheckbox>
 								<StandardTooltip content={t("settings:codeIndex.enableDescription")}>
@@ -775,8 +777,11 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 												<VSCodeTextField
 													type="password"
 													value={currentSettings.codeIndexOpenAiKey || ""}
-													onInput={(e: any) =>
-														updateSetting("codeIndexOpenAiKey", e.target.value)
+													onInput={(e) =>
+														updateSetting(
+															"codeIndexOpenAiKey",
+															(e.target as HTMLInputElement).value,
+														)
 													}
 													placeholder={t("settings:codeIndex.openAiKeyPlaceholder")}
 													className={cn("w-full", {
@@ -796,8 +801,11 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 												</label>
 												<VSCodeDropdown
 													value={currentSettings.codebaseIndexEmbedderModelId}
-													onChange={(e: any) =>
-														updateSetting("codebaseIndexEmbedderModelId", e.target.value)
+													onChange={(e) =>
+														updateSetting(
+															"codebaseIndexEmbedderModelId",
+															(e.target as HTMLInputElement).value,
+														)
 													}
 													className={cn("w-full", {
 														"border-red-500": formErrors.codebaseIndexEmbedderModelId,
@@ -839,13 +847,16 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 												</label>
 												<VSCodeTextField
 													value={currentSettings.codebaseIndexEmbedderBaseUrl || ""}
-													onInput={(e: any) =>
-														updateSetting("codebaseIndexEmbedderBaseUrl", e.target.value)
+													onInput={(e) =>
+														updateSetting(
+															"codebaseIndexEmbedderBaseUrl",
+															(e.target as HTMLInputElement).value,
+														)
 													}
-													onBlur={(e: any) => {
+													onBlur={(e) => {
 														// Set default Ollama URL if field is empty
-														if (!e.target.value.trim()) {
-															e.target.value = DEFAULT_OLLAMA_URL
+														if (!(e.target as HTMLInputElement).value.trim()) {
+															;(e.target as HTMLInputElement).value = DEFAULT_OLLAMA_URL
 															updateSetting(
 																"codebaseIndexEmbedderBaseUrl",
 																DEFAULT_OLLAMA_URL,
@@ -870,8 +881,11 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 												</label>
 												<VSCodeTextField
 													value={currentSettings.codebaseIndexEmbedderModelId || ""}
-													onInput={(e: any) =>
-														updateSetting("codebaseIndexEmbedderModelId", e.target.value)
+													onInput={(e) =>
+														updateSetting(
+															"codebaseIndexEmbedderModelId",
+															(e.target as HTMLInputElement).value,
+														)
 													}
 													placeholder={t("settings:codeIndex.modelPlaceholder")}
 													className={cn("w-full", {
@@ -894,9 +908,10 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 														currentSettings.codebaseIndexEmbedderModelDimension?.toString() ||
 														""
 													}
-													onInput={(e: any) => {
-														const value = e.target.value
-															? parseInt(e.target.value, 10) || undefined
+													onInput={(e) => {
+														const value = (e.target as HTMLInputElement).value
+															? parseInt((e.target as HTMLInputElement).value, 10) ||
+																undefined
 															: undefined
 														updateSetting("codebaseIndexEmbedderModelDimension", value)
 													}}
@@ -923,10 +938,10 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 												</label>
 												<VSCodeTextField
 													value={currentSettings.codebaseIndexOpenAiCompatibleBaseUrl || ""}
-													onInput={(e: any) =>
+													onInput={(e) =>
 														updateSetting(
 															"codebaseIndexOpenAiCompatibleBaseUrl",
-															e.target.value,
+															(e.target as HTMLInputElement).value,
 														)
 													}
 													placeholder={t(
@@ -951,10 +966,10 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 												<VSCodeTextField
 													type="password"
 													value={currentSettings.codebaseIndexOpenAiCompatibleApiKey || ""}
-													onInput={(e: any) =>
+													onInput={(e) =>
 														updateSetting(
 															"codebaseIndexOpenAiCompatibleApiKey",
-															e.target.value,
+															(e.target as HTMLInputElement).value,
 														)
 													}
 													placeholder={t(
@@ -978,8 +993,11 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 												</label>
 												<VSCodeTextField
 													value={currentSettings.codebaseIndexEmbedderModelId || ""}
-													onInput={(e: any) =>
-														updateSetting("codebaseIndexEmbedderModelId", e.target.value)
+													onInput={(e) =>
+														updateSetting(
+															"codebaseIndexEmbedderModelId",
+															(e.target as HTMLInputElement).value,
+														)
 													}
 													placeholder={t("settings:codeIndex.modelPlaceholder")}
 													className={cn("w-full", {
@@ -1002,9 +1020,10 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 														currentSettings.codebaseIndexEmbedderModelDimension?.toString() ||
 														""
 													}
-													onInput={(e: any) => {
-														const value = e.target.value
-															? parseInt(e.target.value, 10) || undefined
+													onInput={(e) => {
+														const value = (e.target as HTMLInputElement).value
+															? parseInt((e.target as HTMLInputElement).value, 10) ||
+																undefined
 															: undefined
 														updateSetting("codebaseIndexEmbedderModelDimension", value)
 													}}
@@ -1032,8 +1051,11 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 												<VSCodeTextField
 													type="password"
 													value={currentSettings.codebaseIndexGeminiApiKey || ""}
-													onInput={(e: any) =>
-														updateSetting("codebaseIndexGeminiApiKey", e.target.value)
+													onInput={(e) =>
+														updateSetting(
+															"codebaseIndexGeminiApiKey",
+															(e.target as HTMLInputElement).value,
+														)
 													}
 													placeholder={t("settings:codeIndex.geminiApiKeyPlaceholder")}
 													className={cn("w-full", {
@@ -1053,8 +1075,11 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 												</label>
 												<VSCodeDropdown
 													value={currentSettings.codebaseIndexEmbedderModelId}
-													onChange={(e: any) =>
-														updateSetting("codebaseIndexEmbedderModelId", e.target.value)
+													onChange={(e) =>
+														updateSetting(
+															"codebaseIndexEmbedderModelId",
+															(e.target as HTMLInputElement).value,
+														)
 													}
 													className={cn("w-full", {
 														"border-red-500": formErrors.codebaseIndexEmbedderModelId,
@@ -1097,8 +1122,11 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 												<VSCodeTextField
 													type="password"
 													value={currentSettings.codebaseIndexMistralApiKey || ""}
-													onInput={(e: any) =>
-														updateSetting("codebaseIndexMistralApiKey", e.target.value)
+													onInput={(e) =>
+														updateSetting(
+															"codebaseIndexMistralApiKey",
+															(e.target as HTMLInputElement).value,
+														)
 													}
 													placeholder={t("settings:codeIndex.mistralApiKeyPlaceholder")}
 													className={cn("w-full", {
@@ -1118,8 +1146,11 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 												</label>
 												<VSCodeDropdown
 													value={currentSettings.codebaseIndexEmbedderModelId}
-													onChange={(e: any) =>
-														updateSetting("codebaseIndexEmbedderModelId", e.target.value)
+													onChange={(e) =>
+														updateSetting(
+															"codebaseIndexEmbedderModelId",
+															(e.target as HTMLInputElement).value,
+														)
 													}
 													className={cn("w-full", {
 														"border-red-500": formErrors.codebaseIndexEmbedderModelId,
@@ -1162,10 +1193,10 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 												<VSCodeTextField
 													type="password"
 													value={currentSettings.codebaseIndexVercelAiGatewayApiKey || ""}
-													onInput={(e: any) =>
+													onInput={(e) =>
 														updateSetting(
 															"codebaseIndexVercelAiGatewayApiKey",
-															e.target.value,
+															(e.target as HTMLInputElement).value,
 														)
 													}
 													placeholder={t(
@@ -1188,8 +1219,11 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 												</label>
 												<VSCodeDropdown
 													value={currentSettings.codebaseIndexEmbedderModelId}
-													onChange={(e: any) =>
-														updateSetting("codebaseIndexEmbedderModelId", e.target.value)
+													onChange={(e) =>
+														updateSetting(
+															"codebaseIndexEmbedderModelId",
+															(e.target as HTMLInputElement).value,
+														)
 													}
 													className={cn("w-full", {
 														"border-red-500": formErrors.codebaseIndexEmbedderModelId,
@@ -1231,8 +1265,11 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 												</label>
 												<VSCodeTextField
 													value={currentSettings.codebaseIndexBedrockRegion || ""}
-													onInput={(e: any) =>
-														updateSetting("codebaseIndexBedrockRegion", e.target.value)
+													onInput={(e) =>
+														updateSetting(
+															"codebaseIndexBedrockRegion",
+															(e.target as HTMLInputElement).value,
+														)
 													}
 													placeholder={t("settings:codeIndex.bedrockRegionPlaceholder")}
 													className={cn("w-full", {
@@ -1255,8 +1292,11 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 												</label>
 												<VSCodeTextField
 													value={currentSettings.codebaseIndexBedrockProfile || ""}
-													onInput={(e: any) =>
-														updateSetting("codebaseIndexBedrockProfile", e.target.value)
+													onInput={(e) =>
+														updateSetting(
+															"codebaseIndexBedrockProfile",
+															(e.target as HTMLInputElement).value,
+														)
 													}
 													placeholder={t("settings:codeIndex.bedrockProfilePlaceholder")}
 													className={cn("w-full", {
@@ -1281,8 +1321,11 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 												</label>
 												<VSCodeDropdown
 													value={currentSettings.codebaseIndexEmbedderModelId}
-													onChange={(e: any) =>
-														updateSetting("codebaseIndexEmbedderModelId", e.target.value)
+													onChange={(e) =>
+														updateSetting(
+															"codebaseIndexEmbedderModelId",
+															(e.target as HTMLInputElement).value,
+														)
 													}
 													className={cn("w-full", {
 														"border-red-500": formErrors.codebaseIndexEmbedderModelId,
@@ -1325,8 +1368,11 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 												<VSCodeTextField
 													type="password"
 													value={currentSettings.codebaseIndexOpenRouterApiKey || ""}
-													onInput={(e: any) =>
-														updateSetting("codebaseIndexOpenRouterApiKey", e.target.value)
+													onInput={(e) =>
+														updateSetting(
+															"codebaseIndexOpenRouterApiKey",
+															(e.target as HTMLInputElement).value,
+														)
 													}
 													placeholder={t("settings:codeIndex.openRouterApiKeyPlaceholder")}
 													className={cn("w-full", {
@@ -1346,8 +1392,11 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 												</label>
 												<VSCodeDropdown
 													value={currentSettings.codebaseIndexEmbedderModelId}
-													onChange={(e: any) =>
-														updateSetting("codebaseIndexEmbedderModelId", e.target.value)
+													onChange={(e) =>
+														updateSetting(
+															"codebaseIndexEmbedderModelId",
+															(e.target as HTMLInputElement).value,
+														)
 													}
 													className={cn("w-full", {
 														"border-red-500": formErrors.codebaseIndexEmbedderModelId,
@@ -1437,12 +1486,15 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 										</label>
 										<VSCodeTextField
 											value={currentSettings.codebaseIndexQdrantUrl || ""}
-											onInput={(e: any) =>
-												updateSetting("codebaseIndexQdrantUrl", e.target.value)
+											onInput={(e) =>
+												updateSetting(
+													"codebaseIndexQdrantUrl",
+													(e.target as HTMLInputElement).value,
+												)
 											}
-											onBlur={(e: any) => {
+											onBlur={(e) => {
 												// Set default Qdrant URL if field is empty
-												if (!e.target.value.trim()) {
+												if (!(e.target as HTMLInputElement).value.trim()) {
 													currentSettings.codebaseIndexQdrantUrl = DEFAULT_QDRANT_URL
 													updateSetting("codebaseIndexQdrantUrl", DEFAULT_QDRANT_URL)
 												}
@@ -1466,7 +1518,12 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 										<VSCodeTextField
 											type="password"
 											value={currentSettings.codeIndexQdrantApiKey || ""}
-											onInput={(e: any) => updateSetting("codeIndexQdrantApiKey", e.target.value)}
+											onInput={(e) =>
+												updateSetting(
+													"codeIndexQdrantApiKey",
+													(e.target as HTMLInputElement).value,
+												)
+											}
 											placeholder={t("settings:codeIndex.qdrantApiKeyPlaceholder")}
 											className={cn("w-full", {
 												"border-red-500": formErrors.codeIndexQdrantApiKey,
@@ -1598,10 +1655,7 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 									id="auto-enable-default-toggle"
 									checked={indexingStatus.autoEnableDefault ?? true}
 									onChange={(e) =>
-										vscode.postMessage({
-											type: "setAutoEnableDefault",
-											bool: e.target.checked,
-										})
+										rootStore.settings.setAutoEnableDefault((e.target as HTMLInputElement).checked)
 									}
 									className="accent-vscode-focusBorder"
 								/>
@@ -1621,10 +1675,9 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 									id="workspace-indexing-toggle"
 									checked={indexingStatus.workspaceEnabled ?? false}
 									onChange={(e) =>
-										vscode.postMessage({
-											type: "toggleWorkspaceIndexing",
-											bool: e.target.checked,
-										})
+										rootStore.settings.toggleWorkspaceIndexing(
+											(e.target as HTMLInputElement).checked,
+										)
 									}
 									className="accent-vscode-focusBorder"
 								/>
@@ -1649,16 +1702,14 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 									(indexingStatus.systemStatus === "Error" ||
 										indexingStatus.systemStatus === "Standby") && (
 										<Button
-											onClick={() => vscode.postMessage({ type: "startIndexing" })}
+											onClick={() => rootStore.settings.startIndexing()}
 											disabled={saveStatus === "saving" || hasUnsavedChanges}>
 											{t("settings:codeIndex.startIndexingButton")}
 										</Button>
 									)}
 
 								{currentSettings.codebaseIndexEnabled && indexingStatus.systemStatus === "Indexing" && (
-									<Button
-										variant="destructive"
-										onClick={() => vscode.postMessage({ type: "stopIndexing" })}>
+									<Button variant="destructive" onClick={() => rootStore.settings.stopIndexing()}>
 										{t("settings:codeIndex.stopIndexingButton")}
 									</Button>
 								)}
@@ -1692,7 +1743,7 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 														{t("settings:codeIndex.clearDataDialog.cancelButton")}
 													</AlertDialogCancel>
 													<AlertDialogAction
-														onClick={() => vscode.postMessage({ type: "clearIndexData" })}>
+														onClick={() => rootStore.settings.clearIndexData()}>
 														{t("settings:codeIndex.clearDataDialog.confirmButton")}
 													</AlertDialogAction>
 												</AlertDialogFooter>

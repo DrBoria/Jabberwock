@@ -14,11 +14,11 @@ import { Terminal } from "../../../integrations/terminal/Terminal"
 import { arePathsEqual } from "../../../utils/path"
 import { FileContextTracker } from "../../context-tracking/FileContextTracker"
 import { ApiHandler } from "../../../api/index"
-import { ClineProvider } from "../../webview/ClineProvider"
+import { EventBridge } from "../../webview/EventBridge"
 import { JabberwockIgnoreController } from "../../ignore/JabberwockIgnoreController"
 import { formatResponse } from "../../prompts/responses"
 import { getGitStatus } from "../../../utils/git"
-import { Task } from "../../task/Task"
+import { Task } from "../../../features/chat/task/Task"
 
 vi.mock("vscode", () => ({
 	window: {
@@ -117,7 +117,7 @@ describe("getEnvironmentDetails", () => {
 			providerRef: {
 				deref: vi.fn().mockReturnValue(mockProvider),
 				[Symbol.toStringTag]: "WeakRef",
-			} as unknown as WeakRef<ClineProvider>,
+			} as unknown as WeakRef<EventBridge>,
 		}
 
 		// Mock other dependencies.

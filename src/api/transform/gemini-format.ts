@@ -165,7 +165,12 @@ export function convertAnthropicContentToGemini(
 	if (includeThoughtSignatures) {
 		let seenFirstFunctionCall = false
 		for (const part of parts) {
-			if (part && typeof part === "object" && "functionCall" in part && (part as any).functionCall) {
+			if (
+				part &&
+				typeof part === "object" &&
+				"functionCall" in part &&
+				(part as Record<string, unknown>).functionCall
+			) {
 				const partWithSig = part as PartWithThoughtSignature
 				if (!seenFirstFunctionCall) {
 					seenFirstFunctionCall = true

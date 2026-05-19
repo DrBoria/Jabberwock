@@ -6,7 +6,6 @@ import { type ModeConfig, type CustomModePrompts, TelemetryEventName } from "@ja
 
 import { type Mode, getAllModes, defaultModeSlug } from "@shared/modes"
 
-import { vscode } from "@jabberwock/devtool/react"
 import { telemetryClient } from "@/features/cloud/utils/TelemetryClient"
 import { cn } from "@/lib/utils"
 import { useExtensionState } from "@/context/ExtensionStateContext"
@@ -31,6 +30,7 @@ interface ModeSelectorProps {
 	disableSearch?: boolean
 }
 
+import { rootStore } from "@src/features/store"
 export const ModeSelector = ({
 	value,
 	onChange,
@@ -59,7 +59,7 @@ export const ModeSelector = ({
 		// Track first-time usage for UI purposes.
 		if (!hasOpenedModeSelector) {
 			setHasOpenedModeSelector(true)
-			vscode.postMessage({ type: "hasOpenedModeSelector", bool: true })
+			rootStore.settings.reportModeSelectorOpened(true)
 		}
 	}, [hasOpenedModeSelector, setHasOpenedModeSelector])
 
@@ -152,6 +152,11 @@ export const ModeSelector = ({
 		setSearchValue("")
 		searchInputRef.current?.focus()
 	}, [])
+
+	// Close popover when mode changes externally (e.g., keyboard shortcut ⌘ + .)
+	React.useEffect(() => {
+		setOpen(false)
+	}, [value])
 
 	const handleSelect = React.useCallback(
 		(modeSlug: string) => {
@@ -331,11 +336,7 @@ export const ModeSelector = ({
 								iconClass="codicon-settings-gear"
 								title={t("chat:modeSelector.settings")}
 								onClick={() => {
-									vscode.postMessage({
-										type: "switchTab",
-										tab: "settings",
-										values: { section: "modes" },
-									})
+									rootStore.windowManager.switchTab("settings", { section: "modes" })
 									setOpen(false)
 								}}
 							/>

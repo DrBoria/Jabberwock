@@ -11,12 +11,12 @@ interface AssistantMessageProps {
 	modeName: string | undefined
 	isStreaming: boolean
 	isLast: boolean
-	t: (key: string, options?: any) => string
+	t: (key: string, options?: Record<string, unknown>) => string
 }
 
 import { Container } from "@src/components/ui"
 export const AssistantMessage: React.FC<AssistantMessageProps> = ({ message, modeName, isStreaming, isLast, t }) => {
-	const content = (message as any).content
+	const content = (message as { content?: unknown }).content
 
 	return (
 		<Container $preset="col" $p="0" $gap="0" className="group">
@@ -32,7 +32,7 @@ export const AssistantMessage: React.FC<AssistantMessageProps> = ({ message, mod
 			</Container>
 			<div className="pl-6 space-y-2 mt-1">
 				{Array.isArray(content) && content.length > 0 ? (
-					content.map((block: any, idx: number) => {
+					content.map((block: { type: string; text?: string; partial?: boolean }, idx: number) => {
 						if (block.type === "reasoning") {
 							return (
 								<ReasoningBlock

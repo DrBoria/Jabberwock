@@ -189,8 +189,8 @@ export class QwenCodeHandler extends BaseProvider implements SingleCompletionHan
 	private async callApiWithRetry<T>(apiCall: () => Promise<T>): Promise<T> {
 		try {
 			return await apiCall()
-		} catch (error: any) {
-			if (error.status === 401) {
+		} catch (error) {
+			if ((error as Record<string, unknown>).status === 401) {
 				// Token expired, refresh and retry
 				this.credentials = await this.refreshAccessToken(this.credentials!)
 				const client = this.ensureClient()

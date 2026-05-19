@@ -91,7 +91,7 @@ describe("Diagnostics Structured Observability", () => {
 			manager.log("Log 1", "info")
 
 			const snapshot = manager.getSnapshot()
-			expect(snapshot.taskTraces.length).toBe(1)
+			expect(snapshot.taskTraces!.length).toBe(1)
 			expect(snapshot.metrics.length).toBe(1)
 			expect(snapshot.logs.length).toBeGreaterThan(0)
 			expect(snapshot.currentAction).toBe("Log 1")
@@ -103,7 +103,7 @@ describe("Diagnostics Structured Observability", () => {
 			manager.clear()
 
 			const snapshot = manager.getSnapshot()
-			expect(snapshot.taskTraces.length).toBe(0)
+			expect(snapshot.taskTraces!.length).toBe(0)
 			expect(snapshot.metrics.length).toBe(0)
 		})
 	})

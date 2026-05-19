@@ -1,10 +1,13 @@
-import { Task } from "../task/Task"
+import { Task } from "../../features/chat/task/Task"
 import { formatResponse } from "../prompts/responses"
 import { getCommand, getCommandNames } from "../../services/command/commands"
 import { EXPERIMENT_IDS, experiments } from "../../shared/experiments"
 import { BaseTool, ToolCallbacks } from "./BaseTool"
 import type { ToolUse } from "../../shared/tools"
 import { getModeBySlug } from "../../shared/modes"
+import type { ModeConfig } from "@jabberwock/types"
+import { getSkillsManager } from "../../features/settings/skills/store"
+import { handleModeSwitch } from "../../features/foundation/window-manager/store"
 import {
 	buildSkillApprovalMessage,
 	buildSkillResult,
@@ -56,7 +59,7 @@ export class RunSlashCommandTool extends BaseTool<"run_slash_command"> {
 
 			if (!command) {
 				const currentMode = state?.mode ?? "code"
-				const skillsManager = provider?.getSkillsManager()
+				const skillsManager = provider ? getSkillsManager(provider) : undefined
 				const skillContent = await resolveSkillContentForMode(skillsManager, commandName, currentMode)
 
 				if (skillContent) {
@@ -101,9 +104,12 @@ export class RunSlashCommandTool extends BaseTool<"run_slash_command"> {
 			// Switch mode if specified in the command frontmatter
 			if (command.mode) {
 				const provider = task.providerRef.deref()
-				const targetMode = getModeBySlug(command.mode, (await provider?.getState())?.customModes)
+				const targetMode = getModeBySlug(
+					command.mode,
+					(await provider?.getState())?.customModes as ModeConfig[] | undefined,
+				)
 				if (targetMode) {
-					await provider?.handleModeSwitch(command.mode)
+					await handleModeSwitch(provider!, command.mode)
 				}
 			}
 

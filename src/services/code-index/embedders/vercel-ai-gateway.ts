@@ -3,7 +3,7 @@ import { IEmbedder, EmbeddingResponse, EmbedderInfo } from "../interfaces/embedd
 import { MAX_ITEM_TOKENS } from "../constants"
 import { t } from "../../../i18n"
 import { TelemetryEventName } from "@jabberwock/types"
-import { TelemetryService } from "@jabberwock/telemetry"
+import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 
 /**
  * Vercel AI Gateway embedder implementation that wraps the OpenAI Compatible embedder
@@ -61,7 +61,7 @@ export class VercelAiGatewayEmbedder implements IEmbedder {
 			const modelToUse = model || this.modelId
 			return await this.openAICompatibleEmbedder.createEmbeddings(texts, modelToUse)
 		} catch (error) {
-			TelemetryService.instance.captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
+			getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
 				error: error instanceof Error ? error.message : String(error),
 				stack: error instanceof Error ? error.stack : undefined,
 				location: "VercelAiGatewayEmbedder:createEmbeddings",
@@ -80,7 +80,7 @@ export class VercelAiGatewayEmbedder implements IEmbedder {
 			// The error messages will be specific to Vercel AI Gateway since we're using Vercel's base URL
 			return await this.openAICompatibleEmbedder.validateConfiguration()
 		} catch (error) {
-			TelemetryService.instance.captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
+			getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
 				error: error instanceof Error ? error.message : String(error),
 				stack: error instanceof Error ? error.stack : undefined,
 				location: "VercelAiGatewayEmbedder:validateConfiguration",

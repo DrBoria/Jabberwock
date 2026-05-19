@@ -8,7 +8,7 @@ import {
 	unboundDefaultModelId,
 } from "@jabberwock/types"
 
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { Button } from "@src/components/ui"
 
@@ -36,12 +36,14 @@ export const Unbound = ({
 	const { t } = useAppTranslation()
 
 	const handleInputChange = useCallback(
-		<K extends keyof ProviderSettings, E>(
-			field: K,
-			transform: (event: E) => ProviderSettings[K] = inputEventTransform,
-		) =>
+		<K extends keyof ProviderSettings, E>(field: K, transform?: (event: E) => ProviderSettings[K]) =>
 			(event: E | Event) => {
-				setApiConfigurationField(field, transform(event as E))
+				setApiConfigurationField(
+					field,
+					transform
+						? transform(event as E)
+						: (inputEventTransform(event as { target: HTMLInputElement }) as ProviderSettings[K]),
+				)
 			},
 		[setApiConfigurationField],
 	)
@@ -77,7 +79,7 @@ export const Unbound = ({
 			<Button
 				variant="outline"
 				onClick={() => {
-					vscode.postMessage({ type: "requestRouterModels", values: { provider: "unbound", refresh: true } })
+					rootStore.settings.requestRouterModels({ provider: "unbound", refresh: true })
 				}}>
 				<div className="flex items-center gap-2">
 					<span className="codicon codicon-refresh" />

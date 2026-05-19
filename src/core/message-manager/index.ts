@@ -1,5 +1,5 @@
 import * as path from "path"
-import { Task } from "../task/Task"
+import { Task } from "../../features/chat/task/Task"
 import { ClineMessage } from "@jabberwock/types"
 import { ApiMessage } from "../task-persistence/apiMessages"
 import { cleanupAfterTruncation } from "../condense"
@@ -252,7 +252,7 @@ export class MessageManager {
 	private async cleanupOrphanedArtifacts(validIds: Set<string>): Promise<void> {
 		try {
 			// Access globalStoragePath and taskId through the task reference
-			const task = this.task as any // Access private member
+			const task = this.task as { globalStoragePath: string; taskId: string } // Access private member
 			const globalStoragePath = task.globalStoragePath
 			const taskId = task.taskId
 

@@ -14,7 +14,7 @@ import { isBinaryFile } from "isbinaryfile"
 import type { ReadFileParams, ReadFileMode, ReadFileToolParams, FileEntry, LineRange } from "@jabberwock/types"
 import { isLegacyReadFileParams, type ClineSayTool } from "@jabberwock/types"
 
-import { Task } from "../task/Task"
+import { Task } from "../../features/chat/task/Task"
 import { formatResponse } from "../prompts/responses"
 import { RecordSource } from "../context-tracking/FileContextTrackerTypes"
 import { isPathOutsideWorkspace } from "../../utils/pathUtils"
@@ -608,9 +608,9 @@ export class ReadFileTool extends BaseTool<"read_file"> {
 			} else {
 				if (statusMessage) {
 					const textBlock = { type: "text" as const, text: finalResult }
-					pushToolResult([...result, textBlock] as any)
+					pushToolResult([...result, textBlock])
 				} else {
-					pushToolResult(result as any)
+					pushToolResult(result)
 				}
 			}
 		} else {
@@ -622,8 +622,13 @@ export class ReadFileTool extends BaseTool<"read_file"> {
 	getReadFileToolDescription(blockName: string, nativeArgs: ReadFileParams): string
 	getReadFileToolDescription(blockName: string, second: unknown): string {
 		// If native typed args were provided
-		if (second && typeof second === "object" && "path" in second && typeof (second as any).path === "string") {
-			return `[${blockName} for '${(second as any).path}']`
+		if (
+			second &&
+			typeof second === "object" &&
+			"path" in second &&
+			typeof (second as Record<string, unknown>).path === "string"
+		) {
+			return `[${blockName} for '${(second as Record<string, unknown>).path}']`
 		}
 
 		const blockParams = second as Record<string, unknown>

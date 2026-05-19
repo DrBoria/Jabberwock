@@ -34,3 +34,46 @@ export * from "./worktree.ts"
 
 export * from "./providers/index.ts"
 export * from "./diagnostics.ts"
+export * from "./event-constants.ts"
+export type {
+	BackendToWebview,
+	WebviewToBackend,
+	BackendInternalEvents,
+	// Chat
+	ChatBackendToWebview,
+	ChatWebviewToBackend,
+	ChatMessagesListBackendToWebview,
+	ChatMessagesListWebviewToBackend,
+	ChatNotificationsBackendToWebview,
+	ChatNotificationsWebviewToBackend,
+	ChatTaskBackendToWebview,
+	ChatTaskWebviewToBackend,
+	ChatTextAreaBackendToWebview,
+	ChatTextAreaWebviewToBackend,
+	ChatTopicBackendToWebview,
+	ChatTopicWebviewToBackend,
+	// Cloud
+	CloudBackendToWebview,
+	CloudWebviewToBackend,
+	// Diagnostics
+	DiagnosticsBackendToWebview,
+	DiagnosticsWebviewToBackend,
+	// Foundation
+	FoundationBackendToWebview,
+	FoundationWebviewToBackend,
+	FoundationAgentStateBackendToWebview,
+	FoundationAgentStateWebviewToBackend,
+	FoundationMstBackendToWebview,
+	FoundationMstWebviewToBackend,
+	FoundationWindowManagerBackendToWebview,
+	FoundationWindowManagerWebviewToBackend,
+	// History
+	HistoryBackendToWebview,
+	HistoryWebviewToBackend,
+	// Marketplace
+	MarketplaceBackendToWebview,
+	MarketplaceWebviewToBackend,
+	// Settings
+	SettingsBackendToWebview,
+	SettingsWebviewToBackend,
+} from "./event-registry.ts"

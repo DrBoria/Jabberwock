@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react"
 
 import type { Worktree } from "@jabberwock/types"
+import { SETTINGS_DELETE_WORKTREE as _SETTINGS_DELETE_WORKTREE } from "@jabberwock/types"
 
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { useAppTranslation } from "@/i18n/TranslationContext"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Button, Checkbox } from "@/components/ui"
 import { Folder, GitBranch, TriangleAlert } from "lucide-react"
@@ -47,11 +48,7 @@ export const DeleteWorktreeModal = ({ open, onClose, worktree, onSuccess }: Dele
 		// Always force delete unless worktree is locked and user hasn't opted in
 		const shouldForce = worktree.isLocked ? forceDeleteLocked : true
 
-		vscode.postMessage({
-			type: "deleteWorktree",
-			worktreePath: worktree.path,
-			worktreeForce: shouldForce,
-		})
+		rootStore.settings.deleteWorktree(worktree.path, shouldForce)
 	}, [worktree.path, worktree.isLocked, forceDeleteLocked])
 
 	return (

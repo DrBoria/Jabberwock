@@ -2,11 +2,12 @@ import React, { memo, useMemo } from "react"
 import ReactMarkdown from "react-markdown"
 import styled from "styled-components"
 import { visit } from "unist-util-visit"
+import type { Node } from "unist"
 import rehypeKatex from "rehype-katex"
 import remarkMath from "remark-math"
 import remarkGfm from "remark-gfm"
 
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 
 import CodeBlock from "./CodeBlock"
 import MermaidBlock from "./MermaidBlock"
@@ -206,17 +207,19 @@ const StyledMarkdown = styled.div`
 const MarkdownBlock = memo(({ markdown }: MarkdownBlockProps) => {
 	const components = useMemo(
 		() => ({
-			table: ({ children, ...props }: any) => {
+			table: ({ children }: { children?: React.ReactNode }) => {
 				return (
 					<div className="table-wrapper">
-						<table {...props}>{children}</table>
+						<table>{children}</table>
 					</div>
 				)
 			},
-			a: ({ href, children, ...props }: any) => {
+			a: ({ href, children }: { href?: string; children?: React.ReactNode }) => {
 				const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+					if (!href) return
+
 					// Only process file:// protocol or local file paths
-					const isLocalPath = href?.startsWith("file://") || href?.startsWith("/") || !href?.includes("://")
+					const isLocalPath = href.startsWith("file://") || href.startsWith("/") || !href.includes("://")
 
 					if (!isLocalPath) {
 						return
@@ -240,20 +243,16 @@ const MarkdownBlock = memo(({ markdown }: MarkdownBlockProps) => {
 						filePath = "./" + filePath
 					}
 
-					vscode.postMessage({
-						type: "openFile",
-						text: filePath,
-						values,
-					})
+					rootStore.settings.openFile(filePath, values)
 				}
 
 				return (
-					<a {...props} href={href} onClick={handleClick}>
+					<a href={href} onClick={handleClick}>
 						{children}
 					</a>
 				)
 			},
-			pre: ({ children, ..._props }: any) => {
+			pre: ({ children }: { children?: React.ReactNode }) => {
 				// The structure from react-markdown v9 is: pre > code > text
 				const codeEl = children as React.ReactElement
 
@@ -291,13 +290,9 @@ const MarkdownBlock = memo(({ markdown }: MarkdownBlockProps) => {
 					</div>
 				)
 			},
-			code: ({ children, className, ...props }: any) => {
+			code: ({ children, className }: { children?: React.ReactNode; className?: string }) => {
 				// This handles inline code
-				return (
-					<code className={className} {...props}>
-						{children}
-					</code>
-				)
+				return <code className={className}>{children}</code>
 			},
 		}),
 		[],
@@ -310,8 +305,8 @@ const MarkdownBlock = memo(({ markdown }: MarkdownBlockProps) => {
 					remarkGfm,
 					remarkMath,
 					() => {
-						return (tree: any) => {
-							visit(tree, "code", (node: any) => {
+						return (tree: Node) => {
+							visit(tree, "code", (node: { lang?: string }) => {
 								if (!node.lang) {
 									node.lang = "text"
 								} else if (node.lang.includes(".")) {
@@ -321,7 +316,7 @@ const MarkdownBlock = memo(({ markdown }: MarkdownBlockProps) => {
 						}
 					},
 				]}
-				rehypePlugins={[rehypeKatex as any]}
+				rehypePlugins={[rehypeKatex] as import("unified").PluggableList}
 				components={components}>
 				{markdown || ""}
 			</ReactMarkdown>

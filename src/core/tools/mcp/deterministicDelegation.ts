@@ -1,4 +1,7 @@
-import { Task } from "../../task/Task"
+import { Task } from "../../../features/chat/task/Task"
+import { type ApiMessage } from "../../task-persistence"
+import { delegateParentAndOpenChild } from "../../../features/chat/task/actions/delegation"
+import { startBackgroundTask } from "../../../features/chat/task/actions/startTask"
 
 /**
  * Logs a todo lifecycle event for debugging purposes.
@@ -92,7 +95,7 @@ export async function processDeterministicDelegation(task: Task, text: string): 
 
 		try {
 			if (todoTask.isAsync) {
-				const child = await provider.startBackgroundTask({
+				const child = await startBackgroundTask(provider, {
 					parentTaskId: task.taskId,
 					message: delegationMessage,
 					initialTodos: [],
@@ -107,7 +110,7 @@ export async function processDeterministicDelegation(task: Task, text: string): 
 
 				delegationResults.push(`✓ ${todoTask.id} → ${todoTask.assignedTo} (async, child: ${child.taskId})`)
 			} else {
-				const child = await provider.delegateParentAndOpenChild({
+				const child = await delegateParentAndOpenChild(provider, {
 					parentTaskId: task.taskId,
 					message: delegationMessage,
 					initialTodos: [],
@@ -164,11 +167,12 @@ async function rewriteHistoryAfterPlanApproval(
 	const firstUserMsg = firstUserMsgIndex !== -1 ? task.apiConversationHistory[firstUserMsgIndex] : undefined
 
 	const toolUseBlock = task.assistantMessageContent.find(
-		(block) => block.type === "tool_use" && (block as any).name === "mcp--md-todo-mcp--manage_todo_plan",
+		(block) =>
+			block.type === "tool_use" && (block as { name: string }).name === "mcp--md-todo-mcp--manage_todo_plan",
 	)
-	const toolUseId = (toolUseBlock as any)?.id || "unknown-id"
+	const toolUseId = (toolUseBlock as { id: string })?.id || "unknown-id"
 
-	const environmentDetailsBlock = (firstUserMsg?.content as unknown[])?.find(
+	const environmentDetailsBlock = (Array.isArray(firstUserMsg?.content) ? firstUserMsg.content : []).find(
 		(c) =>
 			(c as { type: string; text?: string }).type === "text" &&
 			(c as { type: string; text?: string }).text?.includes("<environment_details>"),
@@ -206,6 +210,6 @@ async function rewriteHistoryAfterPlanApproval(
 	}
 
 	const cleanHistory = [userMsg, assistantMsg]
-	await task.overwriteApiConversationHistory(cleanHistory as any)
+	await task.overwriteApiConversationHistory(cleanHistory as ApiMessage[])
 	console.log("[HistoryRewrite] Successfully rebuilt clean history after plan approval.")
 }

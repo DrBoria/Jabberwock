@@ -1,39 +1,38 @@
-import React, { createContext, useContext } from "react"
-import { types, applySnapshot, isAlive, isStateTreeNode, Instance } from "mobx-state-tree"
+import { types, applySnapshot, isAlive, isStateTreeNode, Instance, getParent } from "mobx-state-tree"
 
 export const Message = types.model("Message", {
 	id: types.identifier,
-	role: types.optional(types.string, "cline"), // "user", "assistant", or default to "cline"
+	role: types.string, // "user", "assistant", or default to "cline"
 	content: types.frozen(), // For Anthropic-style multi-block content
-	type: types.maybe(types.string), // cline: "say" or "ask"
-	say: types.maybe(types.string), // cline: "text", "error", etc.
-	ask: types.maybe(types.string), // cline: "tool", "followup", etc.
-	text: types.maybe(types.string), // main text content or summary
-	partial: types.maybe(types.boolean),
-	images: types.optional(types.array(types.string), []),
-	ts: types.optional(types.number, () => Date.now()),
+	type: types.string, // cline: "say" or "ask"
+	say: types.string, // cline: "text", "error", etc.
+	ask: types.string, // cline: "tool", "followup", etc.
+	text: types.string, // main text content or summary
+	partial: types.boolean,
+	images: types.array(types.string),
+	ts: types.number,
 })
 
 export const TaskNode = types
 	.model("TaskNode", {
 		id: types.identifier,
 		title: types.string,
-		mode: types.maybe(types.string),
-		status: types.optional(types.enumeration(["pending", "in_progress", "completed", "failed"]), "pending"),
+		mode: types.string,
+		status: types.enumeration(["pending", "in_progress", "completed", "failed"]),
 		messages: types.array(Message),
-		uiMessages: types.optional(types.frozen<any[]>(), []),
+		uiMessages: types.frozen<unknown[]>(),
 		children: types.array(types.string),
-		parentId: types.maybe(types.string),
-		rootId: types.maybe(types.string),
+		parentId: types.string,
+		rootId: types.string,
 	})
 	.actions((self) => ({
-		replaceMessages(newMessages: any[]) {
-			self.messages.replace(newMessages)
+		replaceMessages(newMessages: unknown[]) {
+			self.messages.replace(newMessages as Instance<typeof Message>[])
 		},
-		syncUiMessages(uiMessages: any[]) {
+		syncUiMessages(uiMessages: unknown[]) {
 			self.uiMessages = uiMessages
 		},
-		updateApiMessage(id: string, update: { role?: string; content?: any; text?: string; partial?: boolean }) {
+		updateApiMessage(id: string, update: { role?: string; content?: unknown; text?: string; partial?: boolean }) {
 			const msg = self.messages.find((m) => m.id === id)
 			if (msg && (!isStateTreeNode(msg) || isAlive(msg))) {
 				if (update.role) msg.role = update.role
@@ -47,15 +46,17 @@ export const TaskNode = types
 		get depth(): number {
 			let d = 0
 			let current = self.parentId
-			const nodes = (self as any).$treenode.parent.nodes
+			const parentStore = getParent<{ nodes: Map<string, typeof self> }>(self, 2)
+			const nodes = parentStore?.nodes
 			while (current && nodes && nodes.has && nodes.has(current)) {
 				d++
-				current = nodes.get(current)?.parentId
+				current = nodes.get(current)?.parentId ?? ""
 			}
 			return d
 		},
 		get childTasks() {
-			const nodes = (self as any).$treenode.parent.nodes
+			const parentStore = getParent<{ nodes: Map<string, typeof self> }>(self, 2)
+			const nodes = parentStore?.nodes
 			if (!nodes || !nodes.get) return []
 			return self.children.map((id) => nodes.get(id)).filter(Boolean)
 		},
@@ -64,12 +65,12 @@ export const TaskNode = types
 export const ChatStore = types
 	.model("ChatStore", {
 		nodes: types.map(TaskNode),
-		activeNodeId: types.maybe(types.reference(TaskNode)),
-		isNavigating: types.optional(types.boolean, false),
+		activeNodeId: types.safeReference(TaskNode),
+		isNavigating: types.boolean,
 	})
 	.actions((self) => ({
-		applyTreeSnapshot(snapshot: any) {
-			applySnapshot(self, snapshot)
+		applyTreeSnapshot(snapshot: Record<string, unknown>) {
+			applySnapshot(self, { ...snapshot, isNavigating: false })
 			self.isNavigating = false
 		},
 		setNavigating(val: boolean) {
@@ -84,9 +85,9 @@ export const ChatStore = types
 	.views((self) => ({
 		get activeHierarchy() {
 			if (!self.activeNodeId) return []
-			const path: any[] = []
+			const path: Instance<typeof TaskNode>[] = []
 			// MST resolves references automatically, so currentNode is a TaskNode
-			let currentNode: any = self.activeNodeId
+			let currentNode: Instance<typeof TaskNode> | undefined = self.activeNodeId
 			while (currentNode) {
 				path.unshift(currentNode)
 				currentNode = currentNode.parentId ? self.nodes.get(currentNode.parentId) : undefined
@@ -96,24 +97,16 @@ export const ChatStore = types
 	}))
 
 export type IChatStore = Instance<typeof ChatStore>
+import { useRootStore as _useRootStore } from "../../store"
 
-export const chatTreeStore = ChatStore.create({ nodes: {} })
+/**
+ * Backward-compatible hook for consuming components.
+ * Returns the ChatTree store from the root store singleton.
+ * Components should migrate to `useRootStore().chat.tree` directly.
+ */
+export const useChatTree = (): IChatStore => chatTreeStore
 
-// ── React Context bridge ──
-
-const ChatTreeContext = createContext<IChatStore | undefined>(undefined)
-
-export const ChatTreeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-	return <ChatTreeContext.Provider value={chatTreeStore}>{children}</ChatTreeContext.Provider>
-}
-
-export const useChatTree = (): IChatStore => {
-	const context = useContext(ChatTreeContext)
-	if (context === undefined) {
-		throw new Error("useChatTree must be used within a ChatTreeProvider")
-	}
-	return context
-}
+export const chatTreeStore = ChatStore.create({ nodes: {}, activeNodeId: undefined, isNavigating: false })
 
 /**
  * CommandExecutionStore — holds command execution status snapshots pushed
@@ -124,11 +117,11 @@ export const useChatTree = (): IChatStore => {
  */
 export const CommandExecutionStore = types
 	.model("CommandExecutionStore", {
-		executions: types.optional(types.array(types.frozen<any>()), []),
+		executions: types.array(types.frozen<Record<string, unknown>>()),
 	})
 	.actions((self) => ({
 		/** Replace the entire executions array from a snapshot. */
-		setExecutions(executions: any[]) {
+		setExecutions(executions: Record<string, unknown>[]) {
 			self.executions.replace(executions)
 		},
 	}))
@@ -136,4 +129,88 @@ export const CommandExecutionStore = types
 export type ICommandExecutionStore = Instance<typeof CommandExecutionStore>
 
 /** Singleton store instance. */
-export const commandExecutionStore = CommandExecutionStore.create({})
+export const commandExecutionStore = CommandExecutionStore.create({ executions: [] })
+
+// ── Action factory for ChatStore composition ──────────────────────────
+
+import { vscode } from "@jabberwock/devtool/react"
+import type { WebviewMessage, ClineAskResponse } from "@jabberwock/types"
+import {
+	CHAT_MESSAGES_LIST_ASK_RESPONSE,
+	CHAT_MESSAGES_LIST_DELETE_MESSAGE,
+	CHAT_MESSAGES_LIST_DELETE_MESSAGE_CONFIRM,
+	CHAT_MESSAGES_LIST_EDIT_MESSAGE_CONFIRM,
+	CHAT_MESSAGES_LIST_SUBMIT_EDITED_MESSAGE,
+	CHAT_TASK_TASK_SYNC_ENABLED,
+} from "@jabberwock/types"
+
+/**
+ * Creates message-list actions for the ChatStore.
+ * These send IPC messages to the extension for message-list operations.
+ */
+export function createMessagesListActions(self: {
+	ui: {
+		clearInput(): void
+		setSendingDisabled(val: boolean): void
+	}
+}) {
+	return {
+		// ── Ask response ───────────────────────────────────────────
+		respondToAsk(response: ClineAskResponse, text?: string, images?: string[]) {
+			vscode.postMessage({
+				type: CHAT_MESSAGES_LIST_ASK_RESPONSE,
+				askResponse: response,
+				text,
+				images,
+			} satisfies WebviewMessage)
+			self.ui.clearInput()
+			self.ui.setSendingDisabled(true)
+		},
+
+		// ── Delete message ─────────────────────────────────────────
+		deleteMessage(value: number) {
+			vscode.postMessage({
+				type: CHAT_MESSAGES_LIST_DELETE_MESSAGE,
+				value,
+			} satisfies WebviewMessage)
+		},
+
+		// ── Submit edited message ──────────────────────────────────
+		submitEditedMessage(value: number, editedMessageContent: string, images?: string[]) {
+			vscode.postMessage({
+				type: CHAT_MESSAGES_LIST_SUBMIT_EDITED_MESSAGE,
+				value,
+				editedMessageContent,
+				...(images !== undefined && images.length > 0 && { images }),
+			} satisfies WebviewMessage)
+		},
+
+		// ── Confirm delete message ─────────────────────────────────
+		confirmDeleteMessage(messageTs: number, restoreCheckpoint?: boolean) {
+			vscode.postMessage({
+				type: CHAT_MESSAGES_LIST_DELETE_MESSAGE_CONFIRM,
+				messageTs,
+				...(restoreCheckpoint !== undefined && { restoreCheckpoint }),
+			} satisfies WebviewMessage)
+		},
+
+		// ── Confirm edit message ───────────────────────────────────
+		confirmEditMessage(messageTs: number, text: string, restoreCheckpoint?: boolean, images?: string[]) {
+			vscode.postMessage({
+				type: CHAT_MESSAGES_LIST_EDIT_MESSAGE_CONFIRM,
+				messageTs,
+				text,
+				...(restoreCheckpoint !== undefined && { restoreCheckpoint }),
+				...(images !== undefined && images.length > 0 && { images }),
+			} satisfies WebviewMessage)
+		},
+
+		// ── Task sync enabled ──────────────────────────────────────
+		taskSyncEnabled(bool: boolean) {
+			vscode.postMessage({
+				type: CHAT_TASK_TASK_SYNC_ENABLED,
+				bool,
+			} satisfies WebviewMessage)
+		},
+	}
+}

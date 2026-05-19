@@ -5,7 +5,7 @@
 
 import { Anthropic } from "@anthropic-ai/sdk"
 import OpenAI from "openai"
-import { tool as createTool, jsonSchema, type ModelMessage, type TextStreamPart } from "ai"
+import { tool as createTool, jsonSchema, type ModelMessage, type TextStreamPart, type ToolSet } from "ai"
 import type { ApiStreamChunk } from "./stream"
 
 /**
@@ -171,7 +171,7 @@ export function convertToolsForAiSdk(
 		if (t.type === "function") {
 			toolSet[t.function.name] = createTool({
 				description: t.function.description,
-				inputSchema: jsonSchema(t.function.parameters as any),
+				inputSchema: jsonSchema(t.function.parameters as Record<string, unknown>),
 			})
 		}
 	}
@@ -183,7 +183,10 @@ export function convertToolsForAiSdk(
  * Extended stream part type that includes additional fullStream event types
  * that are emitted at runtime but not included in the AI SDK TextStreamPart type definitions.
  */
-type ExtendedStreamPart = TextStreamPart<any> | { type: "text"; text: string } | { type: "reasoning"; text: string }
+export type ExtendedStreamPart =
+	| TextStreamPart<ToolSet>
+	| { type: "text"; text: string }
+	| { type: "reasoning"; text: string }
 
 /**
  * Process a single AI SDK stream part and yield the appropriate ApiStreamChunk(s).

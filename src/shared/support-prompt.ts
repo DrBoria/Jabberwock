@@ -1,7 +1,13 @@
-// Support prompts
-type PromptParams = Record<string, string | any[]>
+interface VSCodeDiagnostic {
+	source?: string
+	message: string
+	code?: string | number
+}
 
-const generateDiagnosticText = (diagnostics?: any[]) => {
+// Support prompts
+type PromptParams = Record<string, string | VSCodeDiagnostic[]>
+
+const generateDiagnosticText = (diagnostics?: VSCodeDiagnostic[]) => {
 	if (!diagnostics?.length) return ""
 	return `\nCurrent problems detected:\n${diagnostics
 		.map((d) => `- [${d.source || "Error"}] ${d.message}${d.code ? ` (${d.code})` : ""}`)
@@ -11,9 +17,8 @@ const generateDiagnosticText = (diagnostics?: any[]) => {
 export const createPrompt = (template: string, params: PromptParams): string => {
 	return template.replace(/\${(.*?)}/g, (_, key) => {
 		if (key === "diagnosticText") {
-			return generateDiagnosticText(params["diagnostics"] as any[])
-			// eslint-disable-next-line no-prototype-builtins
-		} else if (params.hasOwnProperty(key)) {
+			return generateDiagnosticText(params["diagnostics"] as VSCodeDiagnostic[])
+		} else if (Object.prototype.hasOwnProperty.call(params, key)) {
 			// Ensure the value is treated as a string for replacement
 			const value = params[key]
 			if (typeof value === "string") {
@@ -244,10 +249,14 @@ Please provide:
 
 export const supportPrompt = {
 	default: Object.fromEntries(Object.entries(supportPromptConfigs).map(([key, config]) => [key, config.template])),
-	get: (customSupportPrompts: Record<string, any> | undefined, type: SupportPromptType): string => {
+	get: (customSupportPrompts: Record<string, string | undefined> | undefined, type: SupportPromptType): string => {
 		return customSupportPrompts?.[type] ?? supportPromptConfigs[type].template
 	},
-	create: (type: SupportPromptType, params: PromptParams, customSupportPrompts?: Record<string, any>): string => {
+	create: (
+		type: SupportPromptType,
+		params: PromptParams,
+		customSupportPrompts?: Record<string, string | undefined>,
+	): string => {
 		const template = supportPrompt.get(customSupportPrompts, type)
 		return createPrompt(template, params)
 	},

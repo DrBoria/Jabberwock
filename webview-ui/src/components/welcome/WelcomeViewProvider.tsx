@@ -8,10 +8,17 @@ import {
 } from "@vscode/webview-ui-toolkit/react"
 
 import type { ProviderSettings } from "@jabberwock/types"
+import {
+	CLOUD_CLEAR_CLOUD_AUTH_SKIP_MODEL as _CLOUD_CLEAR_CLOUD_AUTH_SKIP_MODEL,
+	CLOUD_JABBERWOCK_CLOUD_SIGN_IN as _CLOUD_JABBERWOCK_CLOUD_SIGN_IN,
+	AGENT_STATE_UPSERT_API_CONFIGURATION as _AGENT_STATE_UPSERT_API_CONFIGURATION,
+	CLOUD_JABBERWOCK_CLOUD_MANUAL_URL as _CLOUD_JABBERWOCK_CLOUD_MANUAL_URL,
+	HISTORY_IMPORT_SETTINGS as _HISTORY_IMPORT_SETTINGS,
+} from "@jabberwock/types"
 
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { validateApiConfiguration } from "@src/utils/validate"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { Button } from "../ui/button"
 
@@ -31,6 +38,7 @@ const WelcomeViewProvider = () => {
 		apiConfiguration,
 		currentApiConfigName,
 		setApiConfiguration,
+		setShowWelcome,
 		uriScheme,
 		cloudIsAuthenticated,
 		cloudAuthSkipModel,
@@ -43,7 +51,10 @@ const WelcomeViewProvider = () => {
 	const [showManualEntry, setShowManualEntry] = useState(false)
 	const [manualUrl, setManualUrl] = useState("")
 	const [manualErrorMessage, setManualErrorMessage] = useState<boolean | undefined>(undefined)
-	const manualUrlInputRef = useRef<HTMLInputElement | null>(null)
+	const manualUrlInputRef = useRef<HTMLElement | null>(null)
+	const handleManualUrlRef = useCallback((element: unknown) => {
+		manualUrlInputRef.current = element instanceof HTMLElement ? element : null
+	}, [])
 
 	// When auth completes during the provider signup flow, either:
 	// 1. If user skipped model selection (cloudAuthSkipModel=true), navigate to provider selection with "custom" selected
@@ -56,22 +67,19 @@ const WelcomeViewProvider = () => {
 				setAuthInProgress(false)
 				setShowManualEntry(false)
 				// Clear the flag so it doesn't affect future flows
-				vscode.postMessage({ type: "clearCloudAuthSkipModel" })
+				rootStore.cloud.clearAuthSkipModel()
 			} else {
 				// Auth completed from provider signup flow - save the config now
 				const rooConfig: ProviderSettings = {
 					apiProvider: "jabberwock",
 				}
-				vscode.postMessage({
-					type: "upsertApiConfiguration",
-					text: currentApiConfigName,
-					apiConfiguration: rooConfig,
-				})
+				rootStore.settings.upsertApiConfig(currentApiConfigName, rooConfig)
 				setAuthInProgress(false)
 				setShowManualEntry(false)
+				setShowWelcome(false)
 			}
 		}
-	}, [cloudIsAuthenticated, authInProgress, currentApiConfigName, cloudAuthSkipModel])
+	}, [cloudIsAuthenticated, authInProgress, currentApiConfigName, cloudAuthSkipModel, setShowWelcome])
 
 	// Focus the manual URL input when it becomes visible
 	useEffect(() => {
@@ -91,43 +99,91 @@ const WelcomeViewProvider = () => {
 	)
 
 	const handleGetStarted = useCallback(() => {
+		console.log(
+			"[handleGetStarted] entered, selectedProvider:",
+			selectedProvider,
+			"cloudIsAuthenticated:",
+			cloudIsAuthenticated,
+		)
+		console.log(
+			"[handleGetStarted] apiConfiguration keys:",
+			Object.keys(apiConfiguration || {}),
+			"apiProvider:",
+			apiConfiguration?.apiProvider,
+		)
+
 		// Landing screen - always trigger auth with Jabberwock
 		if (selectedProvider === null) {
+			console.log("[handleGetStarted] branch: LANDING screen - triggering Jabberwock auth")
 			setAuthOrigin("landing")
-			vscode.postMessage({ type: "jabberwockCloudSignIn", useProviderSignup: true })
+			rootStore.cloud.cloudSignIn(true)
 			setAuthInProgress(true)
+			console.log("[handleGetStarted] LANDING: auth initiated, authInProgress set to true")
 		}
 		// Provider Selection screen
 		else if (selectedProvider === "jabberwock") {
+			console.log("[handleGetStarted] branch: JABBERWOCK provider selected")
 			if (cloudIsAuthenticated) {
+				console.log("[handleGetStarted] JABBERWOCK: already authenticated, saving config and finishing")
 				// Already authenticated - save config and finish
 				const rooConfig: ProviderSettings = {
 					apiProvider: "jabberwock",
 				}
-				vscode.postMessage({
-					type: "upsertApiConfiguration",
-					text: currentApiConfigName,
-					apiConfiguration: rooConfig,
-				})
+				console.log("[handleGetStarted] JABBERWOCK: upserting config, apiConfigName:", currentApiConfigName)
+				rootStore.settings.upsertApiConfig(currentApiConfigName, rooConfig)
+				console.log("[handleGetStarted] JABBERWOCK: hiding welcome screen")
+				setShowWelcome(false)
 			} else {
+				console.log("[handleGetStarted] JABBERWOCK: not authenticated, triggering auth flow")
 				// Need to authenticate
 				setAuthOrigin("providerSelection")
-				vscode.postMessage({ type: "jabberwockCloudSignIn", useProviderSignup: true })
+				rootStore.cloud.cloudSignIn(true)
 				setAuthInProgress(true)
+				console.log("[handleGetStarted] JABBERWOCK: auth initiated from providerSelection origin")
 			}
 		} else {
+			console.log("[handleGetStarted] branch: CUSTOM provider selected")
+			console.log(
+				"[handleGetStarted] CUSTOM: apiConfiguration keys:",
+				Object.keys(apiConfiguration || {}),
+				"has apiProvider:",
+				!!apiConfiguration?.apiProvider,
+			)
+
 			// Custom provider - validate first
-			const error = apiConfiguration ? validateApiConfiguration(apiConfiguration) : undefined
+			if (!apiConfiguration || !apiConfiguration.apiProvider) {
+				console.log(
+					"[handleGetStarted] CUSTOM: MISSING apiProvider - blocking navigation, showing error. Full apiConfiguration:",
+					JSON.stringify(apiConfiguration),
+				)
+				setErrorMessage(t("welcome:providerSignup.selectProvider"))
+				return
+			}
+
+			const error = validateApiConfiguration(apiConfiguration)
+			console.log(
+				"[handleGetStarted] CUSTOM: apiProvider:",
+				apiConfiguration.apiProvider,
+				"validation error:",
+				error,
+			)
 
 			if (error) {
+				console.log("[handleGetStarted] CUSTOM: validation FAILED, setting error message:", error)
 				setErrorMessage(error)
 				return
 			}
 
+			console.log(
+				"[handleGetStarted] CUSTOM: validation passed, upserting config:",
+				JSON.stringify(apiConfiguration),
+			)
 			setErrorMessage(undefined)
-			vscode.postMessage({ type: "upsertApiConfiguration", text: currentApiConfigName, apiConfiguration })
+			rootStore.settings.upsertApiConfig(currentApiConfigName, apiConfiguration)
+			setShowWelcome(false)
 		}
-	}, [selectedProvider, cloudIsAuthenticated, apiConfiguration, currentApiConfigName])
+		console.log("[handleGetStarted] finished")
+	}, [selectedProvider, cloudIsAuthenticated, apiConfiguration, currentApiConfigName, setShowWelcome, t])
 
 	const handleNoAccount = useCallback(() => {
 		// Navigate to Provider Selection, defaulting to Jabberwock option
@@ -156,15 +212,15 @@ const WelcomeViewProvider = () => {
 		setAuthOrigin(null)
 	}, [authOrigin])
 
-	const handleManualUrlChange = (e: any) => {
-		const url = e.target.value
+	const handleManualUrlChange = (e: React.KeyboardEvent<HTMLElement>) => {
+		const url = (e.target as HTMLInputElement).value
 		setManualUrl(url)
 
 		// Auto-trigger authentication when a complete URL is pasted
 		setTimeout(() => {
 			if (url.trim() && url.includes("://") && url.includes("/auth/clerk/callback")) {
 				setManualErrorMessage(false)
-				vscode.postMessage({ type: "jabberwockCloudManualUrl", text: url.trim() })
+				rootStore.cloud.cloudManualUrl(url.trim())
 			}
 		}, 100)
 	}
@@ -173,14 +229,14 @@ const WelcomeViewProvider = () => {
 		const url = manualUrl.trim()
 		if (url && url.includes("://") && url.includes("/auth/clerk/callback")) {
 			setManualErrorMessage(false)
-			vscode.postMessage({ type: "jabberwockCloudManualUrl", text: url })
+			rootStore.cloud.cloudManualUrl(url)
 		} else {
 			setManualErrorMessage(true)
 		}
 	}, [manualUrl])
 
 	const handleOpenSignupUrl = () => {
-		vscode.postMessage({ type: "jabberwockCloudSignIn", useProviderSignup: false })
+		rootStore.cloud.cloudSignIn(false)
 	}
 
 	// Render the waiting for cloud state
@@ -236,7 +292,7 @@ const WelcomeViewProvider = () => {
 										</p>
 										<div className="flex gap-2 items-center">
 											<VSCodeTextField
-												ref={manualUrlInputRef as any}
+												ref={handleManualUrlRef}
 												value={manualUrl}
 												onKeyUp={handleManualUrlChange}
 												placeholder="vscode://RooVeterinaryInc.jabberwock/auth/clerk/callback?state=..."
@@ -315,7 +371,7 @@ const WelcomeViewProvider = () => {
 
 					<div className="absolute bottom-6 left-6">
 						<button
-							onClick={() => vscode.postMessage({ type: "importSettings" })}
+							onClick={() => rootStore.history.importSettings()}
 							className="cursor-pointer bg-transparent border-none p-0 text-vscode-foreground hover:underline">
 							{t("welcome:importSettings")}
 						</button>

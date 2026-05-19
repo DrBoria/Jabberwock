@@ -3,7 +3,7 @@ import type { ClineMessage } from "@jabberwock/types"
 import { safeJsonParse } from "@shared/core"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { getAllModes } from "@shared/modes"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { McpIframeRenderer } from "@src/features/settings/mcp/McpIframeRenderer"
 import { Container } from "@src/components/ui"
 
@@ -11,12 +11,12 @@ interface InteractiveAppAskProps {
 	message: ClineMessage
 	icon: React.ReactNode
 	title: React.ReactNode
-	t: (key: string, options?: any) => string
+	t: (key: string, options?: Record<string, unknown>) => string
 }
 
 export const InteractiveAppAsk: React.FC<InteractiveAppAskProps> = ({ message, icon, title, t: _t }) => {
 	const { customModes } = useExtensionState()
-	const uiMeta = safeJsonParse<any>(message.text, {})
+	const uiMeta = safeJsonParse<{ resourceUri?: string; input?: Record<string, unknown> }>(message.text, {})
 	const [showRawArgs, setShowRawArgs] = React.useState(false)
 
 	if (!uiMeta || !uiMeta.resourceUri) {
@@ -25,7 +25,7 @@ export const InteractiveAppAsk: React.FC<InteractiveAppAskProps> = ({ message, i
 
 	const allowedContextData = {
 		agents: getAllModes(customModes)
-			.map((m: any) => ({ slug: m.slug, name: m.name }))
+			.map((m: { slug: string; name: string }) => ({ slug: m.slug, name: m.name }))
 			.filter(Boolean),
 	}
 
@@ -78,19 +78,11 @@ export const InteractiveAppAsk: React.FC<InteractiveAppAskProps> = ({ message, i
 					resourceUri={uiMeta.resourceUri}
 					agentsList={JSON.stringify(allowedContextData.agents)}
 					inputData={uiMeta.input ? JSON.stringify(uiMeta.input) : undefined}
-					onResolve={(data: any) => {
-						vscode.postMessage({
-							type: "askResponse",
-							askResponse: "yesButtonClicked",
-							text: JSON.stringify(data),
-						})
+					onResolve={(data: Record<string, unknown>) => {
+						rootStore.chat.respondToAsk("yesButtonClicked", JSON.stringify(data))
 					}}
 					onCancel={() => {
-						vscode.postMessage({
-							type: "askResponse",
-							askResponse: "messageResponse",
-							text: "Cancel",
-						})
+						rootStore.chat.respondToAsk("messageResponse", "Cancel")
 					}}
 				/>
 			</div>

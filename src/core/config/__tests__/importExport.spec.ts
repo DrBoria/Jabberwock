@@ -6,7 +6,12 @@ import * as path from "path"
 import * as vscode from "vscode"
 
 import type { ProviderName } from "@jabberwock/types"
-import { TelemetryService } from "@jabberwock/telemetry"
+import {
+	TelemetryService,
+	getTelemetryService,
+	hasTelemetryService,
+	createTelemetryService,
+} from "@jabberwock/telemetry"
 
 import { importSettings, importSettingsFromFile, importSettingsWithFeedback, exportSettings } from "../importExport"
 import { ProviderSettingsManager } from "../ProviderSettingsManager"
@@ -103,8 +108,8 @@ describe("importExport", () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
 
-		if (!TelemetryService.hasInstance()) {
-			TelemetryService.createInstance([])
+		if (!hasTelemetryService()) {
+			createTelemetryService([])
 		}
 
 		mockProviderSettingsManager = {
@@ -453,7 +458,7 @@ describe("importExport", () => {
 				settingsImportedAt: 0,
 				postStateToWebview: vi.fn().mockResolvedValue(undefined),
 				postStateToWebviewWithoutTaskHistory: vi.fn().mockResolvedValue(undefined),
-			}
+			} as any
 
 			// Mock the showErrorMessage to capture the error
 			const showErrorMessageSpy = vi.spyOn(vscode.window, "showErrorMessage").mockResolvedValue(undefined)
@@ -734,7 +739,7 @@ describe("importExport", () => {
 				const mockProvider = {
 					settingsImportedAt: 0,
 					postStateToWebview: vi.fn().mockResolvedValue(undefined),
-				}
+				} as any
 
 				const showWarningMessageSpy = vi.spyOn(vscode.window, "showWarningMessage").mockResolvedValue(undefined)
 				const showInfoMessageSpy = vi
@@ -988,7 +993,7 @@ describe("importExport", () => {
 				const mockProvider = {
 					settingsImportedAt: 0,
 					postStateToWebview: vi.fn().mockResolvedValue(undefined),
-				}
+				} as any
 
 				const showWarningMessageSpy = vi.spyOn(vscode.window, "showWarningMessage").mockResolvedValue(undefined)
 				const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})

@@ -11,7 +11,7 @@ interface ToolRendererProps {
 	isNested: boolean
 	isRedundantTodo: boolean
 	effectiveHistory: ClineMessage[]
-	t: (key: string, options?: any) => string
+	t: (key: string, options?: Record<string, unknown>) => string
 }
 
 /** Renders updateTodoList tool */
@@ -31,7 +31,7 @@ export const UpdateTodoListRenderer: React.FC<ToolRendererProps> = ({
 interface GenerateImageProps {
 	message: ClineMessage
 	tool: ClineSayTool
-	t: (key: string, options?: any) => string
+	t: (key: string, options?: Record<string, unknown>) => string
 }
 
 /** Renders generateImage tool */

@@ -32,15 +32,13 @@ type AuthUserInfoPayload = CloudServiceEvents["user-info"][0]
 type SettingsPayload = CloudServiceEvents["settings-updated"][0]
 
 export class CloudService extends EventEmitter<CloudServiceEvents> implements Disposable {
-	private static _instance: CloudService | null = null
-
 	private context: ExtensionContext
 
 	private authStateListener: (data: AuthStateChangedPayload) => void
 	private authUserInfoListener: (data: AuthUserInfoPayload) => void
 	private settingsListener: (data: SettingsPayload) => void
 
-	private isInitialized = false
+	public isInitialized = false
 	private log: (...args: unknown[]) => void
 
 	/**
@@ -89,14 +87,12 @@ export class CloudService extends EventEmitter<CloudServiceEvents> implements Di
 		return this._isCloudAgent
 	}
 
-	private constructor(context: ExtensionContext, log?: (...args: unknown[]) => void) {
+	constructor(context: ExtensionContext, log?: (...args: unknown[]) => void) {
 		super()
-
 		this.context = context
-		this.log = log || console.log
+		this.log = log || (() => {})
 
 		this.authStateListener = (data: AuthStateChangedPayload) => {
-			// Handle retry queue based on auth state changes
 			this.handleAuthStateChangeForRetryQueue(data)
 			this.emit("auth-state-changed", data)
 		}
@@ -176,9 +172,9 @@ export class CloudService extends EventEmitter<CloudServiceEvents> implements Di
 		}
 	}
 
-	// AuthService
+	// ============= AuthService convenience methods =============
 
-	public async login(landingPageSlug?: string, useProviderSignup: boolean = false): Promise<void> {
+	public async login(landingPageSlug?: string, useProviderSignup?: boolean): Promise<void> {
 		this.ensureInitialized()
 		return this.authService!.login(landingPageSlug, useProviderSignup)
 	}
@@ -188,64 +184,11 @@ export class CloudService extends EventEmitter<CloudServiceEvents> implements Di
 		return this.authService!.logout()
 	}
 
-	public isAuthenticated(): boolean {
-		this.ensureInitialized()
-		return this.authService!.isAuthenticated()
-	}
-
-	public hasActiveSession(): boolean {
-		this.ensureInitialized()
-		return this.authService!.hasActiveSession()
-	}
-
-	public hasOrIsAcquiringActiveSession(): boolean {
-		this.ensureInitialized()
-		return this.authService!.hasOrIsAcquiringActiveSession()
-	}
-
-	public getUserInfo(): CloudUserInfo | null {
-		this.ensureInitialized()
-		return this.authService!.getUserInfo()
-	}
-
-	public getOrganizationId(): string | null {
-		this.ensureInitialized()
-		const userInfo = this.authService!.getUserInfo()
-		return userInfo?.organizationId || null
-	}
-
-	public getOrganizationName(): string | null {
-		this.ensureInitialized()
-		const userInfo = this.authService!.getUserInfo()
-		return userInfo?.organizationName || null
-	}
-
-	public getOrganizationRole(): string | null {
-		this.ensureInitialized()
-		const userInfo = this.authService!.getUserInfo()
-		return userInfo?.organizationRole || null
-	}
-
-	public hasStoredOrganizationId(): boolean {
-		this.ensureInitialized()
-		return this.authService!.getStoredOrganizationId() !== null
-	}
-
-	public getStoredOrganizationId(): string | null {
-		this.ensureInitialized()
-		return this.authService!.getStoredOrganizationId()
-	}
-
-	public getAuthState(): string {
-		this.ensureInitialized()
-		return this.authService!.getState()
-	}
-
 	public async handleAuthCallback(
-		code: string | null,
-		state: string | null,
-		organizationId?: string | null,
-		providerModel?: string | null,
+		code: string,
+		state: string,
+		organizationId?: string,
+		providerModel?: string,
 	): Promise<void> {
 		this.ensureInitialized()
 		return this.authService!.handleCallback(code, state, organizationId, providerModel)
@@ -264,6 +207,46 @@ export class CloudService extends EventEmitter<CloudServiceEvents> implements Di
 
 		// StaticTokenAuthService will throw an error if organization memberships are not supported
 		return await this.authService!.getOrganizationMemberships()
+	}
+
+	public isAuthenticated(): boolean {
+		return this.authService?.isAuthenticated() ?? false
+	}
+
+	public hasOrIsAcquiringActiveSession(): boolean {
+		return this.authService?.hasOrIsAcquiringActiveSession() ?? false
+	}
+
+	public getOrganizationId(): string | undefined {
+		return this.authService?.getUserInfo()?.organizationId ?? undefined
+	}
+
+	public hasActiveSession(): boolean {
+		return this.authService?.hasActiveSession?.() ?? false
+	}
+
+	public getOrganizationName(): string | undefined {
+		return this.authService?.getUserInfo()?.organizationName
+	}
+
+	public getOrganizationRole(): string | undefined {
+		return this.authService?.getUserInfo()?.organizationRole
+	}
+
+	public hasStoredOrganizationId(): boolean {
+		return !!this.authService?.getStoredOrganizationId()
+	}
+
+	public getStoredOrganizationId(): string | undefined {
+		return this.authService?.getStoredOrganizationId() ?? undefined
+	}
+
+	public getUserInfo(): CloudUserInfo | undefined {
+		return this.authService?.getUserInfo() ?? undefined
+	}
+
+	public getAuthState(): string | undefined {
+		return this.authService?.getState()
 	}
 
 	// SettingsService
@@ -371,60 +354,6 @@ export class CloudService extends EventEmitter<CloudServiceEvents> implements Di
 		}
 	}
 
-	static get instance(): CloudService {
-		if (!this._instance) {
-			throw new Error("CloudService not initialized")
-		}
-
-		return this._instance
-	}
-
-	static async createInstance(
-		context: ExtensionContext,
-		log?: (...args: unknown[]) => void,
-		eventHandlers?: Partial<{
-			[K in keyof CloudServiceEvents]: (...args: CloudServiceEvents[K]) => void
-		}>,
-	): Promise<CloudService> {
-		if (this._instance) {
-			throw new Error("CloudService instance already created")
-		}
-
-		this._instance = new CloudService(context, log)
-
-		await this._instance.initialize()
-
-		if (eventHandlers) {
-			for (const [event, handler] of Object.entries(eventHandlers)) {
-				if (handler) {
-					this._instance.on(
-						event as keyof CloudServiceEvents,
-						handler as (...args: CloudServiceEvents[keyof CloudServiceEvents]) => void,
-					)
-				}
-			}
-		}
-
-		await this._instance.authService?.broadcast()
-
-		return this._instance
-	}
-
-	static hasInstance(): boolean {
-		return this._instance !== null && this._instance.isInitialized
-	}
-
-	static resetInstance(): void {
-		if (this._instance) {
-			this._instance.dispose()
-			this._instance = null
-		}
-	}
-
-	static isEnabled(): boolean {
-		return !!this._instance?.isAuthenticated()
-	}
-
 	/**
 	 * Handle auth state changes for the retry queue
 	 * - Pause queue when not in 'active-session' state
@@ -487,4 +416,62 @@ export class CloudService extends EventEmitter<CloudServiceEvents> implements Di
 				this.log(`[CloudService] Pausing retry queue for unknown state: ${newState}`)
 		}
 	}
+}
+
+// --- Module-level accessor functions (replaces static singleton) ---
+
+let _globalCloudService: CloudService | null = null
+
+export async function createCloudService(
+	context: ExtensionContext,
+	log?: (...args: unknown[]) => void,
+	eventHandlers?: Partial<{
+		[K in keyof CloudServiceEvents]: (...args: CloudServiceEvents[K]) => void
+	}>,
+): Promise<CloudService> {
+	if (_globalCloudService) {
+		throw new Error("CloudService instance already created")
+	}
+
+	const service = new CloudService(context, log)
+	await service.initialize()
+
+	if (eventHandlers) {
+		for (const [event, handler] of Object.entries(eventHandlers)) {
+			if (handler) {
+				service.on(
+					event as keyof CloudServiceEvents,
+					handler as (...args: CloudServiceEvents[keyof CloudServiceEvents]) => void,
+				)
+			}
+		}
+	}
+
+	await service.authService?.broadcast()
+
+	_globalCloudService = service
+	return service
+}
+
+export function getCloudService(): CloudService {
+	if (!_globalCloudService) {
+		throw new Error("CloudService not initialized")
+	}
+
+	return _globalCloudService
+}
+
+export function hasCloudService(): boolean {
+	return _globalCloudService !== null && _globalCloudService.isInitialized
+}
+
+export function resetCloudService(): void {
+	if (_globalCloudService) {
+		_globalCloudService.dispose()
+		_globalCloudService = null
+	}
+}
+
+export function isCloudEnabled(): boolean {
+	return !!_globalCloudService?.isAuthenticated()
 }

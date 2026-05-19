@@ -21,7 +21,7 @@ export async function getUnboundModels(apiKey?: string | null): Promise<Record<s
 		const modelEntries = Array.isArray(rawModels)
 			? rawModels
 			: typeof rawModels === "object" && rawModels !== null
-				? Object.entries(rawModels).map(([id, model]: [string, any]) => ({ id, ...model }))
+				? Object.entries(rawModels).map(([id, model]) => ({ id, ...(model as Record<string, unknown>) }))
 				: []
 
 		for (const rawModel of modelEntries) {

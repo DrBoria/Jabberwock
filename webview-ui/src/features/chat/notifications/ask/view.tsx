@@ -1,5 +1,5 @@
 import React from "react"
-import type { ClineMessage } from "@jabberwock/types"
+import type { ClineMessage, SuggestionItem } from "@jabberwock/types"
 import {
 	UseMcpServerAsk,
 	InteractiveAppAsk,
@@ -16,11 +16,11 @@ interface AskRendererProps {
 	title: React.ReactNode
 	isLast: boolean
 	lastModifiedMessage?: ClineMessage
-	onSuggestionClick?: (suggestion: any, event?: React.MouseEvent) => void
+	onSuggestionClick?: (suggestion: SuggestionItem, event?: React.MouseEvent) => void
 	onFollowUpUnmount?: () => void
 	isFollowUpAnswered?: boolean
 	isFollowUpAutoApprovalPaused?: boolean
-	t: (key: string, options?: any) => string
+	t: (key: string, options?: Record<string, unknown>) => string
 }
 
 /** Main AskRenderer - dispatches to sub-renderers via object-literal pattern */
@@ -56,5 +56,7 @@ export const AskRenderer: React.FC<AskRendererProps> = (props) => {
 		auto_approval_max_req_reached: () => <AutoApprovalWarningAsk message={message} />,
 	}
 
-	return dispatchers[message.ask ?? ""]?.() ?? null
+	const askType = message.ask ?? ""
+	const renderedAsk = dispatchers[askType]?.()
+	return renderedAsk ?? null
 }

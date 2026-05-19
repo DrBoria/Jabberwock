@@ -1,25 +1,28 @@
-import React, { forwardRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
+import React, { forwardRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react"
 import { observer } from "mobx-react-lite"
+import { getSnapshot } from "mobx-state-tree"
 import { useEvent } from "react-use"
 import DynamicTextAreaLib from "react-textarea-autosize"
 import { VolumeX, Image, WandSparkles, SendHorizontal, X, ListEnd, Square, Activity } from "lucide-react"
 
 import type { ExtensionMessage } from "@jabberwock/types"
 import { mentionRegex, unescapeSpaces } from "@shared/context-mentions"
-import { WebviewMessage } from "@shared/WebviewMessage"
+
 import { Mode, getAllModes } from "@shared/modes"
 
-import { vscode } from "@jabberwock/devtool/react"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
+import { rootStore } from "@src/features/store"
 import { useChatUI } from "@src/features/chat/store"
 import {
 	ContextMenuOptionType,
+	type ContextMenuQueryItem as _ContextMenuQueryItem,
+	type SearchResult as _SearchResult,
 	insertMention,
 	removeMention,
 	shouldShowContextMenu,
-	SearchResult,
 } from "@src/features/chat/text-area/utils/context-mentions"
+import { DynamicTextAreaStore } from "@src/features/chat/text-area/store"
 import { cn } from "@src/lib/utils"
 import { StandardTooltip } from "@src/components/ui/standard-tooltip"
 import { Button } from "@src/components/ui/button"
@@ -105,6 +108,31 @@ const DynamicTextAreaComponent = forwardRef<HTMLTextAreaElement, DynamicTextArea
 		} = useExtensionState()
 
 		// Find the ID and display text for the currently selected API configuration.
+		const textAreaStore = useMemo(
+			() =>
+				DynamicTextAreaStore.create({
+					cursorPosition: 0,
+					intendedCursorPosition: -1,
+					showContextMenu: false,
+					selectedMenuIndex: -1,
+					selectedType: ContextMenuOptionType.None,
+					searchQuery: "",
+					searchLoading: false,
+					searchRequestId: "",
+					isMouseDownOnMenu: false,
+					justDeletedSpaceAfterMention: false,
+					isDraggingOver: false,
+					isFocused: false,
+					showDropdown: false,
+					gitCommits: [],
+					fileSearchResults: [],
+					isEnhancingPrompt: false,
+					isTtsPlaying: false,
+					textAreaBaseHeight: -1,
+				}),
+			[],
+		)
+
 		const { currentConfigId, displayName } = useMemo(() => {
 			const currentConfig = listApiConfigMeta?.find((config) => config.name === currentApiConfigName)
 			return {
@@ -113,23 +141,20 @@ const DynamicTextAreaComponent = forwardRef<HTMLTextAreaElement, DynamicTextArea
 			}
 		}, [listApiConfigMeta, currentApiConfigName])
 
-		const [gitCommits, setGitCommits] = useState<any[]>([])
-		const [showDropdown, setShowDropdown] = useState(false)
-		const [fileSearchResults, setFileSearchResults] = useState<SearchResult[]>([])
-		const [searchLoading, setSearchLoading] = useState(false)
-		const [searchRequestId, setSearchRequestId] = useState<string>("")
+		// State migrated to textAreaStore
+		const textAreaRef = useRef<HTMLTextAreaElement | null>(null)
 
 		// Close dropdown when clicking outside.
 		useEffect(() => {
 			const handleClickOutside = () => {
-				if (showDropdown) {
-					setShowDropdown(false)
+				if (textAreaStore.showDropdown) {
+					textAreaStore.setShowDropdown(false)
 				}
 			}
 
 			document.addEventListener("mousedown", handleClickOutside)
 			return () => document.removeEventListener("mousedown", handleClickOutside)
-		}, [showDropdown])
+		}, [textAreaStore.showDropdown, textAreaStore])
 
 		// Handle enhanced prompt response and search results.
 		useEffect(() => {
@@ -152,7 +177,7 @@ const DynamicTextAreaComponent = forwardRef<HTMLTextAreaElement, DynamicTextArea
 						}
 					}
 
-					setIsEnhancingPrompt(false)
+					textAreaStore.setIsEnhancingPrompt(false)
 				} else if (message.type === "insertTextIntoTextarea") {
 					if (message.text && textAreaRef.current) {
 						const textarea = textAreaRef.current
@@ -180,42 +205,37 @@ const DynamicTextAreaComponent = forwardRef<HTMLTextAreaElement, DynamicTextArea
 						}, 0)
 					}
 				} else if (message.type === "commitSearchResults") {
-					const commits = message.commits.map((commit: any) => ({
-						type: ContextMenuOptionType.Git,
-						value: commit.hash,
-						label: commit.subject,
-						description: `${commit.shortHash} by ${commit.author} on ${commit.date}`,
-						icon: "$(git-commit)",
-					}))
+					const commits = message.commits.map(
+						(commit: {
+							hash: string
+							subject: string
+							shortHash: string
+							author: string
+							date: string
+						}) => ({
+							type: ContextMenuOptionType.Git,
+							value: commit.hash,
+							label: commit.subject,
+							description: `${commit.shortHash} by ${commit.author} on ${commit.date}`,
+							icon: "$(git-commit)",
+						}),
+					)
 
-					setGitCommits(commits)
+					textAreaStore.setGitCommits(commits)
 				} else if (message.type === "fileSearchResults") {
-					setSearchLoading(false)
-					if (message.requestId === searchRequestId) {
-						setFileSearchResults(message.results || [])
+					textAreaStore.setSearchLoading(false)
+					if (message.requestId === textAreaStore.searchRequestId) {
+						textAreaStore.setFileSearchResults(message.results || [])
 					}
 				}
 			}
 
 			window.addEventListener("message", messageHandler)
 			return () => window.removeEventListener("message", messageHandler)
-		}, [ui, searchRequestId])
+		}, [ui, textAreaStore.searchRequestId, textAreaStore])
 
-		const [isDraggingOver, setIsDraggingOver] = useState(false)
-		const [textAreaBaseHeight, setTextAreaBaseHeight] = useState<number | undefined>(undefined)
-		const [showContextMenu, setShowContextMenu] = useState(false)
-		const [cursorPosition, setCursorPosition] = useState(0)
-		const [searchQuery, setSearchQuery] = useState("")
-		const textAreaRef = useRef<HTMLTextAreaElement | null>(null)
-		const [isMouseDownOnMenu, setIsMouseDownOnMenu] = useState(false)
 		const highlightLayerRef = useRef<HTMLDivElement>(null)
-		const [selectedMenuIndex, setSelectedMenuIndex] = useState(-1)
-		const [selectedType, setSelectedType] = useState<ContextMenuOptionType | null>(null)
-		const [justDeletedSpaceAfterMention, setJustDeletedSpaceAfterMention] = useState(false)
-		const [intendedCursorPosition, setIntendedCursorPosition] = useState<number | null>(null)
 		const contextMenuContainerRef = useRef<HTMLDivElement>(null)
-		const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false)
-		const [isFocused, setIsFocused] = useState(false)
 
 		// Use custom hook for prompt history navigation
 		const { handleHistoryNavigation, resetHistoryNavigation, resetOnInputChange } = usePromptHistory({
@@ -228,25 +248,24 @@ const DynamicTextAreaComponent = forwardRef<HTMLTextAreaElement, DynamicTextArea
 
 		// Fetch git commits when Git is selected or when typing a hash.
 		useEffect(() => {
-			if (selectedType === ContextMenuOptionType.Git || /^[a-f0-9]+$/i.test(searchQuery)) {
-				const message: WebviewMessage = {
-					type: "searchCommits",
-					query: searchQuery || "",
-				} as const
-				vscode.postMessage(message)
+			if (
+				textAreaStore.selectedType === ContextMenuOptionType.Git ||
+				/^[a-f0-9]+$/i.test(textAreaStore.searchQuery)
+			) {
+				rootStore.history.searchCommits(textAreaStore.searchQuery || "")
 			}
-		}, [selectedType, searchQuery])
+		}, [textAreaStore.selectedType, textAreaStore.searchQuery])
 
 		const handleEnhancePrompt = useCallback(() => {
 			const trimmedInput = ui.inputValue.trim()
 
 			if (trimmedInput) {
-				setIsEnhancingPrompt(true)
-				vscode.postMessage({ type: "enhancePrompt" as const, text: trimmedInput })
+				textAreaStore.setIsEnhancingPrompt(true)
+				rootStore.chat.enhancePrompt(trimmedInput)
 			} else {
 				ui.setInputValue(t("chat:enhancePromptDescription"))
 			}
-		}, [ui, t])
+		}, [ui, t, textAreaStore])
 
 		const allModes = useMemo(() => getAllModes(customModes), [customModes])
 
@@ -263,25 +282,26 @@ const DynamicTextAreaComponent = forwardRef<HTMLTextAreaElement, DynamicTextArea
 		}, [enterBehavior])
 
 		const queryItems = useMemo(() => {
+			const gitCommits = getSnapshot(textAreaStore.gitCommits)
 			return [
 				{ type: ContextMenuOptionType.Problems, value: "problems" },
 				{ type: ContextMenuOptionType.Terminal, value: "terminal" },
 				...gitCommits,
-				...openedTabs
+				...(openedTabs || [])
 					.filter((tab) => tab.path)
 					.map((tab) => ({
 						type: ContextMenuOptionType.OpenedFile,
 						value: "/" + tab.path,
 					})),
-				...filePaths
+				...(filePaths || [])
 					.map((file) => "/" + file)
-					.filter((path) => !openedTabs.some((tab) => tab.path && "/" + tab.path === path))
+					.filter((path) => !(openedTabs || []).some((tab) => tab.path && "/" + tab.path === path))
 					.map((path) => ({
 						type: path.endsWith("/") ? ContextMenuOptionType.Folder : ContextMenuOptionType.File,
 						value: path,
 					})),
 			]
-		}, [filePaths, gitCommits, openedTabs])
+		}, [filePaths, textAreaStore.gitCommits, openedTabs])
 
 		useEffect(() => {
 			const handleClickOutside = (event: MouseEvent) => {
@@ -289,18 +309,18 @@ const DynamicTextAreaComponent = forwardRef<HTMLTextAreaElement, DynamicTextArea
 					contextMenuContainerRef.current &&
 					!contextMenuContainerRef.current.contains(event.target as Node)
 				) {
-					setShowContextMenu(false)
+					textAreaStore.setShowContextMenu(false)
 				}
 			}
 
-			if (showContextMenu) {
+			if (textAreaStore.showContextMenu) {
 				document.addEventListener("mousedown", handleClickOutside)
 			}
 
 			return () => {
 				document.removeEventListener("mousedown", handleClickOutside)
 			}
-		}, [showContextMenu, setShowContextMenu])
+		}, [textAreaStore.showContextMenu, textAreaStore.setShowContextMenu, textAreaStore])
 
 		const handleMentionSelect = useCallback(
 			(type: ContextMenuOptionType, value?: string) => {
@@ -311,20 +331,20 @@ const DynamicTextAreaComponent = forwardRef<HTMLTextAreaElement, DynamicTextArea
 				if (type === ContextMenuOptionType.Mode && value) {
 					setMode(value)
 					ui.setInputValue("")
-					setShowContextMenu(false)
-					vscode.postMessage({ type: "mode", text: value })
+					textAreaStore.setShowContextMenu(false)
+					rootStore.chat.switchMode(value)
 					return
 				}
 
 				if (type === ContextMenuOptionType.Command && value) {
-					setSelectedMenuIndex(-1)
+					textAreaStore.setSelectedMenuIndex(-1)
 					ui.setInputValue("")
-					setShowContextMenu(false)
+					textAreaStore.setShowContextMenu(false)
 
 					const commandMention = `/${value}`
 					ui.setInputValue(commandMention + " ")
-					setCursorPosition(commandMention.length + 1)
-					setIntendedCursorPosition(commandMention.length + 1)
+					textAreaStore.setCursorPosition(commandMention.length + 1)
+					textAreaStore.setIntendedCursorPosition(commandMention.length + 1)
 
 					setTimeout(() => {
 						if (textAreaRef.current) {
@@ -340,15 +360,15 @@ const DynamicTextAreaComponent = forwardRef<HTMLTextAreaElement, DynamicTextArea
 					type === ContextMenuOptionType.Git
 				) {
 					if (!value) {
-						setSelectedType(type)
-						setSearchQuery("")
-						setSelectedMenuIndex(0)
+						textAreaStore.setSelectedType(type)
+						textAreaStore.setSearchQuery("")
+						textAreaStore.setSelectedMenuIndex(0)
 						return
 					}
 				}
 
-				setShowContextMenu(false)
-				setSelectedType(null)
+				textAreaStore.setShowContextMenu(false)
+				textAreaStore.setSelectedType(ContextMenuOptionType.None)
 
 				if (textAreaRef.current) {
 					let insertValue = value || ""
@@ -371,15 +391,15 @@ const DynamicTextAreaComponent = forwardRef<HTMLTextAreaElement, DynamicTextArea
 
 					const { newValue, mentionIndex } = insertMention(
 						textAreaRef.current.value,
-						cursorPosition,
+						textAreaStore.cursorPosition,
 						insertValue,
 						isSlashCommand,
 					)
 
 					ui.setInputValue(newValue)
 					const newCursorPosition = newValue.indexOf(" ", mentionIndex + insertValue.length) + 1
-					setCursorPosition(newCursorPosition)
-					setIntendedCursorPosition(newCursorPosition)
+					textAreaStore.setCursorPosition(newCursorPosition)
+					textAreaStore.setIntendedCursorPosition(newCursorPosition)
 
 					setTimeout(() => {
 						if (textAreaRef.current) {
@@ -390,43 +410,43 @@ const DynamicTextAreaComponent = forwardRef<HTMLTextAreaElement, DynamicTextArea
 				}
 			},
 			// eslint-disable-next-line react-hooks/exhaustive-deps
-			[ui, cursorPosition],
+			[ui, textAreaStore.cursorPosition],
 		)
 
 		const handleKeyDown = useCallback(
 			(event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-				if (showContextMenu) {
+				if (textAreaStore.showContextMenu) {
 					if (event.key === "Escape") {
-						setSelectedType(null)
-						setSelectedMenuIndex(3)
+						textAreaStore.setSelectedType(ContextMenuOptionType.None)
+						textAreaStore.setSelectedMenuIndex(3)
 						return
 					}
 
 					if (event.key === "ArrowUp" || event.key === "ArrowDown") {
 						event.preventDefault()
 						const direction = event.key === "ArrowUp" ? -1 : 1
-						setSelectedMenuIndex((prevIndex) =>
+						textAreaStore.setSelectedMenuIndex(
 							getNextSelectableIndex(
-								prevIndex,
+								textAreaStore.selectedMenuIndex,
 								direction,
-								searchQuery,
-								selectedType,
+								textAreaStore.searchQuery,
+								textAreaStore.selectedType,
 								queryItems,
-								fileSearchResults,
+								getSnapshot(textAreaStore.fileSearchResults),
 								allModes,
 								commands,
 							),
 						)
 						return
 					}
-					if ((event.key === "Enter" || event.key === "Tab") && selectedMenuIndex !== -1) {
+					if ((event.key === "Enter" || event.key === "Tab") && textAreaStore.selectedMenuIndex !== -1) {
 						event.preventDefault()
 						const selectedOption = getSelectedOption(
-							selectedMenuIndex,
-							searchQuery,
-							selectedType,
+							textAreaStore.selectedMenuIndex,
+							textAreaStore.searchQuery,
+							textAreaStore.selectedType,
 							queryItems,
-							fileSearchResults,
+							getSnapshot(textAreaStore.fileSearchResults),
 							allModes,
 							commands,
 						)
@@ -444,7 +464,7 @@ const DynamicTextAreaComponent = forwardRef<HTMLTextAreaElement, DynamicTextArea
 
 				const isComposing = event.nativeEvent?.isComposing ?? false
 
-				if (handleHistoryNavigation(event, showContextMenu, isComposing)) {
+				if (handleHistoryNavigation(event, textAreaStore.showContextMenu, isComposing)) {
 					return
 				}
 
@@ -455,8 +475,8 @@ const DynamicTextAreaComponent = forwardRef<HTMLTextAreaElement, DynamicTextArea
 				}
 
 				if (event.key === "Backspace" && !isComposing) {
-					const charBeforeCursor = ui.inputValue[cursorPosition - 1]
-					const charAfterCursor = ui.inputValue[cursorPosition + 1]
+					const charBeforeCursor = ui.inputValue[textAreaStore.cursorPosition - 1]
+					const charAfterCursor = ui.inputValue[textAreaStore.cursorPosition + 1]
 
 					const charBeforeIsWhitespace =
 						charBeforeCursor === " " || charBeforeCursor === "\n" || charBeforeCursor === "\r\n"
@@ -466,59 +486,58 @@ const DynamicTextAreaComponent = forwardRef<HTMLTextAreaElement, DynamicTextArea
 
 					if (
 						charBeforeIsWhitespace &&
-						ui.inputValue.slice(0, cursorPosition - 1).match(new RegExp(mentionRegex.source + "$"))
+						ui.inputValue
+							.slice(0, textAreaStore.cursorPosition - 1)
+							.match(new RegExp(mentionRegex.source + "$"))
 					) {
-						const newCursorPosition = cursorPosition - 1
+						const newCursorPosition = textAreaStore.cursorPosition - 1
 						if (!charAfterIsWhitespace) {
 							event.preventDefault()
 							textAreaRef.current?.setSelectionRange(newCursorPosition, newCursorPosition)
-							setCursorPosition(newCursorPosition)
+							textAreaStore.setCursorPosition(newCursorPosition)
 						}
 
-						setCursorPosition(newCursorPosition)
-						setJustDeletedSpaceAfterMention(true)
-					} else if (justDeletedSpaceAfterMention) {
-						const { newText, newPosition } = removeMention(ui.inputValue, cursorPosition)
+						textAreaStore.setCursorPosition(newCursorPosition)
+						textAreaStore.setJustDeletedSpaceAfterMention(true)
+					} else if (textAreaStore.justDeletedSpaceAfterMention) {
+						const { newText, newPosition } = removeMention(ui.inputValue, textAreaStore.cursorPosition)
 
 						if (newText !== ui.inputValue) {
 							event.preventDefault()
 							ui.setInputValue(newText)
-							setIntendedCursorPosition(newPosition)
+							textAreaStore.setIntendedCursorPosition(newPosition)
 						}
 
-						setJustDeletedSpaceAfterMention(false)
-						setShowContextMenu(false)
+						textAreaStore.setJustDeletedSpaceAfterMention(false)
+						textAreaStore.setShowContextMenu(false)
 					} else {
-						setJustDeletedSpaceAfterMention(false)
+						textAreaStore.setJustDeletedSpaceAfterMention(false)
 					}
 				}
 			},
 			[
 				onSend,
-				showContextMenu,
-				searchQuery,
-				selectedMenuIndex,
 				handleMentionSelect,
-				selectedType,
 				ui,
-				cursorPosition,
-				justDeletedSpaceAfterMention,
 				queryItems,
 				allModes,
-				fileSearchResults,
 				handleHistoryNavigation,
 				resetHistoryNavigation,
 				commands,
 				enterBehavior,
+				textAreaStore,
 			],
 		)
 
 		useLayoutEffect(() => {
-			if (intendedCursorPosition !== null && textAreaRef.current) {
-				textAreaRef.current.setSelectionRange(intendedCursorPosition, intendedCursorPosition)
-				setIntendedCursorPosition(null)
+			if (textAreaStore.intendedCursorPosition !== -1 && textAreaRef.current) {
+				textAreaRef.current.setSelectionRange(
+					textAreaStore.intendedCursorPosition,
+					textAreaStore.intendedCursorPosition,
+				)
+				textAreaStore.setIntendedCursorPosition(-1)
 			}
-		}, [ui, intendedCursorPosition])
+		}, [ui, textAreaStore.intendedCursorPosition, textAreaStore])
 
 		const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -530,24 +549,24 @@ const DynamicTextAreaComponent = forwardRef<HTMLTextAreaElement, DynamicTextArea
 				resetOnInputChange()
 
 				const newCursorPosition = e.target.selectionStart
-				setCursorPosition(newCursorPosition)
+				textAreaStore.setCursorPosition(newCursorPosition)
 
 				const showMenu = shouldShowContextMenu(newValue, newCursorPosition)
-				setShowContextMenu(showMenu)
+				textAreaStore.setShowContextMenu(showMenu)
 
 				if (showMenu) {
 					if (newValue.startsWith("/") && !newValue.includes(" ")) {
 						const query = newValue
-						setSearchQuery(query)
-						setSelectedMenuIndex(1)
-						vscode.postMessage({ type: "requestCommands" })
+						textAreaStore.setSearchQuery(query)
+						textAreaStore.setSelectedMenuIndex(1)
+						rootStore.chat.requestCommands()
 					} else {
 						const lastAtIndex = newValue.lastIndexOf("@", newCursorPosition - 1)
 						const query = newValue.slice(lastAtIndex + 1, newCursorPosition)
-						setSearchQuery(query)
+						textAreaStore.setSearchQuery(query)
 
 						if (query.length > 0) {
-							setSelectedMenuIndex(0)
+							textAreaStore.setSelectedMenuIndex(0)
 
 							if (searchTimeoutRef.current) {
 								clearTimeout(searchTimeoutRef.current)
@@ -555,41 +574,37 @@ const DynamicTextAreaComponent = forwardRef<HTMLTextAreaElement, DynamicTextArea
 
 							searchTimeoutRef.current = setTimeout(() => {
 								const reqId = generateSearchRequestId()
-								setSearchRequestId(reqId)
-								setSearchLoading(true)
+								textAreaStore.setSearchRequestId(reqId)
+								textAreaStore.setSearchLoading(true)
 
-								vscode.postMessage({
-									type: "searchFiles",
-									query: unescapeSpaces(query),
-									requestId: reqId,
-								})
+								rootStore.chat.searchFiles(unescapeSpaces(query), reqId)
 							}, 200)
 						} else {
-							setSelectedMenuIndex(3)
+							textAreaStore.setSelectedMenuIndex(3)
 						}
 					}
 				} else {
-					setSearchQuery("")
-					setSelectedMenuIndex(-1)
-					setFileSearchResults([])
+					textAreaStore.setSearchQuery("")
+					textAreaStore.setSelectedMenuIndex(-1)
+					textAreaStore.setFileSearchResults([])
 				}
 			},
-			[ui, setSearchRequestId, setFileSearchResults, setSearchLoading, resetOnInputChange],
+			[ui, resetOnInputChange, textAreaStore],
 		)
 
 		useEffect(() => {
-			if (!showContextMenu) {
-				setSelectedType(null)
+			if (!textAreaStore.showContextMenu) {
+				textAreaStore.setSelectedType(ContextMenuOptionType.None)
 			}
-		}, [showContextMenu])
+		}, [textAreaStore.showContextMenu, textAreaStore])
 
 		const handleBlur = useCallback(() => {
-			if (!isMouseDownOnMenu) {
-				setShowContextMenu(false)
+			if (!textAreaStore.isMouseDownOnMenu) {
+				textAreaStore.setShowContextMenu(false)
 			}
 
-			setIsFocused(false)
-		}, [isMouseDownOnMenu])
+			textAreaStore.setIsFocused(false)
+		}, [textAreaStore])
 
 		const handlePaste = useCallback(
 			async (e: React.ClipboardEvent) => {
@@ -597,11 +612,15 @@ const DynamicTextAreaComponent = forwardRef<HTMLTextAreaElement, DynamicTextArea
 
 				if (isUrl(pastedText)) {
 					e.preventDefault()
-					const { newValue, newCursorPosition } = insertUrlAtCursor(ui.inputValue, cursorPosition, pastedText)
+					const { newValue, newCursorPosition } = insertUrlAtCursor(
+						ui.inputValue,
+						textAreaStore.cursorPosition,
+						pastedText,
+					)
 					ui.setInputValue(newValue)
-					setCursorPosition(newCursorPosition)
-					setIntendedCursorPosition(newCursorPosition)
-					setShowContextMenu(false)
+					textAreaStore.setCursorPosition(newCursorPosition)
+					textAreaStore.setIntendedCursorPosition(newCursorPosition)
+					textAreaStore.setShowContextMenu(false)
 
 					setTimeout(() => {
 						if (textAreaRef.current) {
@@ -621,12 +640,12 @@ const DynamicTextAreaComponent = forwardRef<HTMLTextAreaElement, DynamicTextArea
 					}
 				}
 			},
-			[shouldDisableImages, ui, cursorPosition],
+			[shouldDisableImages, ui, textAreaStore],
 		)
 
 		const handleMenuMouseDown = useCallback(() => {
-			setIsMouseDownOnMenu(true)
-		}, [])
+			textAreaStore.setIsMouseDownOnMenu(true)
+		}, [textAreaStore])
 
 		const updateHighlights = useCallback(() => {
 			if (!textAreaRef.current || !highlightLayerRef.current) return
@@ -642,9 +661,9 @@ const DynamicTextAreaComponent = forwardRef<HTMLTextAreaElement, DynamicTextArea
 
 		const updateCursorPosition = useCallback(() => {
 			if (textAreaRef.current) {
-				setCursorPosition(textAreaRef.current.selectionStart)
+				textAreaStore.setCursorPosition(textAreaRef.current.selectionStart)
 			}
-		}, [])
+		}, [textAreaStore])
 
 		const handleKeyUp = useCallback(
 			(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -658,18 +677,23 @@ const DynamicTextAreaComponent = forwardRef<HTMLTextAreaElement, DynamicTextArea
 		const handleDrop = useCallback(
 			async (e: React.DragEvent<HTMLDivElement>) => {
 				e.preventDefault()
-				setIsDraggingOver(false)
+				textAreaStore.setIsDraggingOver(false)
 
 				const textFieldList = e.dataTransfer.getData("text")
 				const textUriList = e.dataTransfer.getData("application/vnd.code.uri-list")
 				const text = textFieldList || textUriList
 
 				if (text) {
-					const { newValue, newCursorPosition } = processDroppedText(text, ui.inputValue, cursorPosition, cwd)
+					const { newValue, newCursorPosition } = processDroppedText(
+						text,
+						ui.inputValue,
+						textAreaStore.cursorPosition,
+						cwd,
+					)
 					if (newValue !== ui.inputValue) {
 						ui.setInputValue(newValue)
-						setCursorPosition(newCursorPosition)
-						setIntendedCursorPosition(newCursorPosition)
+						textAreaStore.setCursorPosition(newCursorPosition)
+						textAreaStore.setIntendedCursorPosition(newCursorPosition)
 					}
 					return
 				}
@@ -678,22 +702,22 @@ const DynamicTextAreaComponent = forwardRef<HTMLTextAreaElement, DynamicTextArea
 					const dataUrls = await extractImagesFromFiles(e.dataTransfer.files, ui.selectedImages.length)
 					if (dataUrls.length > 0) {
 						ui.appendSelectedImages(dataUrls)
-						vscode.postMessage({ type: "draggedImages", dataUrls })
+						rootStore.chat.draggedImages(dataUrls)
 					}
 				}
 			},
-			[cursorPosition, cwd, ui, shouldDisableImages],
+			[cwd, ui, shouldDisableImages, textAreaStore],
 		)
 
-		const [isTtsPlaying, setIsTtsPlaying] = useState(false)
+		// isTtsPlaying in textAreaStore
 
 		useEvent("message", (event: MessageEvent) => {
 			const message: ExtensionMessage = event.data
 
 			if (message.type === "ttsStart") {
-				setIsTtsPlaying(true)
+				textAreaStore.setIsTtsPlaying(true)
 			} else if (message.type === "ttsStop") {
-				setIsTtsPlaying(false)
+				textAreaStore.setIsTtsPlaying(false)
 			}
 		})
 
@@ -703,18 +727,18 @@ const DynamicTextAreaComponent = forwardRef<HTMLTextAreaElement, DynamicTextArea
 		const handleModeChange = useCallback(
 			(value: Mode) => {
 				setMode(value)
-				vscode.postMessage({ type: "mode", text: value })
+				rootStore.chat.switchMode(value)
 			},
 			[setMode],
 		)
 
 		const handleApiConfigChange = useCallback((value: string) => {
-			vscode.postMessage({ type: "loadApiConfigurationById", text: value })
+			rootStore.settings.loadApiConfigById(value)
 		}, [])
 
 		const handleToggleLockApiConfig = useCallback(() => {
 			const newValue = !lockApiConfigAcrossModes
-			vscode.postMessage({ type: "lockApiConfigAcrossModes", bool: newValue })
+			rootStore.settings.lockApiConfigAcrossModes(newValue)
 		}, [lockApiConfigAcrossModes])
 
 		return (
@@ -729,12 +753,12 @@ const DynamicTextAreaComponent = forwardRef<HTMLTextAreaElement, DynamicTextArea
 						onDrop={handleDrop}
 						onDragOver={(e) => {
 							if (!e.shiftKey) {
-								setIsDraggingOver(false)
+								textAreaStore.setIsDraggingOver(false)
 								return
 							}
 
 							e.preventDefault()
-							setIsDraggingOver(true)
+							textAreaStore.setIsDraggingOver(true)
 							e.dataTransfer.dropEffect = "copy"
 						}}
 						onDragLeave={(e) => {
@@ -747,10 +771,10 @@ const DynamicTextAreaComponent = forwardRef<HTMLTextAreaElement, DynamicTextArea
 								e.clientY <= rect.top ||
 								e.clientY >= rect.bottom
 							) {
-								setIsDraggingOver(false)
+								textAreaStore.setIsDraggingOver(false)
 							}
 						}}>
-						{showContextMenu && (
+						{textAreaStore.showContextMenu && (
 							<Container
 								ref={contextMenuContainerRef}
 								className={cn(
@@ -765,16 +789,16 @@ const DynamicTextAreaComponent = forwardRef<HTMLTextAreaElement, DynamicTextArea
 								)}>
 								<ContextMenu
 									onSelect={handleMentionSelect}
-									searchQuery={searchQuery}
+									searchQuery={textAreaStore.searchQuery}
 									inputValue={ui.inputValue}
 									onMouseDown={handleMenuMouseDown}
-									selectedIndex={selectedMenuIndex}
-									setSelectedIndex={setSelectedMenuIndex}
-									selectedType={selectedType}
+									selectedIndex={textAreaStore.selectedMenuIndex}
+									setSelectedIndex={textAreaStore.setSelectedMenuIndex}
+									selectedType={textAreaStore.selectedType}
 									queryItems={queryItems}
 									modes={allModes}
-									loading={searchLoading}
-									dynamicSearchResults={fileSearchResults}
+									loading={textAreaStore.searchLoading}
+									dynamicSearchResults={getSnapshot(textAreaStore.fileSearchResults)}
 									commands={commands}
 								/>
 							</Container>
@@ -804,9 +828,9 @@ const DynamicTextAreaComponent = forwardRef<HTMLTextAreaElement, DynamicTextArea
 									"font-vscode-font-family",
 									"text-vscode-editor-font-size",
 									"leading-vscode-editor-line-height",
-									isFocused
+									textAreaStore.isFocused
 										? "border border-vscode-focusBorder outline outline-vscode-focusBorder"
-										: isDraggingOver
+										: textAreaStore.isDraggingOver
 											? "border-2 border-dashed border-vscode-focusBorder"
 											: "border border-transparent",
 									"pl-2",
@@ -836,7 +860,7 @@ const DynamicTextAreaComponent = forwardRef<HTMLTextAreaElement, DynamicTextArea
 									handleInputChange(e)
 									updateHighlights()
 								}}
-								onFocus={() => setIsFocused(true)}
+								onFocus={() => textAreaStore.setIsFocused(true)}
 								onKeyDown={(e) => {
 									if (isEditMode && e.key === "Escape" && !e.nativeEvent?.isComposing) {
 										e.preventDefault()
@@ -851,8 +875,11 @@ const DynamicTextAreaComponent = forwardRef<HTMLTextAreaElement, DynamicTextArea
 								onSelect={updateCursorPosition}
 								onMouseUp={updateCursorPosition}
 								onHeightChange={(height) => {
-									if (textAreaBaseHeight === undefined || height < textAreaBaseHeight) {
-										setTextAreaBaseHeight(height)
+									if (
+										textAreaStore.textAreaBaseHeight < 0 ||
+										height < textAreaStore.textAreaBaseHeight
+									) {
+										textAreaStore.setTextAreaBaseHeight(height)
 									}
 
 									onHeightChange?.(height)
@@ -869,12 +896,12 @@ const DynamicTextAreaComponent = forwardRef<HTMLTextAreaElement, DynamicTextArea
 									"leading-vscode-editor-line-height",
 									"cursor-text",
 									"py-2 pl-2",
-									isFocused
+									textAreaStore.isFocused
 										? "border border-vscode-focusBorder outline outline-vscode-focusBorder"
-										: isDraggingOver
+										: textAreaStore.isDraggingOver
 											? "border-2 border-dashed border-vscode-focusBorder"
 											: "border border-transparent",
-									isDraggingOver
+									textAreaStore.isDraggingOver
 										? "bg-[color-mix(in_srgb,var(--vscode-input-background)_95%,var(--vscode-focusBorder))]"
 										: "bg-vscode-input-background",
 									"transition-background-color duration-150 ease-in-out",
@@ -927,7 +954,10 @@ const DynamicTextAreaComponent = forwardRef<HTMLTextAreaElement, DynamicTextArea
 													"opacity-0 pointer-events-none duration-200 delay-0",
 											)}>
 											<WandSparkles
-												className={cn("w-4 h-4", isEnhancingPrompt && "animate-spin")}
+												className={cn(
+													"w-4 h-4",
+													textAreaStore.isEnhancingPrompt && "animate-spin",
+												)}
 											/>
 										</Button>
 									</StandardTooltip>
@@ -1052,7 +1082,7 @@ const DynamicTextAreaComponent = forwardRef<HTMLTextAreaElement, DynamicTextArea
 								variant="devtoolsButton"
 								size="icon"
 								aria-label="Toggle DevTools"
-								onClick={() => vscode.postMessage({ type: "devtoolStatus", text: "toggle" })}
+								onClick={rootStore.settings.toggleDevtool}
 								className={cn(
 									devtoolEnabled
 										? "text-[#ffaa00] hover:bg-[rgba(255,170,0,0.1)] active:bg-[rgba(255,170,0,0.2)]"
@@ -1061,13 +1091,13 @@ const DynamicTextAreaComponent = forwardRef<HTMLTextAreaElement, DynamicTextArea
 								<Activity className="w-4 h-4" />
 							</Button>
 						</StandardTooltip>
-						{isTtsPlaying && (
+						{textAreaStore.isTtsPlaying && (
 							<StandardTooltip content={t("chat:stopTts")}>
 								<Button
 									variant="iconButton"
 									size="icon"
 									aria-label={t("chat:stopTts")}
-									onClick={() => vscode.postMessage({ type: "stopTts" })}>
+									onClick={rootStore.chat.stopTts}>
 									<VolumeX className="w-4 h-4" />
 								</Button>
 							</StandardTooltip>

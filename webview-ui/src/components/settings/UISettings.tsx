@@ -51,16 +51,6 @@ export const UISettings = ({
 		})
 	}
 
-	const handleLocatorTargetChange = (e: any) => {
-		const value = e.target.value
-		setCachedStateField("locatorTarget", value)
-
-		// Track telemetry event
-		telemetryClient.capture("ui_settings_locator_target_changed", {
-			target: value,
-		})
-	}
-
 	return (
 		<div {...props}>
 			<SectionHeader>{t("settings:sections.ui")}</SectionHeader>
@@ -75,7 +65,9 @@ export const UISettings = ({
 						<div className="flex flex-col gap-1">
 							<VSCodeCheckbox
 								checked={reasoningBlockCollapsed}
-								onChange={(e: any) => handleReasoningBlockCollapsedChange(e.target.checked)}
+								onChange={(e) =>
+									handleReasoningBlockCollapsedChange((e.target as HTMLInputElement).checked)
+								}
 								data-testid="collapse-thinking-checkbox">
 								<span className="font-medium">{t("settings:ui.collapseThinking.label")}</span>
 							</VSCodeCheckbox>
@@ -93,7 +85,7 @@ export const UISettings = ({
 						<div className="flex flex-col gap-1">
 							<VSCodeCheckbox
 								checked={enterBehavior === "newline"}
-								onChange={(e: any) => handleEnterBehaviorChange(e.target.checked)}
+								onChange={(e) => handleEnterBehaviorChange((e.target as HTMLInputElement).checked)}
 								data-testid="enter-behavior-checkbox">
 								<span className="font-medium">
 									{t("settings:ui.requireCtrlEnterToSend.label", { primaryMod })}
@@ -111,7 +103,11 @@ export const UISettings = ({
 							<span className="font-medium mb-1">Locator Prefix</span>
 							<VSCodeTextField
 								value={locatorTarget ?? "code"}
-								onInput={handleLocatorTargetChange}
+								onInput={(e) => {
+									const value = (e.target as HTMLInputElement).value
+									setCachedStateField("locatorTarget", value)
+									telemetryClient.capture("ui_settings_locator_target_changed", { target: value })
+								}}
 								placeholder="code"
 							/>
 							<div className="text-vscode-descriptionForeground text-sm mt-1">

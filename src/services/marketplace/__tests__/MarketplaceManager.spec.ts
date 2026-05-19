@@ -7,26 +7,22 @@ import { MarketplaceManager } from "../MarketplaceManager"
 // Mock CloudService
 vi.mock("@jabberwock/cloud", () => ({
 	getJabberwockApiUrl: () => "https://test.api.com",
-	CloudService: {
-		hasInstance: vi.fn(),
-		instance: {
-			isAuthenticated: vi.fn(),
-			getOrganizationSettings: vi.fn(),
-		},
-	},
+	hasCloudService: vi.fn(),
+	getCloudService: vi.fn().mockReturnValue({
+		isAuthenticated: vi.fn(),
+		getOrganizationSettings: vi.fn(),
+	}),
 }))
 
 // Mock axios
 vi.mock("axios")
 
 // Mock TelemetryService
-vi.mock("../../../../packages/telemetry/src/TelemetryService", () => ({
-	TelemetryService: {
-		instance: {
-			captureMarketplaceItemInstalled: vi.fn(),
-			captureMarketplaceItemRemoved: vi.fn(),
-		},
-	},
+vi.mock("@jabberwock/telemetry", () => ({
+	getTelemetryService: vi.fn().mockReturnValue({
+		captureMarketplaceItemInstalled: vi.fn(),
+		captureMarketplaceItemRemoved: vi.fn(),
+	}),
 }))
 
 // Mock vscode first
@@ -189,12 +185,12 @@ describe("MarketplaceManager", () => {
 		})
 
 		it("should return organization MCPs when available", async () => {
-			const { CloudService } = await import("@jabberwock/cloud")
+			const { hasCloudService, getCloudService } = await import("@jabberwock/cloud")
 
 			// Mock CloudService to return organization settings
-			vi.mocked(CloudService.hasInstance).mockReturnValue(true)
-			vi.mocked(CloudService.instance.isAuthenticated).mockReturnValue(true)
-			vi.mocked(CloudService.instance.getOrganizationSettings).mockReturnValue({
+			vi.mocked(hasCloudService).mockReturnValue(true)
+			vi.mocked(getCloudService().isAuthenticated).mockReturnValue(true)
+			vi.mocked(getCloudService().getOrganizationSettings).mockReturnValue({
 				version: 1,
 				mcps: [
 					{
@@ -233,12 +229,12 @@ describe("MarketplaceManager", () => {
 		})
 
 		it("should filter out hidden MCPs from marketplace results", async () => {
-			const { CloudService } = await import("@jabberwock/cloud")
+			const { hasCloudService, getCloudService } = await import("@jabberwock/cloud")
 
 			// Mock CloudService to return organization settings with hidden MCPs
-			vi.mocked(CloudService.hasInstance).mockReturnValue(true)
-			vi.mocked(CloudService.instance.isAuthenticated).mockReturnValue(true)
-			vi.mocked(CloudService.instance.getOrganizationSettings).mockReturnValue({
+			vi.mocked(hasCloudService).mockReturnValue(true)
+			vi.mocked(getCloudService().isAuthenticated).mockReturnValue(true)
+			vi.mocked(getCloudService().getOrganizationSettings).mockReturnValue({
 				version: 1,
 				mcps: [],
 				hiddenMcps: ["hidden-mcp"],
@@ -276,10 +272,10 @@ describe("MarketplaceManager", () => {
 		})
 
 		it("should handle CloudService not being available", async () => {
-			const { CloudService } = await import("@jabberwock/cloud")
+			const { hasCloudService, getCloudService } = await import("@jabberwock/cloud")
 
 			// Mock CloudService to not be available
-			vi.mocked(CloudService.hasInstance).mockReturnValue(false)
+			vi.mocked(hasCloudService).mockReturnValue(false)
 
 			// Mock the config loader to return test data
 			const mockItems: MarketplaceItem[] = [

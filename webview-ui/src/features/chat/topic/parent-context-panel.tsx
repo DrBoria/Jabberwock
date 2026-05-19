@@ -3,7 +3,7 @@ import { Activity } from "lucide-react"
 import { Container } from "@src/components/ui/Container"
 
 export interface ParentContextPanelProps {
-	parentNode: { messages: Array<{ ts: number; role?: string; text?: string; content?: any }> } | undefined
+	parentNode: { messages: Array<{ ts: number; role?: string; text?: string; content?: unknown }> } | undefined
 }
 
 /**
@@ -23,16 +23,18 @@ export const ParentContextPanel: React.FC<ParentContextPanelProps> = ({ parentNo
 				Inherited Parent Context
 			</Container>
 			<Container className="flex flex-col gap-1 max-h-[300px] overflow-y-auto pr-2">
-				{parentNode.messages.map((msg: any, i: number) => (
-					<div
-						key={`${msg.ts}-${i}`}
-						data-testid="parent-message"
-						data-role={msg.role}
-						className="text-[11px] font-mono whitespace-pre-wrap break-words p-1 rounded bg-vscode-editor-background">
-						<span className="opacity-50 mr-1">[{msg.role}]</span>
-						{msg.text || (msg.content && JSON.stringify(msg.content))}
-					</div>
-				))}
+				{parentNode.messages.map(
+					(msg: { ts: number; role?: string; text?: string; content?: unknown }, i: number) => (
+						<div
+							key={`${msg.ts}-${i}`}
+							data-testid="parent-message"
+							data-role={msg.role}
+							className="text-[11px] font-mono whitespace-pre-wrap break-words p-1 rounded bg-vscode-editor-background">
+							<span className="opacity-50 mr-1">[{msg.role}]</span>
+							{msg.text ?? (msg.content !== undefined ? JSON.stringify(msg.content) : "")}
+						</div>
+					),
+				)}
 			</Container>
 		</div>
 	)

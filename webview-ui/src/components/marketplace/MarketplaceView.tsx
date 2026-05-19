@@ -1,15 +1,15 @@
-import { useState, useEffect, useMemo, useContext } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import { Tab, TabContent, TabHeader } from "../common/Tab"
 import { MarketplaceViewStateManager } from "./MarketplaceViewStateManager"
 import { useStateManager } from "./useStateManager"
 import { useAppTranslation } from "@/i18n/TranslationContext"
-import { vscode } from "@jabberwock/devtool/react"
+import { rootStore } from "@src/features/store"
 import { MarketplaceListView } from "./MarketplaceListView"
 import { cn } from "@/lib/utils"
 import { TooltipProvider } from "@/components/ui/tooltip"
-import { ExtensionStateContext } from "@/context/ExtensionStateContext"
+import { useExtensionState } from "@/context/ExtensionStateContext"
 
 interface MarketplaceViewProps {
 	onDone?: () => void
@@ -20,7 +20,7 @@ export function MarketplaceView({ stateManager, onDone, targetTab }: Marketplace
 	const { t } = useAppTranslation()
 	const [state, manager] = useStateManager(stateManager)
 	const [hasReceivedInitialState, setHasReceivedInitialState] = useState(false)
-	const extensionState = useContext(ExtensionStateContext)
+	const extensionState = useExtensionState()
 	const [lastOrganizationSettingsVersion, setLastOrganizationSettingsVersion] = useState<number>(
 		extensionState?.organizationSettingsVersion ?? -1,
 	)
@@ -28,9 +28,7 @@ export function MarketplaceView({ stateManager, onDone, targetTab }: Marketplace
 	useEffect(() => {
 		const currentVersion = extensionState?.organizationSettingsVersion ?? -1
 		if (currentVersion !== lastOrganizationSettingsVersion) {
-			vscode.postMessage({
-				type: "fetchMarketplaceData",
-			})
+			rootStore.marketplace.fetchMarketplaceData()
 		}
 		setLastOrganizationSettingsVersion(currentVersion)
 	}, [extensionState?.organizationSettingsVersion, lastOrganizationSettingsVersion])
@@ -58,9 +56,7 @@ export function MarketplaceView({ stateManager, onDone, targetTab }: Marketplace
 		if (!hasReceivedInitialState && state.allItems.length === 0) {
 			// Fetch marketplace data on demand
 			// Note: isFetching is already true by default for initial load
-			vscode.postMessage({
-				type: "fetchMarketplaceData",
-			})
+			rootStore.marketplace.fetchMarketplaceData()
 		}
 
 		// Listen for state changes to know when initial data arrives

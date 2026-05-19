@@ -16,21 +16,37 @@ function getTodoIcon(status: TodoStatus | null) {
 	}
 }
 
-export function TodoListDisplay({ todos, onTodoClick }: { todos: any[]; onTodoClick?: (taskId: string) => void }) {
+export function TodoListDisplay({
+	todos,
+	onTodoClick,
+}: {
+	todos: Array<{ id?: string; content?: string; status?: string; taskId?: string }>
+	onTodoClick?: (taskId: string) => void
+}) {
 	const [isCollapsed, setIsCollapsed] = useState(true)
 	const ulRef = useRef<HTMLUListElement>(null)
 	const itemRefs = useRef<(HTMLLIElement | null)[]>([])
 	const scrollIndex = useMemo(() => {
-		const inProgressIdx = todos.findIndex((todo: any) => todo.status === "in_progress")
+		const inProgressIdx = todos.findIndex(
+			(todo: { id?: string; content?: string; status?: string; taskId?: string }) =>
+				todo.status === "in_progress",
+		)
 		if (inProgressIdx !== -1) return inProgressIdx
-		return todos.findIndex((todo: any) => todo.status !== "completed")
+		return todos.findIndex(
+			(todo: { id?: string; content?: string; status?: string; taskId?: string }) => todo.status !== "completed",
+		)
 	}, [todos])
 
 	// Find the most important todo to display when collapsed
 	const mostImportantTodo = useMemo(() => {
-		const inProgress = todos.find((todo: any) => todo.status === "in_progress")
+		const inProgress = todos.find(
+			(todo: { id?: string; content?: string; status?: string; taskId?: string }) =>
+				todo.status === "in_progress",
+		)
 		if (inProgress) return inProgress
-		return todos.find((todo: any) => todo.status !== "completed")
+		return todos.find(
+			(todo: { id?: string; content?: string; status?: string; taskId?: string }) => todo.status !== "completed",
+		)
 	}, [todos])
 	useEffect(() => {
 		if (isCollapsed) return
@@ -49,7 +65,9 @@ export function TodoListDisplay({ todos, onTodoClick }: { todos: any[]; onTodoCl
 	if (!Array.isArray(todos) || todos.length === 0) return null
 
 	const totalCount = todos.length
-	const completedCount = todos.filter((todo: any) => todo.status === "completed").length
+	const completedCount = todos.filter(
+		(todo: { id?: string; content?: string; status?: string; taskId?: string }) => todo.status === "completed",
+	).length
 
 	const allCompleted = completedCount === totalCount && totalCount > 0
 
@@ -84,46 +102,59 @@ export function TodoListDisplay({ todos, onTodoClick }: { todos: any[]; onTodoCl
 				<ul
 					ref={ulRef}
 					className="list-none max-h-[300px] overflow-y-auto mt-2 -mb-1 pb-2 px-2 cursor-default flex flex-col gap-1.5 scrollable">
-					{todos.map((todo: any, idx: number) => {
-						const icon = getTodoIcon(todo.status as TodoStatus)
-						const isClickable = !!todo.taskId && onTodoClick
+					{todos.map(
+						(
+							todo: {
+								id?: string
+								content?: string
+								status?: string
+								taskId?: string
+								assignedTo?: string
+							},
+							idx: number,
+						) => {
+							const icon = getTodoIcon(todo.status as TodoStatus)
+							const isClickable = !!todo.taskId && onTodoClick
 
-						return (
-							<li
-								key={todo.id || todo.content}
-								ref={(el) => (itemRefs.current[idx] = el)}
-								onClick={() => isClickable && onTodoClick!(todo.taskId)}
-								className={cn(
-									"group/item relative font-light flex flex-row gap-2.5 items-start p-1.5 rounded-md transition-all duration-200",
-									todo.status === "in_progress" &&
-										"text-vscode-charts-yellow bg-vscode-charts-yellow/5",
-									todo.status !== "in_progress" && todo.status !== "completed" && "opacity-70",
-									isClickable &&
-										"cursor-pointer hover:bg-vscode-button-secondaryBackground/40 hover:opacity-100 ring-1 ring-transparent hover:ring-vscode-button-secondaryBackground/50",
-								)}>
-								<div
+							return (
+								<li
+									key={todo.id || todo.content}
+									ref={(el) => (itemRefs.current[idx] = el)}
+									onClick={() => isClickable && todo.taskId && onTodoClick!(todo.taskId)}
 									className={cn(
-										"mt-0.5 transition-transform duration-200",
-										isClickable && "group-hover/item:scale-125",
+										"group/item relative font-light flex flex-row gap-2.5 items-start p-1.5 rounded-md transition-all duration-200",
+										todo.status === "in_progress" &&
+											"text-vscode-charts-yellow bg-vscode-charts-yellow/5",
+										todo.status !== "in_progress" && todo.status !== "completed" && "opacity-70",
+										isClickable &&
+											"cursor-pointer hover:bg-vscode-button-secondaryBackground/40 hover:opacity-100 ring-1 ring-transparent hover:ring-vscode-button-secondaryBackground/50",
 									)}>
-									{icon}
-								</div>
-								<div className="flex flex-col gap-0.5">
-									<span className="text-[13px] leading-tight grow break-words">{todo.content}</span>
-									{todo.assignedTo && (
-										<span className="text-[9px] font-bold uppercase tracking-wider opacity-40">
-											Assigned to: {todo.assignedTo}
-										</span>
-									)}
-								</div>
-								{isClickable && (
-									<div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 transition-opacity">
-										<ArrowRight size={10} className="text-vscode-descriptionForeground" />
+									<div
+										className={cn(
+											"mt-0.5 transition-transform duration-200",
+											isClickable && "group-hover/item:scale-125",
+										)}>
+										{icon}
 									</div>
-								)}
-							</li>
-						)
-					})}
+									<div className="flex flex-col gap-0.5">
+										<span className="text-[13px] leading-tight grow break-words">
+											{todo.content}
+										</span>
+										{todo.assignedTo && (
+											<span className="text-[9px] font-bold uppercase tracking-wider opacity-40">
+												Assigned to: {todo.assignedTo}
+											</span>
+										)}
+									</div>
+									{isClickable && (
+										<div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 transition-opacity">
+											<ArrowRight size={10} className="text-vscode-descriptionForeground" />
+										</div>
+									)}
+								</li>
+							)
+						},
+					)}
 				</ul>
 			)}
 		</div>

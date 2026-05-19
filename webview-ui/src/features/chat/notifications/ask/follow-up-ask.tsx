@@ -1,5 +1,5 @@
 import React from "react"
-import type { ClineMessage } from "@jabberwock/types"
+import type { ClineMessage, SuggestionItem } from "@jabberwock/types"
 import { safeJsonParse } from "@shared/core"
 import { Markdown } from "../../messages-list/markdown"
 import { FollowUpSuggest } from "@src/features/chat/notifications/follow-up-suggest"
@@ -9,7 +9,7 @@ interface FollowUpAskProps {
 	message: ClineMessage
 	icon: React.ReactNode
 	title: React.ReactNode
-	onSuggestionClick?: (suggestion: any, event?: React.MouseEvent) => void
+	onSuggestionClick?: (suggestion: SuggestionItem, event?: React.MouseEvent) => void
 	onFollowUpUnmount?: () => void
 	isFollowUpAnswered?: boolean
 	isFollowUpAutoApprovalPaused?: boolean
@@ -26,7 +26,7 @@ export const FollowUpAsk: React.FC<FollowUpAskProps> = ({
 }) => {
 	const followUpData = React.useMemo(() => {
 		if (message.type === "ask" && message.ask === "followup" && !message.partial) {
-			return safeJsonParse<any>(message.text)
+			return safeJsonParse<{ question: string; suggest: SuggestionItem[] }>(message.text)
 		}
 		return null
 	}, [message.type, message.ask, message.partial, message.text])

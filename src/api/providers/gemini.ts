@@ -17,7 +17,7 @@ import {
 	ApiProviderError,
 } from "@jabberwock/types"
 import { safeJsonParse } from "@jabberwock/core"
-import { TelemetryService } from "@jabberwock/telemetry"
+import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 
 import type { ApiHandlerOptions } from "../../shared/api"
 
@@ -134,11 +134,15 @@ export class GeminiHandler extends BaseProvider implements SingleCompletionHandl
 		// function declarations when tools are provided.
 		const tools: GenerateContentConfig["tools"] = [
 			{
-				functionDeclarations: (metadata?.tools ?? []).map((tool) => ({
-					name: (tool as any).function.name,
-					description: (tool as any).function.description,
-					parametersJsonSchema: (tool as any).function.parameters,
-				})),
+				functionDeclarations: (metadata?.tools ?? []).map((tool) => {
+					const fn = (tool as { function: { name: string; description?: string; parameters?: unknown } })
+						.function
+					return {
+						name: fn.name,
+						description: fn.description,
+						parametersJsonSchema: fn.parameters,
+					}
+				}),
 			},
 		]
 
@@ -336,7 +340,7 @@ export class GeminiHandler extends BaseProvider implements SingleCompletionHandl
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
 			const apiError = new ApiProviderError(errorMessage, this.providerName, model, "createMessage")
-			TelemetryService.instance.captureException(apiError)
+			getTelemetryService().captureException(apiError)
 
 			if (error instanceof Error) {
 				throw new Error(t("common:errors.gemini.generate_stream", { error: error.message }))
@@ -445,7 +449,7 @@ export class GeminiHandler extends BaseProvider implements SingleCompletionHandl
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
 			const apiError = new ApiProviderError(errorMessage, this.providerName, model, "completePrompt")
-			TelemetryService.instance.captureException(apiError)
+			getTelemetryService().captureException(apiError)
 
 			if (error instanceof Error) {
 				throw new Error(t("common:errors.gemini.generate_complete_prompt", { error: error.message }))

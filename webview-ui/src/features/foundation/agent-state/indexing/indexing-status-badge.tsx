@@ -3,8 +3,8 @@ import { Database } from "lucide-react"
 
 import type { IndexingStatus, IndexingStatusUpdateMessage } from "@jabberwock/types"
 
+import { rootStore } from "@src/features/store"
 import { cn } from "@src/lib/utils"
-import { vscode } from "@jabberwock/devtool/react"
 import { useAppTranslation } from "@/i18n/TranslationContext"
 
 import { useExtensionState } from "@src/context/ExtensionStateContext"
@@ -29,7 +29,7 @@ export const IndexingStatusBadge: React.FC<IndexingStatusBadgeProps> = ({ classN
 
 	useEffect(() => {
 		// Request initial indexing status.
-		vscode.postMessage({ type: "requestIndexingStatus" })
+		rootStore.settings.requestIndexingStatus()
 
 		// Set up message listener for status updates.
 		const handleMessage = (event: MessageEvent<IndexingStatusUpdateMessage>) => {

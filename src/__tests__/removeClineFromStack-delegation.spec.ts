@@ -1,9 +1,9 @@
 // npx vitest run __tests__/removeClineFromStack-delegation.spec.ts
 
 import { describe, it, expect, vi } from "vitest"
-import { ClineProvider } from "../core/webview/ClineProvider"
+import { EventBridge } from "../core/webview/EventBridge"
 
-describe("ClineProvider.removeClineFromStack() delegation awareness", () => {
+describe("EventBridge.removeClineFromStack() delegation awareness", () => {
 	/**
 	 * Helper to build a minimal mock provider with a single task on the stack.
 	 * The task's parentTaskId and taskId are configurable.
@@ -62,7 +62,7 @@ describe("ClineProvider.removeClineFromStack() delegation awareness", () => {
 			},
 		})
 
-		await (ClineProvider.prototype as any).removeClineFromStack.call(provider)
+		await (EventBridge.prototype as any).removeClineFromStack.call(provider)
 
 		// Stack should be empty after pop
 		expect(provider.clineStack).toHaveLength(0)
@@ -91,7 +91,7 @@ describe("ClineProvider.removeClineFromStack() delegation awareness", () => {
 			// No parentTaskId — this is a top-level task
 		})
 
-		await (ClineProvider.prototype as any).removeClineFromStack.call(provider)
+		await (EventBridge.prototype as any).removeClineFromStack.call(provider)
 
 		// Stack should be empty
 		expect(provider.clineStack).toHaveLength(0)
@@ -120,7 +120,7 @@ describe("ClineProvider.removeClineFromStack() delegation awareness", () => {
 			},
 		})
 
-		await (ClineProvider.prototype as any).removeClineFromStack.call(provider)
+		await (EventBridge.prototype as any).removeClineFromStack.call(provider)
 
 		// Parent was looked up but should NOT be updated
 		expect(getTaskWithId).toHaveBeenCalledWith("parent-1")
@@ -145,7 +145,7 @@ describe("ClineProvider.removeClineFromStack() delegation awareness", () => {
 			},
 		})
 
-		await (ClineProvider.prototype as any).removeClineFromStack.call(provider)
+		await (EventBridge.prototype as any).removeClineFromStack.call(provider)
 
 		expect(getTaskWithId).toHaveBeenCalledWith("parent-1")
 		expect(updateTaskHistory).not.toHaveBeenCalled()
@@ -159,7 +159,7 @@ describe("ClineProvider.removeClineFromStack() delegation awareness", () => {
 		})
 
 		// Should NOT throw
-		await (ClineProvider.prototype as any).removeClineFromStack.call(provider)
+		await (EventBridge.prototype as any).removeClineFromStack.call(provider)
 
 		// Stack should still be empty (pop was not blocked)
 		expect(provider.clineStack).toHaveLength(0)
@@ -186,7 +186,7 @@ describe("ClineProvider.removeClineFromStack() delegation awareness", () => {
 		}
 
 		// Should not throw
-		await (ClineProvider.prototype as any).removeClineFromStack.call(provider)
+		await (EventBridge.prototype as any).removeClineFromStack.call(provider)
 
 		expect(provider.clineStack).toHaveLength(0)
 		expect(provider.getTaskWithId).not.toHaveBeenCalled()
@@ -213,7 +213,7 @@ describe("ClineProvider.removeClineFromStack() delegation awareness", () => {
 		})
 
 		// Call with skipDelegationRepair: true (as delegateParentAndOpenChild would)
-		await (ClineProvider.prototype as any).removeClineFromStack.call(provider, { skipDelegationRepair: true })
+		await (EventBridge.prototype as any).removeClineFromStack.call(provider, { skipDelegationRepair: true })
 
 		// Stack should be empty after pop
 		expect(provider.clineStack).toHaveLength(0)
@@ -266,7 +266,7 @@ describe("ClineProvider.removeClineFromStack() delegation awareness", () => {
 		}
 
 		// Simulate what delegateParentAndOpenChild does: pop B with skipDelegationRepair
-		await (ClineProvider.prototype as any).removeClineFromStack.call(provider, { skipDelegationRepair: true })
+		await (EventBridge.prototype as any).removeClineFromStack.call(provider, { skipDelegationRepair: true })
 
 		// B was popped
 		expect(provider.clineStack).toHaveLength(0)

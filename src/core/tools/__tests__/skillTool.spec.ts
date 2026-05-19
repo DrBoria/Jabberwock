@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { skillTool } from "../SkillTool"
-import { Task } from "../../task/Task"
+import { Task } from "../../../features/chat/task/Task"
 import { formatResponse } from "../../prompts/responses"
 import type { ToolUse } from "../../../shared/tools"
 

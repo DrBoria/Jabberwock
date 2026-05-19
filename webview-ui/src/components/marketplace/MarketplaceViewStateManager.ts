@@ -13,8 +13,8 @@
 
 import { MarketplaceItem, MarketplaceInstalledMetadata } from "@jabberwock/types"
 
-import { vscode } from "@jabberwock/devtool/react"
-import { WebviewMessage } from "@jabberwock/types"
+import { rootStore } from "@src/features/store"
+import { WebviewMessage as _WebviewMessage } from "@jabberwock/types"
 
 export interface ViewState {
 	allItems: MarketplaceItem[]
@@ -282,10 +282,7 @@ export class MarketplaceViewStateManager {
 				}
 
 				// Send filter message
-				vscode.postMessage({
-					type: "filterMarketplaceItems",
-					filters: updatedFilters,
-				} as WebviewMessage)
+				rootStore.marketplace.filterMarketplaceItems(updatedFilters)
 
 				this.notifyStateChange()
 
@@ -345,7 +342,16 @@ export class MarketplaceViewStateManager {
 		})
 	}
 
-	public async handleMessage(message: any): Promise<void> {
+	public async handleMessage(message: {
+		type: string
+		text?: string
+		state?: Record<string, unknown>
+		values?: { marketplaceTab?: string }
+		marketplaceItems?: unknown[]
+		organizationMcps?: unknown[]
+		marketplaceInstalledMetadata?: unknown
+		[key: string]: unknown
+	}): Promise<void> {
 		// Handle empty or invalid message
 		if (!message || !message.type || message.type === "invalidType") {
 			this.state = {
@@ -367,9 +373,11 @@ export class MarketplaceViewStateManager {
 			}
 
 			// Handle state updates for marketplace items
-			// The state.marketplaceItems come from ClineProvider, see the file src/core/webview/ClineProvider.ts
-			const marketplaceItems = message.state.marketplaceItems
-			const marketplaceInstalledMetadata = message.state.marketplaceInstalledMetadata
+			// The state.marketplaceItems come from EventBridge, see the file src/core/webview/EventBridge.ts
+			const marketplaceItems = message.state.marketplaceItems as MarketplaceItem[] | undefined
+			const marketplaceInstalledMetadata = message.state.marketplaceInstalledMetadata as
+				| MarketplaceInstalledMetadata
+				| undefined
 
 			if (marketplaceItems !== undefined) {
 				// Always use the marketplace items from the extension when they're provided
@@ -445,9 +453,11 @@ export class MarketplaceViewStateManager {
 
 		// Handle marketplace data updates (fetched on demand)
 		if (message.type === "marketplaceData") {
-			const marketplaceItems = message.marketplaceItems
-			const organizationMcps = message.organizationMcps || []
-			const marketplaceInstalledMetadata = message.marketplaceInstalledMetadata
+			const marketplaceItems = message.marketplaceItems as MarketplaceItem[] | undefined
+			const organizationMcps = (message.organizationMcps || []) as MarketplaceItem[]
+			const marketplaceInstalledMetadata = message.marketplaceInstalledMetadata as
+				| MarketplaceInstalledMetadata
+				| undefined
 
 			if (marketplaceItems !== undefined) {
 				// Always use the marketplace items from the extension when they're provided
