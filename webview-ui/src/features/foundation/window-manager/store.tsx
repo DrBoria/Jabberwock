@@ -68,7 +68,7 @@ export const WindowManagerStore = types
 		popWindow(index?: number) {
 			const _beforeLen = self.activeWindows.length
 			const beforeTypes = self.activeWindows.map((w) => w.type).join(",")
-			console.log(`[DEBUG:MST] popWindow CALLED: index=${index} before=[${beforeTypes}] len=${beforeLen}`)
+			console.log(`[DEBUG:MST] popWindow CALLED: index=${index} before=[${beforeTypes}] len=${_beforeLen}`)
 			if (self.activeWindows.length <= 1) {
 				console.log(`[DEBUG:MST] popWindow SKIP (only base window): before=[${beforeTypes}]`)
 				return // Always keep base window

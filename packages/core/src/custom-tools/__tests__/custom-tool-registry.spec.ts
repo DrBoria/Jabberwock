@@ -95,7 +95,7 @@ describe("CustomToolRegistry", () => {
 				name: "test_tool",
 				description: "Test tool",
 				parameters: z.object({ input: z.string() }),
-				execute: async (args: { input: string }) => `Processed: ${args.input}`,
+				execute: async (args: Record<string, unknown>) => `Processed: ${args.input as string}`,
 			}
 
 			registry.register(tool)

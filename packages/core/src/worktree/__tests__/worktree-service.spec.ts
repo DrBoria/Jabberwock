@@ -11,7 +11,7 @@ describe("WorktreeService", () => {
 		})
 
 		const callNormalizePath = (service: WorktreeService, p: string): string => {
-			return (service as { normalizePath(p: string): string }).normalizePath(p)
+			return (service as unknown as { normalizePath(p: string): string }).normalizePath(p)
 		}
 
 		it("should normalize paths with trailing slashes", () => {
@@ -69,7 +69,7 @@ describe("WorktreeService", () => {
 			currentCwd: string,
 		): ReturnType<WorktreeService["parseWorktreeOutput"]> => {
 			return (
-				service as {
+				service as unknown as {
 					parseWorktreeOutput(
 						output: string,
 						currentCwd: string,

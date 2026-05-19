@@ -1,7 +1,5 @@
 import { render, screen, act } from "@/utils/test-utils"
 
-import { type _ProviderSettings } from "@jabberwock/types"
-
 import { ExtensionStateContextProvider, useExtensionState } from "../ExtensionStateContext"
 
 const TestComponent = () => {

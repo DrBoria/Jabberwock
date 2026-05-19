@@ -1,7 +1,7 @@
 import { types, Instance, onAction } from "mobx-state-tree"
 
 import { vscode } from "@jabberwock/devtool/react"
-import type { WebviewMessage, ExtensionMessage, HistoryItem } from "@jabberwock/types"
+import type { WebviewMessage, ExtensionMessage, HistoryItem, ClineMessage } from "@jabberwock/types"
 import {
 	ORGANIZATION_ALLOW_ALL,
 	AGENT_STATE_AUTO_APPROVAL_ENABLED,
@@ -17,7 +17,7 @@ import type {
 	ModeConfig,
 	TelemetrySetting,
 } from "@jabberwock/types"
-import { Mode } from "@shared/modes"
+import { Mode, defaultModeSlug, defaultPrompts } from "@shared/modes"
 import type { CustomSupportPrompts } from "@shared/support-prompt"
 import { experimentDefault } from "@shared/experiments"
 import { jabberwockLog } from "../utils/jabberwock-logger"

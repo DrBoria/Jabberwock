@@ -195,9 +195,6 @@ const ChatAreaComponent: React.FC<ChatAreaProps> = ({ isHidden }) => {
 		enterUserBrowsingHistory,
 		followOutputCallback,
 		atBottomStateChangeCallback,
-		_scrollToBottomAuto,
-		_isAtBottomRef,
-		_scrollPhaseRef,
 	} = useScrollLifecycle({
 		virtuosoRef,
 		scrollContainerRef,
