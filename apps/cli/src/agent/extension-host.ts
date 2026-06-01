@@ -17,7 +17,7 @@ import { EventEmitter } from "events"
 import pWaitFor from "p-wait-for"
 
 import type {
-	ClineMessage,
+	Notification,
 	ExtensionMessage,
 	ReasoningEffortExtended,
 	JabberwockSettings,
@@ -275,13 +275,13 @@ export class ExtensionHost extends EventEmitter implements ExtensionHostInterfac
 	 */
 	private setupClientEventHandlers(): void {
 		// Handle new messages - delegate to OutputManager.
-		this.client.on("message", (msg: ClineMessage) => {
+		this.client.on("message", (msg: Notification) => {
 			this.logMessageDebug(msg, "new")
 			this.outputManager.outputMessage(msg)
 		})
 
 		// Handle message updates - delegate to OutputManager.
-		this.client.on("messageUpdated", (msg: ClineMessage) => {
+		this.client.on("messageUpdated", (msg: Notification) => {
 			this.logMessageDebug(msg, "updated")
 			this.outputManager.outputMessage(msg)
 		})
@@ -349,7 +349,7 @@ export class ExtensionHost extends EventEmitter implements ExtensionHostInterfac
 		}
 	}
 
-	private logMessageDebug(msg: ClineMessage, type: "new" | "updated"): void {
+	private logMessageDebug(msg: Notification, type: "new" | "updated"): void {
 		if (msg.partial) {
 			if (!this.outputManager.hasLoggedFirstPartial(msg.ts)) {
 				this.outputManager.setLoggedFirstPartial(msg.ts)
@@ -498,10 +498,10 @@ export class ExtensionHost extends EventEmitter implements ExtensionHostInterfac
 
 			// When exitOnError is enabled, listen for api_req_retry_delayed messages
 			// (sent by Task.ts during auto-approval retry backoff) and exit immediately.
-			let messageHandler: ((msg: ClineMessage) => void) | null = null
+			let messageHandler: ((msg: Notification) => void) | null = null
 
 			if (this.options.exitOnError) {
-				messageHandler = (msg: ClineMessage) => {
+				messageHandler = (msg: Notification) => {
 					if (msg.type === "say" && msg.say === "api_req_retry_delayed") {
 						cleanup()
 						reject(new Error(msg.text?.split("\n")[0] || "API request failed"))

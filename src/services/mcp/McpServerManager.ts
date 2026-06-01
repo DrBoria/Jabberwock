@@ -1,6 +1,6 @@
 import * as vscode from "vscode"
 import { McpHub } from "./McpHub"
-import { EventBridge } from "../../core/webview/EventBridge"
+import { EventBridge } from "../../features/foundation/webview/EventBridge"
 
 /**
  * Singleton manager for MCP server instances.
@@ -71,10 +71,10 @@ export class McpServerManager {
 	/**
 	 * Notify all registered providers of server state changes.
 	 */
-	notifyProviders(message: Record<string, unknown>): void {
+	notifyProviders(message: { type: string; [key: string]: unknown }): void {
 		this.providers.forEach((provider) => {
-			provider.postMessageToWebview(message as never).catch((error) => {
-				console.error("Failed to notify provider:", error)
+			provider.postMessageToWebview(message).catch((error) => {
+				console.error("[jabberwock] Failed to notify provider:", error)
 			})
 		})
 	}

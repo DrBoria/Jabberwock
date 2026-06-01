@@ -32,7 +32,7 @@ export function extractPatternsFromCommand(command: string): string[] {
 			extractFromTokens(currentTokens, patterns)
 		}
 	} catch (error) {
-		console.warn("Failed to parse command:", error)
+		console.warn("[jabberwock] Failed to parse command:", error)
 		// Fallback: just extract the first word
 		const firstWord = command.trim().split(/\s+/)[0]
 		if (firstWord) patterns.add(firstWord)

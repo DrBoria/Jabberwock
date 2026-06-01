@@ -50,7 +50,7 @@ export class MstBridge {
 				try {
 					applySnapshot(store, snapshot)
 				} catch (err) {
-					console.error(`[MstBridge] Failed to apply snapshot for "${storeName}":`, err)
+					console.error(`[jabberwock] [MstBridge] Failed to apply snapshot for "${storeName}":`, err)
 				}
 			}
 		}
@@ -65,7 +65,7 @@ export class MstBridge {
 			try {
 				applySnapshot(store, snapshot)
 			} catch (err) {
-				console.error(`[MstBridge] Failed to apply snapshot for "${storeName}":`, err)
+				console.error(`[jabberwock] [MstBridge] Failed to apply snapshot for "${storeName}":`, err)
 			}
 		}
 	}

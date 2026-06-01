@@ -40,7 +40,7 @@ export function migrateMcpSettings(rawSettings: unknown): McpSettings {
 	const result = mcpSettingsSchema.safeParse({ mcpServers: migratedServers })
 
 	if (!result.success) {
-		console.error("Failed to migrate MCP settings", result.error)
+		console.error("[jabberwock] Failed to migrate MCP settings", result.error)
 		return { mcpServers: {} }
 	}
 

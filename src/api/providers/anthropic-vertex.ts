@@ -21,7 +21,7 @@ import { filterNonAnthropicBlocks } from "../transform/anthropic-filter"
 import {
 	convertOpenAIToolsToAnthropic,
 	convertOpenAIToolChoiceToAnthropic,
-} from "../../core/prompts/tools/native-tools/converters"
+} from "../../features/settings/context/tools/native-tools/converters"
 
 import { BaseProvider } from "./base-provider"
 import type { SingleCompletionHandler, ApiHandlerCreateMessageMetadata } from "../index"
@@ -221,7 +221,7 @@ export class AnthropicVertexHandler extends BaseProvider implements SingleComple
 				}
 				case "content_block_stop": {
 					// Block complete - no action needed for now.
-					// NativeToolCallParser handles tool call completion
+					// rawChunkProcessor handles tool call completion
 					// Note: Signature for multi-turn thinking would require using stream.finalMessage()
 					// after iteration completes, which requires restructuring the streaming approach.
 					break

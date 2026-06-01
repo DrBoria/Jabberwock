@@ -242,7 +242,7 @@ export class LiteLLMHandler extends RouterProvider implements SingleCompletionHa
 					yield { type: "text", text: delta.content }
 				}
 
-				// Handle tool calls in stream - emit partial chunks for NativeToolCallParser
+				// Handle tool calls in stream - emit partial chunks for rawChunkProcessor
 				if (delta?.tool_calls) {
 					for (const toolCall of delta.tool_calls) {
 						yield {

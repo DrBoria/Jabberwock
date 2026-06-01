@@ -1,4 +1,6 @@
 import * as path from "path"
+import os from "os"
+import fs from "fs"
 
 import * as vscode from "vscode"
 
@@ -12,8 +14,6 @@ export class ShellIntegrationManager {
 	 */
 	public static zshInitTmpDir(env: Record<string, string>): string {
 		// Create a temporary directory with the sticky bit set for security
-		const os = require("os")
-		const path = require("path")
 		const tmpDir = path.join(os.tmpdir(), `jabberwock-zdotdir-${Math.random().toString(36).substring(2, 15)}`)
 		console.info(`[TerminalRegistry] Creating temporary directory for ZDOTDIR: ${tmpDir}`)
 
@@ -52,12 +52,16 @@ export class ShellIntegrationManager {
 					},
 					// Error handler
 					(error: Error) => {
-						console.error(`[TerminalRegistry] Error creating .zshrc file at ${zshrcPath}: ${error}`)
+						console.error(
+							`[jabberwock] [TerminalRegistry] Error creating .zshrc file at ${zshrcPath}: ${error}`,
+						)
 					},
 				)
 			})
 			.then(undefined, (error: Error) => {
-				console.error(`[TerminalRegistry] Error creating temporary directory at ${tmpDir}: ${error}`)
+				console.error(
+					`[jabberwock] [TerminalRegistry] Error creating temporary directory at ${tmpDir}: ${error}`,
+				)
 			})
 
 		return tmpDir
@@ -77,10 +81,6 @@ export class ShellIntegrationManager {
 		console.info(`${logPrefix}: ${tmpDir}`)
 
 		try {
-			// Use fs to remove the directory and its contents
-			const fs = require("fs")
-			const path = require("path")
-
 			// Remove .zshrc file
 			const zshrcPath = path.join(tmpDir, ".zshrc")
 			if (fs.existsSync(zshrcPath)) {

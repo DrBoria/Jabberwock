@@ -1,4 +1,4 @@
-import { ApiMessage } from "../../core/task-persistence/apiMessages"
+import { ApiMessage } from "../../features/chat/task/messages/actions/saveApiConversation"
 
 import { ApiHandler } from "../index"
 

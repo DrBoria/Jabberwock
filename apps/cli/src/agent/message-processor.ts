@@ -17,7 +17,7 @@
  * - "invoke": Command invocations
  */
 
-import { ExtensionMessage, ClineMessage } from "@jabberwock/types"
+import { ExtensionMessage, Notification, ChatMessage } from "@jabberwock/types"
 import { debugLog } from "@jabberwock/core/cli"
 
 import type { StateStore } from "./state-store.js"
@@ -151,7 +151,7 @@ export class MessageProcessor {
 	 * Handle a "state" message - full state update from extension.
 	 *
 	 * This is the most important message type for state detection.
-	 * It contains the complete clineMessages array which is the source of truth.
+	 * It contains the complete messages array which is the source of truth.
 	 */
 	private handleStateMessage(message: ExtensionMessage): void {
 		if (!message.state) {
@@ -161,7 +161,7 @@ export class MessageProcessor {
 			return
 		}
 
-		const { clineMessages, mode } = message.state
+		const { messages, mode } = message.state
 
 		// Track mode changes.
 		if (mode && typeof mode === "string") {
@@ -177,9 +177,9 @@ export class MessageProcessor {
 			}
 		}
 
-		if (!clineMessages) {
+		if (!messages) {
 			if (this.options.debug) {
-				debugLog("[MessageProcessor] State message missing clineMessages")
+				debugLog("[MessageProcessor] State message missing messages")
 			}
 			return
 		}
@@ -190,14 +190,14 @@ export class MessageProcessor {
 		// Update the store with new messages
 		// Note: We only call setMessages, NOT setExtensionState, to avoid
 		// double processing (setExtensionState would call setMessages again)
-		this.store.setMessages(clineMessages)
+		this.store.setMessages(messages)
 
 		// Get new state after update
 		const currentState = this.store.getAgentState()
 
 		// Debug logging for state message
 		if (this.options.debug) {
-			const lastMsg = clineMessages[clineMessages.length - 1]
+			const lastMsg = messages[messages.length - 1]
 			const lastMsgInfo = lastMsg
 				? {
 						msgType: lastMsg.type === "ask" ? `ask:${lastMsg.ask}` : `say:${lastMsg.say}`,
@@ -206,7 +206,7 @@ export class MessageProcessor {
 					}
 				: null
 			debugLog("[MessageProcessor] State update", {
-				messageCount: clineMessages.length,
+				messageCount: messages.length,
 				lastMessage: lastMsgInfo,
 				stateTransition: `${previousState.state} → ${currentState.state}`,
 				currentAsk: currentState.currentAsk,
@@ -220,7 +220,7 @@ export class MessageProcessor {
 		this.emitStateChangeEvents(previousState, currentState)
 
 		// Emit new message events for any messages we haven't seen
-		this.emitNewMessageEvents(previousState, currentState, clineMessages)
+		this.emitNewMessageEvents(previousState, currentState, messages)
 	}
 
 	/**
@@ -229,23 +229,40 @@ export class MessageProcessor {
 	 * This is sent when a message is modified (e.g., partial -> complete).
 	 */
 	private handleMessageUpdated(message: ExtensionMessage): void {
-		if (!message.clineMessage) {
+		// Handle ChatMessage update (new format)
+		if (message.chatMessage) {
 			if (this.options.debug) {
-				debugLog("[MessageProcessor] messageUpdated missing clineMessage")
+				debugLog("[MessageProcessor] messageUpdated with chatMessage", {
+					type: message.chatMessage.type,
+				})
+			}
+			const previousState = this.store.getAgentState()
+			this.store.updateMessage(message.chatMessage)
+			const currentState = this.store.getAgentState()
+			// Note: messageUpdated event is Notification-specific and not emitted for ChatMessages.
+			// The store update and stateChange events provide sufficient reactivity.
+			this.emitStateChangeEvents(previousState, currentState)
+			return
+		}
+
+		// Handle Notification update (legacy format)
+		if (!message.message) {
+			if (this.options.debug) {
+				debugLog("[MessageProcessor] messageUpdated missing message")
 			}
 			return
 		}
 
-		const clineMessage = message.clineMessage
+		const notification = message.message
 		const previousState = this.store.getAgentState()
 
 		// Update the message in the store
-		this.store.updateMessage(clineMessage)
+		this.store.updateMessage(notification)
 
 		const currentState = this.store.getAgentState()
 
 		// Emit message updated event
-		this.emitter.emit("messageUpdated", clineMessage)
+		this.emitter.emit("messageUpdated", notification)
 
 		// Emit state change events
 		this.emitStateChangeEvents(previousState, currentState)
@@ -369,7 +386,7 @@ export class MessageProcessor {
 	private emitNewMessageEvents(
 		_previousState: AgentStateInfo,
 		_currentState: AgentStateInfo,
-		messages: ClineMessage[],
+		messages: Notification[],
 	): void {
 		// For now, just emit the last message as new
 		// A more sophisticated implementation would track seen message timestamps
@@ -405,10 +422,33 @@ export class MessageProcessor {
 // =============================================================================
 
 /**
- * Check if a message is a valid ClineMessage.
+ * Check if a message is a valid ChatMessage.
  * Useful for validating messages before processing.
  */
-export function isValidClineMessage(message: unknown): message is ClineMessage {
+export function isValidChatMessage(message: unknown): message is ChatMessage {
+	if (!message || typeof message !== "object") {
+		return false
+	}
+
+	const msg = message as Record<string, unknown>
+
+	// Required fields
+	if (typeof msg.ts !== "number") {
+		return false
+	}
+
+	if (msg.type !== "agent" && msg.type !== "user" && msg.type !== "mcp_tool" && msg.type !== "system") {
+		return false
+	}
+
+	return true
+}
+
+/**
+ * Check if a message is a valid Notification.
+ * Useful for validating messages before processing.
+ */
+export function isValidClineMessage(message: unknown): message is Notification {
 	if (!message || typeof message !== "object") {
 		return false
 	}
@@ -469,7 +509,7 @@ export function parseExtensionMessage(json: string): ExtensionMessage | undefine
  * Parse the text field of an api_req_started message.
  * Returns undefined if parsing fails or text is not present.
  */
-export function parseApiReqStartedText(message: ClineMessage): { cost?: number } | undefined {
+export function parseApiReqStartedText(message: Notification): { cost?: number } | undefined {
 	if (message.say !== "api_req_started" || !message.text) {
 		return undefined
 	}

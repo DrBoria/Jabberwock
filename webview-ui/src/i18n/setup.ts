@@ -46,7 +46,7 @@ export function loadTranslations() {
 				i18next.addResourceBundle(lang, namespace, resources, true, true)
 			})
 		} catch (error) {
-			console.warn(`Could not load ${lang} translations:`, error)
+			console.warn(`[jabberwock] Could not load ${lang} translations:`, error)
 		}
 	})
 }

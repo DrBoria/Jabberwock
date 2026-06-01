@@ -1,4 +1,4 @@
-import type { TokenUsage, ToolUsage, ToolName, ClineMessage } from "@jabberwock/types"
+import type { TokenUsage, ToolUsage, ToolName, Notification } from "@jabberwock/types"
 
 export type ParsedApiReqStartedTextType = {
 	tokensIn: number
@@ -16,7 +16,7 @@ export type ParsedApiReqStartedTextType = {
  * consolidated with their corresponding 'api_req_finished' messages by the consolidateApiRequests function.
  * It extracts and sums up the tokensIn, tokensOut, cacheWrites, cacheReads, and cost from these messages.
  *
- * @param messages - An array of ClineMessage objects to process.
+ * @param messages - An array of Notification objects to process.
  * @returns A TokenUsage object containing totalTokensIn, totalTokensOut, totalCacheWrites, totalCacheReads, totalCost, and contextTokens.
  *
  * @example
@@ -26,7 +26,7 @@ export type ParsedApiReqStartedTextType = {
  * const { totalTokensIn, totalTokensOut, totalCost } = consolidateTokenUsage(messages);
  * // Result: { totalTokensIn: 10, totalTokensOut: 20, totalCost: 0.005 }
  */
-export function consolidateTokenUsage(messages: ClineMessage[]): TokenUsage {
+export function consolidateTokenUsage(messages: Notification[]): TokenUsage {
 	const result: TokenUsage = {
 		totalTokensIn: 0,
 		totalTokensOut: 0,

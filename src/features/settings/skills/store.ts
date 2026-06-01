@@ -1,7 +1,7 @@
 import { types, Instance } from "mobx-state-tree"
-import type { EventBridge } from "../../../core/webview/EventBridge"
+import type { EventBridge } from "../../../features/foundation/webview/EventBridge"
 import type { SkillsManager } from "../../../services/skills/SkillsManager"
-import { getState } from "../../storeSingleton"
+import { getState } from "@features/storeSingleton"
 
 /**
  * Custom MST type for storing a reference to a SkillsManager instance.
@@ -36,10 +36,12 @@ export interface SkillsState {
 
 export function initSkillsState(_provider: EventBridge): void {}
 
-export function getSkillsState(provider: EventBridge): SkillsState {
-	return getState(provider).settings.skills as SkillsState
+import type { IBackendRootStore } from "../../store"
+
+export function getSkillsState(rootStore: IBackendRootStore): SkillsState {
+	return rootStore.settings.skills as SkillsState
 }
 
-export function getSkillsManager(provider: EventBridge): SkillsManager | undefined {
-	return getState(provider).settings.skills.skillsManager ?? undefined
+export function getSkillsManager(rootStore: IBackendRootStore): SkillsManager | undefined {
+	return rootStore.settings.skills.skillsManager ?? undefined
 }

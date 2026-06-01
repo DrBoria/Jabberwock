@@ -135,7 +135,7 @@ export function mergeJson(
 		}
 		return copyOfFirst
 	} catch (e) {
-		console.error("Error merging JSON", e, copyOfFirst, second)
+		console.error("[jabberwock] Error merging JSON", e, copyOfFirst, second)
 		return {
 			...copyOfFirst,
 			...second,

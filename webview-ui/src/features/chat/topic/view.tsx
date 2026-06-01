@@ -3,8 +3,8 @@ import { useTranslation } from "react-i18next"
 import { observer } from "mobx-react-lite"
 import { Instance } from "mobx-state-tree"
 import { useCloudUpsell } from "@src/hooks/useCloudUpsell"
-import { CloudUpsellDialog } from "@src/components/cloud/CloudUpsellDialog"
-import DismissibleUpsell from "@src/components/common/DismissibleUpsell"
+import { CloudUpsellDialog } from "@src/features/cloud/components/CloudUpsellDialog"
+import DismissibleUpsell from "@src/features/foundation/components/DismissibleUpsell"
 import { ChevronUp, ChevronDown, HardDriveDownload, HardDriveUpload, FoldVertical, ArrowLeft, Bot } from "lucide-react"
 import prettyBytes from "pretty-bytes"
 
@@ -15,25 +15,33 @@ import { findLastIndex } from "@shared/array"
 
 import { formatLargeNumber } from "@src/utils/formatNumber"
 import { cn } from "@src/lib/utils"
-import { StandardTooltip, Button, Table, TableBody, TableRow, TableCell, CircularProgress } from "@src/components/ui"
-import { useSelectedModel } from "@/components/ui/hooks/useSelectedModel"
-import { useChatTree, TaskNode } from "@src/features/chat/messages-list/store"
+import {
+	StandardTooltip,
+	Button,
+	Table,
+	TableBody,
+	TableRow,
+	TableCell,
+	CircularProgress,
+} from "@src/features/foundation/ui"
+import { useSelectedModel } from "@/features/foundation/ui/hooks/useSelectedModel"
+import { useChatTree, TaskNode } from "@src/features/chat/task/messages/store"
 import { useWindowManager } from "@src/features/foundation/window-manager/store"
 import { rootStore } from "@src/features/store"
 import { useChatUI } from "@src/features/chat/store"
 
-import Thumbnails from "@src/components/common/Thumbnails"
+import Thumbnails from "@src/features/foundation/components/Thumbnails"
 
-import { TaskActions } from "../messages-list/task-actions"
+import { TaskActions } from "../task/messages/components/task-actions"
 import { ContextWindowProgress } from "./progress/context-window-progress"
 import { Mention } from "../text-area/mention/mention"
 import { TodoListDisplay } from "./todo/todo-list-display"
-import { IconButton } from "@src/components/ui"
+import { IconButton } from "@src/features/foundation/ui"
 
 const TaskHeaderComponent = () => {
 	// ALL HOOKS MUST BE CALLED BEFORE ANY EARLY RETURN (Rules of Hooks)
 	const { t } = useTranslation()
-	const { apiConfiguration, currentTaskItem, clineMessages } = rootStore.extensionState
+	const { apiConfiguration, currentTaskItem, messages } = rootStore.extensionState
 	const tree = useChatTree()
 	const { nodes } = tree
 	const currentNodeId = tree.activeNodeId?.id || currentTaskItem?.id
@@ -69,15 +77,13 @@ const TaskHeaderComponent = () => {
 
 	// Check if the task is complete by looking at the last relevant message (skipping resume messages)
 	const isTaskComplete =
-		clineMessages && clineMessages.length > 0
+		messages && messages.length > 0
 			? (() => {
 					const lastRelevantIndex = findLastIndex(
-						clineMessages,
+						messages,
 						(m) => !(m.ask === "resume_task" || m.ask === "resume_completed_task"),
 					)
-					return lastRelevantIndex !== -1
-						? clineMessages[lastRelevantIndex]?.ask === "completion_result"
-						: false
+					return lastRelevantIndex !== -1 ? messages[lastRelevantIndex]?.ask === "completion_result" : false
 				})()
 			: false
 
@@ -130,12 +136,12 @@ const TaskHeaderComponent = () => {
 	const todos = useMemo(() => {
 		const extensionTodos = rootStore.extensionState.currentTaskTodos
 		if (extensionTodos && extensionTodos.length > 0) {
-			const messageBasedTodos = getLatestTodo(clineMessages)
+			const messageBasedTodos = getLatestTodo(messages)
 			if (messageBasedTodos && messageBasedTodos.length > 0) return messageBasedTodos
 			return extensionTodos
 		}
-		return getLatestTodo(clineMessages)
-	}, [clineMessages])
+		return getLatestTodo(messages)
+	}, [messages])
 
 	const condenseButton = (
 		<IconButton

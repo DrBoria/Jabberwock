@@ -133,11 +133,11 @@ export class ExecaTerminalProcess extends BaseTerminalProcess {
 			this.emit("shell_execution_complete", { exitCode: 0 })
 		} catch (error) {
 			if (error instanceof ExecaError) {
-				console.error(`[ExecaTerminalProcess#run] shell execution error: ${error.message}`)
+				console.error(`[jabberwock] [ExecaTerminalProcess#run] shell execution error: ${error.message}`)
 				this.emit("shell_execution_complete", { exitCode: error.exitCode ?? 0, signalName: error.signal })
 			} else {
 				console.error(
-					`[ExecaTerminalProcess#run] shell execution error: ${error instanceof Error ? error.message : String(error)}`,
+					`[jabberwock] [ExecaTerminalProcess#run] shell execution error: ${error instanceof Error ? error.message : String(error)}`,
 				)
 
 				this.emit("shell_execution_complete", { exitCode: 1 })
@@ -170,7 +170,7 @@ export class ExecaTerminalProcess extends BaseTerminalProcess {
 					this.subprocess.kill("SIGKILL")
 				} catch (e) {
 					console.warn(
-						`[ExecaTerminalProcess#abort] Failed to kill subprocess: ${e instanceof Error ? e.message : String(e)}`,
+						`[jabberwock] [ExecaTerminalProcess#abort] Failed to kill subprocess: ${e instanceof Error ? e.message : String(e)}`,
 					)
 				}
 			}
@@ -181,7 +181,7 @@ export class ExecaTerminalProcess extends BaseTerminalProcess {
 					process.kill(this.pid, "SIGKILL")
 				} catch (e) {
 					console.warn(
-						`[ExecaTerminalProcess#abort] Failed to kill process ${this.pid}: ${e instanceof Error ? e.message : String(e)}`,
+						`[jabberwock] [ExecaTerminalProcess#abort] Failed to kill process ${this.pid}: ${e instanceof Error ? e.message : String(e)}`,
 					)
 				}
 			}
@@ -206,13 +206,13 @@ export class ExecaTerminalProcess extends BaseTerminalProcess {
 							process.kill(pid, "SIGKILL")
 						} catch (e) {
 							console.warn(
-								`[ExecaTerminalProcess#abort] Failed to send SIGKILL to child PID ${pid}: ${e instanceof Error ? e.message : String(e)}`,
+								`[jabberwock] [ExecaTerminalProcess#abort] Failed to send SIGKILL to child PID ${pid}: ${e instanceof Error ? e.message : String(e)}`,
 							)
 						}
 					}
 				} else {
 					console.error(
-						`[ExecaTerminalProcess#abort] Failed to get process tree for PID ${this.pid}: ${err.message}`,
+						`[jabberwock] [ExecaTerminalProcess#abort] Failed to get process tree for PID ${this.pid}: ${err.message}`,
 					)
 				}
 			})

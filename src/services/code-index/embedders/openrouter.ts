@@ -279,7 +279,7 @@ export class OpenRouterEmbedder implements IEmbedder {
 				}
 
 				// Log the error for debugging
-				console.error(`OpenRouter embedder error (attempt ${attempts + 1}/${MAX_RETRIES}):`, error)
+				console.error(`[jabberwock] OpenRouter embedder error (attempt ${attempts + 1}/${MAX_RETRIES}):`, error)
 
 				// Format and throw the error
 				throw formatEmbeddingError(error, MAX_RETRIES)

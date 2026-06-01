@@ -1,4 +1,4 @@
-import { parseStackTrace, applySourceMapsToStack, enhanceErrorWithSourceMaps } from "@jabberwock/devtool/react"
+import { parseStackTrace, applySourceMapsToStack, enhanceErrorWithSourceMaps } from "@jabberwock/devtool/webview"
 
 // Mock console.debug to avoid cluttering test output
 beforeEach(() => {

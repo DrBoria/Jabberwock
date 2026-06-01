@@ -1,6 +1,6 @@
 import * as assert from "assert"
 
-import { JabberwockEventName, type ClineMessage } from "@jabberwock/types"
+import { JabberwockEventName, type Notification } from "@jabberwock/types"
 
 import { sleep, waitFor, waitUntilCompleted } from "./utils"
 
@@ -8,7 +8,7 @@ suite.skip("Jabberwock Subtasks", () => {
 	test("Should handle subtask cancellation and resumption correctly", async () => {
 		const api = globalThis.api
 
-		const messages: Record<string, ClineMessage[]> = {}
+		const messages: Record<string, Notification[]> = {}
 
 		api.on(JabberwockEventName.Message, ({ taskId, message }) => {
 			if (message.type === "say" && message.partial === false) {
@@ -40,7 +40,7 @@ suite.skip("Jabberwock Subtasks", () => {
 		api.on(JabberwockEventName.TaskSpawned, (_, childTaskId) => (spawnedTaskId = childTaskId))
 		await waitFor(() => !!spawnedTaskId)
 		await sleep(1_000) // Give the task a chance to start and populate the history.
-		await api.cancelCurrentTask()
+		await api.abortRunningTask()
 
 		// Wait a bit to ensure any task resumption would have happened.
 		await sleep(2_000)
@@ -68,7 +68,7 @@ suite.skip("Jabberwock Subtasks", () => {
 		)
 
 		// Clean up - cancel all tasks.
-		await api.clearCurrentTask()
+		await api.popTaskFromStack()
 		await waitUntilCompleted({ api, taskId: parentTaskId })
 	})
 })

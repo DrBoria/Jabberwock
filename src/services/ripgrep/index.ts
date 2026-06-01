@@ -3,9 +3,9 @@ import * as path from "path"
 import * as readline from "readline"
 
 import * as vscode from "vscode"
-import { VirtualWorkspace } from "../../core/fs/VirtualWorkspace"
+import { VirtualWorkspace } from "../../features/foundation/time-machine/VirtualWorkspace"
 
-import { JabberwockIgnoreController } from "../../core/ignore/JabberwockIgnoreController"
+import { validateAccess } from "@utils/ignore"
 import { fileExistsAtPath } from "../../utils/fs"
 /*
 This file provides functionality to perform regex searches on files using ripgrep.
@@ -143,7 +143,7 @@ export async function regexSearchFiles(
 	directoryPath: string,
 	regex: string,
 	filePattern?: string,
-	jabberwockIgnoreController?: JabberwockIgnoreController,
+	ignorePatterns?: string,
 ): Promise<string> {
 	const vscodeAppRoot = vscode.env.appRoot
 	const rgPath = await getBinPath(vscodeAppRoot)
@@ -166,7 +166,7 @@ export async function regexSearchFiles(
 	try {
 		output = await execRipgrep(rgPath, args)
 	} catch (error) {
-		console.error("Error executing ripgrep:", error)
+		console.error("[jabberwock] Error executing ripgrep:", error)
 		return "No results found"
 	}
 
@@ -215,17 +215,15 @@ export async function regexSearchFiles(
 					}
 				}
 			} catch (error) {
-				console.error("Error parsing ripgrep output:", error)
+				console.error("[jabberwock] Error parsing ripgrep output:", error)
 			}
 		}
 	})
 
 	// console.log(results)
 
-	// Filter results using JabberwockIgnoreController if provided
-	const filteredResults = jabberwockIgnoreController
-		? results.filter((result) => jabberwockIgnoreController.validateAccess(result.file))
-		: results
+	// Filter results using ignore patterns if provided
+	const filteredResults = results.filter((result) => validateAccess(ignorePatterns, result.file, cwd))
 
 	return formatResults(filteredResults, cwd)
 }

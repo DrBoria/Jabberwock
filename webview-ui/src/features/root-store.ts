@@ -1,18 +1,13 @@
 import { types, Instance, onAction } from "mobx-state-tree"
 
-import { vscode } from "@jabberwock/devtool/react"
-import type { WebviewMessage, ExtensionMessage, HistoryItem, ClineMessage } from "@jabberwock/types"
-import {
-	ORGANIZATION_ALLOW_ALL,
-	AGENT_STATE_AUTO_APPROVAL_ENABLED,
-	AGENT_STATE_REQUEST_ROUTER_MODELS,
-} from "@jabberwock/types"
+import { vscode } from "@jabberwock/devtool/webview"
+import type { WebviewMessage, ExtensionMessage } from "@jabberwock/types"
+import { ORGANIZATION_ALLOW_ALL, eventConstants } from "@jabberwock/types"
 import type {
 	ExtensionState,
 	ProviderSettings,
 	ProviderSettingsEntry,
 	Command,
-	MarketplaceInstalledMetadata,
 	CustomModePrompts,
 	ModeConfig,
 	TelemetrySetting,
@@ -21,9 +16,7 @@ import { Mode, defaultModeSlug, defaultPrompts } from "@shared/modes"
 import type { CustomSupportPrompts } from "@shared/support-prompt"
 import { experimentDefault } from "@shared/experiments"
 import { jabberwockLog } from "../utils/jabberwock-logger"
-import { findLastIndex } from "@shared/array"
-import { checkExistKey } from "@shared/checkExistApiConfig"
-import { convertTextMateToHljs } from "@src/utils/convertTextMateToHljs"
+import { IntentConstants } from "@intentConstants"
 
 import { ChatStore } from "./chat/store"
 import { SettingsStore } from "./settings/store"
@@ -31,6 +24,10 @@ import { MarketplaceStore } from "./marketplace/store"
 import { CloudStore } from "./cloud/store"
 import { TaskHistoryStore } from "./history/store"
 import { WindowManagerStore } from "./foundation/window-manager/store"
+import { IntentStoreModel, setupIntents } from "./intents"
+import { McpExecutionStore } from "./chat/task/notifications/mcp/store"
+import { SkillsStore } from "./settings/skills/store"
+import { AgentStateStore } from "./settings/agents/store"
 
 // ─── Action log entry type ──────────────────────────────────────────
 export interface FrontendActionLogEntry {
@@ -48,6 +45,33 @@ interface WindowWithDevtool extends Window {
 	__JABBERWOCK_GET_STATE__?: () => Record<string, unknown>
 }
 
+// ── Dispatch map: ExtensionMessage.type → IntentConstants.* ──────────
+const handleExtensionMessageDispatchMap: Record<string, string> = {
+	showInteractiveApp: IntentConstants.foundation.SHOW_INTERACTIVE_APP,
+	state: IntentConstants.task.STATE_RECEIVED,
+	action: IntentConstants.task.ACTION_RECEIVED,
+	theme: IntentConstants.settings.THEME_UPDATED,
+	workspaceUpdated: IntentConstants.foundation.WORKSPACE_UPDATED,
+	commands: IntentConstants.foundation.COMMANDS_UPDATED,
+	messageUpdated: IntentConstants.task.MESSAGES_UPDATED,
+	skills: IntentConstants.settings.SKILLS,
+	mcpServers: IntentConstants.settings.MCP_SERVERS,
+	currentCheckpointUpdated: IntentConstants.task.CHECKPOINT_UPDATED,
+	listApiConfig: IntentConstants.settings.LIST_API_CONFIG,
+	routerModels: IntentConstants.settings.ROUTER_MODELS,
+	marketplaceData: IntentConstants.marketplace.DATA_RECEIVED,
+	taskHistoryUpdated: IntentConstants.history.UPDATED,
+	taskHistoryItemUpdated: IntentConstants.history.ITEM_UPDATED,
+	diagnostics: IntentConstants.diagnostics.RECEIVED,
+	invoke: IntentConstants.chat.INVOKE_RECEIVED,
+	selectedImages: IntentConstants.task.SELECTED_IMAGES,
+	condenseTaskContextStarted: IntentConstants.task.CONDENSE_STARTED,
+	condenseTaskContextResponse: IntentConstants.task.CONDENSE_RESPONSE,
+	checkpointInitWarning: IntentConstants.task.CHECKPOINT_INIT_WARNING,
+	interactionRequired: IntentConstants.chat.INTERACTION_REQUIRED,
+	taskWithAggregatedCosts: IntentConstants.task.TASK_WITH_AGGREGATED_COSTS,
+}
+
 /**
  * RootStore — central MST root store composing all feature stores.
  * Acts as the single entry point for the entire webview UI state.
@@ -61,7 +85,7 @@ export const RootStore = types
 				({
 					apiConfiguration: {},
 					version: "",
-					clineMessages: [],
+					messages: [],
 					taskHistory: [],
 					shouldShowAnnouncement: false,
 					allowedCommands: [],
@@ -196,18 +220,26 @@ export const RootStore = types
 		windowManager: types.optional(WindowManagerStore, () =>
 			WindowManagerStore.create({ activeWindows: [{ type: "chat", props: {} }] }),
 		),
+
+		// ── Sub-feature stores (formerly module-level singletons) ─────────────
+		mcpExecution: types.optional(McpExecutionStore, () => McpExecutionStore.create({})),
+		skills: types.optional(SkillsStore, () => SkillsStore.create({})),
+		agentState: types.optional(AgentStateStore, () => AgentStateStore.create({})),
+
+		// ── Intent store ─────────────────────────────────────────────────────
+		intentStore: types.optional(IntentStoreModel, () => IntentStoreModel.create({})),
 	})
 	// ── Block 1: mergeExtensionState ─────────────────────────────────────
 	.actions((self) => ({
 		mergeExtensionState(newState: Partial<ExtensionState>) {
 			const prev = self.extensionState
 
-			// Log incoming clineMessages at the central reception point
-			const incomingMessages = newState.clineMessages
+			// Log incoming messages at the central reception point
+			const incomingMessages = newState.messages
 			if (incomingMessages && incomingMessages.length > 0) {
 				const lastMessage = incomingMessages[incomingMessages.length - 1]
 				const lastMessageType = `${lastMessage.type}:${lastMessage.say ?? lastMessage.ask ?? "unknown"}`
-				jabberwockLog.log("state:clineMessages", {
+				jabberwockLog.log("state:messages", {
 					count: incomingMessages.length,
 					lastMessageType,
 					hasPendingAsks: incomingMessages.some((m) => m.type === "ask"),
@@ -227,15 +259,15 @@ export const RootStore = types
 			const experiments = { ...prevExperiments, ...(newExperiments ?? {}) }
 			const rest = { ...prevRest, ...newRest }
 
-			// Protect clineMessages from stale state pushes using sequence numbering
+			// Protect messages from stale state pushes using sequence numbering
 			if (
-				newState.clineMessagesSeq !== undefined &&
-				prev.clineMessagesSeq !== undefined &&
-				newState.clineMessagesSeq <= prev.clineMessagesSeq &&
-				newState.clineMessages !== undefined
+				newState.messagesSeq !== undefined &&
+				prev.messagesSeq !== undefined &&
+				newState.messagesSeq <= prev.messagesSeq &&
+				newState.messages !== undefined
 			) {
-				rest.clineMessages = prev.clineMessages
-				rest.clineMessagesSeq = prev.clineMessagesSeq
+				rest.messages = prev.messages
+				rest.messagesSeq = prev.messagesSeq
 			}
 
 			self.extensionState = {
@@ -490,297 +522,39 @@ export const RootStore = types
 			const currentAuth = self.cloud.cloudIsAuthenticated ?? false
 			const currentProvider = self.extensionState.apiConfiguration?.apiProvider
 			if (!self.cloud.prevCloudIsAuthenticated && currentAuth && currentProvider === "jabberwock") {
-				vscode.postMessage({ type: AGENT_STATE_REQUEST_ROUTER_MODELS } satisfies WebviewMessage)
+				vscode.postMessage({ type: eventConstants.AGENT_STATE.REQUEST_ROUTER_MODELS } satisfies WebviewMessage)
 			}
 			self.cloud.setPrevCloudIsAuthenticated(currentAuth)
 		},
 	}))
-	// ── Block 3: Message handler (routes extension messages to sub-stores) ──
+	// ── Block 3: Message handler (routes extension messages to IntentBus) ──
 	.actions((self) => ({
 		handleExtensionMessage(event: MessageEvent) {
 			const message: ExtensionMessage = event.data
-			switch (message.type) {
-				case "showInteractiveApp": {
-					self.interactiveAppUri = message.uri ?? ""
-					break
-				}
-				case "state": {
-					const newState = message.state ?? {}
-					const hasApiConfig = "apiConfiguration" in newState
-					self.mergeExtensionState(newState)
-					if (!self._welcomeDismissed && hasApiConfig) {
-						const showWelcomeValue = !checkExistKey(newState.apiConfiguration)
-						self.showWelcome = showWelcomeValue
-					}
-					self.didHydrateState = true
 
-					// Route state fields to SettingsStore
-					if (newState.alwaysAllowFollowupQuestions !== undefined) {
-						self.settings.setAlwaysAllowFollowupQuestions(newState.alwaysAllowFollowupQuestions)
-					}
-					if (newState.followupAutoApproveTimeoutMs !== undefined) {
-						self.settings.setFollowupAutoApproveTimeoutMs(newState.followupAutoApproveTimeoutMs)
-					}
-					if (newState.includeTaskHistoryInEnhance !== undefined) {
-						self.settings.setIncludeTaskHistoryInEnhance(newState.includeTaskHistoryInEnhance)
-					}
-					if (newState.includeCurrentTime !== undefined) {
-						self.settings.setIncludeCurrentTime(newState.includeCurrentTime)
-					}
-					if (newState.includeCurrentCost !== undefined) {
-						self.settings.setIncludeCurrentCost(newState.includeCurrentCost)
-					}
-					if (newState.hasOpenedModeSelector !== undefined) {
-						self.settings.setHasOpenedModeSelector(newState.hasOpenedModeSelector)
-					}
-					if (newState.profileThresholds !== undefined) {
-						self.settings.setProfileThresholds(newState.profileThresholds)
-					}
-					if (newState.mcpServers !== undefined) {
-						self.settings.setMcpServers(newState.mcpServers)
-					}
-					if (newState.routerModels !== undefined) {
-						self.settings.setRouterModels(newState.routerModels)
-					}
-					if (newState.organizationAllowList !== undefined) {
-						self.settings.setOrganizationAllowList(newState.organizationAllowList)
-					}
-					if (newState.organizationSettingsVersion !== undefined) {
-						self.settings.setOrganizationSettingsVersion(newState.organizationSettingsVersion)
-					}
-
-					// Route locatorTarget on extensionState
-					if (newState.locatorTarget !== undefined) {
-						self.extensionState = { ...self.extensionState, locatorTarget: newState.locatorTarget }
-					}
-
-					// Route state fields to MarketplaceStore
-					if (newState.marketplaceItems !== undefined) {
-						self.marketplace.setMarketplaceData(
-							newState.marketplaceItems,
-							newState.marketplaceInstalledMetadata as MarketplaceInstalledMetadata | undefined,
-						)
-					}
-					if (newState.skills !== undefined) {
-						self.marketplace.setSkills(newState.skills)
-					}
-
-					// Route state fields to CloudStore
-					if (newState.cloudIsAuthenticated !== undefined) {
-						self.cloud.setCloudIsAuthenticated(newState.cloudIsAuthenticated)
-					}
-					if (newState.cloudOrganizations !== undefined) {
-						self.cloud.setCloudOrganizations(newState.cloudOrganizations)
-					}
-					if (newState.sharingEnabled !== undefined) {
-						self.cloud.setSharingEnabled(newState.sharingEnabled)
-					}
-					if (newState.publicSharingEnabled !== undefined) {
-						self.cloud.setPublicSharingEnabled(newState.publicSharingEnabled)
-					}
-					break
-				}
-				case "action": {
-					if (message.action === "toggleAutoApprove") {
-						const newValue = !(self.extensionState.autoApprovalEnabled ?? false)
-						self.extensionState = { ...self.extensionState, autoApprovalEnabled: newValue }
-						vscode.postMessage({ type: AGENT_STATE_AUTO_APPROVAL_ENABLED, bool: newValue })
-					} else if (message.action === "didBecomeVisible") {
-						if (!self.chat.ui.sendingDisabled && !self.chat.ui.enableButtons) {
-							document.querySelector<HTMLTextAreaElement>("textarea")?.focus()
-						}
-					} else if (message.action === "focusInput") {
+			// Handle DOM operations inline (not through IntentBus)
+			if (message.type === "action") {
+				if (message.action === "didBecomeVisible") {
+					if (!self.chat.sendingDisabled && !self.chat.enableButtons) {
 						document.querySelector<HTMLTextAreaElement>("textarea")?.focus()
 					}
-					break
+					return
 				}
-				case "theme": {
-					if (message.text) {
-						self.theme = convertTextMateToHljs(JSON.parse(message.text))
-					}
-					break
+				if (message.action === "focusInput") {
+					document.querySelector<HTMLTextAreaElement>("textarea")?.focus()
+					return
 				}
-				case "workspaceUpdated": {
-					const paths = message.filePaths ?? []
-					const tabs = message.openedTabs ?? []
-					const uri = message.uri
-					self.filePaths = paths
-					self.openedTabs = tabs as Array<{ label: string; isActive: boolean; path?: string }>
-					if (uri) {
-						self.extensionState = { ...self.extensionState, cwd: uri }
-					}
-					break
-				}
-				case "commands": {
-					self.extensionCommands = message.commands ?? []
-					break
-				}
-				case "messageUpdated": {
-					const clineMessage = message.clineMessage!
-					const currentMessages = self.extensionState.clineMessages
-					const lastIndex = findLastIndex(currentMessages, (msg: ClineMessage) => msg.ts === clineMessage.ts)
-					let newMessages: ClineMessage[]
-					if (lastIndex !== -1) {
-						newMessages = [...currentMessages]
-						newMessages[lastIndex] = clineMessage
-					} else {
-						newMessages = [...currentMessages, clineMessage]
-					}
-					self.extensionState = { ...self.extensionState, clineMessages: newMessages }
-					break
-				}
-				case "skills": {
-					if (message.skills) {
-						self.marketplace.setSkills(message.skills)
-					}
-					break
-				}
-				case "mcpServers": {
-					self.settings.setMcpServers(message.mcpServers ?? [])
-					break
-				}
-				case "currentCheckpointUpdated": {
-					self.currentCheckpoint = message.text ?? ""
-					break
-				}
-				case "listApiConfig": {
-					self.extensionState = { ...self.extensionState, listApiConfigMeta: message.listApiConfig ?? [] }
-					break
-				}
-				case "routerModels": {
-					self.settings.setRouterModels(message.routerModels!)
-					break
-				}
-				case "marketplaceData": {
-					if (message.marketplaceItems !== undefined) {
-						self.marketplace.setMarketplaceData(
-							message.marketplaceItems,
-							message.marketplaceInstalledMetadata as MarketplaceInstalledMetadata | undefined,
-						)
-					}
-					break
-				}
-				case "taskHistoryUpdated": {
-					if (message.taskHistory !== undefined) {
-						self.extensionState = { ...self.extensionState, taskHistory: message.taskHistory }
-					}
-					break
-				}
-				case "taskHistoryItemUpdated": {
-					const item = message.historyItem
-					if (!item) break
-					const currentHistory = self.extensionState.taskHistory
-					const existingIndex = currentHistory.findIndex((h: HistoryItem) => h.id === item.id)
-					let nextHistory: HistoryItem[]
-					if (existingIndex === -1) {
-						nextHistory = [item, ...currentHistory]
-					} else {
-						nextHistory = [...currentHistory]
-						nextHistory[existingIndex] = item
-					}
-					nextHistory.sort((a: HistoryItem, b: HistoryItem) => b.ts - a.ts)
-					const currentTaskItem =
-						!self.extensionState.currentTaskItem || self.extensionState.currentTaskItem.id === item.id
-							? item
-							: self.extensionState.currentTaskItem
-					self.extensionState = { ...self.extensionState, taskHistory: nextHistory, currentTaskItem }
-					break
-				}
-				case "diagnostics": {
-					if (message.diagnostics) {
-						self.extensionState = { ...self.extensionState, diagnostics: message.diagnostics }
-					}
-					break
-				}
+			}
 
-				// ── Event-dispatch merged cases ──────────────────────
-				case "invoke": {
-					const invoke = message.invoke
-					if (invoke === "newChat") {
-						self.chat.ui.clearInput()
-						self.chat.ui.setSendingDisabled(false)
-					} else if (invoke === "sendMessage") {
-						self.chat.sendMessage(message.text ?? "", message.images ?? [])
-					} else if (invoke === "setChatBoxMessage") {
-						self.chat.ui.setInputValue(
-							self.chat.ui.inputValue !== ""
-								? self.chat.ui.inputValue + " " + (message.text ?? "")
-								: (message.text ?? ""),
-						)
-						self.chat.ui.appendSelectedImages(message.images ?? [])
-					} else if (invoke === "primaryButtonClick") {
-						// Route command_output to SettingsStore before delegating to ChatStore
-						const primaryClineAsk = self.chat.ui.clineAsk
-						if (primaryClineAsk === "command_output") {
-							self.settings.terminalOperation("continue")
-						}
-						self.chat.handlePrimaryButtonClick(
-							undefined,
-							undefined,
-							[],
-							message.text ?? "",
-							message.images ?? [],
-						)
-					} else if (invoke === "secondaryButtonClick") {
-						// Route command_output to SettingsStore before delegating to ChatStore
-						if (self.chat.ui.isStreaming) {
-							self.chat.cancelTask()
-						} else {
-							const secondaryClineAsk = self.chat.ui.clineAsk
-							if (secondaryClineAsk === "command_output") {
-								self.settings.terminalOperation("abort")
-							}
-							self.chat.handleSecondaryButtonClick(
-								undefined,
-								false,
-								message.text ?? "",
-								message.images ?? [],
-							)
-						}
-					} else if (invoke === "approveTodoPlan") {
-						if (message.values) {
-							self.chat.elicitResponse(message.values)
-						} else {
-							document
-								.querySelectorAll("iframe")
-								.forEach((iframe) =>
-									iframe.contentWindow?.postMessage({ type: "mcp-force-accept" }, "*"),
-								)
-						}
-					}
-					break
-				}
-				case "selectedImages": {
-					if (message.context !== "edit" && message.images) {
-						self.chat.ui.appendSelectedImages(message.images.slice(0, 20))
-					}
-					break
-				}
-				case "condenseTaskContextStarted": {
-					if (message.text) self.chat.ui.setIsCondensing(true)
-					break
-				}
-				case "condenseTaskContextResponse": {
-					if (message.text) {
-						if (self.chat.ui.isCondensing && self.chat.ui.sendingDisabled)
-							self.chat.ui.setSendingDisabled(false)
-						self.chat.ui.setIsCondensing(false)
-					}
-					break
-				}
-				case "checkpointInitWarning": {
-					self.chat.ui.setCheckpointWarning(message.checkpointWarning ?? undefined)
-					break
-				}
-				case "interactionRequired": {
-					break
-				}
-				case "taskWithAggregatedCosts": {
-					if (message.text && message.aggregatedCosts) {
-						self.chat.ui.updateAggregatedCosts(message.text, message.aggregatedCosts)
-					}
-					break
-				}
+			// Dispatch to IntentBus for all other message types
+			const intentType = handleExtensionMessageDispatchMap[message.type]
+			if (intentType) {
+				self.intentStore.createIntent({
+					id: crypto.randomUUID(),
+					type: intentType,
+					payload: { ...message } as Record<string, unknown>,
+					createdAt: Date.now(),
+				})
 			}
 		},
 	}))
@@ -796,6 +570,8 @@ export type IRootStore = Instance<typeof RootStore>
 // ─── Singleton + onAction buffer ───────────────────────────────────
 let _rootStore: IRootStore | null = null
 const _actionBuffer: FrontendActionLogEntry[] = []
+/** Dispose function for the IntentBus reaction, called on unmount. */
+let _disposeIntentBus: (() => void) | null = null
 
 export function createRootStore(): IRootStore {
 	if (_rootStore) return _rootStore
@@ -821,6 +597,10 @@ export function createRootStore(): IRootStore {
 		if (_actionBuffer.length > 500) _actionBuffer.shift()
 	})
 
+	// Start the IntentBus reaction — feature handlers register via bus.register()
+	const { dispose } = setupIntents(_rootStore)
+	_disposeIntentBus = dispose
+
 	return _rootStore
 }
 
@@ -831,4 +611,15 @@ export function getRootStore(): IRootStore {
 
 export function getFrontendActionBuffer(): FrontendActionLogEntry[] {
 	return _actionBuffer
+}
+
+/**
+ * Dispose the IntentBus reaction.
+ * Call this when the webview unmounts to prevent memory leaks.
+ */
+export function disposeIntentBus(): void {
+	if (_disposeIntentBus) {
+		_disposeIntentBus()
+		_disposeIntentBus = null
+	}
 }

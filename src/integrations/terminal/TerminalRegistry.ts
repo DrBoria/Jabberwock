@@ -123,7 +123,7 @@ export class TerminalRegistry {
 				this.disposables.push(endDisposable)
 			}
 		} catch (error) {
-			console.error("[TerminalRegistry] Error setting up shell execution handlers:", error)
+			console.error("[jabberwock] [TerminalRegistry] Error setting up shell execution handlers:", error)
 		}
 	}
 

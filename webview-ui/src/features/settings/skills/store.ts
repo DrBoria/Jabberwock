@@ -17,4 +17,4 @@ export const SkillsStore = types
 	}))
 
 export type ISkillsStore = Instance<typeof SkillsStore>
-export const skillsStore = SkillsStore.create({})
+/** @deprecated Use `getRootStore().skills` instead. Will be removed after all consumers migrate. */

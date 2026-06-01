@@ -11,7 +11,7 @@ import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jab
 
 import { safeWriteJson } from "../../../utils/safeWriteJson"
 
-import { ContextProxy } from "../../../core/config/ContextProxy"
+import { getVscodeContext } from "../../../features/foundation/vscode/context"
 import { getCacheDirectoryPath } from "../../../utils/storage"
 import type { RouterName } from "../../../shared/api"
 import { fileExistsAtPath } from "../../../utils/fs"
@@ -36,13 +36,13 @@ const inFlightRefresh = new Map<RouterName, Promise<ModelRecord>>()
 
 async function writeModels(router: RouterName, data: ModelRecord) {
 	const filename = `${router}_models.json`
-	const cacheDir = await getCacheDirectoryPath(ContextProxy.instance.globalStorageUri.fsPath)
+	const cacheDir = await getCacheDirectoryPath(getVscodeContext().globalStorageUri.fsPath)
 	await safeWriteJson(path.join(cacheDir, filename), data)
 }
 
 async function readModels(router: RouterName): Promise<ModelRecord | undefined> {
 	const filename = `${router}_models.json`
-	const cacheDir = await getCacheDirectoryPath(ContextProxy.instance.globalStorageUri.fsPath)
+	const cacheDir = await getCacheDirectoryPath(getVscodeContext().globalStorageUri.fsPath)
 	const filePath = path.join(cacheDir, filename)
 	const exists = await fileExistsAtPath(filePath)
 	return exists ? JSON.parse(await fs.readFile(filePath, "utf8")) : undefined
@@ -130,7 +130,7 @@ export const getModels = async (options: GetModelsOptions): Promise<ModelRecord>
 			memoryCache.set(provider, models)
 
 			await writeModels(provider, models).catch((err) =>
-				console.error(`[MODEL_CACHE] Error writing ${provider} models to file cache:`, err),
+				console.error(`[jabberwock] [MODEL_CACHE] Error writing ${provider} models to file cache:`, err),
 			)
 		} else {
 			getTelemetryService().captureEvent(TelemetryEventName.MODEL_CACHE_EMPTY_RESPONSE, {
@@ -143,7 +143,7 @@ export const getModels = async (options: GetModelsOptions): Promise<ModelRecord>
 		return models
 	} catch (error) {
 		// Log the error and re-throw it so the caller can handle it (e.g., show a UI message).
-		console.error(`[getModels] Failed to fetch models in modelCache for ${provider}:`, error)
+		console.error(`[jabberwock] [getModels] Failed to fetch models in modelCache for ${provider}:`, error)
 
 		throw error // Re-throw the original error to be handled by the caller.
 	}
@@ -199,13 +199,13 @@ export const refreshModels = async (options: GetModelsOptions): Promise<ModelRec
 
 			// Atomically write to disk (safeWriteJson handles atomic writes)
 			await writeModels(provider, models).catch((err) =>
-				console.error(`[refreshModels] Error writing ${provider} models to disk:`, err),
+				console.error(`[jabberwock] [refreshModels] Error writing ${provider} models to disk:`, err),
 			)
 
 			return models
 		} catch (error) {
 			// Log the error for debugging, then return existing cache if available (graceful degradation)
-			console.error(`[refreshModels] Failed to refresh ${provider} models:`, error)
+			console.error(`[jabberwock] [refreshModels] Failed to refresh ${provider} models:`, error)
 			return getModelsFromCache(provider) || {}
 		} finally {
 			// Always clean up the in-flight tracking
@@ -313,7 +313,7 @@ export function getModelsFromCache(provider: ProviderName): ModelRecord | undefi
 			return validation.data
 		}
 	} catch (error) {
-		console.error(`[MODEL_CACHE] Error loading ${provider} models from disk:`, error)
+		console.error(`[jabberwock] [MODEL_CACHE] Error loading ${provider} models from disk:`, error)
 	}
 
 	return undefined
@@ -325,14 +325,14 @@ export function getModelsFromCache(provider: ProviderName): ModelRecord | undefi
  */
 function getCacheDirectoryPathSync(): string | undefined {
 	try {
-		const globalStoragePath = ContextProxy.instance?.globalStorageUri?.fsPath
+		const globalStoragePath = getVscodeContext()?.globalStorageUri?.fsPath
 		if (!globalStoragePath) {
 			return undefined
 		}
 		const cachePath = path.join(globalStoragePath, "cache")
 		return cachePath
 	} catch (error) {
-		console.error(`[MODEL_CACHE] Error getting cache directory path:`, error)
+		console.error(`[jabberwock] [MODEL_CACHE] Error getting cache directory path:`, error)
 		return undefined
 	}
 }

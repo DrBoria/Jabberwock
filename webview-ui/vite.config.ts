@@ -70,7 +70,7 @@ const persistPortPlugin = (): Plugin => ({
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
-	let outDir = "../src/webview-ui/build"
+	let outDir = "build"
 
 	const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "src", "package.json"), "utf8"))
 	const gitSha = getGitSha()
@@ -127,6 +127,10 @@ export default defineConfig(({ mode }) => {
 				"@": resolve(__dirname, "./src"),
 				"@src": resolve(__dirname, "./src"),
 				"@shared": resolve(__dirname, "../src/shared"),
+				"@intentConstants": resolve(__dirname, "./src/features/intents/IntentConstants"),
+				"@eventConstants": resolve(__dirname, "../packages/types/src/event-constants"),
+				"@features": resolve(__dirname, "../src/features"),
+				"@utils": resolve(__dirname, "../src/utils"),
 			},
 		},
 		build: {
@@ -167,9 +171,10 @@ export default defineConfig(({ mode }) => {
 						if (name.endsWith(".woff2") || name.endsWith(".woff") || name.endsWith(".ttf")) {
 							return "assets/fonts/[name][extname]"
 						}
-						// Ensure source maps are included in the build
+						// Ensure source maps are included in the build (must use [extname] to avoid
+						// colliding with entryFileNames which outputs assets/[name].js)
 						if (name.endsWith(".map")) {
-							return "assets/[name]"
+							return "assets/[name][extname]"
 						}
 						return "assets/[name][extname]"
 					},

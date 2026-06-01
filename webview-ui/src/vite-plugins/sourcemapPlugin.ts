@@ -33,13 +33,13 @@ export function sourcemapPlugin(): Plugin {
 
 				// Check if build directory exists
 				if (!fs.existsSync(outDir)) {
-					console.warn("Build directory not found:", outDir)
+					console.warn("[jabberwock] Build directory not found:", outDir)
 					return
 				}
 
 				// Check if assets directory exists
 				if (!fs.existsSync(assetsDir)) {
-					console.warn("Assets directory not found:", assetsDir)
+					console.warn("[jabberwock] Assets directory not found:", assetsDir)
 					return
 				}
 
@@ -92,7 +92,7 @@ export function sourcemapPlugin(): Plugin {
 							fs.writeFileSync(mapPath, JSON.stringify(mapContent, null, 2))
 							console.log(`Updated source map for ${jsFile}`)
 						} catch (error) {
-							console.error(`Error processing source map for ${jsFile}:`, error)
+							console.error(`[jabberwock] Error processing source map for ${jsFile}:`, error)
 						}
 					} else {
 						console.log(`No source map found for ${jsFile}`)

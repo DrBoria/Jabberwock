@@ -1,6 +1,7 @@
 import { z } from "zod"
 
-import { clineMessageSchema, queuedMessageSchema, tokenUsageSchema } from "./message.ts"
+import { notificationSchema } from "./notification.ts"
+import { queuedMessageSchema, tokenUsageSchema } from "./message.ts"
 import { modelInfoSchema } from "./model.ts"
 import { toolNamesSchema, toolUsageSchema } from "./tool.ts"
 
@@ -101,7 +102,7 @@ export const jabberwockEventsSchema = z.object({
 		z.object({
 			taskId: z.string(),
 			action: z.union([z.literal("created"), z.literal("updated")]),
-			message: clineMessageSchema,
+			message: notificationSchema,
 		}),
 	]),
 	[JabberwockEventName.TaskModeSwitched]: z.tuple([z.string(), z.string()]),

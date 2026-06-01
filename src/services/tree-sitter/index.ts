@@ -3,7 +3,7 @@ import * as path from "path"
 import { LanguageParser, loadRequiredLanguageParsers } from "./languageParser"
 import { fileExistsAtPath } from "../../utils/fs"
 import { parseMarkdown } from "./markdownParser"
-import { JabberwockIgnoreController } from "../../core/ignore/JabberwockIgnoreController"
+import { validateAccess } from "@utils/ignore"
 import { QueryCapture } from "web-tree-sitter"
 
 // Private constant
@@ -96,7 +96,8 @@ export { extensions }
 
 export async function parseSourceCodeDefinitionsForFile(
 	filePath: string,
-	jabberwockIgnoreController?: JabberwockIgnoreController,
+	ignorePatterns?: string,
+	cwd?: string,
 ): Promise<string | undefined> {
 	// check if the file exists
 	const fileExists = await fileExistsAtPath(path.resolve(filePath))
@@ -114,7 +115,7 @@ export async function parseSourceCodeDefinitionsForFile(
 	// Special case for markdown files
 	if (ext === ".md" || ext === ".markdown") {
 		// Check if we have permission to access this file
-		if (jabberwockIgnoreController && !jabberwockIgnoreController.validateAccess(filePath)) {
+		if (cwd && !validateAccess(ignorePatterns, filePath, cwd)) {
 			return undefined
 		}
 
@@ -140,7 +141,7 @@ export async function parseSourceCodeDefinitionsForFile(
 	const languageParsers = await loadRequiredLanguageParsers([filePath])
 
 	// Parse the file if we have a parser for it
-	const definitions = await parseFile(filePath, languageParsers, jabberwockIgnoreController)
+	const definitions = await parseFile(filePath, languageParsers, ignorePatterns, cwd)
 	if (definitions) {
 		return `# ${path.basename(filePath)}\n${definitions}`
 	}
@@ -294,10 +295,11 @@ function processCaptures(captures: QueryCapture[], lines: string[], language: st
 async function parseFile(
 	filePath: string,
 	languageParsers: LanguageParser,
-	jabberwockIgnoreController?: JabberwockIgnoreController,
+	ignorePatterns?: string,
+	cwd?: string,
 ): Promise<string | null> {
 	// Check if we have permission to access this file
-	if (jabberwockIgnoreController && !jabberwockIgnoreController.validateAccess(filePath)) {
+	if (cwd && !validateAccess(ignorePatterns, filePath, cwd)) {
 		return null
 	}
 

@@ -11,7 +11,6 @@ import { CloudService, getCloudService, hasCloudService } from "@jabberwock/clou
 import { GlobalFileNames } from "../../shared/globalFileNames"
 import { ensureSettingsDirectoryExists } from "../../utils/globalContext"
 import { t } from "../../i18n"
-import type { CustomModesManager } from "../../core/config/CustomModesManager"
 
 import { RemoteConfigLoader } from "./RemoteConfigLoader"
 import { SimpleInstaller } from "./SimpleInstaller"
@@ -26,12 +25,9 @@ export class MarketplaceManager {
 	private configLoader: RemoteConfigLoader
 	private installer: SimpleInstaller
 
-	constructor(
-		private readonly context: vscode.ExtensionContext,
-		private readonly customModesManager?: CustomModesManager,
-	) {
+	constructor(private readonly context: vscode.ExtensionContext) {
 		this.configLoader = new RemoteConfigLoader()
-		this.installer = new SimpleInstaller(context, customModesManager)
+		this.installer = new SimpleInstaller(context)
 	}
 
 	async getMarketplaceItems(): Promise<MarketplaceItemsResponse> {
@@ -45,7 +41,7 @@ export class MarketplaceManager {
 					orgSettings = getCloudService().getOrganizationSettings()
 				}
 			} catch (orgError) {
-				console.warn("Failed to load organization settings:", orgError)
+				console.warn("[jabberwock] Failed to load organization settings:", orgError)
 				const orgErrorMessage = orgError instanceof Error ? orgError.message : String(orgError)
 				errors.push(`Organization settings: ${orgErrorMessage}`)
 			}
@@ -79,7 +75,7 @@ export class MarketplaceManager {
 			}
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
-			console.error("Failed to load marketplace items:", error)
+			console.error("[jabberwock] Failed to load marketplace items:", error)
 
 			return {
 				organizationMcps: [],
@@ -140,7 +136,7 @@ export class MarketplaceManager {
 
 	async installMarketplaceItem(
 		item: MarketplaceItem,
-		options?: { target?: "global" | "project"; parameters?: Record<string, unknown> },
+		options?: { target?: "global" | "project"; parameters?: { [key: string]: unknown } },
 	): Promise<string> {
 		const { target = "project", parameters } = options || {}
 
@@ -151,7 +147,7 @@ export class MarketplaceManager {
 			vscode.window.showInformationMessage(t("marketplace:installation.installSuccess", { itemName: item.name }))
 
 			// Capture telemetry for successful installation
-			const telemetryProperties: Record<string, unknown> = {}
+			const telemetryProperties: { [key: string]: unknown } = {}
 			if (parameters && Object.keys(parameters).length > 0) {
 				telemetryProperties.hasParameters = true
 				// For MCP items with multiple installation methods, track which one was used
@@ -285,7 +281,7 @@ export class MarketplaceManager {
 				// File doesn't exist or can't be read, skip
 			}
 		} catch (error) {
-			console.error("Error checking project installations:", error)
+			console.error("[jabberwock] Error checking project installations:", error)
 		}
 	}
 
@@ -330,7 +326,7 @@ export class MarketplaceManager {
 				// File doesn't exist or can't be read, skip
 			}
 		} catch (error) {
-			console.error("Error checking global installations:", error)
+			console.error("[jabberwock] Error checking global installations:", error)
 		}
 	}
 }

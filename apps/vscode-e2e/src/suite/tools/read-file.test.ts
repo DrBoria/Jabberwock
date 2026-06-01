@@ -4,7 +4,7 @@ import * as path from "path"
 import * as os from "os"
 import * as vscode from "vscode"
 
-import { JabberwockEventName, type ClineMessage } from "@jabberwock/types"
+import { JabberwockEventName, type Notification } from "@jabberwock/types"
 
 import { waitFor, sleep } from "../utils"
 import { setDefaultSuiteTimeout } from "../test-utils"
@@ -69,7 +69,7 @@ suite.skip("Jabberwock read_file Tool", function () {
 	suiteTeardown(async () => {
 		// Cancel any running tasks before cleanup
 		try {
-			await globalThis.api.cancelCurrentTask()
+			await globalThis.api.abortRunningTask()
 		} catch {
 			// Task might not be running
 		}
@@ -98,7 +98,7 @@ suite.skip("Jabberwock read_file Tool", function () {
 	setup(async () => {
 		// Cancel any previous task
 		try {
-			await globalThis.api.cancelCurrentTask()
+			await globalThis.api.abortRunningTask()
 		} catch {
 			// Task might not be running
 		}
@@ -111,7 +111,7 @@ suite.skip("Jabberwock read_file Tool", function () {
 	teardown(async () => {
 		// Cancel the current task
 		try {
-			await globalThis.api.cancelCurrentTask()
+			await globalThis.api.abortRunningTask()
 		} catch {
 			// Task might not be running
 		}
@@ -122,7 +122,7 @@ suite.skip("Jabberwock read_file Tool", function () {
 
 	test("Should read a simple text file", async function () {
 		const api = globalThis.api
-		const messages: ClineMessage[] = []
+		const messages: Notification[] = []
 		let taskStarted = false
 		let taskCompleted = false
 		let errorOccurred: string | null = null
@@ -130,7 +130,7 @@ suite.skip("Jabberwock read_file Tool", function () {
 		let toolResult: string | null = null
 
 		// Listen for messages
-		const messageHandler = ({ message }: { message: ClineMessage }) => {
+		const messageHandler = ({ message }: { message: Notification }) => {
 			messages.push(message)
 
 			// Check for tool execution and extract result
@@ -267,13 +267,13 @@ suite.skip("Jabberwock read_file Tool", function () {
 
 	test("Should read a multiline file", async function () {
 		const api = globalThis.api
-		const messages: ClineMessage[] = []
+		const messages: Notification[] = []
 		let taskCompleted = false
 		let toolExecuted = false
 		let toolResult: string | null = null
 
 		// Listen for messages
-		const messageHandler = ({ message }: { message: ClineMessage }) => {
+		const messageHandler = ({ message }: { message: Notification }) => {
 			messages.push(message)
 
 			// Check for tool execution and extract result
@@ -378,13 +378,13 @@ suite.skip("Jabberwock read_file Tool", function () {
 
 	test("Should read file with slice offset/limit", async function () {
 		const api = globalThis.api
-		const messages: ClineMessage[] = []
+		const messages: Notification[] = []
 		let taskCompleted = false
 		let toolExecuted = false
 		let toolResult: string | null = null
 
 		// Listen for messages
-		const messageHandler = ({ message }: { message: ClineMessage }) => {
+		const messageHandler = ({ message }: { message: Notification }) => {
 			messages.push(message)
 
 			// Check for tool execution and extract result
@@ -490,13 +490,13 @@ suite.skip("Jabberwock read_file Tool", function () {
 
 	test("Should handle reading non-existent file", async function () {
 		const api = globalThis.api
-		const messages: ClineMessage[] = []
+		const messages: Notification[] = []
 		let taskCompleted = false
 		let toolExecuted = false
 		let _errorHandled = false
 
 		// Listen for messages
-		const messageHandler = ({ message }: { message: ClineMessage }) => {
+		const messageHandler = ({ message }: { message: Notification }) => {
 			messages.push(message)
 
 			// Check for tool execution
@@ -562,12 +562,12 @@ suite.skip("Jabberwock read_file Tool", function () {
 
 	test("Should read XML content file", async function () {
 		const api = globalThis.api
-		const messages: ClineMessage[] = []
+		const messages: Notification[] = []
 		let taskCompleted = false
 		let toolExecuted = false
 
 		// Listen for messages
-		const messageHandler = ({ message }: { message: ClineMessage }) => {
+		const messageHandler = ({ message }: { message: Notification }) => {
 			messages.push(message)
 
 			// Check for tool execution
@@ -633,12 +633,12 @@ suite.skip("Jabberwock read_file Tool", function () {
 
 	test("Should read multiple files in sequence", async function () {
 		const api = globalThis.api
-		const messages: ClineMessage[] = []
+		const messages: Notification[] = []
 		let taskCompleted = false
 		let readFileCount = 0
 
 		// Listen for messages
-		const messageHandler = ({ message }: { message: ClineMessage }) => {
+		const messageHandler = ({ message }: { message: Notification }) => {
 			messages.push(message)
 
 			// Count read_file executions
@@ -706,12 +706,12 @@ Assume both files exist and you can read them directly. Read each file and tell 
 
 	test("Should read large file efficiently", async function () {
 		const api = globalThis.api
-		const messages: ClineMessage[] = []
+		const messages: Notification[] = []
 		let taskCompleted = false
 		let toolExecuted = false
 
 		// Listen for messages
-		const messageHandler = ({ message }: { message: ClineMessage }) => {
+		const messageHandler = ({ message }: { message: Notification }) => {
 			messages.push(message)
 
 			// Check for tool execution

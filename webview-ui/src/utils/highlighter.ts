@@ -114,7 +114,7 @@ export function normalizeLanguage(language: string | undefined): ExtendedLanguag
 
 	// Warn about unrecognized language and default to txt (only once per language)
 	if (language !== "txt" && !warnedLanguages.has(language)) {
-		console.warn(`[Shiki] Unrecognized language '${language}', defaulting to txt.`)
+		console.warn(`[jabberwock] [Shiki] Unrecognized language '${language}', defaulting to txt.`)
 		warnedLanguages.add(language)
 	}
 
@@ -186,7 +186,7 @@ export const getHighlighter = async (language?: string): Promise<Highlighter> =>
 						await instance.loadLanguage(shikilang as BundledLanguage)
 						state.loadedLanguages.add(shikilang)
 					} catch (error) {
-						console.error(`[Shiki] Failed to load language ${shikilang}:`, error)
+						console.error(`[jabberwock] [Shiki] Failed to load language ${shikilang}:`, error)
 						throw error
 					} finally {
 						// Clean up pending promise after completion
@@ -203,7 +203,7 @@ export const getHighlighter = async (language?: string): Promise<Highlighter> =>
 
 		return instance
 	} catch (error) {
-		console.error("[Shiki] Error in getHighlighter:", error)
+		console.error("[jabberwock] [Shiki] Error in getHighlighter:", error)
 		throw error
 	}
 }

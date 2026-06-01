@@ -1,19 +1,20 @@
 import { types, Instance } from "mobx-state-tree"
 
-import type { ClineMessage, Command } from "@jabberwock/types"
+import { ContextMenuOptionType } from "./text-area/utils/context-mentions"
+import type { Notification, Command } from "@jabberwock/types"
 
-import { ChatStore as TreeStore } from "./messages-list/store"
-import { CommandExecutionStore } from "./messages-list/store"
-import { McpExecutionStore } from "./notifications/mcp/store"
-import { NotificationsStore } from "./notifications/store"
-import { AskStore } from "./notifications/ask/store"
+import { ChatStore as TreeStore } from "@src/features/chat/task/messages/store"
+import { CommandExecutionStore } from "@src/features/chat/task/messages/store"
+import { McpExecutionStore } from "@src/features/chat/task/notifications/mcp/store"
+import { NotificationsStore } from "@src/features/chat/task/notifications/store"
+import { AskStore } from "@src/features/chat/task/notifications/ask/store"
 
 // ── Factory imports (chat-scoped action modules) ────────────────────
-import { createTaskActions } from "./task/store"
-import { createTopicActions } from "./topic/store"
-import { createMessagesListActions } from "./messages-list/store"
-import { createNotificationsActions } from "./notifications/store"
-import { createTextAreaActions } from "./text-area/store"
+import { createTaskActions } from "@src/features/chat/task/store"
+import { createTopicActions } from "@src/features/chat/topic/store"
+import { createMessagesListActions } from "@src/features/chat/task/messages/store"
+import { createNotificationsActions } from "@src/features/chat/task/notifications/store"
+import { DynamicTextAreaStore, createTextAreaActions } from "@src/features/chat/text-area/store"
 
 // ── AggregatedCostEntry ──────────────────────────────────────────────
 
@@ -52,59 +53,106 @@ export const CommandsStore = types
 
 export type ICommandsStore = Instance<typeof CommandsStore>
 
-// ── ChatUIStore ──────────────────────────────────────────────────────
+// ── ChatStore (chat-scoped root) ──────────────────────────────────────
 
 /**
- * ChatUIStore — holds all UI-level state that was previously local React state
- * in ChatView.tsx and ChatTextArea.tsx. Components read from this store directly
- * instead of receiving props drilled from ChatView.
+ * ChatStore — composes all chat sub-stores and exposes all UI + domain actions.
+ * Owned by RootStore as a sub-store under `rootStore.chat`.
+ *
+ * Previously, UI-level state lived in a separate ChatUIStore sub-store at
+ * `chat.ui.X`. That sub-store has been flattened into ChatStore directly.
+ * Backward-compat aliases (`useChatUI`, `IChatUIStore`) are preserved.
  */
-export const ChatUIStore = types
-	.model("ChatUIStore", {
-		// ── Input state ──
-		inputValue: types.string,
-		selectedImages: types.array(types.string),
-		sendingDisabled: types.boolean,
+export const ChatStore = types
+	.model("ChatStore", {
+		// ── UI state (formerly ChatUIStore, now inlined) ─────────────
+		inputValue: types.optional(types.string, ""),
+		selectedImages: types.optional(types.array(types.string), () => []),
+		sendingDisabled: types.optional(types.boolean, false),
 
 		// ── Message list state ──
-		expandedRows: types.frozen<Record<number, boolean>>(),
-		currentFollowUpTs: types.number,
+		expandedRows: types.optional(types.frozen<Record<number, boolean>>(), () => ({})),
+		currentFollowUpTs: types.optional(types.number, 0),
 
 		// ── Streaming / task state ──
-		isCondensing: types.boolean,
-		checkpointWarning: types.safeReference(CheckpointWarning),
+		isCondensing: types.optional(types.boolean, false),
+		checkpointWarning: types.maybe(types.safeReference(CheckpointWarning)),
 
 		// ── Announcement / upsell ──
-		showAnnouncementModal: types.boolean,
-		showRetiredProviderWarning: types.boolean,
+		showAnnouncementModal: types.optional(types.boolean, false),
+		showRetiredProviderWarning: types.optional(types.boolean, false),
 
 		// ── Costs ──
-		aggregatedCostsMap: types.frozen<Map<string, { totalCost: number; ownCost: number; childrenCost: number }>>(),
+		aggregatedCostsMap: types.optional(
+			types.frozen<Map<string, { totalCost: number; ownCost: number; childrenCost: number }>>(),
+			() => new Map(),
+		),
 
 		// ── TTS ──
-		isTtsPlaying: types.boolean,
+		isTtsPlaying: types.optional(types.boolean, false),
 
 		// ── Ask/Say button state (synced from view.tsx via syncAskState) ──
-		isStreaming: types.boolean,
-		isFollowUpAutoApprovalPaused: types.boolean,
-		enableButtons: types.boolean,
-		primaryButtonText: types.string,
-		secondaryButtonText: types.string,
-		clineAsk: types.string,
+		isStreaming: types.optional(types.boolean, false),
+		isFollowUpAutoApprovalPaused: types.optional(types.boolean, false),
+		enableButtons: types.optional(types.boolean, false),
+		primaryButtonText: types.optional(types.string, ""),
+		secondaryButtonText: types.optional(types.string, ""),
+		currentAsk: types.optional(types.string, ""),
 
 		// ── Scroll state (synced from view.tsx) ──
-		showScrollToBottom: types.boolean,
+		showScrollToBottom: types.optional(types.boolean, false),
 
 		// ── API metrics (synced from view.tsx) ──
-		apiMetrics: types.frozen<{
-			totalTokensIn: number
-			totalTokensOut: number
-			totalCacheWrites?: number
-			totalCacheReads?: number
-			totalCost: number
-			contextTokens: number
-		}>(),
+		apiMetrics: types.optional(
+			types.frozen<{
+				totalTokensIn: number
+				totalTokensOut: number
+				totalCacheWrites?: number
+				totalCacheReads?: number
+				totalCost: number
+				contextTokens: number
+			}>(),
+			() => ({
+				totalTokensIn: 0,
+				totalTokensOut: 0,
+				totalCost: 0,
+				contextTokens: 0,
+			}),
+		),
+
+		// ── Chat sub-stores ──
+		tree: types.optional(TreeStore, () => TreeStore.create({ nodes: {}, isNavigating: false })),
+		commands: types.optional(CommandsStore, () => CommandsStore.create({ commands: [] })),
+		commandExecution: types.optional(CommandExecutionStore, () => CommandExecutionStore.create({})),
+		mcpExecution: types.optional(McpExecutionStore, () => McpExecutionStore.create({})),
+		notifications: types.optional(NotificationsStore, () => NotificationsStore.create({})),
+		ask: types.optional(AskStore, () => AskStore.create({})),
+
+		// ── Text area state ──
+		textArea: types.optional(DynamicTextAreaStore, () =>
+			DynamicTextAreaStore.create({
+				cursorPosition: 0,
+				intendedCursorPosition: -1,
+				showContextMenu: false,
+				selectedMenuIndex: -1,
+				selectedType: ContextMenuOptionType.None,
+				searchQuery: "",
+				searchLoading: false,
+				searchRequestId: "",
+				isMouseDownOnMenu: false,
+				justDeletedSpaceAfterMention: false,
+				isDraggingOver: false,
+				isFocused: false,
+				showDropdown: false,
+				gitCommits: [],
+				fileSearchResults: [],
+				isEnhancingPrompt: false,
+				isTtsPlaying: false,
+				textAreaBaseHeight: -1,
+			}),
+		),
 	})
+	// ── Block 0: UI actions (formerly ChatUIStore actions, now inlined) ──
 	.actions((self) => ({
 		// ── Input actions ──
 		setInputValue(value: string) {
@@ -175,9 +223,9 @@ export const ChatUIStore = types
 			self.isTtsPlaying = val
 		},
 
-		// ── Ask/Say state setters (written by AskStore actions) ──
-		setClineAsk(val: string) {
-			self.clineAsk = val
+		// ── Ask/Say state setters ──
+		setCurrentAsk(val: string) {
+			self.currentAsk = val
 		},
 		setEnableButtons(val: boolean) {
 			self.enableButtons = val
@@ -220,62 +268,6 @@ export const ChatUIStore = types
 			self.checkpointWarning = undefined
 		},
 	}))
-
-export type IChatUIStore = Instance<typeof ChatUIStore>
-import { useRootStore } from "../store"
-
-/**
- * Backward-compatible hook for consuming components.
- * Returns the ChatUI store from the root store singleton.
- * Components should migrate to `useRootStore().chat.ui` directly.
- */
-export const useChatUI = (): IChatUIStore => useRootStore().chat.ui
-
-// ── ChatStore (chat-scoped root) ──────────────────────────────────────
-
-/**
- * ChatStore — composes all chat sub-stores and exposes chat-scoped actions.
- * Owned by RootStore as a sub-store under `rootStore.chat`.
- *
- * Components should use `rootStore.chat.xxx` to access chat state and actions.
- */
-export const ChatStore = types
-	.model("ChatStore", {
-		// ── Chat sub-stores ──
-		ui: types.optional(ChatUIStore, () =>
-			ChatUIStore.create({
-				inputValue: "",
-				selectedImages: [],
-				sendingDisabled: false,
-				expandedRows: {},
-				currentFollowUpTs: 0,
-				isCondensing: false,
-				showAnnouncementModal: false,
-				showRetiredProviderWarning: false,
-				aggregatedCostsMap: new Map(),
-				isTtsPlaying: false,
-				isStreaming: false,
-				isFollowUpAutoApprovalPaused: false,
-				enableButtons: false,
-				primaryButtonText: "",
-				secondaryButtonText: "",
-				clineAsk: "",
-				showScrollToBottom: false,
-				apiMetrics: {
-					totalTokensIn: 0,
-					totalTokensOut: 0,
-					totalCost: 0,
-					contextTokens: 0,
-				},
-			}),
-		),
-		tree: types.optional(TreeStore, () => TreeStore.create({ nodes: {}, isNavigating: false })),
-		commands: types.optional(CommandsStore, () => CommandsStore.create({ commands: [] })),
-		commandExecution: types.optional(CommandExecutionStore, () => CommandExecutionStore.create({})),
-		mcpExecution: types.optional(McpExecutionStore, () => McpExecutionStore.create({})),
-		notifications: types.optional(NotificationsStore, () => NotificationsStore.create({})),
-		ask: types.optional(AskStore, () => AskStore.create({})),
-	})
 	// ── Block 1: All chat domain actions (from chat-scoped factories) ──
 	.actions((self) => ({
 		...createTaskActions(self),
@@ -287,14 +279,14 @@ export const ChatStore = types
 	// ── Block 2: Primary / Secondary button handlers ──
 	.actions((self) => ({
 		handlePrimaryButtonClick(
-			clineAsk: string | undefined,
+			currentAsk: string | undefined,
 			currentTaskItem: { parentTaskId?: string } | undefined,
-			messages: ClineMessage[],
+			messages: Notification[],
 			text?: string,
 			images?: string[],
 		) {
 			const trimmedInput = text?.trim()
-			switch (clineAsk) {
+			switch (currentAsk) {
 				case "api_req_failed":
 				case "command":
 				case "tool":
@@ -325,18 +317,18 @@ export const ChatStore = types
 					self.clearTask()
 					break
 			}
-			self.ui.setSendingDisabled(true)
+			self.setSendingDisabled(true)
 		},
 
 		// ── Secondary button click ──
 		handleSecondaryButtonClick(
-			clineAsk: string | undefined,
+			currentAsk: string | undefined,
 			_isStreaming: boolean,
 			text?: string,
 			images?: string[],
 		) {
 			const trimmedInput = text?.trim()
-			switch (clineAsk) {
+			switch (currentAsk) {
 				case "api_req_failed":
 				case "mistake_limit_reached":
 				case "resume_task":
@@ -355,47 +347,36 @@ export const ChatStore = types
 					self.respondToAsk("noButtonClicked", trimmedInput, images)
 					break
 			}
-			self.ui.setSendingDisabled(true)
+			self.setSendingDisabled(true)
 		},
 	}))
 
 export type IChatStore = Instance<typeof ChatStore>
 
-/** Singleton instance of ChatStore. */
-export const chatStore = ChatStore.create({
-	ui: {
-		inputValue: "",
-		selectedImages: [],
-		sendingDisabled: false,
-		expandedRows: {},
-		currentFollowUpTs: 0,
-		isCondensing: false,
-		showAnnouncementModal: false,
-		showRetiredProviderWarning: false,
-		aggregatedCostsMap: new Map(),
-		isTtsPlaying: false,
-		isStreaming: false,
-		isFollowUpAutoApprovalPaused: false,
-		enableButtons: false,
-		primaryButtonText: "",
-		secondaryButtonText: "",
-		clineAsk: "",
-		showScrollToBottom: false,
-		apiMetrics: {
-			totalTokensIn: 0,
-			totalTokensOut: 0,
-			totalCost: 0,
-			contextTokens: 0,
-		},
-	},
-	tree: { nodes: {}, activeNodeId: undefined, isNavigating: false },
-	commands: { commands: [] },
-	commandExecution: { executions: [] },
-	mcpExecution: { executions: [] },
-	notifications: {},
-	ask: {},
-})
+// ── Backward-compat aliases (flattened ChatUIStore → ChatStore) ──
+
+/**
+ * @deprecated ChatUIStore has been flattened into ChatStore.
+ * Use `IChatStore` directly. This alias is kept for backward compatibility.
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface IChatUIStore extends IChatStore {}
+
+import { useRootStore } from "../store"
+
+/**
+ * Backward-compatible hook for consuming components.
+ * Returns the ChatStore instance directly (all UI fields are now on ChatStore).
+ *
+ * @deprecated Use `useRootStore().chat` directly. This hook is kept for
+ * backward compatibility during the flattening migration.
+ */
+export const useChatUI = (): IChatUIStore => useRootStore().chat
+
+// ── Instance is created by RootStore — do NOT create module-level singleton ──
+// Dual instantiation was a bug: https://mobx-state-tree.js.org/overview/component-integration
+// Use `rootStore.chat` or `useRootStore().chat` instead.
 
 // ── Re-export sub-store types for convenience ──────────────────────
-export type { ICommandExecutionStore } from "./messages-list/store"
-export type { IMcpExecutionStore } from "./notifications/mcp/store"
+export type { ICommandExecutionStore } from "./task/messages/store"
+export type { IMcpExecutionStore } from "./task/notifications/mcp/store"

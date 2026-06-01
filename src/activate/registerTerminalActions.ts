@@ -3,10 +3,10 @@ import * as vscode from "vscode"
 import { TerminalActionId, TerminalActionPromptType } from "@jabberwock/types"
 
 import { getTerminalCommand } from "../utils/commands"
-import { EventBridge } from "../core/webview/EventBridge"
+import { EventBridge } from "../features/foundation/webview/EventBridge"
 import { Terminal } from "../integrations/terminal/Terminal"
 import { t } from "../i18n"
-import { handleTerminalAction } from "../features/foundation/agent-state/handlers"
+import { handleTerminalAction } from "../features/settings/agents/handlers"
 
 export const registerTerminalActions = (context: vscode.ExtensionContext) => {
 	registerTerminalAction(context, "terminalAddToContext", "TERMINAL_ADD_TO_CONTEXT")

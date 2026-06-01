@@ -132,7 +132,7 @@ export class TerminalProcess extends BaseTerminalProcess {
 			stream = await streamAvailable
 		} catch (error) {
 			// Stream timeout or other error occurred
-			console.error("[Terminal Process] Stream error:", (error as Error).message)
+			console.error("[jabberwock] [Terminal Process] Stream error:", (error as Error).message)
 
 			// Emit completed event with error message
 			this.emit(
@@ -212,7 +212,7 @@ export class TerminalProcess extends BaseTerminalProcess {
 				"VSCE output start escape sequence (]633;C or ]133;C) not received, but the stream has started. Upstream VSCE Bug?"
 
 			const inspectPreOutput = inspect(preOutput, { colors: false, breakLength: Infinity })
-			console.error(`[Terminal Process] ${errorMsg} preOutput: ${inspectPreOutput}`)
+			console.error(`[jabberwock] [Terminal Process] ${errorMsg} preOutput: ${inspectPreOutput}`)
 
 			// Emit no_shell_integration event
 			this.emit("no_shell_integration", errorMsg)

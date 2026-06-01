@@ -6,7 +6,9 @@ import type { HistoryItem } from "./history.ts"
 import type { ModeConfig, PromptComponent } from "./mode.ts"
 import type { TelemetrySetting } from "./telemetry.ts"
 import type { Experiments } from "./experiment.ts"
-import type { ClineMessage, QueuedMessage } from "./message.ts"
+import type { Notification } from "./notification.ts"
+import type { ChatMessage } from "./message.ts"
+import type { QueuedMessage } from "./message.ts"
 import {
 	type MarketplaceItem,
 	type MarketplaceInstalledMetadata,
@@ -23,11 +25,13 @@ import type { OpenAiCodexRateLimitInfo } from "./providers/openai-codex-rate-lim
 import type { SkillMetadata } from "./skills.ts"
 import type { WorktreeIncludeStatus } from "./worktree.ts"
 import type { DiagnosticSnapshot } from "./diagnostics.ts"
+import type { AskResponseValue } from "./event-registry.ts"
 
 /**
  * ExtensionMessage
  * Extension -> Webview | CLI
  */
+
 export interface ExtensionMessage {
 	type:
 		| "action"
@@ -154,7 +158,10 @@ export interface ExtensionMessage {
 		isActive: boolean
 		path?: string
 	}>
-	clineMessage?: ClineMessage
+	/** @deprecated Use `chatMessage` instead. */
+	message?: Notification
+	/** Chat message in the new discriminated union format. */
+	chatMessage?: ChatMessage
 	routerModels?: RouterModels
 	openAiModels?: string[]
 	ollamaModels?: ModelRecord
@@ -331,17 +338,24 @@ export type ExtensionState = Pick<
 > & {
 	lockApiConfigAcrossModes?: boolean
 	version: string
-	clineMessages: ClineMessage[]
+	/** @deprecated Use `chatMessages` instead. Migrating to ChatMessage discriminated union types. */
+	messages: Notification[]
+	/** Chat messages in the new discriminated union format. Replaces Notification[] with "say" type. */
+	chatMessages?: ChatMessage[]
 	currentTaskId?: string
 	currentTaskItem?: HistoryItem
+	isRunning?: boolean
 	currentTaskTodos?: TodoItem[] // Initial todos for the current task
-	/** Data for ALL tasks in the clineStack, enabling per-window rendering.
+	/** Data for ALL tasks in the taskStack, enabling per-window rendering.
 	 *  Each entry contains the taskId, history item, messages, and todos for one task.
 	 *  Used by WindowManager to render each window layer with its own content. */
 	taskStackData?: Array<{
 		taskId: string
 		taskItem?: HistoryItem
-		clineMessages: ClineMessage[]
+		/** @deprecated Use `chatMessages` instead. */
+		messages: Notification[]
+		/** Chat messages in the new discriminated union format. */
+		chatMessages?: ChatMessage[]
 		todos: TodoItem[]
 	}>
 	apiConfiguration: ProviderSettings
@@ -408,12 +422,12 @@ export type ExtensionState = Pick<
 	debug?: boolean
 
 	/**
-	 * Monotonically increasing sequence number for clineMessages state pushes.
-	 * When present, the frontend should only apply clineMessages from a state push
+	 * Monotonically increasing sequence number for messages state pushes.
+	 * When present, the frontend should only apply messages from a state push
 	 * if its seq is greater than the last applied seq. This prevents stale state
 	 * (captured during async getStateToPostToWebview) from overwriting newer messages.
 	 */
-	clineMessagesSeq?: number
+	messagesSeq?: number
 	diagnostics?: DiagnosticSnapshot
 	devtoolEnabled: boolean
 }
@@ -431,7 +445,7 @@ export interface Command {
  * Webview | CLI -> Extension
  */
 
-export type ClineAskResponse = "yesButtonClicked" | "noButtonClicked" | "messageResponse" | "objectResponse"
+// Moved to event-registry.ts as AskResponseValue
 
 export type AudioType = "notification" | "celebration" | "progress_loop"
 
@@ -631,6 +645,7 @@ export interface WebviewMessage {
 		| "setChatBoxMessage"
 		| "followUpAnswered"
 		| "batchFileResponse"
+		| "requestState"
 	text?: string
 	taskId?: string
 	editedMessageContent?: string
@@ -639,7 +654,7 @@ export interface WebviewMessage {
 	context?: string
 	dataUri?: string
 	uri?: string
-	askResponse?: ClineAskResponse
+	askResponse?: AskResponseValue
 	apiConfiguration?: ProviderSettings
 	images?: string[]
 	bool?: boolean
@@ -821,7 +836,7 @@ export interface LanguageModelChatSelector {
 	id?: string
 }
 
-export interface ClineSayTool {
+export interface SayToolData {
 	tool:
 		| "editedExistingFile"
 		| "appliedDiff"
@@ -899,7 +914,7 @@ export interface ClineSayTool {
 	skill?: string
 }
 
-export interface ClineAskUseMcpServer {
+export interface McpServerRequestData {
 	serverName: string
 	type: "use_mcp_tool" | "access_mcp_resource"
 	toolName?: string
@@ -908,16 +923,16 @@ export interface ClineAskUseMcpServer {
 	response?: string
 }
 
-export interface ClineApiReqInfo {
+export interface ApiReqData {
 	request?: string
 	tokensIn?: number
 	tokensOut?: number
 	cacheWrites?: number
 	cacheReads?: number
 	cost?: number
-	cancelReason?: ClineApiReqCancelReason
+	cancelReason?: CancelReason
 	streamingFailedMessage?: string
 	apiProtocol?: "anthropic" | "openai"
 }
 
-export type ClineApiReqCancelReason = "streaming_failed" | "user_cancelled"
+export type CancelReason = "streaming_failed" | "user_cancelled"

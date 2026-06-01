@@ -66,7 +66,7 @@ export class Terminal extends BaseTerminal {
 			// Set up event handlers
 			process.once("continue", () => resolve())
 			process.once("error", (error) => {
-				console.error(`[Terminal ${this.id}] error:`, error)
+				console.error(`[jabberwock] [Terminal ${this.id}] error:`, error)
 				reject(error)
 			})
 

@@ -341,7 +341,7 @@ async function scanCommandDirectory(
 					})
 				}
 			} catch (error) {
-				console.warn(`Failed to read command file ${resolvedPath}:`, error)
+				console.warn(`[jabberwock] Failed to read command file ${resolvedPath}:`, error)
 			}
 		}
 	} catch {

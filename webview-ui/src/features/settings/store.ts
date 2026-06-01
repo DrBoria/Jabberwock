@@ -3,75 +3,9 @@ import { types, Instance, cast } from "mobx-state-tree"
 import type { McpServer, RouterModels, OrganizationAllowList, ModeConfig, ProviderSettings } from "@jabberwock/types"
 import { ORGANIZATION_ALLOW_ALL as _ORGANIZATION_ALLOW_ALL } from "@jabberwock/types"
 
-import { vscode } from "@jabberwock/devtool/react"
+import { vscode } from "@jabberwock/devtool/webview"
 import type { WebviewMessage } from "@jabberwock/types"
-import {
-	AGENT_STATE_AUTO_APPROVAL_ENABLED,
-	AGENT_STATE_CLEAR_INDEX_DATA,
-	AGENT_STATE_DEBUG_SETTING,
-	AGENT_STATE_DELETE_API_CONFIGURATION,
-	AGENT_STATE_ENHANCEMENT_API_CONFIG_ID,
-	AGENT_STATE_GET_VS_CODE_SETTING,
-	AGENT_STATE_HAS_OPENED_MODE_SELECTOR,
-	AGENT_STATE_LOAD_API_CONFIGURATION,
-	AGENT_STATE_LOAD_API_CONFIGURATION_BY_ID,
-	AGENT_STATE_LOCK_API_CONFIG_ACROSS_MODES,
-	AGENT_STATE_RENAME_API_CONFIGURATION,
-	AGENT_STATE_REQUEST_CODE_INDEX_SECRET_STATUS,
-	AGENT_STATE_REQUEST_INDEXING_STATUS,
-	AGENT_STATE_REQUEST_LM_STUDIO_MODELS,
-	AGENT_STATE_REQUEST_OLLAMA_MODELS,
-	AGENT_STATE_REQUEST_OPEN_AI_MODELS,
-	AGENT_STATE_REQUEST_ROO_CREDIT_BALANCE,
-	AGENT_STATE_REQUEST_ROUTER_MODELS,
-	AGENT_STATE_REQUEST_VS_CODE_LM_MODELS,
-	AGENT_STATE_SAVE_CODE_INDEX_SETTINGS_ATOMIC,
-	AGENT_STATE_SET_AUTO_ENABLE_DEFAULT,
-	AGENT_STATE_START_INDEXING,
-	AGENT_STATE_STOP_INDEXING,
-	AGENT_STATE_TOGGLE_WORKSPACE_INDEXING,
-	AGENT_STATE_UPDATE_SYSTEM_PROMPT_TEMPLATE,
-	AGENT_STATE_UPSERT_API_CONFIGURATION,
-	AGENT_STATE_UPDATE_VS_CODE_SETTING,
-	SETTINGS_BROWSE_FOR_WORKTREE_PATH,
-	SETTINGS_CREATE_COMMAND,
-	SETTINGS_DELETE_COMMAND,
-	SETTINGS_DELETE_MCP_SERVER,
-	SETTINGS_DELETE_WORKTREE,
-	SETTINGS_DEVTOOL_STATUS,
-	SETTINGS_DID_SHOW_ANNOUNCEMENT,
-	SETTINGS_GET_AVAILABLE_BRANCHES,
-	SETTINGS_GET_WORKTREE_DEFAULTS,
-	SETTINGS_GET_WORKTREE_INCLUDE_STATUS,
-	SETTINGS_LIST_WORKTREES,
-	SETTINGS_OPEN_COMMAND_FILE,
-	SETTINGS_OPEN_DEBUG_API_HISTORY,
-	SETTINGS_OPEN_DEBUG_UI_HISTORY,
-	SETTINGS_OPEN_EXTERNAL,
-	SETTINGS_OPEN_FILE,
-	SETTINGS_OPEN_IMAGE,
-	SETTINGS_OPEN_KEYBOARD_SHORTCUTS,
-	SETTINGS_OPEN_MARKDOWN_PREVIEW,
-	SETTINGS_OPEN_MCP_SETTINGS,
-	SETTINGS_OPEN_MENTION,
-	SETTINGS_OPEN_PROJECT_MCP_SETTINGS,
-	SETTINGS_READ_FILE_CONTENT,
-	SETTINGS_REFRESH_ALL_MCP_SERVERS,
-	SETTINGS_REQUEST_OPEN_AI_CODEX_RATE_LIMITS,
-	SETTINGS_RESTART_MCP_SERVER,
-	SETTINGS_SHOW_MDM_AUTH_REQUIRED_NOTIFICATION as _SETTINGS_SHOW_MDM_AUTH_REQUIRED_NOTIFICATION,
-	SETTINGS_SWITCH_WORKTREE,
-	SETTINGS_TELEMETRY_SETTING,
-	SETTINGS_TERMINAL_OPERATION,
-	SETTINGS_TOGGLE_API_CONFIG_PIN,
-	SETTINGS_TOGGLE_MCP_SERVER,
-	SETTINGS_TOGGLE_TOOL_ALWAYS_ALLOW,
-	SETTINGS_TOGGLE_TOOL_ENABLED_FOR_PROMPT,
-	SETTINGS_UPDATE_MCP_TIMEOUT,
-	SETTINGS_UPDATE_SETTINGS,
-	SETTINGS_WEBVIEW_ERROR,
-	DIAGNOSTICS_DOWNLOAD_ERROR_DIAGNOSTICS,
-} from "@jabberwock/types"
+import { eventConstants } from "@jabberwock/types"
 
 /**
  * SettingsStore — holds settings UI state and feature-specific data
@@ -169,7 +103,7 @@ export const SettingsStore = types
 		// ── Terminal operations ────────────────────────────────────
 		terminalOperation(operation: "continue" | "abort") {
 			vscode.postMessage({
-				type: SETTINGS_TERMINAL_OPERATION,
+				type: eventConstants.SETTINGS.TERMINAL_OPERATION,
 				terminalOperation: operation,
 			} satisfies WebviewMessage)
 		},
@@ -177,21 +111,21 @@ export const SettingsStore = types
 		// ── API Config ─────────────────────────────────────────────
 		loadApiConfigById(value: string) {
 			vscode.postMessage({
-				type: AGENT_STATE_LOAD_API_CONFIGURATION_BY_ID,
+				type: eventConstants.AGENT_STATE.LOAD_API_CONFIGURATION_BY_ID,
 				text: value,
 			} satisfies WebviewMessage)
 		},
 
 		lockApiConfigAcrossModes(bool: boolean) {
 			vscode.postMessage({
-				type: AGENT_STATE_LOCK_API_CONFIG_ACROSS_MODES,
+				type: eventConstants.AGENT_STATE.LOCK_API_CONFIG_ACROSS_MODES,
 				bool,
 			} satisfies WebviewMessage)
 		},
 
 		upsertApiConfig(text: string | undefined, apiConfiguration: ProviderSettings) {
 			vscode.postMessage({
-				type: AGENT_STATE_UPSERT_API_CONFIGURATION,
+				type: eventConstants.AGENT_STATE.UPSERT_API_CONFIGURATION,
 				text,
 				apiConfiguration,
 			} satisfies WebviewMessage)
@@ -199,73 +133,73 @@ export const SettingsStore = types
 
 		loadApiConfig(text: string) {
 			vscode.postMessage({
-				type: AGENT_STATE_LOAD_API_CONFIGURATION,
+				type: eventConstants.AGENT_STATE.LOAD_API_CONFIGURATION,
 				text,
 			} satisfies WebviewMessage)
 		},
 
 		deleteApiConfig(text: string) {
 			vscode.postMessage({
-				type: AGENT_STATE_DELETE_API_CONFIGURATION,
+				type: eventConstants.AGENT_STATE.DELETE_API_CONFIGURATION,
 				text,
 			} satisfies WebviewMessage)
 		},
 
 		renameApiConfig(values: { oldName: string; newName: string }) {
 			vscode.postMessage({
-				type: AGENT_STATE_RENAME_API_CONFIGURATION,
+				type: eventConstants.AGENT_STATE.RENAME_API_CONFIGURATION,
 				values,
 			} satisfies WebviewMessage)
 		},
 
 		requestOllamaModels() {
 			vscode.postMessage({
-				type: AGENT_STATE_REQUEST_OLLAMA_MODELS,
+				type: eventConstants.AGENT_STATE.REQUEST_OLLAMA_MODELS,
 			} satisfies WebviewMessage)
 		},
 
 		requestLmStudioModels() {
 			vscode.postMessage({
-				type: AGENT_STATE_REQUEST_LM_STUDIO_MODELS,
+				type: eventConstants.AGENT_STATE.REQUEST_LM_STUDIO_MODELS,
 			} satisfies WebviewMessage)
 		},
 
 		requestVscodeLmModels() {
 			vscode.postMessage({
-				type: AGENT_STATE_REQUEST_VS_CODE_LM_MODELS,
+				type: eventConstants.AGENT_STATE.REQUEST_VS_CODE_LM_MODELS,
 			} satisfies WebviewMessage)
 		},
 
 		requestRouterModels(values?: Record<string, unknown>) {
 			vscode.postMessage({
-				type: AGENT_STATE_REQUEST_ROUTER_MODELS,
+				type: eventConstants.AGENT_STATE.REQUEST_ROUTER_MODELS,
 				...(values !== undefined && { values }),
 			} satisfies WebviewMessage)
 		},
 
 		requestOpenAiModels(values?: Record<string, unknown>) {
 			vscode.postMessage({
-				type: AGENT_STATE_REQUEST_OPEN_AI_MODELS,
+				type: eventConstants.AGENT_STATE.REQUEST_OPEN_AI_MODELS,
 				...(values !== undefined && { values }),
 			} satisfies WebviewMessage)
 		},
 
 		requestRooCreditBalance() {
 			vscode.postMessage({
-				type: AGENT_STATE_REQUEST_ROO_CREDIT_BALANCE,
+				type: eventConstants.AGENT_STATE.REQUEST_ROO_CREDIT_BALANCE,
 			} satisfies WebviewMessage)
 		},
 
 		setEnhancementApiConfigId(text: string) {
 			vscode.postMessage({
-				type: AGENT_STATE_ENHANCEMENT_API_CONFIG_ID,
+				type: eventConstants.AGENT_STATE.ENHANCEMENT_API_CONFIG_ID,
 				text,
 			} satisfies WebviewMessage)
 		},
 
 		toggleApiConfigPin(text: string) {
 			vscode.postMessage({
-				type: SETTINGS_TOGGLE_API_CONFIG_PIN,
+				type: eventConstants.SETTINGS.TOGGLE_API_CONFIG_PIN,
 				text,
 			} satisfies WebviewMessage)
 		},
@@ -273,7 +207,7 @@ export const SettingsStore = types
 		// ── DevTool ────────────────────────────────────────────────
 		toggleDevtool() {
 			vscode.postMessage({
-				type: SETTINGS_DEVTOOL_STATUS,
+				type: eventConstants.SETTINGS.DEVTOOL_STATUS,
 				text: "toggle",
 			} satisfies WebviewMessage)
 		},
@@ -281,21 +215,21 @@ export const SettingsStore = types
 		// ── Announcement ───────────────────────────────────────────
 		didShowAnnouncement() {
 			vscode.postMessage({
-				type: SETTINGS_DID_SHOW_ANNOUNCEMENT,
+				type: eventConstants.SETTINGS.DID_SHOW_ANNOUNCEMENT,
 			} satisfies WebviewMessage)
 		},
 
 		// ── Open actions ───────────────────────────────────────────
 		openExternal(url: string) {
 			vscode.postMessage({
-				type: SETTINGS_OPEN_EXTERNAL,
+				type: eventConstants.SETTINGS.OPEN_EXTERNAL,
 				url,
 			} satisfies WebviewMessage)
 		},
 
 		openFile(text: string, values?: Record<string, unknown>) {
 			vscode.postMessage({
-				type: SETTINGS_OPEN_FILE,
+				type: eventConstants.SETTINGS.OPEN_FILE,
 				text,
 				...(values !== undefined && { values }),
 			} satisfies WebviewMessage)
@@ -303,28 +237,28 @@ export const SettingsStore = types
 
 		openMention(part: string) {
 			vscode.postMessage({
-				type: SETTINGS_OPEN_MENTION,
+				type: eventConstants.SETTINGS.OPEN_MENTION,
 				text: part,
 			} satisfies WebviewMessage)
 		},
 
 		openMarkdownPreview(text: string) {
 			vscode.postMessage({
-				type: SETTINGS_OPEN_MARKDOWN_PREVIEW,
+				type: eventConstants.SETTINGS.OPEN_MARKDOWN_PREVIEW,
 				text,
 			} satisfies WebviewMessage)
 		},
 
 		openKeyboardShortcuts(text: string) {
 			vscode.postMessage({
-				type: SETTINGS_OPEN_KEYBOARD_SHORTCUTS,
+				type: eventConstants.SETTINGS.OPEN_KEYBOARD_SHORTCUTS,
 				text,
 			} satisfies WebviewMessage)
 		},
 
 		openImage(text: string) {
 			vscode.postMessage({
-				type: SETTINGS_OPEN_IMAGE,
+				type: eventConstants.SETTINGS.OPEN_IMAGE,
 				text,
 			} satisfies WebviewMessage)
 		},
@@ -332,25 +266,25 @@ export const SettingsStore = types
 		// ── MCP servers ────────────────────────────────────────────
 		openMcpSettings() {
 			vscode.postMessage({
-				type: SETTINGS_OPEN_MCP_SETTINGS,
+				type: eventConstants.SETTINGS.OPEN_MCP_SETTINGS,
 			} satisfies WebviewMessage)
 		},
 
 		openProjectMcpSettings() {
 			vscode.postMessage({
-				type: SETTINGS_OPEN_PROJECT_MCP_SETTINGS,
+				type: eventConstants.SETTINGS.OPEN_PROJECT_MCP_SETTINGS,
 			} satisfies WebviewMessage)
 		},
 
 		refreshAllMcpServers() {
 			vscode.postMessage({
-				type: SETTINGS_REFRESH_ALL_MCP_SERVERS,
+				type: eventConstants.SETTINGS.REFRESH_ALL_MCP_SERVERS,
 			} satisfies WebviewMessage)
 		},
 
 		restartMcpServer(text: string, source: "global" | "project") {
 			vscode.postMessage({
-				type: SETTINGS_RESTART_MCP_SERVER,
+				type: eventConstants.SETTINGS.RESTART_MCP_SERVER,
 				text,
 				source,
 			} satisfies WebviewMessage)
@@ -358,7 +292,7 @@ export const SettingsStore = types
 
 		deleteMcpServer(serverName: string, source: "global" | "project") {
 			vscode.postMessage({
-				type: SETTINGS_DELETE_MCP_SERVER,
+				type: eventConstants.SETTINGS.DELETE_MCP_SERVER,
 				serverName,
 				source,
 			} satisfies WebviewMessage)
@@ -366,7 +300,7 @@ export const SettingsStore = types
 
 		toggleMcpServer(serverName: string, source: "global" | "project", disabled: boolean) {
 			vscode.postMessage({
-				type: SETTINGS_TOGGLE_MCP_SERVER,
+				type: eventConstants.SETTINGS.TOGGLE_MCP_SERVER,
 				serverName,
 				source,
 				disabled,
@@ -375,7 +309,7 @@ export const SettingsStore = types
 
 		updateMcpTimeout(serverName: string, source: "global" | "project", timeout: number) {
 			vscode.postMessage({
-				type: SETTINGS_UPDATE_MCP_TIMEOUT,
+				type: eventConstants.SETTINGS.UPDATE_MCP_TIMEOUT,
 				serverName,
 				source,
 				timeout,
@@ -389,7 +323,7 @@ export const SettingsStore = types
 			alwaysAllow: boolean,
 		) {
 			vscode.postMessage({
-				type: SETTINGS_TOGGLE_TOOL_ALWAYS_ALLOW,
+				type: eventConstants.SETTINGS.TOGGLE_TOOL_ALWAYS_ALLOW,
 				serverName,
 				source,
 				toolName,
@@ -404,7 +338,7 @@ export const SettingsStore = types
 			isEnabled: boolean,
 		) {
 			vscode.postMessage({
-				type: SETTINGS_TOGGLE_TOOL_ENABLED_FOR_PROMPT,
+				type: eventConstants.SETTINGS.TOGGLE_TOOL_ENABLED_FOR_PROMPT,
 				serverName,
 				source,
 				toolName,
@@ -415,13 +349,13 @@ export const SettingsStore = types
 		// ── Worktrees ──────────────────────────────────────────────
 		listWorktrees() {
 			vscode.postMessage({
-				type: SETTINGS_LIST_WORKTREES,
+				type: eventConstants.SETTINGS.LIST_WORKTREES,
 			} satisfies WebviewMessage)
 		},
 
 		switchWorktree(worktreePath: string, worktreeNewWindow?: boolean) {
 			vscode.postMessage({
-				type: SETTINGS_SWITCH_WORKTREE,
+				type: eventConstants.SETTINGS.SWITCH_WORKTREE,
 				worktreePath,
 				worktreeNewWindow: worktreeNewWindow ?? false,
 			} satisfies WebviewMessage)
@@ -429,31 +363,31 @@ export const SettingsStore = types
 
 		browseForWorktreePath() {
 			vscode.postMessage({
-				type: SETTINGS_BROWSE_FOR_WORKTREE_PATH,
+				type: eventConstants.SETTINGS.BROWSE_FOR_WORKTREE_PATH,
 			} satisfies WebviewMessage)
 		},
 
 		getWorktreeDefaults() {
 			vscode.postMessage({
-				type: SETTINGS_GET_WORKTREE_DEFAULTS,
+				type: eventConstants.SETTINGS.GET_WORKTREE_DEFAULTS,
 			} satisfies WebviewMessage)
 		},
 
 		getAvailableBranches() {
 			vscode.postMessage({
-				type: SETTINGS_GET_AVAILABLE_BRANCHES,
+				type: eventConstants.SETTINGS.GET_AVAILABLE_BRANCHES,
 			} satisfies WebviewMessage)
 		},
 
 		getWorktreeIncludeStatus() {
 			vscode.postMessage({
-				type: SETTINGS_GET_WORKTREE_INCLUDE_STATUS,
+				type: eventConstants.SETTINGS.GET_WORKTREE_INCLUDE_STATUS,
 			} satisfies WebviewMessage)
 		},
 
 		deleteWorktree(worktreePath: string, worktreeForce?: boolean) {
 			vscode.postMessage({
-				type: SETTINGS_DELETE_WORKTREE,
+				type: eventConstants.SETTINGS.DELETE_WORKTREE,
 				worktreePath,
 				...(worktreeForce !== undefined && { worktreeForce }),
 			} satisfies WebviewMessage)
@@ -466,7 +400,7 @@ export const SettingsStore = types
 			worktreeCreateNewBranch: boolean,
 		) {
 			vscode.postMessage({
-				type: "createWorktree" as const,
+				type: eventConstants.SETTINGS.CREATE_WORKTREE,
 				worktreePath,
 				worktreeBranch,
 				worktreeBaseBranch,
@@ -476,7 +410,7 @@ export const SettingsStore = types
 
 		createWorktreeInclude(worktreeIncludeContent: string) {
 			vscode.postMessage({
-				type: "createWorktreeInclude" as const,
+				type: eventConstants.SETTINGS.CREATE_WORKTREE_INCLUDE,
 				worktreeIncludeContent,
 			} satisfies WebviewMessage)
 		},
@@ -484,101 +418,101 @@ export const SettingsStore = types
 		// ── Code indexing ──────────────────────────────────────────
 		saveCodeIndexSettings(codeIndexSettings: Record<string, unknown>) {
 			vscode.postMessage({
-				type: AGENT_STATE_SAVE_CODE_INDEX_SETTINGS_ATOMIC,
+				type: eventConstants.AGENT_STATE.SAVE_CODE_INDEX_SETTINGS_ATOMIC,
 				codeIndexSettings,
 			} as WebviewMessage)
 		},
 
 		requestIndexingStatus() {
 			vscode.postMessage({
-				type: AGENT_STATE_REQUEST_INDEXING_STATUS,
+				type: eventConstants.AGENT_STATE.REQUEST_INDEXING_STATUS,
 			} satisfies WebviewMessage)
 		},
 
 		requestCodeIndexSecretStatus() {
 			vscode.postMessage({
-				type: AGENT_STATE_REQUEST_CODE_INDEX_SECRET_STATUS,
+				type: eventConstants.AGENT_STATE.REQUEST_CODE_INDEX_SECRET_STATUS,
 			} satisfies WebviewMessage)
 		},
 
 		setAutoEnableDefault(bool: boolean) {
 			vscode.postMessage({
-				type: AGENT_STATE_SET_AUTO_ENABLE_DEFAULT,
+				type: eventConstants.AGENT_STATE.SET_AUTO_ENABLE_DEFAULT,
 				bool,
 			} satisfies WebviewMessage)
 		},
 
 		toggleWorkspaceIndexing(bool: boolean) {
 			vscode.postMessage({
-				type: AGENT_STATE_TOGGLE_WORKSPACE_INDEXING,
+				type: eventConstants.AGENT_STATE.TOGGLE_WORKSPACE_INDEXING,
 				bool,
 			} satisfies WebviewMessage)
 		},
 
 		startIndexing() {
 			vscode.postMessage({
-				type: AGENT_STATE_START_INDEXING,
+				type: eventConstants.AGENT_STATE.START_INDEXING,
 			} satisfies WebviewMessage)
 		},
 
 		stopIndexing() {
 			vscode.postMessage({
-				type: AGENT_STATE_STOP_INDEXING,
+				type: eventConstants.AGENT_STATE.STOP_INDEXING,
 			} satisfies WebviewMessage)
 		},
 
 		clearIndexData() {
 			vscode.postMessage({
-				type: AGENT_STATE_CLEAR_INDEX_DATA,
+				type: eventConstants.AGENT_STATE.CLEAR_INDEX_DATA,
 			} satisfies WebviewMessage)
 		},
 
 		// ── General settings ───────────────────────────────────────
 		updateSettings(updatedSettings: Record<string, unknown>) {
 			vscode.postMessage({
-				type: SETTINGS_UPDATE_SETTINGS,
+				type: eventConstants.SETTINGS.UPDATE_SETTINGS,
 				updatedSettings,
 			} satisfies WebviewMessage)
 		},
 
 		setAutoApprovalEnabled(bool: boolean) {
 			vscode.postMessage({
-				type: AGENT_STATE_AUTO_APPROVAL_ENABLED,
+				type: eventConstants.AGENT_STATE.AUTO_APPROVAL_ENABLED,
 				bool,
 			} satisfies WebviewMessage)
 		},
 
 		setTelemetry(text: string | undefined) {
 			vscode.postMessage({
-				type: SETTINGS_TELEMETRY_SETTING,
+				type: eventConstants.SETTINGS.TELEMETRY_SETTING,
 				text,
 			} satisfies WebviewMessage)
 		},
 
 		setDebugSetting(bool: boolean | undefined) {
 			vscode.postMessage({
-				type: AGENT_STATE_DEBUG_SETTING,
+				type: eventConstants.AGENT_STATE.DEBUG_SETTING,
 				bool,
 			} satisfies WebviewMessage)
 		},
 
 		reportModeSelectorOpened(bool: boolean) {
 			vscode.postMessage({
-				type: AGENT_STATE_HAS_OPENED_MODE_SELECTOR,
+				type: eventConstants.AGENT_STATE.HAS_OPENED_MODE_SELECTOR,
 				bool,
 			} satisfies WebviewMessage)
 		},
 
 		setModeSelectorOpened(bool: boolean) {
 			vscode.postMessage({
-				type: AGENT_STATE_HAS_OPENED_MODE_SELECTOR,
+				type: eventConstants.AGENT_STATE.HAS_OPENED_MODE_SELECTOR,
 				bool,
 			} satisfies WebviewMessage)
 		},
 
 		updateVscodeSetting(setting: string, value: number) {
 			vscode.postMessage({
-				type: AGENT_STATE_UPDATE_VS_CODE_SETTING,
+				type: eventConstants.AGENT_STATE.UPDATE_VS_CODE_SETTING,
 				setting,
 				value,
 			} satisfies WebviewMessage)
@@ -586,14 +520,14 @@ export const SettingsStore = types
 
 		getVscodeSetting(setting: string) {
 			vscode.postMessage({
-				type: AGENT_STATE_GET_VS_CODE_SETTING,
+				type: eventConstants.AGENT_STATE.GET_VS_CODE_SETTING,
 				setting,
 			} satisfies WebviewMessage)
 		},
 
 		updateSystemPromptTemplate(systemPromptTemplateKey: string, systemPromptTemplate: string) {
 			vscode.postMessage({
-				type: AGENT_STATE_UPDATE_SYSTEM_PROMPT_TEMPLATE,
+				type: eventConstants.AGENT_STATE.UPDATE_SYSTEM_PROMPT_TEMPLATE,
 				systemPromptTemplateKey,
 				systemPromptTemplate,
 			} satisfies WebviewMessage)
@@ -601,14 +535,14 @@ export const SettingsStore = types
 
 		readFileContent(text: string) {
 			vscode.postMessage({
-				type: SETTINGS_READ_FILE_CONTENT,
+				type: eventConstants.SETTINGS.READ_FILE_CONTENT,
 				text,
 			} satisfies WebviewMessage)
 		},
 
 		requestOpenaiCodexRateLimits() {
 			vscode.postMessage({
-				type: SETTINGS_REQUEST_OPEN_AI_CODEX_RATE_LIMITS,
+				type: eventConstants.SETTINGS.REQUEST_OPEN_AI_CODEX_RATE_LIMITS,
 			} satisfies WebviewMessage)
 		},
 
@@ -620,14 +554,14 @@ export const SettingsStore = types
 			details: string
 		}) {
 			vscode.postMessage({
-				type: DIAGNOSTICS_DOWNLOAD_ERROR_DIAGNOSTICS,
+				type: eventConstants.DIAGNOSTICS.DOWNLOAD_ERROR_DIAGNOSTICS,
 				values,
 			} satisfies WebviewMessage)
 		},
 
 		webviewError(text: string) {
 			vscode.postMessage({
-				type: SETTINGS_WEBVIEW_ERROR,
+				type: eventConstants.SETTINGS.WEBVIEW_ERROR,
 				text,
 			} satisfies WebviewMessage)
 		},
@@ -635,20 +569,20 @@ export const SettingsStore = types
 		// ── Debug ──────────────────────────────────────────────────
 		openDebugApiHistory() {
 			vscode.postMessage({
-				type: SETTINGS_OPEN_DEBUG_API_HISTORY,
+				type: eventConstants.SETTINGS.OPEN_DEBUG_API_HISTORY,
 			} satisfies WebviewMessage)
 		},
 
 		openDebugUiHistory() {
 			vscode.postMessage({
-				type: SETTINGS_OPEN_DEBUG_UI_HISTORY,
+				type: eventConstants.SETTINGS.OPEN_DEBUG_UI_HISTORY,
 			} satisfies WebviewMessage)
 		},
 
 		// ── Commands (slash commands) ──────────────────────────────
 		createCommand(text: string, fileContent?: string) {
 			vscode.postMessage({
-				type: SETTINGS_CREATE_COMMAND,
+				type: eventConstants.SETTINGS.CREATE_COMMAND,
 				text,
 				...(fileContent !== undefined && { fileContent }),
 			} satisfies WebviewMessage)
@@ -656,14 +590,14 @@ export const SettingsStore = types
 
 		deleteCommand(text: string) {
 			vscode.postMessage({
-				type: SETTINGS_DELETE_COMMAND,
+				type: eventConstants.SETTINGS.DELETE_COMMAND,
 				text,
 			} satisfies WebviewMessage)
 		},
 
 		openCommandFile(text: string) {
 			vscode.postMessage({
-				type: SETTINGS_OPEN_COMMAND_FILE,
+				type: eventConstants.SETTINGS.OPEN_COMMAND_FILE,
 				text,
 			} satisfies WebviewMessage)
 		},

@@ -1,3 +1,5 @@
+import say from "say"
+
 interface Say {
 	speak: (text: string, voice?: string, speed?: number, callback?: (err?: string) => void) => void
 	stop: () => void
@@ -21,7 +23,7 @@ let speed = 1.0
 
 export const setTtsSpeed = (newSpeed: number) => (speed = newSpeed)
 
-let sayInstance: Say | undefined = undefined
+let sayInstance: Say | undefined
 let queue: QueueItem[] = []
 
 export const playTts = async (message: string, options: PlayTtsOptions = {}) => {
@@ -56,7 +58,6 @@ const processQueue = async (): Promise<void> => {
 		const { message: nextUtterance, options } = item
 
 		await new Promise<void>((resolve, reject) => {
-			const say: Say = require("say")
 			sayInstance = say
 			options.onStart?.()
 

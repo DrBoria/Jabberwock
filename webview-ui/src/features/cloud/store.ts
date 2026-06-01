@@ -1,16 +1,8 @@
 import { types, Instance } from "mobx-state-tree"
 
-import { vscode } from "@jabberwock/devtool/react"
+import { vscode } from "@jabberwock/devtool/webview"
+import { eventConstants } from "@jabberwock/types"
 import type { WebviewMessage, CloudOrganizationMembership } from "@jabberwock/types"
-import {
-	CHAT_TASK_TASK_SYNC_ENABLED,
-	CLOUD_CLEAR_CLOUD_AUTH_SKIP_MODEL,
-	CLOUD_JABBERWOCK_CLOUD_MANUAL_URL,
-	CLOUD_JABBERWOCK_CLOUD_SIGN_IN,
-	CLOUD_JABBERWOCK_CLOUD_SIGN_OUT,
-	CLOUD_OPEN_AI_CODEX_SIGN_IN,
-	CLOUD_OPEN_AI_CODEX_SIGN_OUT,
-} from "@jabberwock/types"
 
 /**
  * CloudStore — manages cloud authentication state, organization switching,
@@ -47,7 +39,7 @@ export const CloudStore = types
 		// ── Cloud sign in ──────────────────────────────────────────
 		cloudSignIn(useProviderSignup?: boolean) {
 			vscode.postMessage({
-				type: CLOUD_JABBERWOCK_CLOUD_SIGN_IN,
+				type: eventConstants.CLOUD.JABBERWOCK_CLOUD_SIGN_IN,
 				...(useProviderSignup !== undefined && { useProviderSignup }),
 			} satisfies WebviewMessage)
 		},
@@ -55,14 +47,14 @@ export const CloudStore = types
 		// ── Cloud sign out ─────────────────────────────────────────
 		cloudSignOut() {
 			vscode.postMessage({
-				type: CLOUD_JABBERWOCK_CLOUD_SIGN_OUT,
+				type: eventConstants.CLOUD.JABBERWOCK_CLOUD_SIGN_OUT,
 			} satisfies WebviewMessage)
 		},
 
 		// ── Cloud manual URL ───────────────────────────────────────
 		cloudManualUrl(text: string) {
 			vscode.postMessage({
-				type: CLOUD_JABBERWOCK_CLOUD_MANUAL_URL,
+				type: eventConstants.CLOUD.JABBERWOCK_CLOUD_MANUAL_URL,
 				text,
 			} satisfies WebviewMessage)
 		},
@@ -70,21 +62,21 @@ export const CloudStore = types
 		// ── Clear auth skip model ──────────────────────────────────
 		clearAuthSkipModel() {
 			vscode.postMessage({
-				type: CLOUD_CLEAR_CLOUD_AUTH_SKIP_MODEL,
+				type: eventConstants.CLOUD.CLEAR_CLOUD_AUTH_SKIP_MODEL,
 			} satisfies WebviewMessage)
 		},
 
 		// ── OpenAI Codex sign in ───────────────────────────────────
 		openaiCodexSignIn() {
 			vscode.postMessage({
-				type: CLOUD_OPEN_AI_CODEX_SIGN_IN,
+				type: eventConstants.CLOUD.OPEN_AI_CODEX_SIGN_IN,
 			} satisfies WebviewMessage)
 		},
 
 		// ── OpenAI Codex sign out ──────────────────────────────────
 		openaiCodexSignOut() {
 			vscode.postMessage({
-				type: CLOUD_OPEN_AI_CODEX_SIGN_OUT,
+				type: eventConstants.CLOUD.OPEN_AI_CODEX_SIGN_OUT,
 			} satisfies WebviewMessage)
 		},
 
@@ -107,17 +99,13 @@ export const CloudStore = types
 		// ── Task sync enabled ────────────────────────────────────────
 		taskSyncEnabled(bool: boolean) {
 			vscode.postMessage({
-				type: CHAT_TASK_TASK_SYNC_ENABLED,
+				type: eventConstants.CHAT.TASK.TASK_SYNC_ENABLED,
 				bool,
 			} satisfies WebviewMessage)
 		},
 	}))
 
 export type ICloudStore = Instance<typeof CloudStore>
-export const cloudStore = CloudStore.create({
-	cloudIsAuthenticated: false,
-	cloudOrganizations: [],
-	sharingEnabled: false,
-	publicSharingEnabled: false,
-	prevCloudIsAuthenticated: false,
-})
+// ── Instance is created by RootStore — do NOT create module-level singleton ──
+// Dual instantiation would create two separate MST instances.
+// Use `rootStore.cloud` or `getRootStore().cloud` instead.

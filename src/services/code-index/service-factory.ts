@@ -10,8 +10,6 @@ import { t } from "../../i18n"
 import { getDefaultModelId, getModelDimension } from "../../shared/embeddingModels"
 import { Package } from "../../shared/package"
 
-import { JabberwockIgnoreController } from "../../core/ignore/JabberwockIgnoreController"
-
 import { OpenAiEmbedder } from "./embedders/openai"
 import { CodeIndexOllamaEmbedder } from "./embedders/ollama"
 import { OpenAICompatibleEmbedder } from "./embedders/openai-compatible"
@@ -204,7 +202,7 @@ export class CodeIndexServiceFactory {
 		vectorStore: IVectorStore,
 		cacheManager: CacheManager,
 		ignoreInstance: Ignore,
-		jabberwockIgnoreController?: JabberwockIgnoreController,
+		ignoreState: string | undefined,
 	): IFileWatcher {
 		// Get the configurable batch size from VSCode settings
 		let batchSize: number
@@ -223,7 +221,7 @@ export class CodeIndexServiceFactory {
 			embedder,
 			vectorStore,
 			ignoreInstance,
-			jabberwockIgnoreController,
+			ignoreState,
 			batchSize,
 		)
 	}
@@ -236,7 +234,7 @@ export class CodeIndexServiceFactory {
 		context: vscode.ExtensionContext,
 		cacheManager: CacheManager,
 		ignoreInstance: Ignore,
-		jabberwockIgnoreController?: JabberwockIgnoreController,
+		ignorePatterns?: string,
 	): {
 		embedder: IEmbedder
 		vectorStore: IVectorStore
@@ -258,7 +256,7 @@ export class CodeIndexServiceFactory {
 			vectorStore,
 			cacheManager,
 			ignoreInstance,
-			jabberwockIgnoreController,
+			ignorePatterns,
 		)
 
 		return {

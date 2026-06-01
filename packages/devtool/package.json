@@ -5,8 +5,9 @@
 	"type": "module",
 	"exports": {
 		".": "./src/index.ts",
-		"./react": "./src/react-entry.ts",
-		"./dom/consumer": "./src/dom/consumer.ts"
+		"./webview": "./src/webview-entry.ts",
+		"./dom/consumer": "./src/dom/consumer.ts",
+		"./mcp-entry": "./src/api/mcp-entry.ts"
 	},
 	"scripts": {
 		"lint": "eslint src --ext=ts --max-warnings=0",

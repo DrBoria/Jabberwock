@@ -98,7 +98,7 @@ export const EMBEDDING_MODEL_PROFILES: EmbeddingModelProfiles = {
 export function getModelDimension(provider: EmbedderProvider, modelId: string): number | undefined {
 	const providerProfiles = EMBEDDING_MODEL_PROFILES[provider]
 	if (!providerProfiles) {
-		console.warn(`Provider not found in profiles: ${provider}`)
+		console.warn(`[jabberwock] Provider not found in profiles: ${provider}`)
 		return undefined
 	}
 
@@ -166,7 +166,7 @@ export function getDefaultModelId(provider: EmbedderProvider): string {
 				return defaultOllamaModel
 			}
 			// Fallback if no Ollama models are defined (shouldn't happen with the constant)
-			console.warn("No default Ollama model found in profiles.")
+			console.warn("[jabberwock] No default Ollama model found in profiles.")
 			// Return a placeholder or throw an error, depending on desired behavior
 			return "unknown-default" // Placeholder specific model ID
 		}
@@ -187,7 +187,9 @@ export function getDefaultModelId(provider: EmbedderProvider): string {
 
 		default:
 			// Fallback for unknown providers
-			console.warn(`Unknown provider for default model ID: ${provider}. Falling back to OpenAI default.`)
+			console.warn(
+				`[jabberwock] Unknown provider for default model ID: ${provider}. Falling back to OpenAI default.`,
+			)
 			return "text-embedding-3-small"
 	}
 }

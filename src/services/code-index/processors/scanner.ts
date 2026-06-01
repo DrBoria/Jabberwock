@@ -1,7 +1,7 @@
 import { listFiles } from "../../glob/list-files"
-import { VirtualWorkspace } from "../../../core/fs/VirtualWorkspace"
+import { VirtualWorkspace } from "../../../features/foundation/time-machine/VirtualWorkspace"
 import { Ignore } from "ignore"
-import { JabberwockIgnoreController } from "../../../core/ignore/JabberwockIgnoreController"
+import { readIgnoreFile, filterPaths } from "@utils/ignore"
 import { stat } from "fs/promises"
 import * as path from "path"
 import { generateNormalizedAbsolutePath, generateRelativeFilePath } from "../shared/get-relative-path"
@@ -63,7 +63,7 @@ export class DirectoryScanner implements IDirectoryScanner {
 	/**
 	 * Recursively scans a directory for code blocks in supported files.
 	 * @param directoryPath The directory to scan
-	 * @param jabberwockIgnoreController Optional JabberwockIgnoreController instance for filtering
+	 * @param ignorePatterns Optional ignore patterns string for filtering
 	 * @param context VS Code ExtensionContext for cache storage
 	 * @param onError Optional error handler callback
 	 * @returns Promise<{codeBlocks: CodeBlock[], stats: {processed: number, skipped: number}}> Array of parsed code blocks and processing stats
@@ -90,13 +90,9 @@ export class DirectoryScanner implements IDirectoryScanner {
 		// Filter out directories (marked with trailing '/')
 		const filePaths = allPaths.filter((p) => !p.endsWith("/"))
 
-		// Initialize JabberwockIgnoreController if not provided
-		const ignoreController = new JabberwockIgnoreController(directoryPath)
-
-		await ignoreController.initialize()
-
-		// Filter paths using .jabberwockignore
-		const allowedPaths = ignoreController.filterPaths(filePaths)
+		// Initialize ignore patterns and filter paths using .jabberwockignore
+		const ignorePatterns = await readIgnoreFile(directoryPath)
+		const allowedPaths = filterPaths(ignorePatterns, filePaths, directoryPath)
 
 		// Filter by supported extensions, ignore patterns, and excluded directories
 		const supportedPaths = allowedPaths.filter((filePath) => {
@@ -257,7 +253,10 @@ export class DirectoryScanner implements IDirectoryScanner {
 					if (error instanceof DOMException && error.name === "AbortError") {
 						throw error
 					}
-					console.error(`Error processing file ${filePath} in workspace ${scanWorkspace}:`, error)
+					console.error(
+						`[jabberwock] Error processing file ${filePath} in workspace ${scanWorkspace}:`,
+						error,
+					)
 					getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
 						error: sanitizeErrorMessage(error instanceof Error ? error.message : String(error)),
 						stack: error instanceof Error ? sanitizeErrorMessage(error.stack || "") : undefined,
@@ -380,7 +379,7 @@ export class DirectoryScanner implements IDirectoryScanner {
 							)
 						}
 						// Log error and continue processing instead of re-throwing
-						console.error(`Failed to delete points for removed file: ${cachedFilePath}`, error)
+						console.error(`[jabberwock] Failed to delete points for removed file: ${cachedFilePath}`, error)
 					}
 				}
 			}
@@ -510,7 +509,7 @@ export class DirectoryScanner implements IDirectoryScanner {
 		}
 
 		if (!success && lastError) {
-			console.error(`[DirectoryScanner] Failed to process batch after ${MAX_BATCH_RETRIES} attempts`)
+			console.error(`[jabberwock] [DirectoryScanner] Failed to process batch after ${MAX_BATCH_RETRIES} attempts`)
 			if (onError) {
 				// Preserve the original error message from embedders which now have detailed i18n messages
 				const errorMessage = lastError.message || "Unknown error"

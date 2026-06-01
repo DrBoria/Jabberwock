@@ -1,6 +1,6 @@
-import type { EventBridge } from "../../core/webview/EventBridge"
+import type { EventBridge } from "../../features/foundation/webview/EventBridge"
+import { initCloudState as initCloudStore } from "./store"
 
 export async function initCloudState(provider: EventBridge): Promise<void> {
-	const { initCloudState: initStore } = await import("./store")
-	initStore(provider)
+	initCloudStore(provider)
 }

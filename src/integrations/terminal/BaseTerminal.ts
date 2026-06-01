@@ -161,7 +161,7 @@ export abstract class BaseTerminal implements RooTerminal {
 	private static terminalZshOhMy: boolean = false
 	private static terminalZshP10k: boolean = false
 	private static terminalZdotdir: boolean = false
-	private static execaShellPath: string | undefined = undefined
+	private static execaShellPath: string | undefined
 
 	/**
 	 * Compresses terminal output by applying run-length encoding and truncating to line limit

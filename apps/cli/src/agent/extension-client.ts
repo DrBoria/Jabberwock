@@ -27,7 +27,13 @@
  * ```
  */
 
-import type { ExtensionMessage, WebviewMessage, ClineAskResponse, ClineMessage, ClineAsk } from "@jabberwock/types"
+import type {
+	ExtensionMessage,
+	WebviewMessage,
+	AskResponseValue,
+	Notification,
+	NotificationAsk,
+} from "@jabberwock/types"
 
 import { StateStore } from "./state-store.js"
 import { MessageProcessor, parseExtensionMessage } from "./message-processor.js"
@@ -235,21 +241,21 @@ export class ExtensionClient {
 	/**
 	 * Get all messages in the current task.
 	 */
-	getMessages(): ClineMessage[] {
+	getMessages(): Notification[] {
 		return this.store.getMessages()
 	}
 
 	/**
 	 * Get the last message.
 	 */
-	getLastMessage(): ClineMessage | undefined {
+	getLastMessage(): Notification | undefined {
 		return this.store.getLastMessage()
 	}
 
 	/**
 	 * Get the current ask type if the agent is waiting for input.
 	 */
-	getCurrentAsk(): ClineAsk | undefined {
+	getCurrentAsk(): NotificationAsk | undefined {
 		return this.store.getAgentState().currentAsk
 	}
 
@@ -381,7 +387,7 @@ export class ExtensionClient {
 	 * @param text - Optional text content
 	 * @param images - Optional images
 	 */
-	sendResponse(response: ClineAskResponse, text?: string, images?: string[]): void {
+	sendResponse(response: AskResponseValue, text?: string, images?: string[]): void {
 		const message: WebviewMessage = {
 			type: "askResponse",
 			askResponse: response,

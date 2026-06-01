@@ -48,7 +48,7 @@ export async function getRooModels(baseUrl: string, apiKey?: string): Promise<Mo
 					errorBody = "(unable to read response body)"
 				}
 
-				console.error(`[getRooModels] HTTP error:`, {
+				console.error(`[jabberwock] [getRooModels] HTTP error:`, {
 					status: response.status,
 					statusText: response.statusText,
 					url,
@@ -65,8 +65,8 @@ export async function getRooModels(baseUrl: string, apiKey?: string): Promise<Mo
 			const parsed = RooModelsResponseSchema.safeParse(data)
 
 			if (!parsed.success) {
-				console.error("Error fetching Jabberwock Cloud models: Unexpected response format", data)
-				console.error("Validation errors:", parsed.error.format())
+				console.error("[jabberwock] Error fetching Jabberwock Cloud models: Unexpected response format", data)
+				console.error("[jabberwock] Validation errors:", parsed.error.format())
 				throw new Error("Failed to fetch Jabberwock Cloud models: Unexpected response format.")
 			}
 
@@ -177,7 +177,7 @@ export async function getRooModels(baseUrl: string, apiKey?: string): Promise<Mo
 		}
 
 		// For HTTP errors and other unexpected errors, log and re-throw
-		console.error("[getRooModels] Error fetching Jabberwock Cloud models:", {
+		console.error("[jabberwock] [getRooModels] Error fetching Jabberwock Cloud models:", {
 			message: err.message || String(err),
 			name: err.name,
 			stack: err.stack,

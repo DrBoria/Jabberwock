@@ -1,6 +1,6 @@
-import { vscode } from "@jabberwock/devtool/react"
+import { vscode } from "@jabberwock/devtool/webview"
 import type { WebviewMessage } from "@jabberwock/types"
-import { CHAT_TOPIC_MODE, CHAT_TOPIC_REQUEST_COMMANDS } from "@jabberwock/types"
+import { eventConstants } from "@jabberwock/types"
 
 /**
  * Topic actions — switching modes and requesting slash commands.
@@ -10,7 +10,7 @@ export function createTopicActions(_self: unknown) {
 		// ── Mode switching ─────────────────────────────────────────
 		switchMode(modeSlug: string) {
 			vscode.postMessage({
-				type: CHAT_TOPIC_MODE,
+				type: eventConstants.CHAT.TOPIC.MODE,
 				text: modeSlug,
 			} satisfies WebviewMessage)
 		},
@@ -18,7 +18,7 @@ export function createTopicActions(_self: unknown) {
 		// ── Request commands ───────────────────────────────────────
 		requestCommands() {
 			vscode.postMessage({
-				type: CHAT_TOPIC_REQUEST_COMMANDS,
+				type: eventConstants.CHAT.TOPIC.REQUEST_COMMANDS,
 			} satisfies WebviewMessage)
 		},
 	}

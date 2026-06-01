@@ -3,7 +3,7 @@ import * as path from "path"
 
 export interface ExportContext {
 	getValue(key: string): unknown
-	setValue(key: string, value: unknown): Promise<void>
+	setValue(key: string, value: unknown): void | PromiseLike<void>
 }
 
 export interface ExportOptions {

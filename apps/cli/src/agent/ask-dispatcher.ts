@@ -16,9 +16,9 @@
 
 import {
 	type WebviewMessage,
-	type ClineMessage,
-	type ClineAsk,
-	type ClineAskResponse,
+	type Notification,
+	type NotificationAsk,
+	type AskResponseValue,
 	isIdleAsk,
 	isInteractiveAsk,
 	isResumableAsk,
@@ -78,7 +78,7 @@ export interface AskHandleResult {
 	/** Whether the ask was handled */
 	handled: boolean
 	/** The response sent (if any) */
-	response?: ClineAskResponse
+	response?: AskResponseValue
 	/** Any error that occurred */
 	error?: Error
 }
@@ -118,10 +118,10 @@ export class AskDispatcher {
 	 * Handle an ask message.
 	 * Routes to the appropriate handler based on ask type.
 	 *
-	 * @param message - The ClineMessage with type="ask"
+	 * @param message - The Notification with type="ask"
 	 * @returns Promise<AskHandleResult>
 	 */
-	async handleAsk(message: ClineMessage): Promise<AskHandleResult> {
+	async handleAsk(message: Notification): Promise<AskHandleResult> {
 		// Disabled in TUI mode - TUI handles asks directly
 		if (this.disabled) {
 			return { handled: false }
@@ -202,7 +202,7 @@ export class AskDispatcher {
 	 * Handle non-blocking asks (command_output).
 	 * These don't actually block the agent - just need acknowledgment.
 	 */
-	private async handleNonBlockingAsk(_ts: number, _ask: ClineAsk, _text: string): Promise<AskHandleResult> {
+	private async handleNonBlockingAsk(_ts: number, _ask: NotificationAsk, _text: string): Promise<AskHandleResult> {
 		// command_output - output is handled by OutputManager
 		// Just send approval to continue
 		this.sendApprovalResponse(true)
@@ -213,7 +213,7 @@ export class AskDispatcher {
 	 * Handle idle asks (completion_result, api_req_failed, etc.).
 	 * These indicate the task has stopped.
 	 */
-	private async handleIdleAsk(ts: number, ask: ClineAsk, text: string): Promise<AskHandleResult> {
+	private async handleIdleAsk(ts: number, ask: NotificationAsk, text: string): Promise<AskHandleResult> {
 		switch (ask) {
 			case "completion_result":
 				// Task complete - nothing to do here, TaskCompleted event handles it
@@ -239,7 +239,7 @@ export class AskDispatcher {
 	/**
 	 * Handle resumable asks (resume_task).
 	 */
-	private async handleResumableAsk(ts: number, ask: ClineAsk, text: string): Promise<AskHandleResult> {
+	private async handleResumableAsk(ts: number, ask: NotificationAsk, text: string): Promise<AskHandleResult> {
 		return await this.handleResumeTask(ts, ask, text)
 	}
 
@@ -247,7 +247,7 @@ export class AskDispatcher {
 	 * Handle interactive asks (followup, command, tool, use_mcp_server).
 	 * These require user approval or input.
 	 */
-	private async handleInteractiveAsk(ts: number, ask: ClineAsk, text: string): Promise<AskHandleResult> {
+	private async handleInteractiveAsk(ts: number, ask: NotificationAsk, text: string): Promise<AskHandleResult> {
 		switch (ask) {
 			case "followup":
 				return await this.handleFollowupQuestion(ts, text)
@@ -269,7 +269,7 @@ export class AskDispatcher {
 	/**
 	 * Handle unknown ask types.
 	 */
-	private async handleUnknownAsk(ts: number, ask: ClineAsk, text: string): Promise<AskHandleResult> {
+	private async handleUnknownAsk(ts: number, ask: NotificationAsk, text: string): Promise<AskHandleResult> {
 		if (this.nonInteractive) {
 			if (text) {
 				this.outputManager.output(`\n[${ask}]`, text)
@@ -575,7 +575,7 @@ export class AskDispatcher {
 	/**
 	 * Handle task resume prompt.
 	 */
-	private async handleResumeTask(ts: number, ask: ClineAsk, text: string): Promise<AskHandleResult> {
+	private async handleResumeTask(ts: number, ask: NotificationAsk, text: string): Promise<AskHandleResult> {
 		const isCompleted = ask === "resume_completed_task"
 		this.outputManager.output(`\n[Resume ${isCompleted ? "Completed " : ""}Task]`)
 		if (text) {
@@ -604,7 +604,7 @@ export class AskDispatcher {
 	/**
 	 * Handle generic approval prompts for unknown ask types.
 	 */
-	private async handleGenericApproval(ts: number, ask: ClineAsk, text: string): Promise<AskHandleResult> {
+	private async handleGenericApproval(ts: number, ask: NotificationAsk, text: string): Promise<AskHandleResult> {
 		this.outputManager.output(`\n[${ask}]`)
 		if (text) {
 			this.outputManager.output(`  ${text}`)

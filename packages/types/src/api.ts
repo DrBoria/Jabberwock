@@ -44,13 +44,13 @@ export interface JabberwockAPI extends EventEmitter<JabberwockAPIEvents> {
 	 */
 	getCurrentTaskStack(): string[]
 	/**
-	 * Clears the current task.
+	 * Pops a task from the task stack.
 	 */
-	clearCurrentTask(lastMessage?: string): Promise<void>
+	popTaskFromStack(lastMessage?: string): Promise<void>
 	/**
-	 * Cancels the current task.
+	 * Aborts the currently running task.
 	 */
-	cancelCurrentTask(): Promise<void>
+	abortRunningTask(): Promise<void>
 	/**
 	 * Sends a message to the current task.
 	 * @param message Optional message to send.
@@ -66,9 +66,9 @@ export interface JabberwockAPI extends EventEmitter<JabberwockAPIEvents> {
 	 */
 	pressSecondaryButton(): Promise<void>
 	/**
-	 * Returns true if the API is ready to use.
+	 * Returns true if the webview is launched and ready.
 	 */
-	isReady(): boolean
+	healthcheck(): boolean
 	/**
 	 * Returns the current configuration.
 	 * @returns The current configuration.

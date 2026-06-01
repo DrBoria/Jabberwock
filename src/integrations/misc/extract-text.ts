@@ -1,11 +1,11 @@
 import * as path from "path"
-const pdf = require("pdf-parse/lib/pdf-parse") as (dataBuffer: Buffer) => Promise<{ text: string; numpages: number }>
+import pdf from "pdf-parse/lib/pdf-parse"
 import mammoth from "mammoth"
-import { virtualWorkspace } from "../../core/fs/VirtualWorkspace"
+import { virtualWorkspace } from "../../features/foundation/time-machine/VirtualWorkspace"
 import { isBinaryFile } from "isbinaryfile"
 import { extractTextFromXLSX } from "./extract-text-from-xlsx"
 import { readWithSlice } from "./indentation-reader"
-import { DEFAULT_LINE_LIMIT } from "../../core/prompts/tools/native-tools/read_file"
+import { DEFAULT_LINE_LIMIT } from "../../features/settings/context/tools/native-tools/read_file"
 
 async function extractTextFromPDF(filePath: string): Promise<string> {
 	const dataBuffer = await virtualWorkspace.readBuffer(filePath)
@@ -15,7 +15,7 @@ async function extractTextFromPDF(filePath: string): Promise<string> {
 
 async function extractTextFromDOCX(filePath: string): Promise<string> {
 	const dataBuffer = await virtualWorkspace.readBuffer(filePath)
-	const result = await mammoth.extractRawText({ arrayBuffer: dataBuffer })
+	const result = await mammoth.extractRawText({ arrayBuffer: dataBuffer.buffer as ArrayBuffer })
 	return addLineNumbers(result.value)
 }
 
@@ -36,12 +36,12 @@ async function extractTextFromIPYNB(filePath: string): Promise<string> {
 /**
  * Map of supported binary file formats to their extraction functions
  */
-const SUPPORTED_BINARY_FORMATS = {
+const SUPPORTED_BINARY_FORMATS: Record<string, (filePath: string) => Promise<string>> = {
 	".pdf": extractTextFromPDF,
 	".docx": extractTextFromDOCX,
 	".ipynb": extractTextFromIPYNB,
 	".xlsx": extractTextFromXLSX,
-} as const
+}
 
 /**
  * Returns the list of supported binary file formats that can be processed by extractTextFromFile
@@ -88,7 +88,7 @@ export async function extractTextFromFileWithMetadata(
 	const fileExtension = path.extname(filePath).toLowerCase()
 
 	// Check if we have a specific extractor for this format
-	const extractor = SUPPORTED_BINARY_FORMATS[fileExtension as keyof typeof SUPPORTED_BINARY_FORMATS]
+	const extractor = SUPPORTED_BINARY_FORMATS[fileExtension]
 	if (extractor) {
 		// For binary formats, extract and count lines
 		const content = await extractor(filePath)

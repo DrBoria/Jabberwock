@@ -717,7 +717,7 @@ export class AwsBedrockHandler extends BaseProvider implements SingleCompletionH
 
 			// For throttling errors, throw immediately without yielding chunks
 			// This allows the retry mechanism in attemptApiRequest() to catch and handle it
-			// The retry logic in Task.ts (around line 1817) expects errors to be thrown
+			// The retry logic expects errors to be thrown
 			// on the first chunk for proper exponential backoff behavior
 			if (errorType === "THROTTLING") {
 				if (error instanceof Error) {

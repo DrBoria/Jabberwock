@@ -983,7 +983,7 @@ export class OpenAiCodexHandler extends BaseProvider implements SingleCompletion
 
 			// Codex/Responses may stream tool-call arguments, but these delta events are not guaranteed
 			// to include a stable id/name. Avoid emitting incomplete tool_call_partial chunks because
-			// NativeToolCallParser requires a name to start a call.
+			// rawChunkProcessor requires a name to start a call.
 			if (callId && callId.length > 0 && name && name.length > 0) {
 				this.streamedToolCallIds.add(callId)
 				yield {
@@ -1107,8 +1107,8 @@ export class OpenAiCodexHandler extends BaseProvider implements SingleCompletion
 				// Note: We intentionally do NOT emit tool_call from response.output_item.done
 				// for function_call/tool_call items. The streaming path handles tool calls via:
 				// 1. tool_call_partial events during argument deltas
-				// 2. NativeToolCallParser.finalizeRawChunks() at stream end emitting tool_call_end
-				// 3. NativeToolCallParser.finalizeStreamingToolCall() creating the final ToolUse
+				// 2. rawChunkProcessor.finalizeRawChunks() at stream end emitting tool_call_end
+				// 3. rawChunkProcessor.finalizeStreamingToolCall() creating the final ToolUse
 				// Emitting tool_call here would cause duplicate tool rendering.
 			}
 			return

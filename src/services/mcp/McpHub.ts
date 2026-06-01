@@ -34,12 +34,13 @@ import type {
 
 import { t } from "../../i18n"
 
-import { EventBridge } from "../../core/webview/EventBridge"
+import { EventBridge } from "../../features/foundation/webview/EventBridge"
 
 import { diagnosticsManager } from "@jabberwock/devtool"
 
 import { GlobalFileNames } from "../../shared/globalFileNames"
 
+import { getBackendRootStore } from "@features/storeSingleton"
 import { fileExistsAtPath } from "../../utils/fs"
 import { arePathsEqual, getWorkspacePath } from "../../utils/path"
 import { injectVariables } from "../../utils/config"
@@ -183,7 +184,10 @@ class WebSocketClientTransport implements Transport {
 					`[WebSocketClientTransport] Reconnected successfully after ${this.reconnectAttempts} attempt(s)`,
 				)
 			} catch (err) {
-				console.error(`[WebSocketClientTransport] Reconnect attempt ${this.reconnectAttempts} failed:`, err)
+				console.error(
+					`[jabberwock] [WebSocketClientTransport] Reconnect attempt ${this.reconnectAttempts} failed:`,
+					err,
+				)
 			}
 		}, delay)
 	}
@@ -482,7 +486,7 @@ export class McpHub extends EventEmitter {
 	 * @param error The error object
 	 */
 	private showErrorMessage(message: string, error: unknown): void {
-		console.error(`${message}:`, error)
+		console.error(`[jabberwock] ${message}:`, error)
 	}
 
 	public setupWorkspaceFoldersWatcher(): void {
@@ -579,7 +583,7 @@ export class McpHub extends EventEmitter {
 			return
 		}
 
-		const workspaceFolder = this.providerRef.deref()?.cwd ?? getWorkspacePath()
+		const workspaceFolder = getWorkspacePath()
 		const projectMcpPattern = new vscode.RelativePattern(workspaceFolder, ".jabberwock/mcp.json")
 
 		// Create a file system watcher for the project MCP file pattern
@@ -634,7 +638,7 @@ export class McpHub extends EventEmitter {
 				const errorMessages = result.error.errors
 					.map((err) => `${err.path.join(".")}: ${err.message}`)
 					.join("\n")
-				console.error("Invalid project MCP settings format:", errorMessages)
+				console.error("[jabberwock] Invalid project MCP settings format:", errorMessages)
 				vscode.window.showErrorMessage(t("mcp:errors.invalid_settings_validation", { errorMessages }))
 			}
 		} catch (error) {
@@ -784,7 +788,7 @@ export class McpHub extends EventEmitter {
 				const errorMessages = result.error.errors
 					.map((err) => `${err.path.join(".")}: ${err.message}`)
 					.join("\n")
-				console.error(`Invalid ${source} MCP settings format:`, errorMessages)
+				console.error(`[jabberwock] Invalid ${source} MCP settings format:`, errorMessages)
 				vscode.window.showErrorMessage(t("mcp:errors.invalid_settings_validation", { errorMessages }))
 
 				if (source === "global") {
@@ -814,7 +818,7 @@ export class McpHub extends EventEmitter {
 	// Get project-level MCP configuration path
 	// Get project-level MCP configuration path
 	private async getProjectMcpPath(): Promise<string | null> {
-		const workspacePath = this.providerRef.deref()?.cwd ?? getWorkspacePath()
+		const workspacePath = getWorkspacePath()
 		const projectMcpDir = path.join(workspacePath, ".jabberwock")
 		const projectMcpPath = path.join(projectMcpDir, "mcp.json")
 
@@ -866,12 +870,13 @@ export class McpHub extends EventEmitter {
 	 * @returns Promise<boolean> indicating if MCP is enabled
 	 */
 	private async isMcpEnabled(): Promise<boolean> {
-		const provider = this.providerRef.deref()
-		if (!provider) {
-			return true // Default to enabled if provider is not available
+		try {
+			const { getSettingsAccess } = await import("@utils/settings-access")
+			const { mcpEnabled } = getSettingsAccess().getValues()
+			return mcpEnabled ?? true
+		} catch {
+			return true // Default to enabled if state is not available
 		}
-		const state = await provider.getState()
-		return state.mcpEnabled ?? true
 	}
 
 	private async connectToServer(
@@ -1000,7 +1005,7 @@ export class McpHub extends EventEmitter {
 
 				// Set up stdio specific error handling
 				transport.onerror = async (error) => {
-					console.error(`Transport error for "${name}":`, error)
+					console.error(`[jabberwock] Transport error for "${name}":`, error)
 					const connection = this.findConnection(name, source)
 					if (connection) {
 						connection.server.status = "disconnected"
@@ -1063,7 +1068,7 @@ export class McpHub extends EventEmitter {
 							console.log(`Server "${name}" info:`, output)
 						} else {
 							// Treat as error log
-							console.error(`Server "${name}" stderr:`, output)
+							console.error(`[jabberwock] Server "${name}" stderr:`, output)
 							const connection = this.findConnection(name, source)
 							if (connection) {
 								this.appendErrorMessage(connection, output)
@@ -1074,7 +1079,7 @@ export class McpHub extends EventEmitter {
 						}
 					})
 				} else {
-					console.error(`No stderr stream for ${name}`)
+					console.error(`[jabberwock] No stderr stream for ${name}`)
 				}
 			} else if (configInjected.mcpTransport === "streamable-http") {
 				// Streamable HTTP connection
@@ -1086,7 +1091,7 @@ export class McpHub extends EventEmitter {
 
 				// Set up Streamable HTTP specific error handling
 				transport.onerror = async (error) => {
-					console.error(`Transport error for "${name}" (streamable-http):`, error)
+					console.error(`[jabberwock] Transport error for "${name}" (streamable-http):`, error)
 					const connection = this.findConnection(name, source)
 					if (connection) {
 						connection.server.status = "disconnected"
@@ -1129,7 +1134,7 @@ export class McpHub extends EventEmitter {
 
 				// Set up SSE specific error handling
 				transport.onerror = async (error) => {
-					console.error(`Transport error for "${name}":`, error)
+					console.error(`[jabberwock] Transport error for "${name}":`, error)
 					const connection = this.findConnection(name, source)
 					if (connection) {
 						connection.server.status = "disconnected"
@@ -1151,7 +1156,7 @@ export class McpHub extends EventEmitter {
 
 				// Set up WebSocket specific error handling
 				transport.onerror = async (error) => {
-					console.error(`Transport error for "${name}" (websocket):`, error)
+					console.error(`[jabberwock] Transport error for "${name}" (websocket):`, error)
 					const connection = this.findConnection(name, source)
 					if (connection) {
 						connection.server.status = "disconnected"
@@ -1339,7 +1344,7 @@ export class McpHub extends EventEmitter {
 					disabledToolsList = mcpServersData?.[serverName]?.disabledTools ?? []
 				}
 			} catch (error) {
-				console.error(`Failed to read tool configuration for ${serverName}:`, error)
+				console.error(`[jabberwock] Failed to read tool configuration for ${serverName}:`, error)
 				// Continue with empty configs
 			}
 
@@ -1357,7 +1362,7 @@ export class McpHub extends EventEmitter {
 
 			return tools
 		} catch (error) {
-			console.error(`Failed to fetch tools for ${serverName}:`, error)
+			console.error(`[jabberwock] Failed to fetch tools for ${serverName}:`, error)
 			return []
 		}
 	}
@@ -1376,7 +1381,7 @@ export class McpHub extends EventEmitter {
 				mimeType: r.mimeType,
 			})) || []) as McpResource[]
 		} catch (error) {
-			// console.error(`Failed to fetch resources for ${serverName}:`, error)
+			// console.error(`[jabberwock] Failed to fetch resources for ${serverName}:`, error)
 			return []
 		}
 	}
@@ -1401,7 +1406,7 @@ export class McpHub extends EventEmitter {
 				mimeType: t.mimeType,
 			})) || []) as McpResourceTemplate[]
 		} catch (error) {
-			// console.error(`Failed to fetch resource templates for ${serverName}:`, error)
+			// console.error(`[jabberwock] Failed to fetch resource templates for ${serverName}:`, error)
 			return []
 		}
 	}
@@ -1422,7 +1427,7 @@ export class McpHub extends EventEmitter {
 					await connection.client.close()
 				}
 			} catch (error) {
-				console.error(`Failed to close transport for ${name}:`, error)
+				console.error(`[jabberwock] Failed to close transport for ${name}:`, error)
 			}
 		}
 
@@ -1537,7 +1542,10 @@ export class McpHub extends EventEmitter {
 						// Pass the source from the config to restartConnection
 						await this.restartConnection(name, source)
 					} catch (error) {
-						console.error(`Failed to restart server ${name} after change in ${changedPath}:`, error)
+						console.error(
+							`[jabberwock] Failed to restart server ${name} after change in ${changedPath}:`,
+							error,
+						)
 					}
 				})
 
@@ -1559,7 +1567,10 @@ export class McpHub extends EventEmitter {
 						// Pass the source from the config to restartConnection
 						await this.restartConnection(name, source)
 					} catch (error) {
-						console.error(`Failed to restart server ${name} after change in ${filePath}:`, error)
+						console.error(
+							`[jabberwock] Failed to restart server ${name} after change in ${filePath}:`,
+							error,
+						)
 					}
 				})
 
@@ -1718,10 +1729,8 @@ export class McpHub extends EventEmitter {
 
 			try {
 				await targetProvider.postMessageToWebview(message)
-				// Dual-write: MST store
-				targetProvider.mcpServersStore?.setServers(serversToSend)
 			} catch (error) {
-				console.error("[McpHub] Error calling targetProvider.postMessageToWebview:", error)
+				console.error("[jabberwock] [McpHub] Error calling targetProvider.postMessageToWebview:", error)
 			}
 		} else {
 			console.error(
@@ -1777,7 +1786,7 @@ export class McpHub extends EventEmitter {
 						)
 					}
 				} catch (error) {
-					console.error(`Failed to refresh capabilities for ${serverName}:`, error)
+					console.error(`[jabberwock] Failed to refresh capabilities for ${serverName}:`, error)
 				}
 			}
 
@@ -1814,7 +1823,7 @@ export class McpHub extends EventEmitter {
 		try {
 			await fs.access(configPath)
 		} catch (error) {
-			console.error("Settings file not accessible:", error)
+			console.error("[jabberwock] Settings file not accessible:", error)
 			throw new Error("Settings file not accessible")
 		}
 
@@ -1866,7 +1875,7 @@ export class McpHub extends EventEmitter {
 		try {
 			await fs.access(configPath)
 		} catch (error) {
-			console.error("Settings file not accessible:", error)
+			console.error("[jabberwock] Settings file not accessible:", error)
 			throw new Error("Settings file not accessible")
 		}
 
@@ -2060,7 +2069,7 @@ export class McpHub extends EventEmitter {
 			const parsedConfig = ServerConfigSchema.parse(JSON.parse(connection.server.config))
 			timeout = (parsedConfig.timeout ?? 60) * 1000
 		} catch (error) {
-			console.error("Failed to parse server config for timeout:", error)
+			console.error("[jabberwock] Failed to parse server config for timeout:", error)
 			// Default to 60 seconds if parsing fails
 			timeout = 60 * 1000
 		}
@@ -2257,7 +2266,7 @@ export class McpHub extends EventEmitter {
 						serverName: conn.server.name,
 						error: errorMessage,
 					})
-					console.error(`Failed to disconnect MCP server ${conn.server.name}: ${errorMessage}`)
+					console.error(`[jabberwock] Failed to disconnect MCP server ${conn.server.name}: ${errorMessage}`)
 				}
 			}
 
@@ -2276,7 +2285,7 @@ export class McpHub extends EventEmitter {
 			try {
 				await this.refreshAllConnections()
 			} catch (error) {
-				console.error(`Failed to refresh MCP connections after disabling: ${error}`)
+				console.error(`[jabberwock] Failed to refresh MCP connections after disabling: ${error}`)
 				vscode.window.showErrorMessage(t("mcp:errors.refresh_after_disable"))
 			}
 		} else {
@@ -2284,7 +2293,7 @@ export class McpHub extends EventEmitter {
 			try {
 				await this.refreshAllConnections()
 			} catch (error) {
-				console.error(`Failed to refresh MCP connections after enabling: ${error}`)
+				console.error(`[jabberwock] Failed to refresh MCP connections after enabling: ${error}`)
 				vscode.window.showErrorMessage(t("mcp:errors.refresh_after_enable"))
 			}
 		}
@@ -2318,7 +2327,7 @@ export class McpHub extends EventEmitter {
 			try {
 				await this.deleteConnection(connection.server.name, connection.server.source)
 			} catch (error) {
-				console.error(`Failed to close connection for ${connection.server.name}:`, error)
+				console.error(`[jabberwock] Failed to close connection for ${connection.server.name}:`, error)
 			}
 		}
 

@@ -1,19 +1,19 @@
 import { useTranslation } from "react-i18next"
 import i18next, { loadTranslations } from "./setup"
 import { useEffect } from "react"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import { rootStore } from "@src/features/store"
 
 // Custom hook for translations
 export const useAppTranslation = () => {
 	const { i18n } = useTranslation()
-	const extensionState = useExtensionState()
+	const extensionState = rootStore.extensionState
 
 	// Load translations once when the hook is first used
 	useEffect(() => {
 		try {
 			loadTranslations()
 		} catch (error) {
-			console.error("Failed to load translations:", error)
+			console.error("[jabberwock] Failed to load translations:", error)
 		}
 	}, [])
 

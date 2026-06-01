@@ -7,7 +7,7 @@ import {
 	INITIAL_RETRY_DELAY_MS,
 } from "../constants"
 import { createHash } from "crypto"
-import { JabberwockIgnoreController } from "../../../core/ignore/JabberwockIgnoreController"
+import { validateAccess } from "@utils/ignore"
 import { v5 as uuidv5 } from "uuid"
 import { Ignore } from "ignore"
 import { scannerExtensions } from "../shared/supported-extensions"
@@ -34,7 +34,7 @@ import { Package } from "../../../shared/package"
 export class FileWatcher implements IFileWatcher {
 	private ignoreInstance?: Ignore
 	private fileWatcher?: vscode.FileSystemWatcher
-	private ignoreController: JabberwockIgnoreController
+	private ignorePatterns: string | undefined
 	private accumulatedEvents: Map<string, { uri: vscode.Uri; type: "create" | "change" | "delete" }> = new Map()
 	private batchProcessDebounceTimer?: NodeJS.Timeout
 	private readonly BATCH_DEBOUNCE_DELAY_MS = 500
@@ -79,10 +79,10 @@ export class FileWatcher implements IFileWatcher {
 		private embedder?: IEmbedder,
 		private vectorStore?: IVectorStore,
 		ignoreInstance?: Ignore,
-		ignoreController?: JabberwockIgnoreController,
+		ignorePatterns?: string,
 		batchSegmentThreshold?: number,
 	) {
-		this.ignoreController = ignoreController || new JabberwockIgnoreController(workspacePath)
+		this.ignorePatterns = ignorePatterns
 		if (ignoreInstance) {
 			this.ignoreInstance = ignoreInstance
 		}
@@ -283,7 +283,10 @@ export class FileWatcher implements IFileWatcher {
 					return { path: fileDetail.path, result: result, error: undefined }
 				} catch (e) {
 					const error = e as Error
-					console.error(`[FileWatcher] Unhandled exception processing file ${fileDetail.path}:`, e)
+					console.error(
+						`[jabberwock] [FileWatcher] Unhandled exception processing file ${fileDetail.path}:`,
+						e,
+					)
 					return { path: fileDetail.path, result: undefined, error: error }
 				}
 			})
@@ -328,7 +331,10 @@ export class FileWatcher implements IFileWatcher {
 				} else {
 					const error = settledResult.reason as Error
 					const rejectedPath = (error as Error & { path?: string }).path || "unknown"
-					console.error("[FileWatcher] A file processing promise was rejected:", settledResult.reason)
+					console.error(
+						"[jabberwock] [FileWatcher] A file processing promise was rejected:",
+						settledResult.reason,
+					)
 					batchResults.push({
 						path: rejectedPath,
 						status: "error",
@@ -527,7 +533,7 @@ export class FileWatcher implements IFileWatcher {
 
 			// Check if file should be ignored
 			if (
-				!this.ignoreController.validateAccess(filePath) ||
+				!validateAccess(this.ignorePatterns, filePath, this.workspacePath) ||
 				(this.ignoreInstance && this.ignoreInstance.ignores(relativeFilePath))
 			) {
 				return {

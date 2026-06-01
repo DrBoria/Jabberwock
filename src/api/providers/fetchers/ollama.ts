@@ -106,15 +106,17 @@ export async function getOllamaModels(
 
 			await Promise.all(modelInfoPromises)
 		} else {
-			console.error(`Error parsing Ollama models response: ${JSON.stringify(parsedResponse.error, null, 2)}`)
+			console.error(
+				`[jabberwock] Error parsing Ollama models response: ${JSON.stringify(parsedResponse.error, null, 2)}`,
+			)
 		}
 	} catch (error) {
 		const err = error as { code?: string }
 		if (err.code === "ECONNREFUSED") {
-			console.warn(`Failed connecting to Ollama at ${baseUrl}`)
+			console.warn(`[jabberwock] Failed connecting to Ollama at ${baseUrl}`)
 		} else {
 			console.error(
-				`Error fetching Ollama models: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`,
+				`[jabberwock] Error fetching Ollama models: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`,
 			)
 		}
 	}

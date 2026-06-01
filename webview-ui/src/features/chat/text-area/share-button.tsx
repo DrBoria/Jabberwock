@@ -6,25 +6,25 @@ import { type HistoryItem, type ShareVisibility, TelemetryEventName } from "@jab
 
 import { rootStore } from "@src/features/store"
 import { telemetryClient } from "@/features/cloud/utils/TelemetryClient"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import { observer } from "mobx-react-lite"
 import { useCloudUpsell } from "@/hooks/useCloudUpsell"
-import { CloudUpsellDialog } from "@/components/cloud/CloudUpsellDialog"
-import { Popover, PopoverContent, PopoverTrigger } from "@src/components/ui/popover"
-import { Command, CommandList, CommandItem, CommandGroup } from "@src/components/ui/command"
-import { StandardTooltip } from "@src/components/ui/standard-tooltip"
-import { IconButton } from "@src/components/ui"
+import { CloudUpsellDialog } from "@/features/cloud/components/CloudUpsellDialog"
+import { Popover, PopoverContent, PopoverTrigger } from "@src/features/foundation/ui/popover"
+import { Command, CommandList, CommandItem, CommandGroup } from "@src/features/foundation/ui/command"
+import { StandardTooltip } from "@src/features/foundation/ui/standard-tooltip"
+import { IconButton } from "@src/features/foundation/ui"
 
 interface ShareButtonProps {
 	item?: HistoryItem
 	disabled?: boolean
 }
 
-export const ShareButton = ({ item, disabled = false }: ShareButtonProps) => {
+export const ShareButton = observer(({ item, disabled = false }: ShareButtonProps) => {
 	const [shareDropdownOpen, setShareDropdownOpen] = useState(false)
 	const [shareSuccess, setShareSuccess] = useState<{ visibility: ShareVisibility; url: string } | null>(null)
 	const [wasConnectInitiatedFromShare, setWasConnectInitiatedFromShare] = useState(false)
 	const { t } = useTranslation()
-	const { cloudUserInfo } = useExtensionState()
+	const cloudUserInfo = rootStore.extensionState.cloudUserInfo
 
 	// Use enhanced cloud upsell hook with auto-open on auth success
 	const {
@@ -220,4 +220,4 @@ export const ShareButton = ({ item, disabled = false }: ShareButtonProps) => {
 			<CloudUpsellDialog open={connectModalOpen} onOpenChange={closeUpsell} onConnect={handleConnectToCloud} />
 		</>
 	)
-}
+})

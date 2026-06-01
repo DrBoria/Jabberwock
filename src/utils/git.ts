@@ -222,13 +222,13 @@ export async function searchCommits(query: string, cwd: string): Promise<GitComm
 	try {
 		const isInstalled = await checkGitInstalled()
 		if (!isInstalled) {
-			console.error("Git is not installed")
+			console.error("[jabberwock] Git is not installed")
 			return []
 		}
 
 		const isRepo = await checkGitRepo(cwd)
 		if (!isRepo) {
-			console.error("Not a git repository")
+			console.error("[jabberwock] Not a git repository")
 			return []
 		}
 
@@ -271,7 +271,7 @@ export async function searchCommits(query: string, cwd: string): Promise<GitComm
 
 		return commits
 	} catch (error) {
-		console.error("Error searching commits:", error)
+		console.error("[jabberwock] Error searching commits:", error)
 		return []
 	}
 }
@@ -312,7 +312,7 @@ export async function getCommitInfo(hash: string, cwd: string): Promise<string> 
 		const output = summary + "\n\n" + diff.trim()
 		return truncateOutput(output, GIT_OUTPUT_LINE_LIMIT)
 	} catch (error) {
-		console.error("Error getting commit info:", error)
+		console.error("[jabberwock] Error getting commit info:", error)
 		return `Failed to get commit info: ${error instanceof Error ? error.message : String(error)}`
 	}
 }
@@ -341,7 +341,7 @@ export async function getWorkingState(cwd: string): Promise<string> {
 		const output = `Working directory changes:\n\n${status}\n\n${diff}`.trim()
 		return truncateOutput(output, lineLimit)
 	} catch (error) {
-		console.error("Error getting working state:", error)
+		console.error("[jabberwock] Error getting working state:", error)
 		return `Failed to get working state: ${error instanceof Error ? error.message : String(error)}`
 	}
 }
@@ -392,7 +392,7 @@ export async function getGitStatus(cwd: string, maxFiles: number = 20): Promise<
 
 		return output.join("\n")
 	} catch (error) {
-		console.error("Error getting git status:", error)
+		console.error("[jabberwock] Error getting git status:", error)
 		return null
 	}
 }

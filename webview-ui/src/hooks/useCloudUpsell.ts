@@ -2,7 +2,6 @@ import { useState, useCallback, useRef, useEffect } from "react"
 import { TelemetryEventName } from "@jabberwock/types"
 import { rootStore } from "@src/features/store"
 import { telemetryClient } from "@/features/cloud/utils/TelemetryClient"
-import { useExtensionState } from "@/context/ExtensionStateContext"
 
 interface UseCloudUpsellOptions {
 	onAuthSuccess?: () => void
@@ -13,7 +12,10 @@ export const useCloudUpsell = (options: UseCloudUpsellOptions = {}) => {
 	const { onAuthSuccess, autoOpenOnAuth = false } = options
 	const [isOpen, setIsOpen] = useState(false)
 	const [shouldOpenOnAuth, setShouldOpenOnAuth] = useState(false)
-	const { cloudIsAuthenticated, sharingEnabled, publicSharingEnabled } = useExtensionState()
+	const cloud = rootStore.cloud
+	const cloudIsAuthenticated = cloud.cloudIsAuthenticated
+	const sharingEnabled = cloud.sharingEnabled
+	const publicSharingEnabled = cloud.publicSharingEnabled
 	const wasUnauthenticatedRef = useRef(false)
 	const initiatedAuthRef = useRef(false)
 

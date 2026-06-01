@@ -167,7 +167,7 @@ export class BedrockEmbedder implements IEmbedder {
 				})
 
 				// Log the error for debugging
-				console.error(`Bedrock embedder error (attempt ${attempts + 1}/${MAX_RETRIES}):`, error)
+				console.error(`[jabberwock] Bedrock embedder error (attempt ${attempts + 1}/${MAX_RETRIES}):`, error)
 
 				// Format and throw the error
 				throw formatEmbeddingError(error, MAX_RETRIES)

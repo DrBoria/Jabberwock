@@ -119,7 +119,12 @@ function parseCommandLine(command: string): string[] {
 		tokens = parse(processedCommand) as ShellToken[]
 	} catch (error) {
 		// If shell-quote fails to parse, fall back to simple splitting
-		console.warn("shell-quote parse error:", (error as Error).message, "for command:", processedCommand)
+		console.warn(
+			"[jabberwock] shell-quote parse error:",
+			(error as Error).message,
+			"for command:",
+			processedCommand,
+		)
 
 		// Simple fallback: split by common operators
 		const fallbackCommands = processedCommand

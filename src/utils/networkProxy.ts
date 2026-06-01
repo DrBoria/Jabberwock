@@ -12,6 +12,8 @@
 
 import * as vscode from "vscode"
 import { Package } from "../shared/package"
+import { bootstrap } from "global-agent"
+import { ProxyAgent, setGlobalDispatcher, fetch as undiciFetch } from "undici"
 
 /**
  * Proxy configuration state
@@ -37,60 +39,10 @@ let consoleLoggingEnabled = false
 let tlsVerificationOverridden = false
 let originalNodeTlsRejectUnauthorized: string | undefined
 
-// ─── Store-backed flag accessors ─────────────────────────────────────────────
-// These flags are read from and written to the MST BackendRootStore when it is
-// available, falling back to local module state during early initialization.
-
-function readProxyInitialized(): boolean {
-	try {
-		const { getBackendRootStore } = require("../features/store")
-		return getBackendRootStore().core.proxyInitialized
-	} catch {
-		return false
-	}
-}
-function writeProxyInitialized(v: boolean): void {
-	try {
-		const { getBackendRootStore } = require("../features/store")
-		getBackendRootStore().core.setProxyInitialized(v)
-	} catch {
-		// Store not ready yet
-	}
-}
-
-function readUndiciProxyInitialized(): boolean {
-	try {
-		const { getBackendRootStore } = require("../features/store")
-		return getBackendRootStore().core.undiciProxyInitialized
-	} catch {
-		return false
-	}
-}
-function writeUndiciProxyInitialized(v: boolean): void {
-	try {
-		const { getBackendRootStore } = require("../features/store")
-		getBackendRootStore().core.setUndiciProxyInitialized(v)
-	} catch {
-		// Store not ready yet
-	}
-}
-
-function readFetchPatched(): boolean {
-	try {
-		const { getBackendRootStore } = require("../features/store")
-		return getBackendRootStore().core.fetchPatched
-	} catch {
-		return false
-	}
-}
-function writeFetchPatched(v: boolean): void {
-	try {
-		const { getBackendRootStore } = require("../features/store")
-		getBackendRootStore().core.setFetchPatched(v)
-	} catch {
-		// Store not ready yet
-	}
-}
+// ─── Module-level one-time init guards ─────────────────────────────────────
+let _proxyInitialized = false
+let _undiciProxyInitialized = false
+let _fetchPatched = false
 
 function redactProxyUrl(proxyUrl: string | undefined): string {
 	if (!proxyUrl) {
@@ -109,7 +61,7 @@ function redactProxyUrl(proxyUrl: string | undefined): string {
 }
 
 function restoreGlobalFetchPatch(): void {
-	if (!readFetchPatched()) {
+	if (!_fetchPatched) {
 		return
 	}
 
@@ -117,7 +69,7 @@ function restoreGlobalFetchPatch(): void {
 		globalThis.fetch = originalFetch
 	}
 
-	writeFetchPatched(false)
+	_fetchPatched = false
 	originalFetch = undefined
 }
 
@@ -270,7 +222,7 @@ export function getProxyConfig(): ProxyConfig {
  * Configure global-agent to route all HTTP/HTTPS traffic through the proxy.
  */
 async function configureGlobalProxy(config: ProxyConfig): Promise<void> {
-	if (readProxyInitialized()) {
+	if (_proxyInitialized) {
 		// global-agent can only be bootstrapped once
 		// Update environment variables for any new connections
 		log(`Proxy already initialized, updating env vars only`)
@@ -282,10 +234,9 @@ async function configureGlobalProxy(config: ProxyConfig): Promise<void> {
 	log(`Setting proxy environment variables before bootstrap (values redacted)...`)
 	updateProxyEnvVars(config)
 
-	let bootstrap: (() => void) | undefined
+	let bootstrapFn: (() => void) | undefined
 	try {
-		const mod = (await import("global-agent")) as typeof import("global-agent")
-		bootstrap = mod.bootstrap
+		bootstrapFn = bootstrap
 	} catch (error) {
 		log(
 			`Failed to load global-agent (proxy support is only available in debug/dev builds): ${error instanceof Error ? error.message : String(error)}`,
@@ -296,8 +247,8 @@ async function configureGlobalProxy(config: ProxyConfig): Promise<void> {
 	// Bootstrap global-agent to intercept all HTTP/HTTPS requests
 	log(`Calling global-agent bootstrap()...`)
 	try {
-		bootstrap()
-		writeProxyInitialized(true)
+		bootstrapFn()
+		_proxyInitialized = true
 		log(`global-agent bootstrap() completed successfully`)
 	} catch (error) {
 		log(`global-agent bootstrap() FAILED: ${error instanceof Error ? error.message : String(error)}`)
@@ -311,23 +262,32 @@ async function configureGlobalProxy(config: ProxyConfig): Promise<void> {
  * Configure undici's global dispatcher so Node's built-in `fetch()` and any undici-based
  * clients route through the proxy.
  */
+/**
+ * Normalize DOM HeadersInit to a plain Record<string, string> for undici compatibility.
+ * DOM Headers type is not assignable to undici's HeadersInit (Record<string, string | readonly string[]>),
+ * and undici v6 rejects Headers instances at the type level.
+ */
+function normalizeHeadersForUndici(headers?: HeadersInit): Record<string, string> | undefined {
+	if (!headers) return undefined
+	const h = new Headers(headers)
+	const result: Record<string, string> = {}
+	h.forEach((value, key) => {
+		result[key] = value
+	})
+	return result
+}
+
 async function configureUndiciProxy(config: ProxyConfig): Promise<void> {
 	if (!config.enabled || !config.serverUrl) {
 		return
 	}
 
-	if (readUndiciProxyInitialized()) {
+	if (_undiciProxyInitialized) {
 		log(`undici global dispatcher already configured; restart VS Code to change proxy safely`)
 		return
 	}
 
 	try {
-		const {
-			ProxyAgent,
-			setGlobalDispatcher,
-			fetch: undiciFetch,
-		} = (await import("undici")) as typeof import("undici")
-
 		const proxyAgent = new ProxyAgent({
 			uri: config.serverUrl,
 			// If the user enabled TLS insecure mode (debug only), apply it to undici.
@@ -339,7 +299,7 @@ async function configureUndiciProxy(config: ProxyConfig): Promise<void> {
 				: undefined,
 		})
 		setGlobalDispatcher(proxyAgent)
-		writeUndiciProxyInitialized(true)
+		_undiciProxyInitialized = true
 		log(`undici global dispatcher configured for proxy: ${redactProxyUrl(config.serverUrl)}`)
 
 		// Node's built-in `fetch()` (Node 18+) is powered by an internal undici copy.
@@ -347,7 +307,7 @@ async function configureUndiciProxy(config: ProxyConfig): Promise<void> {
 		// To ensure Jabberwock's `fetch()` calls are proxied, patch global fetch in debug mode.
 		// This patch is scoped to the extension lifecycle (restored on deactivate) and can be restored
 		// immediately if the proxy is disabled.
-		if (!readFetchPatched()) {
+		if (!_fetchPatched) {
 			if (typeof globalThis.fetch === "function") {
 				originalFetch = globalThis.fetch
 			}
@@ -355,8 +315,15 @@ async function configureUndiciProxy(config: ProxyConfig): Promise<void> {
 			const patchedFetch: typeof globalThis.fetch = async (input, init) => {
 				// Normalize input to string | URL to avoid undici v6 Request type conflicts
 				const url = input instanceof Request ? input.url : input
-				// Spread init to a plain object to avoid DOM-vs-undici HeadersInit type mismatch
-				const undiciRes = await undiciFetch(url, { ...init } as import("undici").RequestInit)
+				// Destructure headers + body to avoid DOM-vs-undici type incompatibilities:
+				// DOM BodyInit includes ReadableStream<any> which undici v6 rejects,
+				// and DOM HeadersInit includes the Headers class which undici v6 rejects.
+				const { headers: domHeadersInit, body: _domBody, ...restInit } = init ?? {}
+				const undiciInit: import("undici").RequestInit = {
+					...restInit,
+					...(domHeadersInit ? { headers: normalizeHeadersForUndici(domHeadersInit) } : {}),
+				}
+				const undiciRes = await undiciFetch(url, undiciInit)
 				const body = await undiciRes.arrayBuffer()
 				return new Response(body, {
 					status: undiciRes.status,
@@ -365,7 +332,7 @@ async function configureUndiciProxy(config: ProxyConfig): Promise<void> {
 				})
 			}
 			globalThis.fetch = patchedFetch
-			writeFetchPatched(true)
+			_fetchPatched = true
 			log(`globalThis.fetch patched to undici.fetch (debug proxy mode)`)
 
 			if (extensionContext) {
@@ -384,10 +351,32 @@ async function configureUndiciProxy(config: ProxyConfig): Promise<void> {
  */
 function updateProxyEnvVars(config: ProxyConfig): void {
 	if (config.serverUrl) {
+		// Model metadata API hosts that MUST bypass the proxy.
+		// These APIs are for model discovery, not LLM inference, and proxy interception
+		// typically returns HTML block pages that break Zod validation.
+		const bypassHosts = [
+			"openrouter.ai",
+			"*.openrouter.ai",
+			"ai-gateway.vercel.sh",
+			"*.ai-gateway.vercel.sh",
+			"api.getunbound.ai",
+			"*.api.getunbound.ai",
+		]
+
 		// global-agent uses these environment variables
 		process.env.GLOBAL_AGENT_HTTP_PROXY = config.serverUrl
 		process.env.GLOBAL_AGENT_HTTPS_PROXY = config.serverUrl
-		process.env.GLOBAL_AGENT_NO_PROXY = "" // Proxy all requests
+		process.env.GLOBAL_AGENT_NO_PROXY = bypassHosts.join(",")
+
+		// Also set NO_PROXY for OS-level proxy variables (corporate tools like Zscaler)
+		const existingNoProxy = process.env.NO_PROXY || ""
+		const noProxyEntries = existingNoProxy ? existingNoProxy.split(",").map((s) => s.trim()) : []
+		for (const host of bypassHosts) {
+			if (!noProxyEntries.includes(host)) {
+				noProxyEntries.push(host)
+			}
+		}
+		process.env.NO_PROXY = noProxyEntries.join(",")
 	}
 }
 

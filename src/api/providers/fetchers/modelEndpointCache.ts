@@ -6,7 +6,7 @@ import sanitize from "sanitize-filename"
 
 import type { ModelRecord } from "@jabberwock/types"
 
-import { ContextProxy } from "../../../core/config/ContextProxy"
+import { getVscodeContext } from "../../../features/foundation/vscode/context"
 import { RouterName } from "../../../shared/api"
 import { getCacheDirectoryPath } from "../../../utils/storage"
 import { fileExistsAtPath } from "../../../utils/fs"
@@ -21,13 +21,13 @@ const getCacheKey = (router: RouterName, modelId: string) => sanitize(`${router}
 
 async function writeModelEndpoints(key: string, data: ModelRecord) {
 	const filename = `${key}_endpoints.json`
-	const cacheDir = await getCacheDirectoryPath(ContextProxy.instance.globalStorageUri.fsPath)
+	const cacheDir = await getCacheDirectoryPath(getVscodeContext().globalStorageUri.fsPath)
 	await safeWriteJson(path.join(cacheDir, filename), data)
 }
 
 async function readModelEndpoints(key: string): Promise<ModelRecord | undefined> {
 	const filename = `${key}_endpoints.json`
-	const cacheDir = await getCacheDirectoryPath(ContextProxy.instance.globalStorageUri.fsPath)
+	const cacheDir = await getCacheDirectoryPath(getVscodeContext().globalStorageUri.fsPath)
 	const filePath = path.join(cacheDir, filename)
 	const exists = await fileExistsAtPath(filePath)
 	return exists ? JSON.parse(await fs.readFile(filePath, "utf8")) : undefined
@@ -84,7 +84,7 @@ export const getModelEndpoints = async ({
 			await writeModelEndpoints(key, modelProviders)
 			// console.log(`[getModelProviders] wrote ${key} endpoints to file cache`)
 		} catch (error) {
-			console.error(`[getModelProviders] error writing ${key} endpoints to file cache`, error)
+			console.error(`[jabberwock] [getModelProviders] error writing ${key} endpoints to file cache`, error)
 		}
 
 		return modelProviders
@@ -94,7 +94,7 @@ export const getModelEndpoints = async ({
 		modelProviders = await readModelEndpoints(router)
 		// console.log(`[getModelProviders] read ${key} endpoints from file cache`)
 	} catch (error) {
-		console.error(`[getModelProviders] error reading ${key} endpoints from file cache`, error)
+		console.error(`[jabberwock] [getModelProviders] error reading ${key} endpoints from file cache`, error)
 	}
 
 	return modelProviders ?? {}

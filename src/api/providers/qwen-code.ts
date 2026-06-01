@@ -8,8 +8,6 @@ import { type ModelInfo, type QwenCodeModelId, qwenCodeModels, qwenCodeDefaultMo
 
 import type { ApiHandlerOptions } from "../../shared/api"
 
-import { NativeToolCallParser } from "../../core/assistant-message/NativeToolCallParser"
-
 import { convertToOpenAiMessages } from "../transform/openai-format"
 import { ApiStream } from "../transform/stream"
 
@@ -148,7 +146,7 @@ export class QwenCodeHandler extends BaseProvider implements SingleCompletionHan
 		try {
 			await fs.writeFile(filePath, JSON.stringify(newCredentials, null, 2))
 		} catch (error) {
-			console.error("Failed to save refreshed credentials:", error)
+			console.error("[jabberwock] Failed to save refreshed credentials:", error)
 			// Continue with the refreshed token in memory even if file write fails
 		}
 
@@ -284,7 +282,7 @@ export class QwenCodeHandler extends BaseProvider implements SingleCompletionHan
 				}
 			}
 
-			// Handle tool calls in stream - emit partial chunks for NativeToolCallParser
+			// Handle tool calls in stream - emit partial chunks for rawChunkProcessor
 			if (delta.tool_calls) {
 				for (const toolCall of delta.tool_calls) {
 					yield {
@@ -294,14 +292,6 @@ export class QwenCodeHandler extends BaseProvider implements SingleCompletionHan
 						name: toolCall.function?.name,
 						arguments: toolCall.function?.arguments,
 					}
-				}
-			}
-
-			// Process finish_reason to emit tool_call_end events
-			if (finishReason) {
-				const endEvents = NativeToolCallParser.processFinishReason(finishReason)
-				for (const event of endEvents) {
-					yield event
 				}
 			}
 

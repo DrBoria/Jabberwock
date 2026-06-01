@@ -3,7 +3,7 @@ import * as fs from "fs/promises"
 import * as path from "path"
 import * as vscode from "vscode"
 
-import { JabberwockEventName, type ClineMessage } from "@jabberwock/types"
+import { JabberwockEventName, type Notification } from "@jabberwock/types"
 
 import { waitFor, sleep } from "../utils"
 import { setDefaultSuiteTimeout } from "../test-utils"
@@ -107,7 +107,7 @@ function validateInput(input) {
 	suiteTeardown(async () => {
 		// Cancel any running tasks before cleanup
 		try {
-			await globalThis.api.cancelCurrentTask()
+			await globalThis.api.abortRunningTask()
 		} catch {
 			// Task might not be running
 		}
@@ -128,7 +128,7 @@ function validateInput(input) {
 	setup(async () => {
 		// Cancel any previous task
 		try {
-			await globalThis.api.cancelCurrentTask()
+			await globalThis.api.abortRunningTask()
 		} catch {
 			// Task might not be running
 		}
@@ -141,7 +141,7 @@ function validateInput(input) {
 	teardown(async () => {
 		// Cancel the current task
 		try {
-			await globalThis.api.cancelCurrentTask()
+			await globalThis.api.abortRunningTask()
 		} catch {
 			// Task might not be running
 		}
@@ -154,7 +154,7 @@ function validateInput(input) {
 		// Increase timeout for this specific test
 
 		const api = globalThis.api
-		const messages: ClineMessage[] = []
+		const messages: Notification[] = []
 		const testFile = testFiles.simpleModify
 		const expectedContent = "Hello Universe\nThis is a test file\nWith multiple lines"
 		let taskStarted = false
@@ -163,7 +163,7 @@ function validateInput(input) {
 		let applyDiffExecuted = false
 
 		// Listen for messages
-		const messageHandler = ({ message }: { message: ClineMessage }) => {
+		const messageHandler = ({ message }: { message: Notification }) => {
 			messages.push(message)
 
 			// Log important messages for debugging
@@ -270,7 +270,7 @@ ${testFile.content}\nAssume the file exists and you can modify it directly.`,
 		// Increase timeout for this specific test
 
 		const api = globalThis.api
-		const messages: ClineMessage[] = []
+		const messages: Notification[] = []
 		const testFile = testFiles.multipleReplace
 		const expectedContent = `function compute(a, b) {
 	const total = a + b
@@ -282,7 +282,7 @@ ${testFile.content}\nAssume the file exists and you can modify it directly.`,
 		let applyDiffExecuted = false
 
 		// Listen for messages
-		const messageHandler = ({ message }: { message: ClineMessage }) => {
+		const messageHandler = ({ message }: { message: Notification }) => {
 			messages.push(message)
 			if (message.type === "ask" && message.ask === "tool") {
 				console.log("Tool request:", message.text?.substring(0, 200))
@@ -385,7 +385,7 @@ ${testFile.content}\nAssume the file exists and you can modify it directly.`,
 		// Increase timeout for this specific test
 
 		const api = globalThis.api
-		const messages: ClineMessage[] = []
+		const messages: Notification[] = []
 		const testFile = testFiles.lineNumbers
 		const expectedContent = `// Header comment
 function newFunction() {
@@ -404,7 +404,7 @@ function keepThis() {
 		let applyDiffExecuted = false
 
 		// Listen for messages
-		const messageHandler = ({ message }: { message: ClineMessage }) => {
+		const messageHandler = ({ message }: { message: Notification }) => {
 			messages.push(message)
 			if (message.type === "ask" && message.ask === "tool") {
 				console.log("Tool request:", message.text?.substring(0, 200))
@@ -495,7 +495,7 @@ ${testFile.content}\nAssume the file exists and you can modify it directly.`,
 
 	test("Should handle apply_diff errors gracefully", async function () {
 		const api = globalThis.api
-		const messages: ClineMessage[] = []
+		const messages: Notification[] = []
 		const testFile = testFiles.errorHandling
 		let taskStarted = false
 		let taskCompleted = false
@@ -503,7 +503,7 @@ ${testFile.content}\nAssume the file exists and you can modify it directly.`,
 		let applyDiffAttempted = false
 
 		// Listen for messages
-		const messageHandler = ({ message }: { message: ClineMessage }) => {
+		const messageHandler = ({ message }: { message: Notification }) => {
 			messages.push(message)
 
 			// Check for error messages
@@ -606,7 +606,7 @@ Assume the file exists and you can modify it directly.`,
 
 	test("Should apply multiple search/replace blocks to edit two separate functions", async function () {
 		const api = globalThis.api
-		const messages: ClineMessage[] = []
+		const messages: Notification[] = []
 		const testFile = testFiles.multiSearchReplace
 		const expectedContent = `function transformData(data) {
 	console.log("Transforming data")
@@ -633,7 +633,7 @@ function checkInput(input) {
 		let applyDiffCount = 0
 
 		// Listen for messages
-		const messageHandler = ({ message }: { message: ClineMessage }) => {
+		const messageHandler = ({ message }: { message: Notification }) => {
 			messages.push(message)
 
 			// Log important messages for debugging

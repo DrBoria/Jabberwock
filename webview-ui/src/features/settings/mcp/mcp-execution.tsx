@@ -3,17 +3,17 @@ import { Server, ChevronDown } from "lucide-react"
 import { onSnapshot } from "mobx-state-tree"
 import { useTranslation } from "react-i18next"
 
-import { type ClineAskUseMcpServer, type McpExecutionStatus } from "@jabberwock/types"
+import { type McpServerRequestData, type McpExecutionStatus } from "@jabberwock/types"
 
-import { mcpExecutionStore } from "@src/features/chat/notifications/mcp/store"
+import { getRootStore } from "@src/features/store"
 
 import { cn } from "@src/lib/utils"
-import { Button, Container } from "@src/components/ui"
+import { Button, Container } from "@src/features/foundation/ui"
 
-import CodeBlock from "@src/components/common/CodeBlock"
-import McpToolRow from "@src/components/mcp/McpToolRow"
+import CodeBlock from "@src/features/foundation/components/CodeBlock"
+import McpToolRow from "@src/features/settings/mcp/components/McpToolRow"
 
-import { Markdown } from "@src/features/chat/messages-list/markdown"
+import { Markdown } from "@src/features/chat/task/messages/components/markdown"
 
 interface McpExecutionProps {
 	executionId: string
@@ -29,7 +29,7 @@ interface McpExecutionProps {
 		}>
 		source?: "global" | "project"
 	}
-	useMcpServer?: ClineAskUseMcpServer
+	useMcpServer?: McpServerRequestData
 	alwaysAllowMcp?: boolean
 }
 
@@ -127,7 +127,7 @@ export const McpExecution = ({
 
 	// Listen for MCP execution status via MST snapshot
 	useEffect(() => {
-		const unsubscribe = onSnapshot(mcpExecutionStore, (snapshot) => {
+		const unsubscribe = onSnapshot(getRootStore().mcpExecution, (snapshot) => {
 			const execution = snapshot.executions.find(
 				(e: { executionId: string; status: string; response?: string }) => e.executionId === executionId,
 			)

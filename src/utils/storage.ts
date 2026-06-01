@@ -20,7 +20,7 @@ export async function getStorageBasePath(defaultPath: string): Promise<string> {
 		const config = vscode.workspace.getConfiguration(Package.name)
 		customStoragePath = config.get<string>("customStoragePath", "")
 	} catch (error) {
-		console.warn("Could not access VSCode configuration - using default path")
+		console.warn("[jabberwock] Could not access VSCode configuration - using default path")
 		return defaultPath
 	}
 
@@ -39,7 +39,9 @@ export async function getStorageBasePath(defaultPath: string): Promise<string> {
 		return customStoragePath
 	} catch (error) {
 		// If path is unusable, report error and fall back to default path
-		console.error(`Custom storage path is unusable: ${error instanceof Error ? error.message : String(error)}`)
+		console.error(
+			`[jabberwock] Custom storage path is unusable: ${error instanceof Error ? error.message : String(error)}`,
+		)
 		if (vscode.window) {
 			vscode.window.showErrorMessage(t("common:errors.custom_storage_path_unusable", { path: customStoragePath }))
 		}
@@ -83,7 +85,7 @@ export async function getCacheDirectoryPath(globalStoragePath: string): Promise<
  */
 export async function promptForCustomStoragePath(): Promise<void> {
 	if (!vscode.window || !vscode.workspace) {
-		console.error("VS Code API not available")
+		console.error("[jabberwock] VS Code API not available")
 		return
 	}
 
@@ -92,7 +94,7 @@ export async function promptForCustomStoragePath(): Promise<void> {
 		const currentConfig = vscode.workspace.getConfiguration(Package.name)
 		currentPath = currentConfig.get<string>("customStoragePath", "")
 	} catch (error) {
-		console.error("Could not access configuration")
+		console.error("[jabberwock] Could not access configuration")
 		return
 	}
 
@@ -145,7 +147,7 @@ export async function promptForCustomStoragePath(): Promise<void> {
 				vscode.window.showInformationMessage(t("common:info.default_storage_path"))
 			}
 		} catch (error) {
-			console.error("Failed to update configuration", error)
+			console.error("[jabberwock] Failed to update configuration", error)
 		}
 	}
 }

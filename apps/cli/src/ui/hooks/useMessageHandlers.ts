@@ -1,5 +1,5 @@
 import { useCallback, useRef } from "react"
-import type { ExtensionMessage, ClineMessage, ClineAsk, ClineSay, TodoItem } from "@jabberwock/types"
+import type { ExtensionMessage, Notification, NotificationAsk, NotificationSay, TodoItem } from "@jabberwock/types"
 import { consolidateTokenUsage, consolidateApiRequests, consolidateCommands } from "@jabberwock/core/cli"
 
 import type { TUIMessage, ToolData } from "../types.js"
@@ -26,7 +26,7 @@ export interface UseMessageHandlersReturn {
  * 2. "ask" messages - Requests for user input (approvals, followup questions)
  * 3. Extension state updates - Mode changes, task history, file search results
  *
- * Transforms ClineMessage format to TUIMessage format and updates the store.
+ * Transforms Notification format to TUIMessage format and updates the store.
  */
 export function useMessageHandlers({ nonInteractive }: UseMessageHandlersOptions): UseMessageHandlersReturn {
 	const {
@@ -57,7 +57,7 @@ export function useMessageHandlers({ nonInteractive }: UseMessageHandlersOptions
 	 * Map extension "say" messages to TUI messages
 	 */
 	const handleSayMessage = useCallback(
-		(ts: number, say: ClineSay, text: string, partial: boolean) => {
+		(ts: number, say: NotificationSay, text: string, partial: boolean) => {
 			const messageId = ts.toString()
 			const isResuming = useCLIStore.getState().isResumingTask
 
@@ -125,7 +125,7 @@ export function useMessageHandlers({ nonInteractive }: UseMessageHandlersOptions
 	 * Handle extension "ask" messages
 	 */
 	const handleAskMessage = useCallback(
-		(ts: number, ask: ClineAsk, text: string, partial: boolean) => {
+		(ts: number, ask: NotificationAsk, text: string, partial: boolean) => {
 			const messageId = ts.toString()
 
 			if (partial) {
@@ -322,16 +322,16 @@ export function useMessageHandlers({ nonInteractive }: UseMessageHandlersOptions
 					setTaskHistory(newTaskHistory)
 				}
 
-				const clineMessages = state.clineMessages
+				const messages = state.messages
 
-				if (clineMessages) {
-					for (const clineMsg of clineMessages) {
-						const ts = clineMsg.ts
-						const type = clineMsg.type
-						const say = clineMsg.say
-						const ask = clineMsg.ask
-						const text = clineMsg.text || ""
-						const partial = clineMsg.partial || false
+				if (messages) {
+					for (const notification of messages) {
+						const ts = notification.ts
+						const type = notification.type
+						const say = notification.say
+						const ask = notification.ask
+						const text = notification.text || ""
+						const partial = notification.partial || false
 
 						if (type === "say" && say) {
 							handleSayMessage(ts, say, text, partial)
@@ -340,11 +340,11 @@ export function useMessageHandlers({ nonInteractive }: UseMessageHandlersOptions
 						}
 					}
 
-					// Compute token usage metrics from clineMessages
+					// Compute token usage metrics from messages
 					// Skip first message (task prompt) as per webview UI pattern
-					if (clineMessages.length > 1) {
+					if (messages.length > 1) {
 						const processed = consolidateApiRequests(
-							consolidateCommands(clineMessages.slice(1) as ClineMessage[]),
+							consolidateCommands(messages.slice(1) as Notification[]),
 						)
 
 						const metrics = consolidateTokenUsage(processed)
@@ -358,18 +358,18 @@ export function useMessageHandlers({ nonInteractive }: UseMessageHandlersOptions
 					useCLIStore.getState().setIsResumingTask(false)
 				}
 			} else if (msg.type === "messageUpdated") {
-				const clineMessage = msg.clineMessage
+				const notification = msg.message
 
-				if (!clineMessage) {
+				if (!notification) {
 					return
 				}
 
-				const ts = clineMessage.ts
-				const type = clineMessage.type
-				const say = clineMessage.say
-				const ask = clineMessage.ask
-				const text = clineMessage.text || ""
-				const partial = clineMessage.partial || false
+				const ts = notification.ts
+				const type = notification.type
+				const say = notification.say
+				const ask = notification.ask
+				const text = notification.text || ""
+				const partial = notification.partial || false
 
 				if (type === "say" && say) {
 					handleSayMessage(ts, say, text, partial)

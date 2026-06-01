@@ -1,13 +1,8 @@
 import { types, Instance } from "mobx-state-tree"
 
-import { vscode } from "@jabberwock/devtool/react"
+import { vscode } from "@jabberwock/devtool/webview"
 import type { WebviewMessage, HistoryItem } from "@jabberwock/types"
-import {
-	HISTORY_EXPORT_SETTINGS,
-	HISTORY_IMPORT_SETTINGS,
-	HISTORY_RESET_STATE,
-	HISTORY_SEARCH_COMMITS,
-} from "@jabberwock/types"
+import { eventConstants } from "@jabberwock/types"
 
 /**
  * TaskHistoryStore — tracks task history updates.
@@ -37,28 +32,28 @@ export const TaskHistoryStore = types
 		// ── Export settings ────────────────────────────────────────
 		exportSettings() {
 			vscode.postMessage({
-				type: HISTORY_EXPORT_SETTINGS,
+				type: eventConstants.HISTORY.EXPORT_SETTINGS,
 			} satisfies WebviewMessage)
 		},
 
 		// ── Import settings ────────────────────────────────────────
 		importSettings() {
 			vscode.postMessage({
-				type: HISTORY_IMPORT_SETTINGS,
+				type: eventConstants.HISTORY.IMPORT_SETTINGS,
 			} satisfies WebviewMessage)
 		},
 
 		// ── Reset state ────────────────────────────────────────────
 		resetState() {
 			vscode.postMessage({
-				type: HISTORY_RESET_STATE,
+				type: eventConstants.HISTORY.RESET_STATE,
 			} satisfies WebviewMessage)
 		},
 
 		// ── Search commits ─────────────────────────────────────────
 		searchCommits(query: string) {
 			vscode.postMessage({
-				type: HISTORY_SEARCH_COMMITS,
+				type: eventConstants.HISTORY.SEARCH_COMMITS,
 				query,
 			} satisfies WebviewMessage)
 		},
@@ -96,4 +91,7 @@ export const TaskHistoryStore = types
 	}))
 
 export type ITaskHistoryStore = Instance<typeof TaskHistoryStore>
+// 🔴 DUAL INSTANTIATION BUG: This singleton is registered with MstBridge (index.tsx:49)
+// AND RootStore creates a separate instance via types.optional (root-store.ts:200).
+// MstBridge patches THIS instance — rootStore.history does NOT receive those patches.
 export const taskHistoryStore = TaskHistoryStore.create({ items: [] })

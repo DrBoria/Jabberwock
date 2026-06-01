@@ -26,8 +26,12 @@
 			"@shared/*": ["../src/shared/*"],
 			"@jabberwock/types": ["../../packages/types/src/index.ts"],
 			"@jabberwock/core/browser": ["../../packages/core/src/browser.ts"],
-			"@jabberwock/devtool/react": ["../../packages/devtool/src/react-entry.ts"]
+			"@jabberwock/devtool/webview": ["../../packages/devtool/src/webview-entry.ts"],
+			"@eventConstants": ["../../packages/types/src/event-constants"],
+			"@intentConstants": ["./src/features/intents/IntentConstants"],
+			"@features/*": ["../src/features/*"],
+			"@utils/*": ["../src/utils/*"]
 		}
 	},
-	"include": ["src", "../src/shared", "vitest.setup.ts"]
+	"include": ["src", "../src/shared", "../src/types", "vitest.setup.ts"]
 }

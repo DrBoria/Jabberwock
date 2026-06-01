@@ -4,7 +4,7 @@ import * as path from "path"
 import * as os from "os"
 import * as vscode from "vscode"
 
-import { JabberwockEventName, type ClineMessage } from "@jabberwock/types"
+import { JabberwockEventName, type Notification } from "@jabberwock/types"
 
 import { waitFor, sleep } from "../utils"
 import { setDefaultSuiteTimeout } from "../test-utils"
@@ -60,7 +60,7 @@ suite.skip("Jabberwock use_mcp_tool Tool", function () {
 	suiteTeardown(async () => {
 		// Cancel any running tasks before cleanup
 		try {
-			await globalThis.api.cancelCurrentTask()
+			await globalThis.api.abortRunningTask()
 		} catch {
 			// Task might not be running
 		}
@@ -90,7 +90,7 @@ suite.skip("Jabberwock use_mcp_tool Tool", function () {
 	setup(async () => {
 		// Cancel any previous task
 		try {
-			await globalThis.api.cancelCurrentTask()
+			await globalThis.api.abortRunningTask()
 		} catch {
 			// Task might not be running
 		}
@@ -103,7 +103,7 @@ suite.skip("Jabberwock use_mcp_tool Tool", function () {
 	teardown(async () => {
 		// Cancel the current task
 		try {
-			await globalThis.api.cancelCurrentTask()
+			await globalThis.api.abortRunningTask()
 		} catch {
 			// Task might not be running
 		}
@@ -114,7 +114,7 @@ suite.skip("Jabberwock use_mcp_tool Tool", function () {
 
 	test("Should request MCP filesystem read_file tool and complete successfully", async function () {
 		const api = globalThis.api
-		const messages: ClineMessage[] = []
+		const messages: Notification[] = []
 		let taskStarted = false
 		let _taskCompleted = false
 		let mcpToolRequested = false
@@ -124,7 +124,7 @@ suite.skip("Jabberwock use_mcp_tool Tool", function () {
 		let errorOccurred: string | null = null
 
 		// Listen for messages
-		const messageHandler = ({ message }: { message: ClineMessage }) => {
+		const messageHandler = ({ message }: { message: Notification }) => {
 			messages.push(message)
 
 			// Check for MCP tool request
@@ -292,7 +292,7 @@ suite.skip("Jabberwock use_mcp_tool Tool", function () {
 
 	test("Should request MCP filesystem write_file tool and complete successfully", async function () {
 		const api = globalThis.api
-		const messages: ClineMessage[] = []
+		const messages: Notification[] = []
 		let _taskCompleted = false
 		let mcpToolRequested = false
 		let mcpToolName: string | null = null
@@ -301,7 +301,7 @@ suite.skip("Jabberwock use_mcp_tool Tool", function () {
 		let errorOccurred: string | null = null
 
 		// Listen for messages
-		const messageHandler = ({ message }: { message: ClineMessage }) => {
+		const messageHandler = ({ message }: { message: Notification }) => {
 			messages.push(message)
 
 			// Check for MCP tool request
@@ -420,7 +420,7 @@ suite.skip("Jabberwock use_mcp_tool Tool", function () {
 
 	test("Should request MCP filesystem list_directory tool and complete successfully", async function () {
 		const api = globalThis.api
-		const messages: ClineMessage[] = []
+		const messages: Notification[] = []
 		let _taskCompleted = false
 		let mcpToolRequested = false
 		let mcpToolName: string | null = null
@@ -429,7 +429,7 @@ suite.skip("Jabberwock use_mcp_tool Tool", function () {
 		let errorOccurred: string | null = null
 
 		// Listen for messages
-		const messageHandler = ({ message }: { message: ClineMessage }) => {
+		const messageHandler = ({ message }: { message: Notification }) => {
 			messages.push(message)
 
 			// Check for MCP tool request
@@ -559,7 +559,7 @@ suite.skip("Jabberwock use_mcp_tool Tool", function () {
 
 	test.skip("Should request MCP filesystem directory_tree tool and complete successfully", async function () {
 		const api = globalThis.api
-		const messages: ClineMessage[] = []
+		const messages: Notification[] = []
 		let _taskCompleted = false
 		let mcpToolRequested = false
 		let mcpToolName: string | null = null
@@ -568,7 +568,7 @@ suite.skip("Jabberwock use_mcp_tool Tool", function () {
 		let errorOccurred: string | null = null
 
 		// Listen for messages
-		const messageHandler = ({ message }: { message: ClineMessage }) => {
+		const messageHandler = ({ message }: { message: Notification }) => {
 			messages.push(message)
 
 			// Check for MCP tool request
@@ -700,14 +700,14 @@ suite.skip("Jabberwock use_mcp_tool Tool", function () {
 		// Skipped: This test requires interactive approval for non-whitelisted MCP servers
 		// which cannot be automated in the test environment
 		const api = globalThis.api
-		const messages: ClineMessage[] = []
+		const messages: Notification[] = []
 		let _taskCompleted = false
 		let _mcpToolRequested = false
 		let _errorHandled = false
 		let attemptCompletionCalled = false
 
 		// Listen for messages
-		const messageHandler = ({ message }: { message: ClineMessage }) => {
+		const messageHandler = ({ message }: { message: Notification }) => {
 			messages.push(message)
 
 			// Check for MCP tool request
@@ -769,7 +769,7 @@ suite.skip("Jabberwock use_mcp_tool Tool", function () {
 
 	test.skip("Should validate MCP request message format and complete successfully", async function () {
 		const api = globalThis.api
-		const messages: ClineMessage[] = []
+		const messages: Notification[] = []
 		let _taskCompleted = false
 		let mcpToolRequested = false
 		let validMessageFormat = false
@@ -779,7 +779,7 @@ suite.skip("Jabberwock use_mcp_tool Tool", function () {
 		let errorOccurred: string | null = null
 
 		// Listen for messages
-		const messageHandler = ({ message }: { message: ClineMessage }) => {
+		const messageHandler = ({ message }: { message: Notification }) => {
 			messages.push(message)
 
 			// Check for MCP tool request and validate format
@@ -787,7 +787,7 @@ suite.skip("Jabberwock use_mcp_tool Tool", function () {
 				mcpToolRequested = true
 				console.log("MCP tool request:", message.text?.substring(0, 200))
 
-				// Validate the message format matches ClineAskUseMcpServer interface
+				// Validate the message format matches McpServerRequestData interface
 				if (message.text) {
 					try {
 						const mcpRequest = JSON.parse(message.text)

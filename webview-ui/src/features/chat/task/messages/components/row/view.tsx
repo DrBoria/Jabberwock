@@ -1,0 +1,484 @@
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useSize } from "react-use"
+import { useTranslation } from "react-i18next"
+import deepEqual from "fast-deep-equal"
+
+import type {
+	Notification,
+	FollowUpData,
+	SuggestionItem,
+	ApiReqData,
+	McpServerRequestData,
+	SayToolData,
+} from "@jabberwock/types"
+
+import { Mode } from "@shared/modes"
+
+import { COMMAND_OUTPUT_STRING } from "@shared/combineCommandSequences"
+import { safeJsonParse } from "@shared/core"
+
+import { observer } from "mobx-react-lite"
+import { rootStore } from "@src/features/store"
+import { useChatUI } from "@src/features/chat/store"
+import { getAllModes } from "@shared/modes"
+
+import { UserMessage, AssistantMessage, ToolRenderer } from "../../index"
+import { SayRenderer } from "../say/view"
+import { AskRenderer } from "../../../notifications/ask/view"
+
+import { MessageCircleQuestionMark } from "lucide-react"
+// import { cn } from "@/lib/utils"
+import { ProgressIndicator } from "../progress-indicator"
+import { TerminalSquare } from "lucide-react"
+// import { Markdown } from "./Markdown"
+// import { OpenMarkdownPreviewButton } from "./OpenMarkdownPreviewButton"
+import { useSelectedModel } from "@src/features/foundation/ui/hooks/useSelectedModel"
+import { appendImages } from "@src/features/chat/text-area/utils/image-utils"
+import { MAX_ATTACHED_IMAGES } from "../constants"
+
+interface ChatRowProps {
+	message: Notification
+	lastModifiedMessage?: Notification
+	isLast: boolean
+	onHeightChange: (isTaller: boolean) => void
+	onSuggestionClick?: (suggestion: SuggestionItem, event?: React.MouseEvent) => void
+	isNested?: boolean
+	history?: Notification[]
+}
+
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+interface ChatRowContentProps extends Omit<ChatRowProps, "onHeightChange"> {}
+
+const ChatRow = memo(
+	(props: ChatRowProps) => {
+		const { isLast, onHeightChange, message } = props
+		// Store the previous height to compare with the current height
+		// This allows us to detect changes without causing re-renders
+		const prevHeightRef = useRef(0)
+
+		const [chatrow, { height }] = useSize(
+			<div className="px-[15px] py-[10px] pr-[6px]">
+				<ChatRowContent {...props} />
+			</div>,
+		)
+
+		useEffect(() => {
+			const isHeightValid = height !== 0 && height !== Infinity
+			// used for partials, command output, etc.
+			// NOTE: it's important we don't distinguish between partial or complete here since our scroll effects in chatview need to handle height change during partial -> complete
+			const isInitialRender = prevHeightRef.current === 0 // prevents scrolling when new element is added since we already scroll for that
+			// height starts off at Infinity
+			if (isLast && isHeightValid && height !== prevHeightRef.current) {
+				if (!isInitialRender) {
+					onHeightChange(height > prevHeightRef.current)
+				}
+				prevHeightRef.current = height
+			}
+		}, [height, isLast, onHeightChange, message])
+
+		// we cannot return null as virtuoso does not support it, so we use a separate visibleMessages array to filter out messages that should not be rendered
+		return chatrow
+	},
+	// memo does shallow comparison of props, so we need to do deep comparison of arrays/objects whose properties might change
+	deepEqual,
+)
+
+export default ChatRow
+
+export const ChatRowContent = observer(
+	({ message, lastModifiedMessage, isLast, onSuggestionClick, isNested, history }: ChatRowContentProps) => {
+		// ALL HOOKS MUST BE CALLED BEFORE ANY EARLY RETURN (Rules of Hooks)
+		const { t: originalT, i18n } = useTranslation()
+		const ui = useChatUI()
+
+		const customModes = rootStore.extensionState.customModes
+		const mode = rootStore.extensionState.mode
+		const apiConfiguration = rootStore.extensionState.apiConfiguration
+		const messages = rootStore.extensionState.messages
+
+		const isExpanded = ui.expandedRows[message.ts] || false
+		const isFollowUpAnswered = message.isAnswered === true || message.ts === ui.currentFollowUpTs
+
+		const effectiveHistory = useMemo(() => history || messages, [history, messages])
+
+		const isRedundantDelegation = useMemo(() => {
+			if (!isNested || !message.text) return false
+			return message.text.includes("Delegated TODO item") && message.say === "tool"
+		}, [isNested, message.text, message.say])
+
+		const isAgentSaidSummary = useMemo(() => {
+			if (!message.text || message.partial) return false
+			// Match patterns like "Orchestrator said" or "🪃 Orchestrator said" (with optional emoji prefix)
+			// This works in both main chat view (isNested=false) and nested subtask views.
+			// Increased limit from 100 to 500 to handle delegation summaries that include task descriptions.
+			const agentSaidPattern = /^(\p{So}|\p{S})?\s*\w+(\s+\w+)?\s+said:?/iu
+			return agentSaidPattern.test(message.text) && message.text.length < 500
+		}, [message.text, message.partial])
+
+		const isRedundantTodo = useMemo(() => {
+			if (message.type !== "ask" || message.ask !== "tool" || !message.text) return false
+			try {
+				const tool = JSON.parse(message.text)
+				if (tool.tool !== "updateTodoList") return false
+
+				const myIndex = effectiveHistory.findIndex((m) => m.ts === message.ts)
+				if (myIndex === -1) return false
+
+				const hasNewer = effectiveHistory.slice(myIndex + 1).some((m) => {
+					if (m.type === "ask" && m.ask === "tool") {
+						try {
+							const t = JSON.parse(m.text || "{}")
+							return t.tool === "updateTodoList"
+						} catch {
+							return false
+						}
+					}
+					return false
+				})
+
+				if (hasNewer) return true
+				return false
+			} catch {
+				return false
+			}
+		}, [message, effectiveHistory])
+
+		const modeName = useMemo(() => {
+			if (!message.mode) return undefined
+			const allModes = getAllModes(customModes)
+			const mode = allModes.find((m) => m.slug === message.mode)
+			return mode?.name
+		}, [message.mode, customModes])
+		const { info: _model } = useSelectedModel(apiConfiguration)
+		const [isEditing, setIsEditing] = useState(false)
+		const [editedContent, setEditedContent] = useState("")
+		const [_editMode, setEditMode] = useState<Mode>(mode || "code")
+		const [editImages, setEditImages] = useState<string[]>([])
+
+		const t = useCallback(
+			(key: string, options?: Record<string, unknown>) => {
+				const result = originalT(key, options)
+				if (typeof result === "string" && modeName && result.includes("Jabberwock")) {
+					return result.replace(/Jabberwock/g, modeName)
+				}
+				return result
+			},
+			[originalT, modeName],
+		) as (key: string, options?: Record<string, unknown>) => string
+
+		// Handle message events for image selection during edit mode
+		useEffect(() => {
+			const handleMessage = (event: MessageEvent) => {
+				const msg = event.data
+				if (
+					msg.type === "selectedImages" &&
+					msg.context === "edit" &&
+					msg.messageTs === message.ts &&
+					isEditing
+				) {
+					setEditImages((prevImages) => appendImages(prevImages, msg.images, MAX_ATTACHED_IMAGES))
+				}
+			}
+
+			window.addEventListener("message", handleMessage)
+			return () => window.removeEventListener("message", handleMessage)
+		}, [isEditing, message.ts])
+
+		// Memoized callback to prevent re-renders caused by inline arrow functions.
+		const handleToggleExpand = useCallback(() => {
+			ui.toggleRowExpansion(message.ts)
+		}, [ui, message.ts])
+
+		// Handle edit button click
+		const _handleEditClick = useCallback(() => {
+			setIsEditing(true)
+			setEditedContent(message.text || "")
+			setEditImages(message.images || [])
+			setEditMode(mode || "code")
+		}, [message.text, message.images, mode])
+
+		// Handle cancel edit
+		const _handleCancelEdit = useCallback(() => {
+			setIsEditing(false)
+			setEditedContent(message.text || "")
+			setEditImages(message.images || [])
+			setEditMode(mode || "code")
+		}, [message.text, message.images, mode])
+
+		// Handle save edit
+		const _handleSaveEdit = useCallback(() => {
+			setIsEditing(false)
+			rootStore.chat.submitEditedMessage(message.ts, editedContent, editImages)
+		}, [message.ts, editedContent, editImages])
+
+		// Handle image selection for editing
+		const _handleSelectImages = useCallback(() => {
+			rootStore.chat.selectImagesForEdit("edit", message.ts)
+		}, [message.ts])
+
+		const [cost, apiReqCancelReason, _apiReqStreamingFailedMessage] = useMemo(() => {
+			if (message.text !== null && message.text !== undefined && message.say === "api_req_started") {
+				const info = safeJsonParse<ApiReqData>(message.text)
+				return [info?.cost, info?.cancelReason, info?.streamingFailedMessage]
+			}
+
+			return [undefined, undefined, undefined]
+		}, [message.text, message.say])
+
+		// When resuming task, last won't be api_req_failed but a resume_task
+		// message, so api_req_started will show loading spinner. That's why we just
+		// remove the last api_req_started that failed without streaming anything.
+		const apiRequestFailedMessage =
+			isLast && lastModifiedMessage?.ask === "api_req_failed" ? lastModifiedMessage?.text : undefined
+
+		const isCommandExecuting =
+			isLast &&
+			lastModifiedMessage?.ask === "command" &&
+			lastModifiedMessage?.text?.includes(COMMAND_OUTPUT_STRING)
+
+		const isMcpServerResponding = isLast && lastModifiedMessage?.say === "mcp_server_request_started"
+
+		const type = message.type === "ask" ? message.ask : message.say
+
+		const normalColor = "var(--vscode-foreground)"
+		const errorColor = "var(--vscode-errorForeground)"
+		const successColor = "var(--vscode-charts-green)"
+		const cancelledColor = "var(--vscode-descriptionForeground)"
+
+		// ALL REMAINING HOOKS MUST BE BEFORE EARLY RETURNS
+		const [icon, title] = useMemo(() => {
+			switch (type) {
+				case "error":
+				case "mistake_limit_reached":
+					return [null, null]
+				case "command":
+					return [
+						isCommandExecuting ? (
+							<ProgressIndicator key="icon" />
+						) : (
+							<TerminalSquare key="icon" className="size-4" aria-label="Terminal icon" />
+						),
+						<span key="label" style={{ color: normalColor, fontWeight: "bold" }}>
+							{t("chat:commandExecution.running")}
+						</span>,
+					]
+				case "use_mcp_server": {
+					const mcpServerUse = safeJsonParse<McpServerRequestData>(message.text)
+					if (mcpServerUse === undefined) {
+						return [null, null]
+					}
+					return [
+						isMcpServerResponding ? (
+							<ProgressIndicator key="icon" />
+						) : (
+							<span
+								key="icon"
+								className="codicon codicon-server"
+								style={{ color: normalColor, marginBottom: "-1.5px" }}></span>
+						),
+						<span key="label" style={{ color: normalColor, fontWeight: "bold" }}>
+							{mcpServerUse.type === "use_mcp_tool"
+								? t("chat:mcp.wantsToUseTool", {
+										serverName: mcpServerUse.serverName,
+										agentName:
+											getAllModes(customModes).find((m) => m.slug === message.mode)?.name ||
+											"Jabberwock",
+									})
+								: t("chat:mcp.wantsToAccessResource", {
+										serverName: mcpServerUse.serverName,
+										agentName:
+											getAllModes(customModes).find((m) => m.slug === message.mode)?.name ||
+											"Jabberwock",
+									})}
+						</span>,
+					]
+				}
+				case "completion_result":
+					return [
+						<span
+							key="icon"
+							className="codicon codicon-check"
+							style={{ color: successColor, marginBottom: "-1.5px" }}></span>,
+						<span key="label" style={{ color: successColor, fontWeight: "bold" }}>
+							{t("chat:taskCompleted")}
+						</span>,
+					]
+				case "api_req_rate_limit_wait":
+					return []
+				case "api_req_retry_delayed":
+					return []
+				case "api_req_started": {
+					const getIconSpan = (iconName: string, color: string) => (
+						<div
+							style={{
+								width: 16,
+								height: 16,
+								display: "flex",
+								alignItems: "center",
+								justifyContent: "center",
+							}}>
+							<span
+								className={`codicon codicon-${iconName}`}
+								style={{ color, fontSize: 16, marginBottom: "-1.5px" }}
+							/>
+						</div>
+					)
+					return [
+						apiReqCancelReason !== null && apiReqCancelReason !== undefined ? (
+							apiReqCancelReason === "user_cancelled" ? (
+								getIconSpan("error", cancelledColor)
+							) : (
+								getIconSpan("error", errorColor)
+							)
+						) : cost !== null && cost !== undefined ? (
+							getIconSpan("arrow-swap", normalColor)
+						) : apiRequestFailedMessage ? (
+							getIconSpan("error", errorColor)
+						) : isLast ? (
+							<ProgressIndicator />
+						) : (
+							getIconSpan("arrow-swap", normalColor)
+						),
+						apiReqCancelReason !== null && apiReqCancelReason !== undefined ? (
+							apiReqCancelReason === "user_cancelled" ? (
+								<span style={{ color: normalColor, fontWeight: "bold" }}>
+									{t("chat:apiRequest.cancelled")}
+								</span>
+							) : (
+								<span style={{ color: errorColor, fontWeight: "bold" }}>
+									{t("chat:apiRequest.streamingFailed")}
+								</span>
+							)
+						) : cost !== null && cost !== undefined ? (
+							<span style={{ color: normalColor }}>{t("chat:apiRequest.title")}</span>
+						) : apiRequestFailedMessage ? (
+							<span style={{ color: errorColor }}>{t("chat:apiRequest.failed")}</span>
+						) : (
+							<span style={{ color: normalColor }}>{t("chat:apiRequest.streaming")}</span>
+						),
+					]
+				}
+				case "followup":
+					return [
+						<MessageCircleQuestionMark key="icon" className="w-4 shrink-0" aria-label="Question icon" />,
+						<span key="label" style={{ color: normalColor, fontWeight: "bold" }}>
+							{t("chat:questions.hasQuestion")}
+						</span>,
+					]
+				default:
+					return [null, null]
+			}
+		}, [
+			type,
+			isCommandExecuting,
+			message,
+			isMcpServerResponding,
+			apiReqCancelReason,
+			cost,
+			apiRequestFailedMessage,
+			t,
+			isLast,
+			customModes,
+		])
+
+		// ALL REMAINING HOOKS MUST BE BEFORE EARLY RETURNS
+		const tool = useMemo(
+			() => (message.ask === "tool" ? safeJsonParse<SayToolData>(message.text) : null),
+			[message.ask, message.text],
+		)
+
+		const _followUpData = useMemo(() => {
+			if (message.type === "ask" && message.ask === "followup" && !message.partial) {
+				return safeJsonParse<FollowUpData>(message.text)
+			}
+			return null
+		}, [message.type, message.ask, message.partial, message.text])
+
+		const _headerStyle: React.CSSProperties = {
+			display: "flex",
+			alignItems: "center",
+			gap: "10px",
+			cursor: "default",
+			marginBottom: "10px",
+			wordBreak: "break-word",
+		}
+
+		// ==================== RENDER LOGIC ====================
+
+		// 1. User role messages
+		if ((message as { role?: string }).role === "user") {
+			return <UserMessage message={message} t={t} />
+		}
+
+		// 2. Assistant role messages
+		if ((message as { role?: string }).role === "assistant") {
+			return (
+				<AssistantMessage
+					message={message}
+					modeName={modeName}
+					isStreaming={ui.isStreaming}
+					isLast={isLast}
+					t={t}
+				/>
+			)
+		}
+
+		// 3. Tool messages (ask === "tool")
+		if (tool) {
+			return (
+				<ToolRenderer
+					message={message}
+					tool={tool}
+					isExpanded={isExpanded}
+					isNested={!!isNested}
+					isRedundantTodo={isRedundantTodo}
+					effectiveHistory={effectiveHistory}
+					onToggleExpand={handleToggleExpand}
+					onBatchFileResponse={rootStore.windowManager.batchFileResponse}
+					t={t}
+				/>
+			)
+		}
+
+		// 4. Say / Ask messages
+		switch (message.type) {
+			case "say":
+				return (
+					<SayRenderer
+						message={message}
+						lastModifiedMessage={lastModifiedMessage}
+						isExpanded={isExpanded}
+						isLast={isLast}
+						isStreaming={ui.isStreaming}
+						isNested={!!isNested}
+						isRedundantDelegation={isRedundantDelegation}
+						isAgentSaidSummary={isAgentSaidSummary}
+						modeName={modeName}
+						icon={icon}
+						title={title}
+						onToggleExpand={handleToggleExpand}
+						onSuggestionClick={onSuggestionClick}
+						t={t}
+						i18n={i18n}
+					/>
+				)
+			case "ask":
+				return (
+					<AskRenderer
+						message={message}
+						icon={icon}
+						title={title}
+						isLast={isLast}
+						lastModifiedMessage={lastModifiedMessage}
+						onSuggestionClick={onSuggestionClick}
+						onFollowUpUnmount={rootStore.chat.cancelAutoApproval}
+						isFollowUpAnswered={isFollowUpAnswered}
+						isFollowUpAutoApprovalPaused={ui.isFollowUpAutoApprovalPaused}
+						t={t}
+					/>
+				)
+			default:
+				return null
+		}
+	},
+)

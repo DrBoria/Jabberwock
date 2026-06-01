@@ -68,7 +68,7 @@ export function handleProviderError(
 		const msg = rawMetadata?.metadata?.raw || error.message || ""
 
 		// Log the original error details for debugging
-		console.error(`[${providerName}] API error:`, {
+		console.error(`[jabberwock] [${providerName}] API error:`, {
 			message: msg,
 			name: error.name,
 			stack: error.stack,
@@ -103,7 +103,7 @@ export function handleProviderError(
 	}
 
 	// Non-Error: wrap with provider-specific prefix
-	console.error(`[${providerName}] Non-Error exception:`, error)
+	console.error(`[jabberwock] [${providerName}] Non-Error exception:`, error)
 	const wrapped = new Error(`${providerName} ${messagePrefix} error: ${String(error)}`)
 
 	// Also try to preserve status for non-Error exceptions (e.g., plain objects with status)

@@ -452,7 +452,7 @@ export abstract class ShadowCheckpointService extends EventEmitter {
 		if (success) {
 			console.log(`[${this.name}#deleteTask.${taskId}] deleted branch ${branchName}`)
 		} else {
-			console.error(`[${this.name}#deleteTask.${taskId}] failed to delete branch ${branchName}`)
+			console.error(`[jabberwock] [${this.name}#deleteTask.${taskId}] failed to delete branch ${branchName}`)
 		}
 	}
 
@@ -460,7 +460,7 @@ export abstract class ShadowCheckpointService extends EventEmitter {
 		const branches = await git.branchLocal()
 
 		if (!branches.all.includes(branchName)) {
-			console.error(`[${this.constructor.name}#deleteBranch] branch ${branchName} does not exist`)
+			console.error(`[jabberwock] [${this.constructor.name}#deleteBranch] branch ${branchName} does not exist`)
 			return false
 		}
 

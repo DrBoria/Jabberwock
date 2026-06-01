@@ -1,6 +1,6 @@
 import os from "os"
 import * as path from "path"
-import { VirtualWorkspace, virtualWorkspace } from "../../core/fs/VirtualWorkspace"
+import { VirtualWorkspace, virtualWorkspace } from "../../features/foundation/time-machine/VirtualWorkspace"
 import * as childProcess from "child_process"
 import * as vscode from "vscode"
 import ignore from "ignore"
@@ -111,7 +111,7 @@ async function getFirstLevelDirectories(
 			}
 		}
 	} catch (err) {
-		console.warn(`Could not read directory ${absolutePath}: ${err}`)
+		console.warn(`[jabberwock] Could not read directory ${absolutePath}: ${err}`)
 	}
 
 	return directories
@@ -351,7 +351,7 @@ async function createIgnoreInstance(vfs: VirtualWorkspace, dirPath: string): Pro
 			ignoreInstance.add(content)
 		} catch (err) {
 			// Continue if we can't read a .gitignore file
-			console.warn(`Could not read .gitignore at ${gitignoreFile}: ${err}`)
+			console.warn(`[jabberwock] Could not read .gitignore at ${gitignoreFile}: ${err}`)
 		}
 	}
 
@@ -504,7 +504,7 @@ async function listFilteredDirectories(
 			}
 		} catch (err) {
 			// Continue if we can't read a directory
-			console.warn(`Could not read directory ${currentPath}: ${err}`)
+			console.warn(`[jabberwock] Could not read directory ${currentPath}: ${err}`)
 		}
 
 		return false // Limit not reached
@@ -669,7 +669,7 @@ async function execRipgrep(rgPath: string, args: string[], limit: number): Promi
 		// Set timeout to avoid hanging
 		const timeoutId = setTimeout(() => {
 			rgProcess.kill()
-			console.warn("ripgrep timed out, returning partial results")
+			console.warn("[jabberwock] ripgrep timed out, returning partial results")
 			resolve(results.slice(0, limit))
 		}, 10_000)
 
@@ -687,7 +687,7 @@ async function execRipgrep(rgPath: string, args: string[], limit: number): Promi
 
 		// Process stderr but don't fail on non-zero exit codes
 		rgProcess.stderr.on("data", (data) => {
-			console.error(`ripgrep stderr: ${data}`)
+			console.error(`[jabberwock] ripgrep stderr: ${data}`)
 		})
 
 		// Handle process completion
@@ -700,7 +700,7 @@ async function execRipgrep(rgPath: string, args: string[], limit: number): Promi
 
 			// Log non-zero exit codes but don't fail
 			if (code !== 0 && code !== null && code !== 143 /* SIGTERM */) {
-				console.warn(`ripgrep process exited with code ${code}, returning partial results`)
+				console.warn(`[jabberwock] ripgrep process exited with code ${code}, returning partial results`)
 			}
 
 			resolve(results.slice(0, limit))

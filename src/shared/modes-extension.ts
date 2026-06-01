@@ -1,6 +1,6 @@
 import * as vscode from "vscode"
 import { type ModeConfig, type CustomModePrompts } from "@jabberwock/types"
-import { addCustomInstructions } from "../core/prompts/sections/custom-instructions"
+import { addCustomInstructions } from "../features/settings/context/sections/custom-instructions"
 import { modes, getAllModes, getModeBySlug } from "./modes"
 
 // Helper function to get all modes with their prompt overrides from extension state

@@ -1,6 +1,6 @@
 import React from "react"
 import { render, screen } from "@testing-library/react"
-import ErrorBoundary from "../components/ErrorBoundary"
+import ErrorBoundary from "../features/foundation/components/ErrorBoundary"
 
 // Mock telemetry client
 vi.mock("@src/features/cloud/utils/TelemetryClient", () => ({

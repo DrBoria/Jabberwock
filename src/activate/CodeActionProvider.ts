@@ -97,7 +97,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
 
 			return actions
 		} catch (error) {
-			console.error("Error providing code actions:", error)
+			console.error("[jabberwock] Error providing code actions:", error)
 			return []
 		}
 	}

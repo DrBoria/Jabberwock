@@ -51,11 +51,11 @@ export class CodeIndexOllamaEmbedder implements IEmbedder {
 					const estimatedTokens = Math.ceil(prefixedText.length / 4)
 					if (estimatedTokens > MAX_ITEM_TOKENS) {
 						console.warn(
-							t("embeddings:textWithPrefixExceedsTokenLimit", {
+							`[jabberwock] ${t("embeddings:textWithPrefixExceedsTokenLimit", {
 								index,
 								estimatedTokens,
 								maxTokens: MAX_ITEM_TOKENS,
-							}),
+							})}`,
 						)
 						// Return original text if adding prefix would exceed limit
 						return text
@@ -121,7 +121,7 @@ export class CodeIndexOllamaEmbedder implements IEmbedder {
 			})
 
 			// Log the original error for debugging purposes
-			console.error("Ollama embedding failed:", error)
+			console.error("[jabberwock] Ollama embedding failed:", error)
 
 			// Handle specific error types with better messages
 			const err = error as Record<string, unknown>

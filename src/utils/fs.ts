@@ -1,4 +1,4 @@
-import { VirtualWorkspace, virtualWorkspace } from "../core/fs/VirtualWorkspace"
+import { VirtualWorkspace, virtualWorkspace } from "../features/foundation/time-machine/VirtualWorkspace"
 import * as path from "path"
 
 /**

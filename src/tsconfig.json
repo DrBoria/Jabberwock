@@ -2,6 +2,7 @@
 	"compilerOptions": {
 		"allowImportingTsExtensions": true,
 		"noEmit": true,
+		"jsx": "react-jsx",
 		"types": ["vitest/globals"],
 		"esModuleInterop": true,
 		"experimentalDecorators": true,
@@ -19,7 +20,13 @@
 		"sourceMap": true,
 		"strict": true,
 		"target": "ES2022",
-		"useDefineForClassFields": true
+		"useDefineForClassFields": true,
+		"paths": {
+			"@features/*": ["./features/*"],
+			"@utils/*": ["./utils/*"],
+			"@eventConstants": ["../packages/types/src/event-constants"],
+			"@intentConstants": ["./features/intents/IntentConstants"]
+		}
 	},
 	"include": ["."],
 	"exclude": ["node_modules"],

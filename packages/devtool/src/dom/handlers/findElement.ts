@@ -170,7 +170,7 @@ export async function handleFindElement(ctx: DomHandlerContext, req: Record<stri
 		// its serialized DOM. The iframe content must handle "dom-query" messages.
 		try {
 			const iframes = document.querySelectorAll<HTMLIFrameElement>("iframe[src]")
-			for (const iframe of iframes) {
+			for (const iframe of Array.from(iframes)) {
 				const src = iframe.getAttribute("src") || ""
 				if (!src.startsWith("http://") && !src.startsWith("https://")) continue
 

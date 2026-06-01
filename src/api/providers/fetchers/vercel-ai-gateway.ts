@@ -58,16 +58,61 @@ export async function getVercelAiGatewayModels(options?: ApiHandlerOptions): Pro
 	const baseURL = "https://ai-gateway.vercel.sh/v1"
 
 	try {
-		const response = await axios.get<VercelAiGatewayModelsResponse>(`${baseURL}/models`)
+		const response = await axios.get<unknown>(`${baseURL}/models`, {
+			headers: {
+				Accept: "application/json",
+			},
+			// Bypass any global proxy configuration for this request.
+			// The Vercel AI Gateway API must be called directly — proxy is only intended
+			// for LLM inference traffic, not for model/metadata discovery.
+			proxy: false,
+		})
 		const result = vercelAiGatewayModelsResponseSchema.safeParse(response.data)
-		const data = result.success ? result.data.data : response.data.data
 
 		if (!result.success) {
-			console.error(`Vercel AI Gateway models response is invalid ${JSON.stringify(result.error.format())}`)
+			const contentType = response.headers?.["content-type"] ?? "unknown"
+			console.error(
+				"[jabberwock] Vercel AI Gateway models response is invalid. Zod error:",
+				result.error.format(),
+				"\n  HTTP status:",
+				response.status,
+				"\n  Content-Type:",
+				contentType,
+				"\n  Response body:",
+				typeof response.data === "object"
+					? JSON.stringify(response.data).slice(0, 500)
+					: String(response.data).slice(0, 500),
+			)
+
+			// If we got an HTML response, the request likely went through a proxy/gateway.
+			if (typeof contentType === "string" && contentType.includes("text/html")) {
+				console.error(
+					"[jabberwock] Received HTML response from Vercel AI Gateway — this usually means a proxy server intercepted the request.",
+				)
+			}
 		}
 
-		for (const model of data) {
-			const { id } = model
+		// Safely extract data array — API may return error or non-JSON response
+		const rawData: unknown = result.success
+			? result.data.data
+			: typeof response.data === "object" && response.data !== null
+				? (response.data as Record<string, unknown>).data
+				: undefined
+
+		if (!Array.isArray(rawData)) {
+			if (!result.success) {
+				console.error(
+					"[jabberwock] Vercel AI Gateway models response data is not iterable — received:",
+					typeof rawData,
+				)
+			}
+			return models
+		}
+
+		for (const model of rawData) {
+			if (typeof model !== "object" || model === null) continue
+			const { id } = model as Record<string, unknown>
+			if (typeof id !== "string" || id.length === 0) continue
 
 			// Only include language models for chat inference.
 			// Embedding models are statically defined in embeddingModels.ts.
@@ -79,7 +124,7 @@ export async function getVercelAiGatewayModels(options?: ApiHandlerOptions): Pro
 		}
 	} catch (error) {
 		console.error(
-			`Error fetching Vercel AI Gateway models: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`,
+			`[jabberwock] Error fetching Vercel AI Gateway models: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`,
 		)
 	}
 

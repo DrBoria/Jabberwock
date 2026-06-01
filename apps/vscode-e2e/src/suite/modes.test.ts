@@ -19,7 +19,7 @@ suite("Jabberwock Modes", function () {
 		})
 
 		await waitUntilCompleted({ api: globalThis.api, taskId: switchModesTaskId })
-		await globalThis.api.cancelCurrentTask()
+		await globalThis.api.abortRunningTask()
 
 		assert.ok(modes.includes("ask"))
 		assert.ok(modes.length === 1)

@@ -61,7 +61,7 @@ function getRelevantAttributes(el: Element): Record<string, string> {
 		"alt",
 		"title",
 	])
-	for (const attr of el.attributes) {
+	for (const attr of Array.from(el.attributes)) {
 		if (keep.has(attr.name)) {
 			attrs[attr.name] = attr.value
 		}

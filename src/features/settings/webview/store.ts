@@ -1,6 +1,6 @@
 import { types, Instance } from "mobx-state-tree"
-import type { EventBridge } from "../../../core/webview/EventBridge"
-import { getState } from "../../storeSingleton"
+import type { EventBridge } from "../../../features/foundation/webview/EventBridge"
+import { getState } from "@features/storeSingleton"
 
 export const WebviewModel = types.model("Webview", {})
 
@@ -11,6 +11,8 @@ export type WebviewState = object
 
 export function initWebviewState(_provider: EventBridge): void {}
 
-export function getWebviewState(provider: EventBridge): WebviewState {
-	return getState(provider).settings.webview as WebviewState
+import type { IBackendRootStore } from "../../store"
+
+export function getWebviewState(rootStore: IBackendRootStore): WebviewState {
+	return rootStore.settings.webview as WebviewState
 }

@@ -46,7 +46,7 @@ export function convertToMentionPath(path: string, cwd?: string): string {
 		}
 	} catch (e) {
 		// Log error if decoding fails, but continue with the potentially problematic path
-		console.error("Error decoding URI component in convertToMentionPath:", e, pathWithoutProtocol)
+		console.error("[jabberwock] Error decoding URI component in convertToMentionPath:", e, pathWithoutProtocol)
 	}
 
 	const normalizedPath = pathWithoutProtocol.replace(/\\/g, "/")

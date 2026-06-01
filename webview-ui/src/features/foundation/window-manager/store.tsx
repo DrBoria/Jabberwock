@@ -1,14 +1,8 @@
 import { types, Instance } from "mobx-state-tree"
 
-import { vscode } from "@jabberwock/devtool/react"
+import { vscode } from "@jabberwock/devtool/webview"
 import type { WebviewMessage, ShareVisibility } from "@jabberwock/types"
-import {
-	WINDOW_MANAGER_ACTIVE_PAGE_RESPONSE,
-	WINDOW_MANAGER_EXPORT_CURRENT_TASK,
-	WINDOW_MANAGER_FOCUS_PANEL_REQUEST,
-	WINDOW_MANAGER_SWITCH_TAB,
-	CHAT_TASK_WEBVIEW_DID_LAUNCH,
-} from "@jabberwock/types"
+import { eventConstants } from "@jabberwock/types"
 
 export const WindowType = types.enumeration("WindowType", [
 	"chat",
@@ -124,7 +118,7 @@ export const WindowManagerStore = types
 			values?: Record<string, unknown>,
 		) {
 			vscode.postMessage({
-				type: WINDOW_MANAGER_SWITCH_TAB,
+				type: eventConstants.WINDOW_MANAGER.SWITCH_TAB,
 				tab,
 				...(values !== undefined && { values }),
 			} satisfies WebviewMessage)
@@ -133,21 +127,21 @@ export const WindowManagerStore = types
 		// ── Webview did launch ────────────────────────────────────────
 		webviewDidLaunch() {
 			vscode.postMessage({
-				type: CHAT_TASK_WEBVIEW_DID_LAUNCH,
+				type: eventConstants.CHAT.TASK.WEBVIEW_DID_LAUNCH,
 			} satisfies WebviewMessage)
 		},
 
 		// ── Focus panel request ────────────────────────────────────────
 		focusPanelRequest() {
 			vscode.postMessage({
-				type: WINDOW_MANAGER_FOCUS_PANEL_REQUEST,
+				type: eventConstants.WINDOW_MANAGER.FOCUS_PANEL_REQUEST,
 			} satisfies WebviewMessage)
 		},
 
 		// ── Respond with active page ──────────────────────────────────
 		respondWithActivePage(requestId: string, activePage: string) {
 			vscode.postMessage({
-				type: WINDOW_MANAGER_ACTIVE_PAGE_RESPONSE,
+				type: eventConstants.WINDOW_MANAGER.ACTIVE_PAGE_RESPONSE,
 				requestId,
 				activePage,
 			} satisfies WebviewMessage)
@@ -156,7 +150,7 @@ export const WindowManagerStore = types
 		// ── Share current task ────────────────────────────────────────
 		shareCurrentTask(visibility: ShareVisibility) {
 			vscode.postMessage({
-				type: WINDOW_MANAGER_EXPORT_CURRENT_TASK,
+				type: eventConstants.WINDOW_MANAGER.EXPORT_CURRENT_TASK,
 				visibility,
 			} satisfies WebviewMessage)
 		},
@@ -164,7 +158,7 @@ export const WindowManagerStore = types
 		// ── Focus panel ───────────────────────────────────────────────
 		focusPanel() {
 			vscode.postMessage({
-				type: WINDOW_MANAGER_FOCUS_PANEL_REQUEST,
+				type: eventConstants.WINDOW_MANAGER.FOCUS_PANEL_REQUEST,
 			} satisfies WebviewMessage)
 		},
 
@@ -187,6 +181,9 @@ import { useRootStore } from "../../store"
  */
 export const useWindowManager = (): IWindowManagerStore => useRootStore().windowManager
 
+// 🔴 DUAL INSTANTIATION BUG: This singleton is registered with MstBridge (index.tsx:42)
+// AND RootStore creates a separate instance (root-store.ts:201).
+// MstBridge patches THIS instance — rootStore.windowManager does NOT receive those patches.
 export const windowManagerStore = WindowManagerStore.create({
 	activeWindows: [{ type: "chat", props: {} }],
 })

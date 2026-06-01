@@ -1,4 +1,4 @@
-import type { ClineMessage } from "@jabberwock/types"
+import type { Notification } from "@jabberwock/types"
 import { Writable } from "stream"
 
 import { JsonEventEmitter } from "../json-event-emitter.js"
@@ -23,14 +23,14 @@ function createMockStdout(): { stdout: NodeJS.WriteStream; lines: () => Record<s
 	return { stdout: writable, lines }
 }
 
-function emitMessage(emitter: JsonEventEmitter, message: ClineMessage): void {
-	;(emitter as unknown as { handleMessage: (msg: ClineMessage, isUpdate: boolean) => void }).handleMessage(
+function emitMessage(emitter: JsonEventEmitter, message: Notification): void {
+	;(emitter as unknown as { handleMessage: (msg: Notification, isUpdate: boolean) => void }).handleMessage(
 		message,
 		false,
 	)
 }
 
-function createAskMessage(overrides: Partial<ClineMessage>): ClineMessage {
+function createAskMessage(overrides: Partial<Notification>): Notification {
 	return {
 		ts: 1,
 		type: "ask",
@@ -38,7 +38,7 @@ function createAskMessage(overrides: Partial<ClineMessage>): ClineMessage {
 		partial: true,
 		text: "",
 		...overrides,
-	} as ClineMessage
+	} as Notification
 }
 
 describe("JsonEventEmitter streaming deltas", () => {
@@ -238,21 +238,21 @@ describe("JsonEventEmitter streaming deltas", () => {
 			say: "command_output",
 			partial: true,
 			text: "line1\n",
-		} as ClineMessage)
+		} as Notification)
 		emitMessage(emitter, {
 			ts: outputTs,
 			type: "say",
 			say: "command_output",
 			partial: true,
 			text: "line1\nline2\n",
-		} as ClineMessage)
+		} as Notification)
 		emitMessage(emitter, {
 			ts: outputTs,
 			type: "say",
 			say: "command_output",
 			partial: false,
 			text: "line1\nline2\n",
-		} as ClineMessage)
+		} as Notification)
 
 		const output = lines()
 		expect(output).toHaveLength(4)
@@ -312,7 +312,7 @@ describe("JsonEventEmitter streaming deltas", () => {
 			say: "command_output",
 			partial: false,
 			text: "line1\nline2\n",
-		} as ClineMessage)
+		} as Notification)
 
 		const output = lines()
 		expect(output).toHaveLength(4)
@@ -368,7 +368,7 @@ describe("JsonEventEmitter streaming deltas", () => {
 			say: "command_output",
 			partial: false,
 			text: '{\n  "Account": "123"\n}\n',
-		} as ClineMessage)
+		} as Notification)
 
 		const output = lines()
 		expect(output).toHaveLength(3)

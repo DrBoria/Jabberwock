@@ -1,10 +1,11 @@
 import * as vscode from "vscode"
-import { VirtualWorkspace } from "../../core/fs/VirtualWorkspace"
+import { VirtualWorkspace } from "../../features/foundation/time-machine/VirtualWorkspace"
 import * as path from "path"
 
 import { listFiles } from "../../services/glob/list-files"
-import { EventBridge } from "../../core/webview/EventBridge"
+import { EventBridge } from "../../features/foundation/webview/EventBridge"
 import { toRelativePath, getWorkspacePath } from "../../utils/path"
+import { getBackendRootStore } from "@features/storeSingleton"
 
 const MAX_INITIAL_FILES = 1_000
 
@@ -19,7 +20,7 @@ class WorkspaceTracker {
 	private virtualWorkspace = new VirtualWorkspace()
 
 	get cwd() {
-		return this.providerRef?.deref()?.cwd ?? getWorkspacePath()
+		return getWorkspacePath()
 	}
 	constructor(provider: EventBridge) {
 		this.providerRef = new WeakRef(provider)
@@ -27,7 +28,7 @@ class WorkspaceTracker {
 	}
 
 	async initializeFilePaths() {
-		// should not auto get filepaths for desktop since it would immediately show permission popup before cline ever creates a file
+		// should not auto get filepaths for desktop since it would immediately show permission popup before jabberwock ever creates a file
 		if (!this.cwd) {
 			return
 		}
@@ -107,7 +108,10 @@ class WorkspaceTracker {
 					openedTabs: this.getOpenedTabsInfo(),
 				})
 				// Dual-write: MST store
-				provider?.workspaceStore?.setWorkspace([], this.getOpenedTabsInfo())
+				getBackendRootStore().foundation.windowManager.setWorkspaceStore({
+					filePaths: [],
+					openedTabs: this.getOpenedTabsInfo(),
+				})
 				this.filePaths.clear()
 				this.prevWorkSpacePath = this.cwd
 				this.initializeFilePaths()
@@ -133,7 +137,10 @@ class WorkspaceTracker {
 				openedTabs: this.getOpenedTabsInfo(),
 			})
 			// Dual-write: MST store
-			provider?.workspaceStore?.setWorkspace(relativeFilePaths, this.getOpenedTabsInfo())
+			getBackendRootStore().foundation.windowManager.setWorkspaceStore({
+				filePaths: relativeFilePaths,
+				openedTabs: this.getOpenedTabsInfo(),
+			})
 			this.updateTimer = null
 		}, 300) // Debounce for 300ms
 	}

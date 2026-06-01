@@ -6,12 +6,15 @@ import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jab
 
 import { Package } from "../shared/package"
 import { getCommand } from "../utils/commands"
-import { EventBridge } from "../core/webview/EventBridge"
-import { ContextProxy } from "../core/config/ContextProxy"
+import { EventBridge } from "../features/foundation/webview/EventBridge"
+import { initVscodeContext, getVscodeContext } from "../features/foundation/vscode/context"
+import { getSettingsAccess } from "@utils/settings-access"
+import { getProviderSettingsManager } from "../features/settings/models/ProviderSettingsManager"
+
 import { focusPanel } from "../utils/focusPanel"
 import { handleNewTask } from "./handleTask"
 import { getCodeIndexManager } from "../services/code-index/manager"
-import { importSettingsWithFeedback } from "../core/config/importExport"
+import { importSettingsWithFeedback } from "../features/settings/actions/importSettings"
 import { MdmService, getMdmService } from "../services/mdm/MdmService"
 import { t } from "../i18n"
 
@@ -39,8 +42,8 @@ export async function getVisibleProviderOrLog(outputChannel: vscode.OutputChanne
 }
 
 // Store panel references in both modes
-let sidebarPanel: vscode.WebviewView | undefined = undefined
-let tabPanel: vscode.WebviewPanel | undefined = undefined
+let sidebarPanel: vscode.WebviewView | undefined
+let tabPanel: vscode.WebviewPanel | undefined
 
 /**
  * Get the currently active panel
@@ -130,7 +133,7 @@ const getCommandsMap = ({
 		const visibleProvider = await getVisibleProviderOrLog(outputChannel)
 
 		if (!visibleProvider) {
-			console.warn("[DEBUG:CMD] settingsButtonClicked: no visible provider")
+			console.warn("[jabberwock] [DEBUG:CMD] settingsButtonClicked: no visible provider")
 			return
 		}
 
@@ -174,9 +177,9 @@ const getCommandsMap = ({
 
 		await importSettingsWithFeedback(
 			{
-				providerSettingsManager: visibleProvider.providerSettingsManager!,
-				contextProxy: visibleProvider.contextProxy,
-				customModesManager: visibleProvider.customModesManager!,
+				providerSettingsManager: getProviderSettingsManager()!,
+				contextProxy: getSettingsAccess(),
+
 				provider: visibleProvider,
 			},
 			filePath,
@@ -229,7 +232,7 @@ export const openClineInNewTab = async ({ context, outputChannel }: Omit<Registe
 	// deserialize cached webview, but since we use retainContextWhenHidden, we
 	// don't need to use that event).
 	// https://github.com/microsoft/vscode-extension-samples/blob/main/webview-sample/src/extension.ts
-	const contextProxy = await ContextProxy.getInstance(context)
+	initVscodeContext(context)
 	const codeIndexManager = getCodeIndexManager(context)
 
 	// Get the existing MDM service instance to ensure consistent policy enforcement
@@ -241,7 +244,7 @@ export const openClineInNewTab = async ({ context, outputChannel }: Omit<Registe
 		mdmService = undefined
 	}
 
-	const tabProvider = new EventBridge(context, outputChannel, "editor", contextProxy, mdmService)
+	const tabProvider = new EventBridge(context, outputChannel, "editor", mdmService)
 	const lastCol = Math.max(...vscode.window.visibleTextEditors.map((editor) => editor.viewColumn || 0))
 
 	// Check if there are any visible text editors, otherwise open a new group

@@ -29,7 +29,7 @@ export class LogFileManager {
 			fs.appendFileSync(this.logFilePath, this.logBuffer.join("\n") + "\n")
 			this.logBuffer = []
 		} catch (error) {
-			console.error("[LogFileManager] Failed to write to log file:", error)
+			console.error("[devtool] [LogFileManager] Failed to write to log file:", error)
 		}
 	}
 

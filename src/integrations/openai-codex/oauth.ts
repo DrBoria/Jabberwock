@@ -361,7 +361,7 @@ export class OpenAiCodexOAuthManager {
 		const details = error instanceof Error ? error.message : error !== undefined ? String(error) : undefined
 		const full = details ? `${message} ${details}` : message
 		this.log(full)
-		console.error(full)
+		console.error(`[jabberwock]`, full)
 	}
 
 	/**

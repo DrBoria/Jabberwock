@@ -1,8 +1,8 @@
 import * as vscode from "vscode"
 import { types, Instance } from "mobx-state-tree"
-import type { EventBridge } from "../../../core/webview/EventBridge"
-import type { ProviderSettingsEntry, ClineMessage } from "@jabberwock/types"
-import type WorkspaceTracker from "../../../integrations/workspace/WorkspaceTracker"
+import type { EventBridge } from "../../../features/foundation/webview/EventBridge"
+import type { ProviderSettingsEntry, Notification } from "@jabberwock/types"
+import WorkspaceTracker from "../../../integrations/workspace/WorkspaceTracker"
 import type { IBackendRootStore } from "../../store"
 import { jabberwockLog } from "../../../utils/jabberwock-logger"
 import {
@@ -13,9 +13,16 @@ import {
 	PendingPushTimersType,
 	StoreRefType,
 } from "../../mst-custom-types"
-// Dynamic import to avoid circular dependency: store.ts → webviewMessageHandler → handlers → store.ts
 import { getNonce } from "../../../utils/getNonce"
 import { getUri } from "../../../utils/getUri"
+import { getBackendRootStore } from "@features/storeSingleton"
+import { getTheme } from "../../../integrations/theme/getTheme"
+import { activateProviderProfile } from "../../settings/models/api-config-store"
+import { setupSyncer } from "./syncer"
+import { updateTaskHistory } from "../../history/actions"
+import { getVscodeContext } from "../../foundation/vscode/context"
+import { getSettingsAccess } from "@utils/settings-access"
+import { getProviderSettingsManager } from "../../settings/models/ProviderSettingsManager"
 
 export const WindowManagerModel = types
 	.model("WindowManager", {
@@ -36,10 +43,10 @@ export const WindowManagerModel = types
 		setViewLaunched(val: boolean) {
 			self.viewLaunched = val
 		},
-		setWorkspaceStore(store: Record<string, unknown> | null) {
+		setWorkspaceStore(store: WorkspaceStoreData) {
 			self.workspaceStore = store
 		},
-		setWorkspaceTracker(tracker: Record<string, unknown> | null) {
+		setWorkspaceTracker(tracker: WorkspaceStoreData) {
 			self.workspaceTracker = tracker
 		},
 		addDisposable(d: vscode.Disposable) {
@@ -55,7 +62,7 @@ export const WindowManagerModel = types
 			requestId: string,
 			callback: (result: string) => void,
 			type: string,
-			params: Record<string, unknown>,
+			params: { [key: string]: unknown },
 		) {
 			self.pendingDomRequests.set(requestId, {
 				callback,
@@ -89,9 +96,20 @@ export const WindowManagerModel = types
 			}, ms)
 			self.pendingPushTimers.set("push", timer)
 		},
+		clearPendingPushTimers() {
+			for (const [, timer] of self.pendingPushTimers) {
+				clearTimeout(timer)
+			}
+			self.pendingPushTimers.clear()
+		},
 	}))
 
 export type IWindowManagerModel = Instance<typeof WindowManagerModel>
+
+export type WorkspaceStoreData = { [key: string]: unknown } | null
+
+/** Payload type for WebviewOutboundMessage "state" variant */
+export type WebviewStatePayload = { [key: string]: unknown }
 
 // ── Backward-compatible types and functions ──────────────────────────────────
 
@@ -100,7 +118,7 @@ export interface WindowManagerState {
 	disposables: vscode.Disposable[]
 	webviewDisposables: vscode.Disposable[]
 	viewLaunched: boolean
-	workspaceStore: Record<string, unknown> | null
+	workspaceStore: WorkspaceStoreData
 	workspaceTracker: WorkspaceTracker | null
 	pendingDomRequests: Map<string, (result: string) => void>
 	pendingActivePageRequests: Map<string, (activePage: string) => void>
@@ -112,15 +130,8 @@ export function initWindowManagerState(_provider: EventBridge): void {
 	// No-op — state is initialized via MST model defaults
 }
 
-/**
- * Lazy import to avoid circular dependency:
- * window-manager/store.ts → store.ts → foundation/store.ts → window-manager/store.ts (re-entrant)
- * This is only safe because getState() is always called inside function bodies,
- * never during module initialization.
- */
 function lazyGetState(provider: EventBridge): { foundation: { windowManager: IWindowManagerModel } } {
-	const storeModule = require("../../storeSingleton") as { getState: (p: EventBridge) => IBackendRootStore }
-	const rootStore = storeModule.getState(provider)
+	const rootStore = getBackendRootStore()
 	return rootStore as { foundation: { windowManager: IWindowManagerModel } }
 }
 
@@ -134,9 +145,8 @@ export function getWindowManagerState(provider: EventBridge): IWindowManagerMode
 export async function getWorkspaceTracker(provider: EventBridge): Promise<WorkspaceTracker | undefined> {
 	const state = getWindowManagerState(provider)
 	if (!state.workspaceTracker) {
-		const { default: WorkspaceTracker } = await import("../../../integrations/workspace/WorkspaceTracker")
 		// StoreRefType's runtime check accepts any non-null object.
-		// Package the tracker in an object literal (assignable to Record<string, unknown>)
+		// Package the tracker in an object literal (assignable to { [key: string]: unknown })
 		// and unwrap it on read.
 		state.setWorkspaceTracker({ __tracker: new WorkspaceTracker(provider) })
 	}
@@ -146,14 +156,21 @@ export async function getWorkspaceTracker(provider: EventBridge): Promise<Worksp
 		: undefined
 }
 
-export async function resolveWebviewView(provider: EventBridge, webviewView: vscode.WebviewView | vscode.WebviewPanel) {
+// Type for webview message handler function
+export type WebviewMessageHandler = (provider: EventBridge, message: { [key: string]: unknown }) => Promise<void>
+
+export async function resolveWebviewView(
+	provider: EventBridge,
+	webviewView: vscode.WebviewView | vscode.WebviewPanel,
+	messageHandler?: WebviewMessageHandler,
+) {
 	let state: IWindowManagerModel
 	try {
 		state = getWindowManagerState(provider)
 		state.setView(webviewView)
 	} catch (error) {
 		const errorMessage = error instanceof Error ? `${error.message}\n${error.stack ?? ""}` : String(error)
-		console.error(`[resolveWebviewView] Error:`, errorMessage)
+		console.error(`[jabberwock] [resolveWebviewView] Error:`, errorMessage)
 		// Show error in webview instead of throwing to VS Code's generic dialog
 		if (webviewView?.webview) {
 			webviewView.webview.html = getErrorHtml(errorMessage)
@@ -165,19 +182,25 @@ export async function resolveWebviewView(provider: EventBridge, webviewView: vsc
 	const webview = webviewView.webview
 	webview.options = {
 		enableScripts: true,
-		localResourceRoots: [vscode.Uri.joinPath(provider.context.extensionUri, "webview-ui", "build")],
+		localResourceRoots: [vscode.Uri.joinPath(getVscodeContext().extensionUri, "webview-ui", "build")],
 	}
 
 	// Set up message listener with error handling to prevent unhandled promise
 	// rejections from breaking the webview message channel (which would cause
 	// Settings to stop opening, DevTool to disconnect, and messages to fail).
-	const messageDisposable = webview.onDidReceiveMessage(async (message: Record<string, unknown>) => {
+	const handler =
+		messageHandler ??
+		(async (_provider, _message) => {
+			console.warn(
+				"[jabberwock] [resolveWebviewView] No message handler registered — messages are not being processed",
+			)
+		})
+	const messageDisposable = webview.onDidReceiveMessage(async (message: { [key: string]: unknown }) => {
 		try {
-			const { webviewMessageHandler } = await import("../../../core/webview/webviewMessageHandler")
-			await webviewMessageHandler(provider, message)
+			await handler(provider, message)
 		} catch (error) {
 			console.error(
-				`[resolveWebviewView] Unhandled error processing message:`,
+				`[jabberwock] [resolveWebviewView] Unhandled error processing message:`,
 				error instanceof Error ? error.message : String(error),
 			)
 		}
@@ -196,7 +219,7 @@ export async function resolveWebviewView(provider: EventBridge, webviewView: vsc
 	)
 
 	// Set HTML content (HMR in dev mode, build assets in production)
-	if (provider.context.extensionMode === vscode.ExtensionMode.Development) {
+	if (getVscodeContext().extensionMode === vscode.ExtensionMode.Development) {
 		webview.html = getHMRHtmlContent(provider, webview)
 	} else {
 		webview.html = getHtmlContent(provider, webview)
@@ -205,11 +228,11 @@ export async function resolveWebviewView(provider: EventBridge, webviewView: vsc
 	// Load persisted API configuration from ProviderSettingsManager and include it
 	// in the initial state so the webview doesn't show the welcome screen unnecessarily.
 	// Also auto-select the first config profile when none is currently selected.
-	let initialState: Record<string, unknown> = {}
+	let initialState: WebviewStatePayload = {}
 	try {
-		if (provider.providerSettingsManager) {
-			const psm = provider.providerSettingsManager
-			let currentConfigName = provider.contextProxy?.getGlobalState?.("currentApiConfigName")
+		const psm = getProviderSettingsManager()
+		if (psm) {
+			let currentConfigName = getVscodeContext().getGlobalState("currentApiConfigName")
 
 			// Load the list of API configs for the config selector UI
 			let listApiConfig = [] as ProviderSettingsEntry[]
@@ -224,7 +247,7 @@ export async function resolveWebviewView(provider: EventBridge, webviewView: vsc
 			if (!currentConfigName && listApiConfig.length > 0) {
 				const firstName = listApiConfig[0].name
 				try {
-					await provider.contextProxy?.updateGlobalState?.("currentApiConfigName", firstName)
+					await getVscodeContext().updateGlobalState("currentApiConfigName", firstName)
 					currentConfigName = firstName
 				} catch (_e) {
 					// Non-critical
@@ -250,6 +273,13 @@ export async function resolveWebviewView(provider: EventBridge, webviewView: vsc
 	// resumeTask, isReady, waitForWebviewLaunch) to route through the webview
 	// instead of falling back to headless mode.
 	state.setViewLaunched(true)
+
+	// ── Wire up reactive syncer ────────────────────────────────────────
+	// Reactions push state to webview when activeTaskId, isRunning,
+	// or the active task's notifications array change — eliminating
+	// many imperative postStateToWebview calls.
+	const syncerDisposer = setupSyncer(provider, getBackendRootStore())
+	state.addWebviewDisposable({ dispose: syncerDisposer })
 
 	// Initialize code index status subscription for the current workspace
 	;(provider as { codeIndexManager?: { updateSubscription?: () => void } }).codeIndexManager?.updateSubscription?.()
@@ -282,7 +312,6 @@ export async function resolveWebviewView(provider: EventBridge, webviewView: vsc
 	// Listen for configuration changes (e.g., color theme)
 	const configDisposable = vscode.workspace.onDidChangeConfiguration(async (e) => {
 		if (e.affectsConfiguration("workbench.colorTheme")) {
-			const { getTheme } = await import("../../../integrations/theme/getTheme")
 			await postMessageToWebview(provider, { type: "theme", text: JSON.stringify(await getTheme()) })
 		}
 	})
@@ -291,15 +320,20 @@ export async function resolveWebviewView(provider: EventBridge, webviewView: vsc
 
 function getHtmlContent(provider: EventBridge, webview: vscode.Webview): string {
 	const nonce = getNonce()
-	const scriptUri = getUri(webview, provider.context.extensionUri, ["webview-ui", "build", "assets", "index.js"])
-	const styleUri = getUri(webview, provider.context.extensionUri, ["webview-ui", "build", "assets", "index.css"])
+	const buildVersion = Date.now().toString(36)
+	const scriptUri =
+		String(getUri(webview, getVscodeContext().extensionUri, ["webview-ui", "build", "assets", "index.js"])) +
+		`?v=${buildVersion}`
+	const styleUri =
+		String(getUri(webview, getVscodeContext().extensionUri, ["webview-ui", "build", "assets", "index.css"])) +
+		`?v=${buildVersion}`
 
 	return `<!DOCTYPE html>
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource}; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval' https://file+.vscode-resource.vscode-cdn.net 'nonce-${nonce}'; connect-src 'self' https: http:">
+	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource}; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}' ${webview.cspSource} 'wasm-unsafe-eval'; connect-src 'self' https: http:">
 	<link rel="stylesheet" type="text/css" href="${styleUri}">
 	<title>Jabberwock</title>
 </head>
@@ -311,27 +345,13 @@ function getHtmlContent(provider: EventBridge, webview: vscode.Webview): string 
 }
 
 /**
- * Returns HTML content pointing to the Vite dev server for HMR during development.
+ * Returns HTML content loading from build assets for development mode.
+ * Functionally identical to getHtmlContent — both load from webview-ui/build output.
+ * Using build assets instead of Vite dev server avoids CSP issues with localhost
+ * that can cause an empty DOM in VS Code's webview.
  */
 function getHMRHtmlContent(provider: EventBridge, webview: vscode.Webview): string {
-	const nonce = getNonce()
-	const scriptUri = getUri(webview, provider.context.extensionUri, ["webview-ui", "build", "assets", "index.js"])
-	const styleUri = getUri(webview, provider.context.extensionUri, ["webview-ui", "build", "assets", "index.css"])
-
-	return `<!DOCTYPE html>
-<html lang="en">
-<head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource}; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval' https://file+.vscode-resource.vscode-cdn.net 'nonce-${nonce}'; connect-src 'self' https: http:">
-	<link rel="stylesheet" type="text/css" href="${styleUri}">
-	<title>Jabberwock</title>
-</head>
-<body>
-	<div id="root"></div>
-	<script type="module" nonce="${nonce}" src="${scriptUri}"></script>
-</body>
-</html>`
+	return getHtmlContent(provider, webview)
 }
 
 /**
@@ -377,30 +397,43 @@ function escapeHtml(text: string): string {
 // flooding the webview with redundant state updates. Only the LAST call in a
 // 50ms window is delivered.
 
-export function scheduleStatePush(provider: EventBridge, state?: Record<string, unknown>): void {
+export function scheduleStatePush(provider: EventBridge, state?: WebviewStatePayload): void {
 	const stateModel = lazyGetState(provider).foundation.windowManager as IWindowManagerModel
 	stateModel.scheduleStatePush(() => {
 		postStateToWebview(provider, state)
 	}, PUSH_DEBOUNCE_MS)
 }
 
-export function postMessageToWebview(provider: EventBridge, message: unknown) {
+/**
+ * Discriminated union of messages sent from the extension backend to the webview.
+ */
+export type WebviewOutboundMessage =
+	| { type: "state"; state: { [key: string]: unknown } & { _hydration: true } }
+	| { type: "action"; action: string }
+	| { type: "theme"; text: string }
+	| { type: "invoke"; invoke: string }
+	| { type: "mcpServers"; mcpServers: unknown }
+	| { type: "listApiConfig"; listApiConfig: unknown }
+	| { type: "taskHistoryUpdated"; taskHistory: unknown }
+	| { type: string; [key: string]: unknown }
+
+export function postMessageToWebview(
+	provider: EventBridge,
+	message: WebviewOutboundMessage | { [key: string]: unknown },
+): boolean {
 	const state = getWindowManagerState(provider)
 	if (state.view) {
 		state.view.webview.postMessage(message)
-	} else {
-		const msg = message as Record<string, unknown>
-		console.warn(`[DEBUG:POSTMSG] postMessageToWebview SKIPPED - no provider.view! type=${msg?.type}`)
+		return true
 	}
+	console.warn(`[jabberwock] [DEBUG:POSTMSG] postMessageToWebview SKIPPED - no provider.view! type=${message.type}`)
+	return false
 }
 
 /**
  * Posts the current state to the webview.
  */
-export async function postStateToWebview(
-	provider: EventBridge,
-	additionalState?: Record<string, unknown>,
-): Promise<void> {
+export async function postStateToWebview(provider: EventBridge, additionalState?: WebviewStatePayload): Promise<void> {
 	const state = getWindowManagerState(provider)
 
 	// Always enrich the state with apiConfiguration and listApiConfigMeta so that
@@ -409,17 +442,19 @@ export async function postStateToWebview(
 	// and potentially cause cascading postMessage loops.
 	const enrichedState = { ...(additionalState ?? {}) }
 
+	// Ensure state is never empty — webview needs at least one field to hydrate
+	enrichedState._hydration = true
+
 	// Always include currentApiConfigName so the webview has the latest selection
 	if (!enrichedState.currentApiConfigName) {
-		const currentConfigName = provider.contextProxy?.getGlobalState?.("currentApiConfigName")
+		const currentConfigName = getVscodeContext().getGlobalState("currentApiConfigName")
 		if (currentConfigName) {
 			enrichedState.currentApiConfigName = currentConfigName
 		}
 	}
 
-	if (!enrichedState.apiConfiguration || !enrichedState.listApiConfigMeta) {
+	if (!enrichedState.apiConfiguration || !enrichedState.listApiConfigMeta || enrichedState.isRunning === undefined) {
 		try {
-			const { getBackendRootStore } = await import("../../storeSingleton")
 			const store = getBackendRootStore()
 			const apiConfig = store.settings.apiConfig
 
@@ -428,6 +463,11 @@ export async function postStateToWebview(
 			}
 			if (!enrichedState.apiConfiguration && apiConfig.apiProvider) {
 				enrichedState.apiConfiguration = apiConfig.toProviderSettings()
+			}
+
+			// Always include isRunning so the webview knows whether a task is in progress
+			if (enrichedState.isRunning === undefined) {
+				enrichedState.isRunning = store.chat.isRunning
 			}
 		} catch {
 			// Non-critical — state push continues without enrichment
@@ -440,11 +480,11 @@ export async function postStateToWebview(
 		return
 	}
 
-	const messages = enrichedState.clineMessages as ClineMessage[] | undefined
+	const messages = enrichedState.messages as Notification[] | undefined
 	if (messages && messages.length > 0) {
 		const lastMessage = messages[messages.length - 1]
 		const lastMessageType = `${lastMessage.type}:${lastMessage.say ?? lastMessage.ask ?? "unknown"}`
-		jabberwockLog.log("state:clineMessages", {
+		jabberwockLog.log("state:messages", {
 			count: messages.length,
 			lastMessageType,
 			hasPendingAsks: messages.some((m) => m.type === "ask"),
@@ -454,21 +494,21 @@ export async function postStateToWebview(
 	if (state.view) {
 		await provider.postMessageToWebview({ type: "state", state: enrichedState })
 	} else {
-		console.warn(`[DEBUG:POSTMSG] postStateToWebview SKIPPED - no provider.view!`)
+		console.warn(`[jabberwock] [DEBUG:POSTMSG] postStateToWebview SKIPPED - no provider.view!`)
 	}
 }
 
 /**
- * Posts full state minus clineMessages to the webview.
+ * Posts full state minus messages to the webview.
  * Loads api configuration, settings, and currentApiConfigName from the provider.
  */
-export async function postStateToWebviewWithoutClineMessages(provider: EventBridge): Promise<void> {
-	const state: Record<string, unknown> = {}
+export async function postStateToWebviewWithoutMessages(provider: EventBridge): Promise<void> {
+	const state: WebviewStatePayload = {}
 	try {
-		const psm = provider.providerSettingsManager
+		const psm = getProviderSettingsManager()
 		if (psm) {
 			state.listApiConfigMeta = await psm.listConfig()
-			const currentConfigName = provider.contextProxy?.getGlobalState?.("currentApiConfigName")
+			const currentConfigName = getVscodeContext().getGlobalState("currentApiConfigName")
 			if (currentConfigName) {
 				const profile = await psm.getProfile({ name: currentConfigName })
 				if (profile) {
@@ -479,13 +519,13 @@ export async function postStateToWebviewWithoutClineMessages(provider: EventBrid
 		}
 
 		// Include settings from contextProxy
-		const settings = provider.contextProxy?.getValues?.()
+		const settings = getSettingsAccess().getValues()
 		if (settings) {
 			Object.assign(state, settings)
 		}
 
 		// Include currentApiConfigName for UI state
-		const currentConfigName = provider.contextProxy?.getGlobalState?.("currentApiConfigName")
+		const currentConfigName = getVscodeContext().getGlobalState("currentApiConfigName")
 		if (currentConfigName) {
 			state.currentApiConfigName = currentConfigName
 		}
@@ -497,11 +537,11 @@ export async function postStateToWebviewWithoutClineMessages(provider: EventBrid
 }
 
 /**
- * Alias for postStateToWebviewWithoutClineMessages.
- * Posts state to webview excluding task history / cline messages.
+ * Alias for postStateToWebviewWithoutMessages.
+ * Posts state to webview excluding task history / messages.
  */
 export async function postStateToWebviewWithoutTaskHistory(provider: EventBridge): Promise<void> {
-	await postStateToWebviewWithoutClineMessages(provider)
+	await postStateToWebviewWithoutMessages(provider)
 }
 
 /**
@@ -517,29 +557,27 @@ export async function refreshWorkspace(provider: EventBridge): Promise<void> {
  */
 export async function handleModeSwitch(provider: EventBridge, modeSlug: string): Promise<void> {
 	// 1. Check lockApiConfigAcrossModes (read-time override)
-	const lockApiConfig = (provider.contextProxy as { getValue?: (key: string) => unknown }).getValue?.(
-		"lockApiConfigAcrossModes",
-	)
+	// Note: this key is stored in workspaceState (per-workspace), not globalState
+	const lockApiConfig = getVscodeContext().extensionContext.workspaceState.get<boolean>("lockApiConfigAcrossModes")
 
 	// 2. Update global state mode
-	await provider.updateGlobalState("mode", modeSlug)
+	await getVscodeContext().updateGlobalState("mode", modeSlug)
 
 	// 3. If not locked, handle mode-specific API config
 	if (!lockApiConfig) {
-		const psm = provider.providerSettingsManager
+		const psm = getProviderSettingsManager()
 		if (psm) {
 			const modeConfigId = await psm.getModeConfigId(modeSlug)
 			if (modeConfigId) {
 				const profiles = await psm.listConfig()
 				const profile = profiles.find((p) => p.id === modeConfigId)
 				if (profile) {
-					const { activateProviderProfile } = await import("../../settings/api-config/store")
 					await activateProviderProfile(provider, { name: profile.name })
-					await provider.updateGlobalState("currentApiConfigName", profile.name)
+					await getVscodeContext().updateGlobalState("currentApiConfigName", profile.name)
 				}
 			} else {
 				// Save current config as default for new mode
-				const currentConfigName = provider.contextProxy?.getGlobalState?.("currentApiConfigName")
+				const currentConfigName = getVscodeContext().getGlobalState("currentApiConfigName")
 				if (currentConfigName) {
 					const profiles = await psm.listConfig()
 					const currentProfile = profiles.find((p) => p.name === currentConfigName)
@@ -552,7 +590,7 @@ export async function handleModeSwitch(provider: EventBridge, modeSlug: string):
 	}
 
 	// 4. Update task mode if task exists
-	const currentTask = provider.getCurrentTask()
+	const currentTask = getBackendRootStore().chat.activeTask
 	if (currentTask?.setTaskMode) {
 		currentTask.setTaskMode(modeSlug)
 	}
@@ -560,7 +598,6 @@ export async function handleModeSwitch(provider: EventBridge, modeSlug: string):
 	// 5. Update task history metadata with new mode
 	if (currentTask) {
 		try {
-			const { updateTaskHistory } = await import("../../history/store")
 			const historyItem = {
 				id: currentTask.taskId,
 				mode: modeSlug,

@@ -1,6 +1,6 @@
 import React from "react"
 import { render, screen, act, cleanup, waitFor, within, fireEvent } from "@/utils/test-utils"
-import { SearchableSelect, SearchableSelectOption } from "@/components/ui/searchable-select"
+import { SearchableSelect, SearchableSelectOption } from "@/features/foundation/ui/searchable-select"
 import userEvent from "@testing-library/user-event"
 
 describe("SearchableSelect", () => {

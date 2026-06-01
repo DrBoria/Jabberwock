@@ -56,7 +56,7 @@ export class CacheManager implements ICacheManager {
 		try {
 			await safeWriteJson(this.cachePath.fsPath, this.fileHashes)
 		} catch (error) {
-			console.error("Failed to save cache:", error)
+			console.error("[jabberwock] Failed to save cache:", error)
 			getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
 				error: error instanceof Error ? error.message : String(error),
 				stack: error instanceof Error ? error.stack : undefined,
@@ -73,7 +73,7 @@ export class CacheManager implements ICacheManager {
 			await safeWriteJson(this.cachePath.fsPath, {})
 			this.fileHashes = {}
 		} catch (error) {
-			console.error("Failed to clear cache file:", error, this.cachePath)
+			console.error("[jabberwock] Failed to clear cache file:", error, this.cachePath)
 			getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
 				error: error instanceof Error ? error.message : String(error),
 				stack: error instanceof Error ? error.stack : undefined,

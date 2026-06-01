@@ -1,5 +1,5 @@
 import { useCallback, useRef } from "react"
-import type { ClineAsk, ClineMessage } from "@jabberwock/types"
+import type { NotificationAsk, Notification } from "@jabberwock/types"
 import { isRetiredProvider } from "@jabberwock/types"
 import { rootStore } from "@src/features/store"
 
@@ -30,17 +30,17 @@ export interface MessageActions {
  * The parent component wires inputValue/selectedImages via the returned handlers.
  */
 export function useMessageActions(
-	clineAsk: ClineAsk | undefined,
-	clineAskRef: React.MutableRefObject<ClineAsk | undefined>,
+	currentAsk: NotificationAsk | undefined,
+	currentAskRef: React.MutableRefObject<NotificationAsk | undefined>,
 	sendingDisabled: boolean,
 	isStreaming: boolean,
 	messageQueue: { id: string }[],
-	messages: ClineMessage[],
+	messages: Notification[],
 	currentTaskItem: { parentTaskId?: string; id?: string } | undefined,
 	apiConfiguration: { apiProvider?: string } | undefined,
 	_onResetState: () => void,
 	onSetSendingDisabled: (v: boolean) => void,
-	onSetClineAsk: (v: ClineAsk | undefined) => void,
+	onSetClineAsk: (v: NotificationAsk | undefined) => void,
 	onSetEnableButtons: (v: boolean) => void,
 	onSetPrimaryButtonText: (v: string | undefined) => void,
 	onSetSecondaryButtonText: (v: string | undefined) => void,
@@ -50,7 +50,7 @@ export function useMessageActions(
 	const userRespondedRef = useRef(false)
 
 	const markFollowUpAsAnswered = useCallback(() => {
-		const lastFollowUp = messages.findLast((msg: ClineMessage) => msg.ask === "followup")
+		const lastFollowUp = messages.findLast((msg: Notification) => msg.ask === "followup")
 		if (lastFollowUp) {
 			// The parent should track followUpTs via a callback
 			rootStore.chat.followUpAnswered(lastFollowUp.ts)
@@ -87,7 +87,12 @@ export function useMessageActions(
 				return
 			}
 
-			if (sendingDisabled || isStreaming || messageQueue.length > 0 || clineAskRef.current === "command_output") {
+			if (
+				sendingDisabled ||
+				isStreaming ||
+				messageQueue.length > 0 ||
+				currentAskRef.current === "command_output"
+			) {
 				rootStore.chat.queueMessage(text, images)
 				onSetInputValue("")
 				onSetSelectedImages([])
@@ -98,8 +103,8 @@ export function useMessageActions(
 
 			if (messages.length === 0) {
 				rootStore.chat.sendMessage(text, images)
-			} else if (clineAskRef.current) {
-				if (clineAskRef.current === "followup") markFollowUpAsAnswered()
+			} else if (currentAskRef.current) {
+				if (currentAskRef.current === "followup") markFollowUpAsAnswered()
 				rootStore.chat.respondToAsk("messageResponse", text, images)
 			} else {
 				rootStore.chat.respondToAsk("messageResponse", text, images)
@@ -115,7 +120,7 @@ export function useMessageActions(
 			messageQueue.length,
 			messages.length,
 			apiConfiguration?.apiProvider,
-			clineAskRef,
+			currentAskRef,
 			onSetInputValue,
 			onSetSelectedImages,
 		],
@@ -126,7 +131,7 @@ export function useMessageActions(
 			userRespondedRef.current = true
 			const trimmedInput = text?.trim()
 
-			switch (clineAsk) {
+			switch (currentAsk) {
 				case "api_req_failed":
 				case "command":
 				case "tool":
@@ -173,7 +178,7 @@ export function useMessageActions(
 			onSetSecondaryButtonText(undefined)
 		},
 		[
-			clineAsk,
+			currentAsk,
 			startNewTask,
 			currentTaskItem?.parentTaskId,
 			messages,
@@ -192,12 +197,12 @@ export function useMessageActions(
 			userRespondedRef.current = true
 			const trimmedInput = text?.trim()
 
-			if (isStreaming && !clineAsk) {
+			if (isStreaming && !currentAsk) {
 				rootStore.chat.cancelTask()
 				return
 			}
 
-			switch (clineAsk) {
+			switch (currentAsk) {
 				case "api_req_failed":
 				case "mistake_limit_reached":
 				case "resume_task":
@@ -224,7 +229,7 @@ export function useMessageActions(
 			onSetEnableButtons(false)
 		},
 		[
-			clineAsk,
+			currentAsk,
 			startNewTask,
 			isStreaming,
 			onSetSendingDisabled,

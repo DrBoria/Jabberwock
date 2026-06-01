@@ -2,7 +2,7 @@
  * Agent Loop State Detection
  *
  * This module provides the core logic for detecting the current state of the
- * Jabberwock agent loop. The state is determined by analyzing the clineMessages
+ * Jabberwock agent loop. The state is determined by analyzing the messages
  * array, specifically the last message's type and properties.
  *
  * Key insight: The agent loop stops whenever a message with `type: "ask"` arrives,
@@ -10,13 +10,14 @@
  */
 
 import {
-	ClineMessage,
-	ClineAsk,
+	Notification,
+	NotificationAsk,
 	isIdleAsk,
 	isResumableAsk,
 	isInteractiveAsk,
 	isNonBlockingAsk,
 } from "@jabberwock/types"
+import type { ChatMessage } from "@jabberwock/types"
 
 // =============================================================================
 // Agent Loop State Enum
@@ -150,7 +151,7 @@ export interface AgentStateInfo {
 	isStreaming: boolean
 
 	/** The specific ask type if waiting on an ask, undefined otherwise */
-	currentAsk?: ClineAsk
+	currentAsk?: NotificationAsk
 
 	/** What action the user should/can take */
 	requiredAction: RequiredAction
@@ -159,7 +160,7 @@ export interface AgentStateInfo {
 	lastMessageTs?: number
 
 	/** The full last message for advanced usage */
-	lastMessage?: ClineMessage
+	lastMessage?: Notification
 
 	/** Human-readable description of the current state */
 	description: string
@@ -190,7 +191,7 @@ export interface ApiReqStartedText {
  *
  * Once the request completes, the cost field will be populated.
  */
-function isApiRequestInProgress(messages: ClineMessage[]): boolean {
+function isApiRequestInProgress(messages: Notification[]): boolean {
 	// Find the last api_req_started message.
 	// Using reverse iteration for efficiency (most recent first).
 	for (let i = messages.length - 1; i >= 0; i--) {
@@ -222,7 +223,7 @@ function isApiRequestInProgress(messages: ClineMessage[]): boolean {
 /**
  * Determine the required action based on the current ask type.
  */
-function getRequiredAction(ask: ClineAsk): RequiredAction {
+function getRequiredAction(ask: NotificationAsk): RequiredAction {
 	switch (ask) {
 		case "followup":
 			return "answer"
@@ -251,7 +252,7 @@ function getRequiredAction(ask: ClineAsk): RequiredAction {
 /**
  * Get a human-readable description for the current state.
  */
-function getStateDescription(state: AgentLoopState, ask?: ClineAsk): string {
+function getStateDescription(state: AgentLoopState, ask?: NotificationAsk): string {
 	switch (state) {
 		case AgentLoopState.NO_TASK:
 			return "No active task. Ready to start a new task."
@@ -301,15 +302,44 @@ function getStateDescription(state: AgentLoopState, ask?: ClineAsk): string {
 }
 
 /**
- * Detect the current state of the agent loop from the clineMessages array.
+ * Detect the current state of the agent loop from the messages array.
  *
  * This is the main state detection function. It analyzes the messages array
  * and returns detailed information about the current agent state.
  *
- * @param messages - The clineMessages array from extension state
+ * @param messages - The messages array from extension state
  * @returns Detailed state information
  */
-export function detectAgentState(messages: ClineMessage[]): AgentStateInfo {
+/**
+ * Detect agent state from ChatMessage array (simplified).
+ *
+ * ChatMessages represent structured conversation history from the task.
+ * State detection is simpler than Notification-based because ChatMessages
+ * don't have "ask" types — they're just conversation records.
+ * For detailed state detection (streaming, waiting-for-input, etc.),
+ * use the Notification-based overload instead.
+ *
+ * @param messages - ChatMessage array from task context
+ * @returns Simplified state info
+ */
+export function detectAgentState(messages: ChatMessage[]): AgentStateInfo
+/**
+ * Detect the current state of the agent loop from the messages array.
+ *
+ * This is the main state detection function. It analyzes the messages array
+ * and returns detailed information about the current agent state.
+ *
+ * @param messages - The messages array from extension state
+ * @returns Detailed state information
+ */
+export function detectAgentState(messages: Notification[]): AgentStateInfo
+/**
+ * Detect the current state of the agent loop from an array of mixed messages.
+ * This overload exists so union types (Notification[] | ChatMessage[]) can be
+ * passed without triggering overload resolution failures.
+ */
+export function detectAgentState(messages: Notification[] | ChatMessage[]): AgentStateInfo
+export function detectAgentState(messages: Notification[] | ChatMessage[]): AgentStateInfo {
 	// No messages means no task
 	if (!messages || messages.length === 0) {
 		return {
@@ -333,6 +363,52 @@ export function detectAgentState(messages: ClineMessage[]): AgentStateInfo {
 			isStreaming: false,
 			requiredAction: "start_new_task",
 			description: getStateDescription(AgentLoopState.NO_TASK),
+		}
+	}
+
+	// Check if messages are ChatMessage[] (discriminated union: "agent" | "user" | "mcp_tool" | "system")
+	// ChatMessages don't have "partial", "ask", or "say" fields — state detection is simplified
+	if (
+		lastMessage.type === "agent" ||
+		lastMessage.type === "user" ||
+		lastMessage.type === "mcp_tool" ||
+		lastMessage.type === "system"
+	) {
+		// AgentMessage with finishReason means the agent completed a response cycle
+		if (lastMessage.type === "agent") {
+			return {
+				state: AgentLoopState.IDLE,
+				isWaitingForInput: false,
+				isRunning: false,
+				isStreaming: false,
+				requiredAction: lastMessage.finishReason === "completed" ? "start_task" : "retry_or_new_task",
+				lastMessageTs: lastMessage.ts,
+				description: getStateDescription(AgentLoopState.IDLE),
+			}
+		}
+
+		// UserMessage means user just sent input — agent should be processing
+		if (lastMessage.type === "user") {
+			return {
+				state: AgentLoopState.RUNNING,
+				isWaitingForInput: false,
+				isRunning: true,
+				isStreaming: false,
+				requiredAction: "none",
+				lastMessageTs: lastMessage.ts,
+				description: getStateDescription(AgentLoopState.RUNNING),
+			}
+		}
+
+		// McpToolMessage or SystemMessage — agent is running
+		return {
+			state: AgentLoopState.RUNNING,
+			isWaitingForInput: false,
+			isRunning: true,
+			isStreaming: false,
+			requiredAction: "none",
+			lastMessageTs: lastMessage.ts,
+			description: getStateDescription(AgentLoopState.RUNNING),
 		}
 	}
 
@@ -418,7 +494,9 @@ export function detectAgentState(messages: ClineMessage[]): AgentStateInfo {
 	}
 
 	// For "say" type messages, check if API request is in progress
-	if (isApiRequestInProgress(messages)) {
+	// Note: ChatMessages have already been handled and returned early above,
+	// so by this point messages is guaranteed to be Notification[] at runtime.
+	if (isApiRequestInProgress(messages as Notification[])) {
 		return {
 			state: AgentLoopState.STREAMING,
 			isWaitingForInput: false,
@@ -450,14 +528,18 @@ export function detectAgentState(messages: ClineMessage[]): AgentStateInfo {
  * This is a convenience function for simple use cases where you just need
  * to know if user action is required.
  */
-export function isAgentWaitingForInput(messages: ClineMessage[]): boolean {
+export function isAgentWaitingForInput(messages: Notification[]): boolean
+export function isAgentWaitingForInput(messages: ChatMessage[]): boolean
+export function isAgentWaitingForInput(messages: Notification[] | ChatMessage[]): boolean {
 	return detectAgentState(messages).isWaitingForInput
 }
 
 /**
  * Quick check: Is the agent actively running (not waiting)?
  */
-export function isAgentRunning(messages: ClineMessage[]): boolean {
+export function isAgentRunning(messages: Notification[]): boolean
+export function isAgentRunning(messages: ChatMessage[]): boolean
+export function isAgentRunning(messages: Notification[] | ChatMessage[]): boolean {
 	const state = detectAgentState(messages)
 	return state.isRunning && !state.isWaitingForInput
 }
@@ -465,6 +547,8 @@ export function isAgentRunning(messages: ClineMessage[]): boolean {
 /**
  * Quick check: Is content currently streaming?
  */
-export function isContentStreaming(messages: ClineMessage[]): boolean {
+export function isContentStreaming(messages: Notification[]): boolean
+export function isContentStreaming(messages: ChatMessage[]): boolean
+export function isContentStreaming(messages: Notification[] | ChatMessage[]): boolean {
 	return detectAgentState(messages).isStreaming
 }

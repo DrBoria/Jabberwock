@@ -5,14 +5,14 @@ import { render, screen, act, cleanup } from "@/utils/test-utils"
 
 import AppWithProviders from "../App"
 
-vi.mock("@jabberwock/devtool/react", () => ({
+vi.mock("@jabberwock/devtool/webview", () => ({
 	vscode: {
 		postMessage: vi.fn(),
 	},
 }))
 
 // Mock the ErrorBoundary component
-vi.mock("@src/components/ErrorBoundary", () => ({
+vi.mock("@src/features/foundation/components/ErrorBoundary", () => ({
 	__esModule: true,
 	default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))
@@ -36,7 +36,7 @@ vi.mock("@src/features/chat/ChatView", () => ({
 	},
 }))
 
-vi.mock("@src/components/settings/SettingsView", () => ({
+vi.mock("@src/features/settings/components/SettingsView", () => ({
 	__esModule: true,
 	default: function SettingsView({ onDone }: { onDone: () => void }) {
 		return (
@@ -47,7 +47,7 @@ vi.mock("@src/components/settings/SettingsView", () => ({
 	},
 }))
 
-vi.mock("@src/components/history/HistoryView", () => ({
+vi.mock("@src/features/history/components/HistoryView", () => ({
 	__esModule: true,
 	default: function HistoryView({ onDone }: { onDone: () => void }) {
 		return (
@@ -58,21 +58,21 @@ vi.mock("@src/components/history/HistoryView", () => ({
 	},
 }))
 
-vi.mock("@src/components/mcp/McpView", () => ({
+vi.mock("@src/features/settings/mcp/components/McpView", () => ({
 	__esModule: true,
 	default: function McpView() {
 		return <div data-testid="mcp-view">MCP View</div>
 	},
 }))
 
-vi.mock("@src/components/modes/ModesView", () => ({
+vi.mock("@src/features/settings/modes/components/ModesView", () => ({
 	__esModule: true,
 	default: function ModesView() {
 		return <div data-testid="prompts-view">Modes View</div>
 	},
 }))
 
-vi.mock("@src/components/marketplace/MarketplaceView", () => ({
+vi.mock("@src/features/marketplace/components/MarketplaceView", () => ({
 	MarketplaceView: function MarketplaceView({ onDone }: { onDone: () => void }) {
 		return (
 			<div data-testid="marketplace-view" onClick={onDone}>
@@ -82,13 +82,104 @@ vi.mock("@src/components/marketplace/MarketplaceView", () => ({
 	},
 }))
 
-vi.mock("@src/components/cloud/CloudView", () => ({
+vi.mock("@src/features/cloud/components/CloudView", () => ({
 	CloudView: function CloudView() {
 		return <div data-testid="cloud-view">Cloud View</div>
 	},
 }))
 
-const mockUseExtensionState = vi.fn()
+// Mock rootStore to provide default state values
+vi.mock("@src/features/store", async () => {
+	const { createContext } = await import("react")
+	const mockRootStore = {
+		didHydrateState: true,
+		showWelcome: false,
+		interactiveAppUri: "",
+		setInteractiveAppUri: vi.fn(),
+		theme: undefined,
+		extensionCommands: [],
+		filePaths: [],
+		openedTabs: [],
+		currentCheckpoint: undefined,
+		extensionState: {
+			shouldShowAnnouncement: false,
+			telemetrySetting: "enabled",
+			telemetryKey: undefined,
+			machineId: undefined,
+			renderContext: "panel",
+			mdmCompliant: true,
+			customModes: [],
+			apiConfiguration: {},
+			currentApiConfigName: undefined,
+			uriScheme: undefined,
+			cloudAuthSkipModel: false,
+			cwd: "/",
+			language: "en",
+			experiments: {},
+			codebaseIndexConfig: undefined,
+			codebaseIndexModels: undefined,
+			devtoolEnabled: false,
+		},
+		cloud: {
+			cloudUserInfo: undefined,
+			cloudIsAuthenticated: false,
+			cloudApiUrl: undefined,
+			cloudOrganizations: [],
+			sharingEnabled: false,
+			publicSharingEnabled: false,
+		},
+		settings: {
+			mcpServers: [],
+			hasOpenedModeSelector: false,
+			autoApprovalEnabled: false,
+			alwaysAllowReadOnly: false,
+			alwaysAllowWrite: false,
+			alwaysAllowExecute: false,
+			alwaysAllowMcp: false,
+			alwaysAllowModeSwitch: false,
+			alwaysAllowSubtasks: false,
+			alwaysAllowFollowupQuestions: false,
+		},
+		chat: {
+			showMdmAuthNotification: vi.fn(),
+			elicitResponse: vi.fn(),
+			confirmDeleteMessage: vi.fn(),
+			confirmEditMessage: vi.fn(),
+		},
+		marketplace: {
+			marketplaceItems: undefined,
+			marketplaceInstalledMetadata: undefined,
+		},
+		windowManager: {
+			activeWindows: [],
+			pushWindow: vi.fn(),
+			popWindow: vi.fn(),
+			webviewDidLaunch: vi.fn(),
+			switchToBaseWindow: vi.fn(),
+			respondWithActivePage: vi.fn(),
+			focusPanel: vi.fn(),
+		},
+		setShowWelcome: vi.fn(),
+		setAlwaysAllowReadOnly: vi.fn(),
+		setAlwaysAllowWrite: vi.fn(),
+		setAlwaysAllowExecute: vi.fn(),
+		setAlwaysAllowMcp: vi.fn(),
+		setAlwaysAllowModeSwitch: vi.fn(),
+		setAlwaysAllowSubtasks: vi.fn(),
+		setAlwaysAllowFollowupQuestions: vi.fn(),
+		setAutoApprovalEnabled: vi.fn(),
+		setHasOpenedModeSelector: vi.fn(),
+		setTaskSyncEnabled: vi.fn(),
+		setApiConfiguration: vi.fn(),
+		setCustomInstructions: vi.fn(),
+		initMessageListener: vi.fn(),
+	}
+	return {
+		rootStore: mockRootStore,
+		RootStoreContext: createContext(mockRootStore),
+		createRootStore: () => mockRootStore,
+	}
+})
 
 // Mock i18next and react-i18next
 vi.mock("i18next", () => {
@@ -145,11 +236,6 @@ vi.mock("@src/i18n/TranslationContext", () => {
 	}
 })
 
-vi.mock("@src/context/ExtensionStateContext", () => ({
-	useExtensionState: () => mockUseExtensionState(),
-	ExtensionStateContextProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}))
-
 // Mock environment variables
 vi.mock("process.env", () => ({
 	NODE_ENV: "test",
@@ -160,16 +246,6 @@ describe("App", () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
 		window.removeEventListener("message", () => {})
-
-		// Set up default mock return value
-		mockUseExtensionState.mockReturnValue({
-			didHydrateState: true,
-			showWelcome: false,
-			shouldShowAnnouncement: false,
-			experiments: {},
-			language: "en",
-			telemetrySetting: "enabled",
-		})
 	})
 
 	afterEach(() => {

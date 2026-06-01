@@ -13,8 +13,6 @@ import {
 } from "@jabberwock/types"
 import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 
-import { NativeToolCallParser } from "../../core/assistant-message/NativeToolCallParser"
-
 import type { ApiHandlerOptions } from "../../shared/api"
 
 import {
@@ -158,7 +156,7 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 
 		// Load models asynchronously to populate cache before getModel() is called
 		this.loadDynamicModels().catch((error) => {
-			console.error("[OpenRouterHandler] Failed to load dynamic models:", error)
+			console.error("[jabberwock] [OpenRouterHandler] Failed to load dynamic models:", error)
 		})
 	}
 
@@ -176,7 +174,7 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 			this.models = models
 			this.endpoints = endpoints
 		} catch (error) {
-			console.error("[OpenRouterHandler] Error loading dynamic models:", {
+			console.error("[jabberwock] [OpenRouterHandler] Error loading dynamic models:", {
 				error: error instanceof Error ? error.message : String(error),
 				stack: error instanceof Error ? error.stack : undefined,
 			})
@@ -379,7 +377,7 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 			}
 		}
 
-		let lastUsage: CompletionUsage | undefined = undefined
+		let lastUsage: CompletionUsage | undefined
 		// Accumulator for reasoning_details FROM the API.
 		// We preserve the original shape of reasoning_details to prevent malformed responses.
 		const reasoningDetailsAccumulator = new Map<
@@ -487,7 +485,7 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 					}
 				}
 
-				// Emit raw tool call chunks - NativeToolCallParser handles state management
+				// Emit raw tool call chunks - rawChunkProcessor handles state management
 				if ("tool_calls" in delta && Array.isArray(delta.tool_calls)) {
 					for (const toolCall of delta.tool_calls) {
 						yield {
@@ -502,15 +500,6 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 
 				if (delta.content) {
 					yield { type: "text", text: delta.content }
-				}
-			}
-
-			// Process finish_reason to emit tool_call_end events
-			// This ensures tool calls are finalized even if the stream doesn't properly close
-			if (finishReason) {
-				const endEvents = NativeToolCallParser.processFinishReason(finishReason)
-				for (const event of endEvents) {
-					yield event
 				}
 			}
 

@@ -1,13 +1,7 @@
 import { types, Instance } from "mobx-state-tree"
-import type { EventBridge } from "../../../core/webview/EventBridge"
+import type { EventBridge } from "../../../features/foundation/webview/EventBridge"
 import { StoreRefType } from "../../mst-custom-types"
-
-// Lazy require to avoid circular dependency: store.ts → foundation/store.ts → mst/store.ts → store.ts
-function lazyGetState(provider: EventBridge): { foundation: { mst: unknown } } {
-	const storeModule = require("../../store") as { getState: (p: EventBridge) => unknown }
-	const rootStore = storeModule.getState(provider)
-	return rootStore as { foundation: { mst: unknown } }
-}
+import { getState } from "@features/storeSingleton"
 
 export const MstRefModel = types.model("MstRef", {
 	subStoreRefs: types.array(StoreRefType),
@@ -15,9 +9,11 @@ export const MstRefModel = types.model("MstRef", {
 
 export type IMstRefModel = Instance<typeof MstRefModel>
 
+export type SubStoreRef = { [key: string]: unknown }
+
 // Backward-compatible types and functions
 export interface MstState {
-	subStoreRefs: Record<string, unknown>[]
+	subStoreRefs: SubStoreRef[]
 	commandExecutionStore?: {
 		addOrUpdateExecution(status: unknown): void
 	}
@@ -27,7 +23,7 @@ export interface MstState {
 	checkpointStore?: {
 		setCurrentCheckpoint(hash: string): void
 	}
-	taskHistoryStore?: Record<string, unknown>
+	taskHistoryStore?: { [key: string]: unknown }
 	skillsStore?: {
 		setSkills(skills: unknown[]): void
 	}
@@ -44,12 +40,20 @@ export interface MstState {
 	listApiConfigStore?: {
 		setListApiConfig(config: unknown): void
 	}
+	mcpServersStore?: {
+		setServers(servers: unknown[]): void
+	}
 }
 
 export function initMstState(_provider: EventBridge): void {
 	// No-op — state is initialized via MST model defaults
 }
 
-export function getMstState(provider: EventBridge): MstState {
-	return lazyGetState(provider).foundation.mst as MstState
+import type { IBackendRootStore } from "../../store"
+
+export function getMstState(rootStore: IBackendRootStore): MstState {
+	// The as cast is required because MstState is a backward-compatible interface
+	// that generalizes the MST Instance type (IMstRefModel). The types are structurally
+	// incompatible (IObservableArray vs Record[]), so a direct assignment fails.
+	return rootStore.foundation.mst as MstState
 }

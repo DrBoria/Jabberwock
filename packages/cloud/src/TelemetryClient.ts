@@ -1,7 +1,7 @@
 import {
 	type TelemetryClient,
 	type TelemetryEvent,
-	type ClineMessage,
+	type Notification,
 	type AuthService,
 	type SettingsService,
 	TelemetryEventName,
@@ -193,7 +193,7 @@ export class CloudTelemetryClient extends BaseTelemetryClient {
 		}
 	}
 
-	public async backfillMessages(messages: ClineMessage[], taskId: string): Promise<void> {
+	public async backfillMessages(messages: Notification[], taskId: string): Promise<void> {
 		if (!this.isTelemetryEnabled()) {
 			return
 		}

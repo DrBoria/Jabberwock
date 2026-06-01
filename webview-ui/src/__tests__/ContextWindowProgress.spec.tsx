@@ -15,25 +15,6 @@ vi.mock("@vscode/webview-ui-toolkit/react", () => ({
 	VSCodeBadge: ({ children }: { children: React.ReactNode }) => <div data-testid="vscode-badge">{children}</div>,
 }))
 
-// Mock ExtensionStateContext since we use useExtensionState
-const mockCurrentTaskItem = {
-	id: "test-id",
-	number: 1,
-	task: "Test task",
-	ts: Date.now(),
-	tokensIn: 100,
-	tokensOut: 50,
-	totalCost: 0.001,
-	size: 1024,
-}
-vi.mock("@src/context/ExtensionStateContext", () => ({
-	useExtensionState: vi.fn(() => ({
-		apiConfiguration: { apiProvider: "openai" },
-		currentTaskItem: mockCurrentTaskItem,
-		clineMessages: [],
-	})),
-}))
-
 // Mock highlighting function to avoid JSX parsing issues in tests
 vi.mock("@src/features/chat/TaskHeader", async () => {
 	const originalModule = await vi.importActual("@src/features/chat/TaskHeader")
@@ -45,7 +26,7 @@ vi.mock("@src/features/chat/TaskHeader", async () => {
 })
 
 // Mock useSelectedModel hook
-vi.mock("@src/components/ui/hooks/useSelectedModel", () => ({
+vi.mock("@src/features/foundation/ui/hooks/useSelectedModel", () => ({
 	useSelectedModel: vi.fn(() => ({
 		id: "test",
 		info: { contextWindow: 4000 },
@@ -53,7 +34,7 @@ vi.mock("@src/components/ui/hooks/useSelectedModel", () => ({
 }))
 
 // Mock useChatTree
-vi.mock("@src/features/chat/messages-list/store", () => ({
+vi.mock("@src/features/chat/task/messages/store", () => ({
 	useChatTree: vi.fn(() => ({
 		nodes: new Map(),
 		activeNodeId: undefined,
@@ -69,10 +50,24 @@ vi.mock("@src/features/foundation/window-manager/store", () => ({
 	})),
 }))
 
+const mockCurrentTaskItem = {
+	id: "test-id",
+	number: 1,
+	task: "Test task",
+	ts: Date.now(),
+	tokensIn: 100,
+	tokensOut: 50,
+	totalCost: 0.001,
+	size: 1024,
+}
+
 // Mock rootStore
 vi.mock("@src/features/store", () => ({
 	rootStore: {
 		extensionState: {
+			apiConfiguration: { apiProvider: "openai" },
+			currentTaskItem: mockCurrentTaskItem,
+			messages: [],
 			currentTaskTodos: undefined,
 			diagnostics: undefined,
 		},

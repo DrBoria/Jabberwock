@@ -11,8 +11,9 @@
  */
 
 import { JabberwockEventName } from "./events.ts"
-import type { ClineMessage, QueuedMessage, TokenUsage } from "./message.ts"
-import type { ClineAskResponse, ExtensionState, Command } from "./vscode-extension-host.ts"
+import type { Notification } from "./notification.ts"
+import type { ChatMessage, QueuedMessage, TokenUsage } from "./message.ts"
+import type { ExtensionState, Command } from "./vscode-extension-host.ts"
 import type { ToolUsage, ToolName } from "./tool.ts"
 import type { ModelInfo } from "./model.ts"
 import type { HistoryItem } from "./history.ts"
@@ -31,6 +32,13 @@ import type { ProviderSettings, ProviderSettingsEntry } from "./provider-setting
 import type { OpenAiCodexRateLimitInfo } from "./providers/openai-codex-rate-limits.ts"
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// SHARED EVENT VALUE TYPES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/** Possible values for the "askResponse" event — buttons clicked by user in webview */
+export type AskResponseValue = "yesButtonClicked" | "noButtonClicked" | "messageResponse" | "objectResponse"
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // PER-FEATURE EVENT INTERFACES
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -39,13 +47,13 @@ import type { OpenAiCodexRateLimitInfo } from "./providers/openai-codex-rate-lim
 export interface ChatMessagesListBackendToWebview {
 	chatTreeSnapshot: { snapshot: unknown }
 	chatTreePatch: { patch: MstPatch[] }
-	messageUpdated: { clineMessage?: ClineMessage }
+	messageUpdated: { message?: Notification; chatMessage?: ChatMessage }
 	showEditMessageDialog: object
 	showDeleteMessageDialog: object
 }
 
 export interface ChatMessagesListWebviewToBackend {
-	askResponse: { askResponse: ClineAskResponse; text?: string; images?: string[] }
+	askResponse: { askResponse: AskResponseValue; text?: string; images?: string[] }
 	deleteMessage: { messageTs?: number }
 	deleteMessageConfirm: { messageTs?: number }
 	submitEditedMessage: { editedMessageContent?: string; messageTs?: number }
@@ -131,7 +139,7 @@ export interface ChatTopicWebviewToBackend {
 // ─── Chat Aggregator ──────────────────────────────────────────────────────
 
 export interface ChatBackendToWebview {
-	"messages-list": ChatMessagesListBackendToWebview
+	messages: ChatMessagesListBackendToWebview
 	notifications: ChatNotificationsBackendToWebview
 	task: ChatTaskBackendToWebview
 	"text-area": ChatTextAreaBackendToWebview
@@ -139,7 +147,7 @@ export interface ChatBackendToWebview {
 }
 
 export interface ChatWebviewToBackend {
-	"messages-list": ChatMessagesListWebviewToBackend
+	messages: ChatMessagesListWebviewToBackend
 	notifications: ChatNotificationsWebviewToBackend
 	task: ChatTaskWebviewToBackend
 	"text-area": ChatTextAreaWebviewToBackend
@@ -514,7 +522,12 @@ export interface BackendInternalEvents {
 				completionResultSummary: string
 			}
 			[JabberwockEventName.TaskDelegationResumed]: { parentTaskId: string; childTaskId: string }
-			[JabberwockEventName.Message]: { taskId: string; action: "created" | "updated"; message: ClineMessage }
+			[JabberwockEventName.Message]: {
+				taskId: string
+				action: "created" | "updated"
+				message: Notification
+				chatMessage?: ChatMessage
+			}
 			[JabberwockEventName.TaskModeSwitched]: { taskId: string; newMode: string }
 			[JabberwockEventName.TaskAskResponded]: { taskId: string }
 			[JabberwockEventName.TaskUserMessage]: { taskId: string }

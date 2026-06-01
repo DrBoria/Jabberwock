@@ -66,7 +66,10 @@ export class CodeIndexOrchestrator {
 				}),
 				this.fileWatcher.onDidFinishBatchProcessing((summary: BatchProcessingSummary) => {
 					if (summary.batchError) {
-						console.error(`[CodeIndexOrchestrator] Batch processing failed:`, summary.batchError)
+						console.error(
+							`[jabberwock] [CodeIndexOrchestrator] Batch processing failed:`,
+							summary.batchError,
+						)
 					} else {
 						const successCount = summary.processedFiles.filter(
 							(f: { status: string }) => f.status === "success",
@@ -78,7 +81,7 @@ export class CodeIndexOrchestrator {
 				}),
 			]
 		} catch (error) {
-			console.error("[CodeIndexOrchestrator] Failed to start file watcher:", error)
+			console.error("[jabberwock] [CodeIndexOrchestrator] Failed to start file watcher:", error)
 			getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
 				error: error instanceof Error ? error.message : String(error),
 				stack: error instanceof Error ? error.stack : undefined,
@@ -99,13 +102,13 @@ export class CodeIndexOrchestrator {
 		// Check if workspace is available first
 		if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
 			this.stateManager.setSystemState("Error", t("embeddings:orchestrator.indexingRequiresWorkspace"))
-			console.warn("[CodeIndexOrchestrator] Start rejected: No workspace folder open.")
+			console.warn("[jabberwock] [CodeIndexOrchestrator] Start rejected: No workspace folder open.")
 			return
 		}
 
 		if (!this.configManager.isFeatureConfigured) {
 			this.stateManager.setSystemState("Standby", "Missing configuration. Save your settings to start indexing.")
-			console.warn("[CodeIndexOrchestrator] Start rejected: Missing configuration.")
+			console.warn("[jabberwock] [CodeIndexOrchestrator] Start rejected: Missing configuration.")
 			return
 		}
 
@@ -310,7 +313,7 @@ export class CodeIndexOrchestrator {
 				return
 			}
 
-			console.error("[CodeIndexOrchestrator] Error during indexing:", error)
+			console.error("[jabberwock] [CodeIndexOrchestrator] Error during indexing:", error)
 			getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
 				error: error instanceof Error ? error.message : String(error),
 				stack: error instanceof Error ? error.stack : undefined,
@@ -320,7 +323,7 @@ export class CodeIndexOrchestrator {
 				try {
 					await this.vectorStore.clearCollection()
 				} catch (cleanupError) {
-					console.error("[CodeIndexOrchestrator] Failed to clean up after error:", cleanupError)
+					console.error("[jabberwock] [CodeIndexOrchestrator] Failed to clean up after error:", cleanupError)
 					getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
 						error: cleanupError instanceof Error ? cleanupError.message : String(cleanupError),
 						stack: cleanupError instanceof Error ? cleanupError.stack : undefined,
@@ -399,10 +402,12 @@ export class CodeIndexOrchestrator {
 				if (this.configManager.isFeatureConfigured) {
 					await this.vectorStore.deleteCollection()
 				} else {
-					console.warn("[CodeIndexOrchestrator] Service not configured, skipping vector collection clear.")
+					console.warn(
+						"[jabberwock] [CodeIndexOrchestrator] Service not configured, skipping vector collection clear.",
+					)
 				}
 			} catch (error) {
-				console.error("[CodeIndexOrchestrator] Failed to clear vector collection:", error)
+				console.error("[jabberwock] [CodeIndexOrchestrator] Failed to clear vector collection:", error)
 				getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
 					error: error instanceof Error ? error.message : String(error),
 					stack: error instanceof Error ? error.stack : undefined,

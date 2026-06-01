@@ -1,6 +1,6 @@
 import * as vscode from "vscode"
 import { Package } from "../shared/package"
-import { EventBridge } from "../core/webview/EventBridge"
+import { EventBridge } from "../features/foundation/webview/EventBridge"
 
 /**
  * Focus the active panel (either tab or sidebar)

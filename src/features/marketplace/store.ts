@@ -1,6 +1,6 @@
 import { types, Instance } from "mobx-state-tree"
-import type { EventBridge } from "../../core/webview/EventBridge"
-import { getState } from "../storeSingleton"
+import type { EventBridge } from "../../features/foundation/webview/EventBridge"
+import { getState } from "@features/storeSingleton"
 
 export const MarketplaceModel = types.model("Marketplace", {})
 
@@ -11,6 +11,8 @@ export type MarketplaceState = object
 
 export function initMarketplaceState(_provider: EventBridge): void {}
 
-export function getMarketplaceState(provider: EventBridge): MarketplaceState {
-	return getState(provider).marketplace as MarketplaceState
+import type { IBackendRootStore } from "../store"
+
+export function getMarketplaceState(rootStore: IBackendRootStore): MarketplaceState {
+	return rootStore.marketplace as MarketplaceState
 }

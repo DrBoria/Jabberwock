@@ -435,7 +435,7 @@
 					"default": true,
 					"description": "Enable the diagnostic dashboard (DevTool) in the chat view."
 				},
-				"jabberwock.devtool.serverPort": {
+				"jabberwock.devtoolServerPort": {
 					"type": "number",
 					"default": 60060,
 					"description": "Port for the DevTool WebSocket MCP server. Roo Code connects to this port via its .roo/mcp.json config."

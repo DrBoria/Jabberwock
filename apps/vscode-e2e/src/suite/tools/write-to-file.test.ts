@@ -3,7 +3,7 @@ import * as fs from "fs/promises"
 import * as path from "path"
 import * as os from "os"
 
-import { JabberwockEventName, type ClineMessage } from "@jabberwock/types"
+import { JabberwockEventName, type Notification } from "@jabberwock/types"
 
 import { waitFor, sleep } from "../utils"
 import { setDefaultSuiteTimeout } from "../test-utils"
@@ -23,7 +23,7 @@ suite.skip("Jabberwock write_to_file Tool", function () {
 	suiteTeardown(async () => {
 		// Cancel any running tasks before cleanup
 		try {
-			await globalThis.api.cancelCurrentTask()
+			await globalThis.api.abortRunningTask()
 		} catch {
 			// Task might not be running
 		}
@@ -34,7 +34,7 @@ suite.skip("Jabberwock write_to_file Tool", function () {
 	setup(async () => {
 		// Cancel any previous task
 		try {
-			await globalThis.api.cancelCurrentTask()
+			await globalThis.api.abortRunningTask()
 		} catch {
 			// Task might not be running
 		}
@@ -50,7 +50,7 @@ suite.skip("Jabberwock write_to_file Tool", function () {
 	teardown(async () => {
 		// Cancel the current task
 		try {
-			await globalThis.api.cancelCurrentTask()
+			await globalThis.api.abortRunningTask()
 		} catch {
 			// Task might not be running
 		}
@@ -70,7 +70,7 @@ suite.skip("Jabberwock write_to_file Tool", function () {
 		// Increase timeout for this specific test
 
 		const api = globalThis.api
-		const messages: ClineMessage[] = []
+		const messages: Notification[] = []
 		const fileContent = "Hello, this is a test file!"
 		let taskStarted = false
 		let taskCompleted = false
@@ -79,7 +79,7 @@ suite.skip("Jabberwock write_to_file Tool", function () {
 		let toolExecutionDetails = ""
 
 		// Listen for messages
-		const messageHandler = ({ message }: { message: ClineMessage }) => {
+		const messageHandler = ({ message }: { message: Notification }) => {
 			messages.push(message)
 
 			// Check for tool execution
@@ -269,7 +269,7 @@ suite.skip("Jabberwock write_to_file Tool", function () {
 		// Increase timeout for this specific test
 
 		const api = globalThis.api
-		const messages: ClineMessage[] = []
+		const messages: Notification[] = []
 		const content = "File in nested directory"
 		const fileName = `file-${Date.now()}.txt`
 		const nestedPath = path.join(tempDir, "nested", "deep", "directory", fileName)
@@ -279,7 +279,7 @@ suite.skip("Jabberwock write_to_file Tool", function () {
 		let toolExecutionDetails = ""
 
 		// Listen for messages
-		const messageHandler = ({ message }: { message: ClineMessage }) => {
+		const messageHandler = ({ message }: { message: Notification }) => {
 			messages.push(message)
 
 			// Check for tool execution

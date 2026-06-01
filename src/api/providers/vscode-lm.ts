@@ -81,7 +81,7 @@ export class VsCodeLmHandler extends BaseProvider implements SingleCompletionHan
 						this.client = null
 						this.ensureCleanState()
 					} catch (error) {
-						console.error("Error during configuration change cleanup:", error)
+						console.error("[jabberwock] Error during configuration change cleanup:", error)
 					}
 				}
 			})
@@ -115,7 +115,7 @@ export class VsCodeLmHandler extends BaseProvider implements SingleCompletionHan
 		} catch (error) {
 			// Handle errors during client initialization
 			const errorMessage = error instanceof Error ? error.message : "Unknown error"
-			console.error("Jabberwock <Language Model API>: Client initialization failed:", errorMessage)
+			console.error("[jabberwock] Jabberwock <Language Model API>: Client initialization failed:", errorMessage)
 			throw new Error(`Jabberwock <Language Model API>: Failed to initialize client: ${errorMessage}`)
 		}
 	}
@@ -225,7 +225,7 @@ export class VsCodeLmHandler extends BaseProvider implements SingleCompletionHan
 	private async internalCountTokens(text: string | vscode.LanguageModelChatMessage): Promise<number> {
 		// Check for required dependencies
 		if (!this.client) {
-			console.warn("Jabberwock <Language Model API>: No client available for token counting")
+			console.warn("[jabberwock] Jabberwock <Language Model API>: No client available for token counting")
 			return 0
 		}
 
@@ -261,18 +261,21 @@ export class VsCodeLmHandler extends BaseProvider implements SingleCompletionHan
 				const countMessage = extractTextCountFromMessage(text)
 				tokenCount = await this.client.countTokens(countMessage, cancellationToken)
 			} else {
-				console.warn("Jabberwock <Language Model API>: Invalid input type for token counting")
+				console.warn("[jabberwock] Jabberwock <Language Model API>: Invalid input type for token counting")
 				return 0
 			}
 
 			// Validate the result
 			if (typeof tokenCount !== "number") {
-				console.warn("Jabberwock <Language Model API>: Non-numeric token count received:", tokenCount)
+				console.warn(
+					"[jabberwock] Jabberwock <Language Model API>: Non-numeric token count received:",
+					tokenCount,
+				)
 				return 0
 			}
 
 			if (tokenCount < 0) {
-				console.warn("Jabberwock <Language Model API>: Negative token count received:", tokenCount)
+				console.warn("[jabberwock] Jabberwock <Language Model API>: Negative token count received:", tokenCount)
 				return 0
 			}
 
@@ -285,7 +288,7 @@ export class VsCodeLmHandler extends BaseProvider implements SingleCompletionHan
 			}
 
 			const errorMessage = error instanceof Error ? error.message : "Unknown error"
-			console.warn("Jabberwock <Language Model API>: Token counting failed:", errorMessage)
+			console.warn("[jabberwock] Jabberwock <Language Model API>: Token counting failed:", errorMessage)
 
 			// Log additional error details if available
 			if (error instanceof Error && error.stack) {
@@ -330,7 +333,7 @@ export class VsCodeLmHandler extends BaseProvider implements SingleCompletionHan
 				this.client = await this.createClient(selector)
 			} catch (error) {
 				const message = error instanceof Error ? error.message : "Unknown error"
-				console.error("Jabberwock <Language Model API>: Client creation failed:", message)
+				console.error("[jabberwock] Jabberwock <Language Model API>: Client creation failed:", message)
 				throw new Error(`Jabberwock <Language Model API>: Failed to create client: ${message}`)
 			}
 		}
@@ -410,7 +413,10 @@ export class VsCodeLmHandler extends BaseProvider implements SingleCompletionHan
 				if (chunk instanceof vscode.LanguageModelTextPart) {
 					// Validate text part value
 					if (typeof chunk.value !== "string") {
-						console.warn("Jabberwock <Language Model API>: Invalid text part value received:", chunk.value)
+						console.warn(
+							"[jabberwock] Jabberwock <Language Model API>: Invalid text part value received:",
+							chunk.value,
+						)
 						continue
 					}
 
@@ -423,18 +429,27 @@ export class VsCodeLmHandler extends BaseProvider implements SingleCompletionHan
 					try {
 						// Validate tool call parameters
 						if (!chunk.name || typeof chunk.name !== "string") {
-							console.warn("Jabberwock <Language Model API>: Invalid tool name received:", chunk.name)
+							console.warn(
+								"[jabberwock] Jabberwock <Language Model API>: Invalid tool name received:",
+								chunk.name,
+							)
 							continue
 						}
 
 						if (!chunk.callId || typeof chunk.callId !== "string") {
-							console.warn("Jabberwock <Language Model API>: Invalid tool callId received:", chunk.callId)
+							console.warn(
+								"[jabberwock] Jabberwock <Language Model API>: Invalid tool callId received:",
+								chunk.callId,
+							)
 							continue
 						}
 
 						// Ensure input is a valid object
 						if (!chunk.input || typeof chunk.input !== "object") {
-							console.warn("Jabberwock <Language Model API>: Invalid tool input received:", chunk.input)
+							console.warn(
+								"[jabberwock] Jabberwock <Language Model API>: Invalid tool input received:",
+								chunk.input,
+							)
 							continue
 						}
 
@@ -457,12 +472,15 @@ export class VsCodeLmHandler extends BaseProvider implements SingleCompletionHan
 							}
 						}
 					} catch (error) {
-						console.error("Jabberwock <Language Model API>: Failed to process tool call:", error)
+						console.error(
+							"[jabberwock] Jabberwock <Language Model API>: Failed to process tool call:",
+							error,
+						)
 						// Continue processing other chunks even if one fails
 						continue
 					}
 				} else {
-					console.warn("Jabberwock <Language Model API>: Unknown chunk type received:", chunk)
+					console.warn("[jabberwock] Jabberwock <Language Model API>: Unknown chunk type received:", chunk)
 				}
 			}
 
@@ -483,7 +501,7 @@ export class VsCodeLmHandler extends BaseProvider implements SingleCompletionHan
 			}
 
 			if (error instanceof Error) {
-				console.error("Jabberwock <Language Model API>: Stream error details:", {
+				console.error("[jabberwock] Jabberwock <Language Model API>: Stream error details:", {
 					message: error.message,
 					stack: error.stack,
 					name: error.name,
@@ -494,12 +512,12 @@ export class VsCodeLmHandler extends BaseProvider implements SingleCompletionHan
 			} else if (typeof error === "object" && error !== null) {
 				// Handle error-like objects
 				const errorDetails = JSON.stringify(error, null, 2)
-				console.error("Jabberwock <Language Model API>: Stream error object:", errorDetails)
+				console.error("[jabberwock] Jabberwock <Language Model API>: Stream error object:", errorDetails)
 				throw new Error(`Jabberwock <Language Model API>: Response stream error: ${errorDetails}`)
 			} else {
 				// Fallback for unknown error types
 				const errorMessage = String(error)
-				console.error("Jabberwock <Language Model API>: Unknown stream error:", errorMessage)
+				console.error("[jabberwock] Jabberwock <Language Model API>: Unknown stream error:", errorMessage)
 				throw new Error(`Jabberwock <Language Model API>: Response stream error: ${errorMessage}`)
 			}
 		}
@@ -520,7 +538,7 @@ export class VsCodeLmHandler extends BaseProvider implements SingleCompletionHan
 			// Log any missing properties for debugging
 			for (const [prop, value] of Object.entries(requiredProps)) {
 				if (!value && value !== 0) {
-					console.warn(`Jabberwock <Language Model API>: Client missing ${prop} property`)
+					console.warn(`[jabberwock] Jabberwock <Language Model API>: Client missing ${prop} property`)
 				}
 			}
 

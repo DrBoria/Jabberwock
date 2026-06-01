@@ -7,18 +7,9 @@ import type {
 	MarketplaceInstalledMetadata,
 } from "@jabberwock/types"
 
-import { vscode } from "@jabberwock/devtool/react"
+import { vscode } from "@jabberwock/devtool/webview"
 import type { WebviewMessage } from "@jabberwock/types"
-import {
-	MARKETPLACE_CREATE_SKILL,
-	MARKETPLACE_DELETE_SKILL,
-	MARKETPLACE_FILTER_MARKETPLACE_ITEMS,
-	MARKETPLACE_OPEN_SKILL_FILE,
-	MARKETPLACE_REFRESH_CUSTOM_TOOLS,
-	MARKETPLACE_REQUEST_SKILLS,
-	MARKETPLACE_UPDATE_SKILL_MODES,
-	SETTINGS_GET_DISMISSED_UPSELLS,
-} from "@jabberwock/types"
+import { eventConstants } from "@jabberwock/types"
 
 /**
  * MarketplaceStore — tracks marketplace data and skills.
@@ -46,7 +37,7 @@ export const MarketplaceStore = types
 		// ── Marketplace items ──────────────────────────────────────
 		filterMarketplaceItems(filters?: { type?: string; search?: string; tags?: string[] }) {
 			vscode.postMessage({
-				type: MARKETPLACE_FILTER_MARKETPLACE_ITEMS,
+				type: eventConstants.MARKETPLACE.FILTER_MARKETPLACE_ITEMS,
 				filters,
 			} satisfies WebviewMessage)
 		},
@@ -76,27 +67,27 @@ export const MarketplaceStore = types
 		// ── Skills ─────────────────────────────────────────────────
 		requestSkills() {
 			vscode.postMessage({
-				type: MARKETPLACE_REQUEST_SKILLS,
+				type: eventConstants.MARKETPLACE.REQUEST_SKILLS,
 			} satisfies WebviewMessage)
 		},
 
 		deleteSkill(skillName: string) {
 			vscode.postMessage({
-				type: MARKETPLACE_DELETE_SKILL,
+				type: eventConstants.MARKETPLACE.DELETE_SKILL,
 				skillName,
 			} satisfies WebviewMessage)
 		},
 
 		openSkillFile(skillName: string) {
 			vscode.postMessage({
-				type: MARKETPLACE_OPEN_SKILL_FILE,
+				type: eventConstants.MARKETPLACE.OPEN_SKILL_FILE,
 				skillName,
 			} satisfies WebviewMessage)
 		},
 
 		updateSkillModes(skillName: string, skillModeSlugs: string[] | undefined) {
 			vscode.postMessage({
-				type: MARKETPLACE_UPDATE_SKILL_MODES,
+				type: eventConstants.MARKETPLACE.UPDATE_SKILL_MODES,
 				skillName,
 				skillModeSlugs,
 			} satisfies WebviewMessage)
@@ -104,7 +95,7 @@ export const MarketplaceStore = types
 
 		createSkill(skillName: string, fileContent?: string, modeSlugs?: string[] | undefined) {
 			vscode.postMessage({
-				type: MARKETPLACE_CREATE_SKILL,
+				type: eventConstants.MARKETPLACE.CREATE_SKILL,
 				skillName,
 				...(fileContent !== undefined && { fileContent }),
 				...(modeSlugs !== undefined && { modeSlugs }),
@@ -113,14 +104,14 @@ export const MarketplaceStore = types
 
 		refreshCustomTools() {
 			vscode.postMessage({
-				type: MARKETPLACE_REFRESH_CUSTOM_TOOLS,
+				type: eventConstants.MARKETPLACE.REFRESH_CUSTOM_TOOLS,
 			} satisfies WebviewMessage)
 		},
 
 		// ── Upsells ────────────────────────────────────────────────
 		getDismissedUpsells() {
 			vscode.postMessage({
-				type: SETTINGS_GET_DISMISSED_UPSELLS,
+				type: eventConstants.SETTINGS.GET_DISMISSED_UPSELLS,
 			} satisfies WebviewMessage)
 		},
 
@@ -133,8 +124,6 @@ export const MarketplaceStore = types
 	}))
 
 export type IMarketplaceStore = Instance<typeof MarketplaceStore>
-export const marketplaceStore = MarketplaceStore.create({
-	marketplaceItems: [],
-	marketplaceInstalledMetadata: { project: {}, global: {} },
-	skills: [],
-})
+// ── Instance is created by RootStore — do NOT create module-level singleton ──
+// Dual instantiation would create two separate MST instances.
+// Use `rootStore.marketplace` or `getRootStore().marketplace` instead.

@@ -8,7 +8,7 @@
 
 import { EventEmitter } from "events"
 
-import { ClineMessage, ClineAsk } from "@jabberwock/types"
+import { Notification, NotificationAsk } from "@jabberwock/types"
 
 import type { AgentStateInfo } from "./agent-state.js"
 
@@ -33,12 +33,12 @@ export interface ClientEventMap {
 	/**
 	 * Emitted when a new message is added to the message list.
 	 */
-	message: ClineMessage
+	message: Notification
 
 	/**
 	 * Emitted when an existing message is updated (e.g., partial -> complete).
 	 */
-	messageUpdated: ClineMessage
+	messageUpdated: Notification
 
 	/**
 	 * Emitted when the agent starts waiting for user input.
@@ -99,11 +99,11 @@ export interface AgentStateChangeEvent {
  */
 export interface WaitingForInputEvent {
 	/** The specific ask type */
-	ask: ClineAsk
+	ask: NotificationAsk
 	/** Full state info for context */
 	stateInfo: AgentStateInfo
 	/** The message that triggered this wait */
-	message: ClineMessage
+	message: Notification
 }
 
 /**
@@ -115,7 +115,7 @@ export interface TaskCompletedEvent {
 	/** The final state info */
 	stateInfo: AgentStateInfo
 	/** The completion message if available */
-	message?: ClineMessage
+	message?: Notification
 }
 
 /**

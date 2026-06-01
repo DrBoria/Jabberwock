@@ -20,7 +20,7 @@ export async function openFile(filePath: string, options: OpenFileOptions = {}) 
 			filePath = decodeURIComponent(filePath)
 		} catch (decodeError) {
 			// If decoding fails (e.g., invalid escape sequences), continue with the original path
-			console.warn(`Failed to decode file path: ${decodeError}. Using original path.`)
+			console.warn(`[jabberwock] Failed to decode file path: ${decodeError}. Using original path.`)
 		}
 
 		const workspaceRoot = getWorkspacePath()
@@ -77,7 +77,7 @@ export async function openFile(filePath: string, options: OpenFileOptions = {}) 
 					await vscode.commands.executeCommand("list.expand")
 				} catch (expandError) {
 					// Log or handle if expansion specifically fails, though often not critical
-					console.warn("Could not expand directory in explorer:", expandError)
+					console.warn("[jabberwock] Could not expand directory in explorer:", expandError)
 				}
 				return // Done for directories
 			}

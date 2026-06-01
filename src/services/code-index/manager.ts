@@ -1,5 +1,5 @@
 import * as vscode from "vscode"
-import { ContextProxy } from "../../core/config/ContextProxy"
+import type { VscodeContextAccess } from "../../features/foundation/vscode/context"
 import { VectorStoreSearchResult } from "./interfaces"
 import { IndexingState } from "./interfaces/manager"
 import { CodeIndexConfigManager } from "./config-manager"
@@ -8,7 +8,7 @@ import { CodeIndexServiceFactory } from "./service-factory"
 import { CodeIndexSearchService } from "./search-service"
 import { CodeIndexOrchestrator } from "./orchestrator"
 import { CacheManager } from "./cache-manager"
-import { JabberwockIgnoreController } from "../../core/ignore/JabberwockIgnoreController"
+import { readIgnoreFile } from "@utils/ignore"
 import fs from "fs/promises"
 import ignore from "ignore"
 import path from "path"
@@ -109,7 +109,7 @@ export class CodeIndexManager {
 	 * Must be called before using any other methods.
 	 * @returns Object indicating if a restart is needed
 	 */
-	public async initialize(contextProxy: ContextProxy): Promise<{ requiresRestart: boolean }> {
+	public async initialize(contextProxy: VscodeContextAccess): Promise<{ requiresRestart: boolean }> {
 		// 1. ConfigManager Initialization and Configuration Loading
 		if (!this._configManager) {
 			this._configManager = new CodeIndexConfigManager(contextProxy)
@@ -223,7 +223,7 @@ export class CodeIndexManager {
 		try {
 			this._stateManager.setSystemState("Standby", "")
 		} catch (error) {
-			console.error("Failed to clear error state during recovery:", error)
+			console.error("[jabberwock] Failed to clear error state during recovery:", error)
 		} finally {
 			this._configManager = undefined
 			this._serviceFactory = undefined
@@ -303,7 +303,7 @@ export class CodeIndexManager {
 				ignoreInstance.add(".gitignore")
 			}
 		} catch (error) {
-			console.error("Unexpected error loading .gitignore:", error)
+			console.error("[jabberwock] Unexpected error loading .gitignore:", error)
 			getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
 				error: error instanceof Error ? error.message : String(error),
 				stack: error instanceof Error ? error.stack : undefined,
@@ -311,14 +311,13 @@ export class CodeIndexManager {
 			})
 		}
 
-		const jabberwockIgnoreController = new JabberwockIgnoreController(workspacePath)
-		await jabberwockIgnoreController.initialize()
+		const ignorePatterns = await readIgnoreFile(workspacePath)
 
 		const { embedder, vectorStore, scanner, fileWatcher } = this._serviceFactory.createServices(
 			this.context,
 			this._cacheManager!,
 			ignoreInstance,
-			jabberwockIgnoreController,
+			ignorePatterns,
 		)
 
 		const validationResult = await this._serviceFactory.validateEmbedder(embedder)
@@ -370,7 +369,7 @@ export class CodeIndexManager {
 
 					await this._recreateServices()
 				} catch (error) {
-					console.error("Failed to recreate services:", error)
+					console.error("[jabberwock] Failed to recreate services:", error)
 					getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
 						error: error instanceof Error ? error.message : String(error),
 						stack: error instanceof Error ? error.stack : undefined,

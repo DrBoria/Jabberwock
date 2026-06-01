@@ -10,7 +10,6 @@ import { mentionRegex, unescapeSpaces } from "@shared/context-mentions"
 
 import { Mode, getAllModes } from "@shared/modes"
 
-import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { rootStore } from "@src/features/store"
 import { useChatUI } from "@src/features/chat/store"
@@ -22,20 +21,19 @@ import {
 	removeMention,
 	shouldShowContextMenu,
 } from "@src/features/chat/text-area/utils/context-mentions"
-import { DynamicTextAreaStore } from "@src/features/chat/text-area/store"
 import { cn } from "@src/lib/utils"
-import { StandardTooltip } from "@src/components/ui/standard-tooltip"
-import { Button } from "@src/components/ui/button"
-import { Container } from "@src/components/ui/Container"
+import { StandardTooltip } from "@src/features/foundation/ui/standard-tooltip"
+import { Button } from "@src/features/foundation/ui/button"
+import { Container } from "@src/features/foundation/ui/Container"
 
-import Thumbnails from "@src/components/common/Thumbnails"
-import { ModeSelector } from "@src/features/foundation/agent-state/mode-selector/mode-selector"
-import { ApiConfigSelector } from "@src/features/foundation/agent-state/api-config/api-config-selector"
-import { AutoApproveDropdown } from "@src/features/foundation/agent-state/auto-approve/auto-approve-dropdown"
+import Thumbnails from "@src/features/foundation/components/Thumbnails"
+import { ModeSelector } from "@src/features/settings/agents/mode-selector/mode-selector"
+import { ApiConfigSelector } from "@src/features/settings/agents/api-config/api-config-selector"
+import { AutoApproveDropdown } from "@src/features/settings/agents/auto-approve/auto-approve-dropdown"
 import ContextMenu from "./mention/context-menu"
-import { IndexingStatusBadge } from "@src/features/foundation/agent-state/indexing/indexing-status-badge"
+import { IndexingStatusBadge } from "@src/features/settings/agents/indexing/indexing-status-badge"
 import { usePromptHistory } from "@src/features/chat/text-area/hooks/use-prompt-history"
-import { CloudAccountSwitcher } from "@src/components/cloud/CloudAccountSwitcher"
+import { CloudAccountSwitcher } from "@src/features/cloud/components/CloudAccountSwitcher"
 
 import {
 	isUrl,
@@ -86,52 +84,27 @@ const DynamicTextAreaComponent = forwardRef<HTMLTextAreaElement, DynamicTextArea
 	) => {
 		const { t } = useAppTranslation()
 		const ui = useChatUI()
-		const {
-			filePaths,
-			openedTabs,
-			currentApiConfigName,
-			listApiConfigMeta,
-			customModes,
-			customModePrompts,
-			cwd,
-			pinnedApiConfigs,
-			togglePinnedApiConfig,
-			taskHistory,
-			clineMessages,
-			commands,
-			cloudUserInfo,
-			enterBehavior,
-			lockApiConfigAcrossModes,
-			devtoolEnabled,
-			mode,
-			setMode,
-		} = useExtensionState()
+		const filePaths = rootStore.filePaths
+		const openedTabs = rootStore.openedTabs
+		const currentApiConfigName = rootStore.extensionState.currentApiConfigName
+		const listApiConfigMeta = rootStore.extensionState.listApiConfigMeta
+		const customModes = rootStore.extensionState.customModes
+		const customModePrompts = rootStore.extensionState.customModePrompts
+		const cwd = rootStore.extensionState.cwd
+		const pinnedApiConfigs = rootStore.extensionState.pinnedApiConfigs
+		const togglePinnedApiConfig = rootStore.togglePinnedApiConfig
+		const taskHistory = rootStore.extensionState.taskHistory
+		const messages = rootStore.extensionState.messages
+		const commands = rootStore.extensionCommands
+		const cloudUserInfo = rootStore.extensionState.cloudUserInfo
+		const enterBehavior = rootStore.extensionState.enterBehavior
+		const lockApiConfigAcrossModes = rootStore.extensionState.lockApiConfigAcrossModes
+		const devtoolEnabled = rootStore.extensionState.devtoolEnabled
+		const mode = rootStore.extensionState.mode
+		const setMode = rootStore.setMode
 
 		// Find the ID and display text for the currently selected API configuration.
-		const textAreaStore = useMemo(
-			() =>
-				DynamicTextAreaStore.create({
-					cursorPosition: 0,
-					intendedCursorPosition: -1,
-					showContextMenu: false,
-					selectedMenuIndex: -1,
-					selectedType: ContextMenuOptionType.None,
-					searchQuery: "",
-					searchLoading: false,
-					searchRequestId: "",
-					isMouseDownOnMenu: false,
-					justDeletedSpaceAfterMention: false,
-					isDraggingOver: false,
-					isFocused: false,
-					showDropdown: false,
-					gitCommits: [],
-					fileSearchResults: [],
-					isEnhancingPrompt: false,
-					isTtsPlaying: false,
-					textAreaBaseHeight: -1,
-				}),
-			[],
-		)
+		const textAreaStore = rootStore.chat.textArea
 
 		const { currentConfigId, displayName } = useMemo(() => {
 			const currentConfig = listApiConfigMeta?.find((config) => config.name === currentApiConfigName)
@@ -239,7 +212,7 @@ const DynamicTextAreaComponent = forwardRef<HTMLTextAreaElement, DynamicTextArea
 
 		// Use custom hook for prompt history navigation
 		const { handleHistoryNavigation, resetHistoryNavigation, resetOnInputChange } = usePromptHistory({
-			clineMessages,
+			messages,
 			taskHistory,
 			cwd,
 			inputValue: ui.inputValue,

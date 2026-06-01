@@ -12,6 +12,10 @@ import {
 import type { ApiHandlerOptions } from "../../../shared/api"
 import { parseApiPrice } from "../../../shared/cost"
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return value !== null && typeof value === "object" && !Array.isArray(value)
+}
+
 /**
  * OpenRouterBaseModel
  */
@@ -99,36 +103,84 @@ export async function getOpenRouterModels(options?: ApiHandlerOptions): Promise<
 	const baseURL = options?.openRouterBaseUrl || "https://openrouter.ai/api/v1"
 
 	try {
-		const response = await axios.get<OpenRouterModelsResponse>(`${baseURL}/models`)
+		const response = await axios.get<unknown>(`${baseURL}/models`, {
+			headers: {
+				Accept: "application/json",
+				"User-Agent": "Jabberwock/1.0",
+			},
+			// Bypass any global proxy configuration for this request.
+			// The OpenRouter API must be called directly — proxy is only intended
+			// for LLM inference traffic, not for model/metadata discovery.
+			proxy: false,
+		})
 		const result = openRouterModelsResponseSchema.safeParse(response.data)
-		const data = result.success ? result.data.data : response.data.data
 
 		if (!result.success) {
-			console.error("OpenRouter models response is invalid", result.error.format())
+			const contentType = response.headers?.["content-type"] ?? "unknown"
+			console.error(
+				"[jabberwock] OpenRouter models response is invalid. Zod error:",
+				result.error.format(),
+				"\n  HTTP status:",
+				response.status,
+				"\n  Content-Type:",
+				contentType,
+				"\n  Response body:",
+				typeof response.data === "object"
+					? JSON.stringify(response.data).slice(0, 500)
+					: String(response.data).slice(0, 500),
+			)
+
+			// If we got an HTML response, the request likely went through a proxy/gateway.
+			// Log a clear hint for the user.
+			if (typeof contentType === "string" && contentType.includes("text/html")) {
+				console.error(
+					"[jabberwock] Received HTML response from OpenRouter API — this usually means a proxy server intercepted the request.",
+				)
+			}
 		}
 
-		for (const model of data) {
-			const { id, architecture, top_provider, supported_parameters = [] } = model
+		// Safely extract data array — the API may return an error response instead of { data: [...] }
+		const rawData: unknown = result.success
+			? result.data.data
+			: isRecord(response.data)
+				? response.data.data
+				: undefined
 
-			// Skip image generation models (models that output images)
-			if (architecture?.output_modalities?.includes("image")) {
-				continue
+		if (!Array.isArray(rawData)) {
+			if (!result.success) {
+				console.error("[jabberwock] OpenRouter models response data is not an array, got:", typeof rawData)
 			}
+			return models
+		}
 
-			const parsedModel = parseOpenRouterModel({
-				id,
-				model,
-				inputModality: architecture?.input_modalities,
-				outputModality: architecture?.output_modalities,
-				maxTokens: top_provider?.max_completion_tokens,
-				supportedParameters: supported_parameters,
+		for (const model of rawData) {
+			if (!isRecord(model)) continue
+			const parsed = modelRouterBaseModelSchema.safeParse(model)
+			if (!parsed.success) continue
+			const modelId = String(model.id ?? "")
+			const architecture = isRecord(model.architecture) ? model.architecture : undefined
+			const topProvider = isRecord(model.top_provider) ? model.top_provider : undefined
+			models[modelId] = parseOpenRouterModel({
+				id: modelId,
+				model: parsed.data,
+				inputModality: Array.isArray(architecture?.input_modalities)
+					? architecture.input_modalities.filter((v): v is string => typeof v === "string")
+					: undefined,
+				outputModality: Array.isArray(architecture?.output_modalities)
+					? architecture.output_modalities.filter((v): v is string => typeof v === "string")
+					: undefined,
+				maxTokens:
+					typeof topProvider?.max_completion_tokens === "number"
+						? topProvider.max_completion_tokens
+						: undefined,
+				supportedParameters: Array.isArray(model.supported_parameters)
+					? model.supported_parameters.filter((p): p is string => typeof p === "string")
+					: undefined,
 			})
-
-			models[id] = parsedModel
 		}
 	} catch (error) {
 		console.error(
-			`Error fetching OpenRouter models: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`,
+			`[jabberwock] Error fetching OpenRouter models: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`,
 		)
 	}
 
@@ -147,14 +199,42 @@ export async function getOpenRouterModelEndpoints(
 	const baseURL = options?.openRouterBaseUrl || "https://openrouter.ai/api/v1"
 
 	try {
-		const response = await axios.get<OpenRouterModelEndpointsResponse>(`${baseURL}/models/${modelId}/endpoints`)
+		const response = await axios.get<unknown>(`${baseURL}/models/${modelId}/endpoints`, {
+			headers: {
+				Accept: "application/json",
+				"User-Agent": "Jabberwock/1.0",
+			},
+			// Bypass any global proxy configuration for this request.
+			// The OpenRouter API must be called directly — proxy is only intended
+			// for LLM inference traffic, not for model/metadata discovery.
+			proxy: false,
+		})
 		const result = openRouterModelEndpointsResponseSchema.safeParse(response.data)
-		const data = result.success ? result.data.data : response.data.data
 
 		if (!result.success) {
-			console.error("OpenRouter model endpoints response is invalid", result.error.format())
+			const contentType = response.headers?.["content-type"] ?? "unknown"
+			const responseBody = typeof response.data === "string" ? response.data : JSON.stringify(response.data)
+			console.error(
+				"[jabberwock] OpenRouter model endpoints response is invalid.",
+				responseBody.slice(0, 200),
+				"\n  Zod error:",
+				result.error.format(),
+				"\n  HTTP status:",
+				response.status,
+				"\n  Content-Type:",
+				contentType,
+			)
+
+			if (typeof contentType === "string" && contentType.includes("text/html")) {
+				console.error(
+					"[jabberwock] Received HTML response from OpenRouter API — this usually means a proxy server intercepted the request.",
+				)
+			}
+
+			return models
 		}
 
+		const data = result.data.data
 		const { id, architecture, endpoints } = data
 
 		// Skip image generation models (models that output images)
@@ -173,7 +253,7 @@ export async function getOpenRouterModelEndpoints(
 		}
 	} catch (error) {
 		console.error(
-			`Error fetching OpenRouter model endpoints: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`,
+			`[jabberwock] Error fetching OpenRouter model endpoints: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`,
 		)
 	}
 

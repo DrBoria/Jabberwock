@@ -4,14 +4,14 @@ import { GitBranch, Check, ChevronDown, Plus } from "lucide-react"
 import type { Worktree, WorktreeListResponse } from "@jabberwock/types"
 
 import { cn } from "@/lib/utils"
-import { useJabberwockPortal } from "@src/components/ui/hooks/useJabberwockPortal"
-import { Popover, PopoverContent, PopoverTrigger } from "@src/components/ui/popover"
-import { StandardTooltip } from "@src/components/ui/standard-tooltip"
-import { Button } from "@src/components/ui/button"
+import { useJabberwockPortal } from "@src/features/foundation/ui/hooks/useJabberwockPortal"
+import { Popover, PopoverContent, PopoverTrigger } from "@src/features/foundation/ui/popover"
+import { StandardTooltip } from "@src/features/foundation/ui/standard-tooltip"
+import { Button } from "@src/features/foundation/ui/button"
 import { useAppTranslation } from "@/i18n/TranslationContext"
 
-import { CreateWorktreeModal } from "@src/components/worktrees/CreateWorktreeModal"
-import { IconButton } from "@src/components/ui"
+import { CreateWorktreeModal } from "@src/features/settings/components/CreateWorktreeModal"
+import { IconButton } from "@src/features/foundation/ui"
 
 interface WorktreeSelectorProps {
 	disabled?: boolean

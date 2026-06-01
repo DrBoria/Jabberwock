@@ -4,17 +4,19 @@ import * as diff from "diff"
 import stripBom from "strip-bom"
 import delay from "delay"
 
-import { type ClineSayTool, DEFAULT_WRITE_DELAY_MS } from "@jabberwock/types"
+import { type SayToolData, DEFAULT_WRITE_DELAY_MS } from "@jabberwock/types"
 
 import { createDirectoriesForFile } from "../../utils/fs"
 import { arePathsEqual, getReadablePath } from "../../utils/path"
-import { formatResponse } from "../../core/prompts/responses"
+import { formatResponse } from "../../features/settings/context/responses"
 import { diagnosticsToProblemsString, getNewDiagnostics } from "../diagnostics"
-import { Task } from "../../features/chat/task/Task"
+import type { ITaskModel } from "../../features/chat/task/store"
+import { userBroadcast } from "../../features/chat/task/messages/actions/say"
 
 import { DecorationController } from "./DecorationController"
+import { getVirtualWorkspace } from "../../features/foundation/time-machine/actions/getTimeMachine"
 
-export const DIFF_VIEW_URI_SCHEME = "cline-diff"
+export const DIFF_VIEW_URI_SCHEME_JABBERWOCK = "jabberwock-diff"
 export const DIFF_VIEW_LABEL_CHANGES = "Original ↔ Jabberwock's Changes"
 
 // TODO: https://github.com/cline/cline/pull/3354
@@ -34,11 +36,11 @@ export class DiffViewProvider {
 	private activeLineController?: DecorationController
 	private streamedLines: string[] = []
 	private preDiagnostics: [vscode.Uri, vscode.Diagnostic[]][] = []
-	private taskRef: WeakRef<Task>
+	private taskRef: WeakRef<ITaskModel>
 
 	constructor(
 		private cwd: string,
-		task: Task,
+		task: ITaskModel,
 	) {
 		this.taskRef = new WeakRef(task)
 	}
@@ -62,10 +64,10 @@ export class DiffViewProvider {
 		}
 
 		// Get diagnostics before editing the file, we'll compare to diagnostics
-		// after editing to see if cline needs to fix anything.
+		// after editing to see if jabberwock needs to fix anything.
 		this.preDiagnostics = vscode.languages.getDiagnostics()
 
-		const vfs = this.taskRef.deref()?.virtualWorkspace
+		const vfs = getVirtualWorkspace()
 		if (!vfs) {
 			throw new Error("Task virtual workspace not available")
 		}
@@ -105,7 +107,7 @@ export class DiffViewProvider {
 				try {
 					await vscode.window.tabGroups.close(tab)
 				} catch (err) {
-					console.error(`Failed to close tab ${tab.label}`, err)
+					console.error(`[jabberwock] Failed to close tab ${tab.label}`, err)
 				}
 			}
 			this.documentWasOpen = true
@@ -227,7 +229,7 @@ export class DiffViewProvider {
 		const updatedDocument = this.activeDiffEditor.document
 		const editedContent = updatedDocument.getText()
 
-		const vfs = this.taskRef.deref()?.virtualWorkspace
+		const vfs = getVirtualWorkspace()
 		if (!vfs) {
 			throw new Error("Task virtual workspace not available")
 		}
@@ -272,16 +274,14 @@ export class DiffViewProvider {
 				await delay(safeDelayMs)
 			} catch (error) {
 				// Log error but continue - delay failure shouldn't break the save operation
-				console.warn(`Failed to apply write delay: ${error}`)
+				console.warn(`[jabberwock] Failed to apply write delay: ${error}`)
 			}
 
 			const postDiagnostics = vscode.languages.getDiagnostics()
 
-			// Get diagnostic settings from state
-			const task = this.taskRef.deref()
-			const state = await task?.providerRef.deref()?.getState()
-			const includeDiagnosticMessages = state?.includeDiagnosticMessages ?? true
-			const maxDiagnosticMessages = state?.maxDiagnosticMessages ?? 50
+			// Get diagnostic settings (stored in webview, not in backend MST store)
+			const includeDiagnosticMessages = true
+			const maxDiagnosticMessages = 50
 
 			const newProblems = await diagnosticsToProblemsString(
 				getNewDiagnostics(this.preDiagnostics, postDiagnostics),
@@ -338,7 +338,7 @@ export class DiffViewProvider {
 	 * @param isNewFile Whether this is a new file or an existing file being modified
 	 * @returns Formatted message (JSON)
 	 */
-	async pushToolWriteResult(task: Task, cwd: string, isNewFile: boolean): Promise<string> {
+	async pushToolWriteResult(task: ITaskModel, cwd: string, isNewFile: boolean): Promise<string> {
 		if (!this.relPath) {
 			throw new Error("No file path available in DiffViewProvider")
 		}
@@ -346,14 +346,14 @@ export class DiffViewProvider {
 		// Only send user_feedback_diff if userEdits exists
 		if (this.userEdits) {
 			// Create say object for UI feedback
-			const say: ClineSayTool = {
+			const sayPayload: SayToolData = {
 				tool: isNewFile ? "newFileCreated" : "editedExistingFile",
 				path: getReadablePath(cwd, this.relPath),
 				diff: this.userEdits,
 			}
 
 			// Send the user feedback
-			await task.say("user_feedback_diff", JSON.stringify(say))
+			await userBroadcast(task.taskId, "user_feedback_diff", JSON.stringify(sayPayload))
 		}
 
 		// Build notices array
@@ -406,7 +406,7 @@ export class DiffViewProvider {
 
 			await this.closeAllDiffViews()
 
-			const vfs = this.taskRef.deref()?.virtualWorkspace
+			const vfs = getVirtualWorkspace()
 			if (vfs) {
 				await vfs.unlink(absolutePath)
 
@@ -453,7 +453,7 @@ export class DiffViewProvider {
 				// Check for standard diff views with our URI scheme
 				if (
 					tab.input instanceof vscode.TabInputTextDiff &&
-					tab.input.original.scheme === DIFF_VIEW_URI_SCHEME &&
+					tab.input.original.scheme === DIFF_VIEW_URI_SCHEME_JABBERWOCK &&
 					!tab.isDirty
 				) {
 					return true
@@ -472,7 +472,7 @@ export class DiffViewProvider {
 				vscode.window.tabGroups.close(tab).then(
 					() => undefined,
 					(err) => {
-						console.error(`Failed to close diff tab ${tab.label}`, err)
+						console.error(`[jabberwock] Failed to close diff tab ${tab.label}`, err)
 					},
 				),
 			)
@@ -497,7 +497,7 @@ export class DiffViewProvider {
 			.find(
 				(tab) =>
 					tab.input instanceof vscode.TabInputTextDiff &&
-					tab.input?.original?.scheme === DIFF_VIEW_URI_SCHEME &&
+					tab.input?.original?.scheme === DIFF_VIEW_URI_SCHEME_JABBERWOCK &&
 					arePathsEqual(tab.input.modified.fsPath, uri.fsPath),
 			)
 
@@ -578,7 +578,7 @@ export class DiffViewProvider {
 					// Execute the diff command after ensuring the file is open as text
 					return vscode.commands.executeCommand(
 						"vscode.diff",
-						vscode.Uri.parse(`${DIFF_VIEW_URI_SCHEME}:${fileName}`).with({
+						vscode.Uri.parse(`${DIFF_VIEW_URI_SCHEME_JABBERWOCK}:${fileName}`).with({
 							query: Buffer.from(this.originalContent ?? "").toString("base64"),
 						}),
 						uri,
@@ -688,7 +688,7 @@ export class DiffViewProvider {
 	}> {
 		const absolutePath = path.resolve(this.cwd, relPath)
 
-		const vfs = this.taskRef.deref()?.virtualWorkspace
+		const vfs = getVirtualWorkspace()
 		if (!vfs) {
 			throw new Error("Task virtual workspace not available")
 		}
@@ -730,16 +730,14 @@ export class DiffViewProvider {
 			try {
 				await delay(safeDelayMs)
 			} catch (error) {
-				console.warn(`Failed to apply write delay: ${error}`)
+				console.warn(`[jabberwock] Failed to apply write delay: ${error}`)
 			}
 
 			const postDiagnostics = vscode.languages.getDiagnostics()
 
-			// Get diagnostic settings from state
-			const task = this.taskRef.deref()
-			const state = await task?.providerRef.deref()?.getState()
-			const includeDiagnosticMessages = state?.includeDiagnosticMessages ?? true
-			const maxDiagnosticMessages = state?.maxDiagnosticMessages ?? 50
+			// Get diagnostic settings (stored in webview, not in backend MST store)
+			const includeDiagnosticMessages = true
+			const maxDiagnosticMessages = 50
 
 			const newProblems = await diagnosticsToProblemsString(
 				getNewDiagnostics(this.preDiagnostics, postDiagnostics),

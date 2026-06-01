@@ -3,7 +3,7 @@ import EventEmitter from "events"
 
 import type {
 	TelemetryEvent,
-	ClineMessage,
+	Notification,
 	CloudServiceEvents,
 	AuthService,
 	SettingsService,
@@ -295,19 +295,15 @@ export class CloudService extends EventEmitter<CloudServiceEvents> implements Di
 
 	// ShareService
 
-	public async shareTask(
-		taskId: string,
-		visibility: ShareVisibility = "organization",
-		clineMessages?: ClineMessage[],
-	) {
+	public async shareTask(taskId: string, visibility: ShareVisibility = "organization", messages?: Notification[]) {
 		this.ensureInitialized()
 
 		try {
 			return await this.shareService!.shareTask(taskId, visibility)
 		} catch (error) {
-			if (error instanceof TaskNotFoundError && clineMessages) {
+			if (error instanceof TaskNotFoundError && messages) {
 				// Backfill messages and retry.
-				await this.telemetryClient!.backfillMessages(clineMessages, taskId)
+				await this.telemetryClient!.backfillMessages(messages, taskId)
 				return await this.shareService!.shareTask(taskId, visibility)
 			}
 

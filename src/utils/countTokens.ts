@@ -4,7 +4,7 @@ import workerpool from "workerpool"
 import { countTokensResultSchema } from "../workers/types"
 import { tiktoken } from "./tiktoken"
 
-let pool: workerpool.Pool | null | undefined = undefined
+let pool: workerpool.Pool | null | undefined
 
 export type CountTokensOptions = {
 	useWorker?: boolean
@@ -39,7 +39,7 @@ export async function countTokens(
 		return result["count"]
 	} catch (error) {
 		pool = null
-		console.error(error)
+		console.error(`[jabberwock]`, error)
 		return tiktoken(content)
 	}
 }

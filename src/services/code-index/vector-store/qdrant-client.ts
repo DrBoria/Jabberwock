@@ -372,7 +372,7 @@ export class QdrantVectorStore implements IVectorStore {
 				wait: true,
 			})
 		} catch (error) {
-			console.error("Failed to upsert points:", error)
+			console.error("[jabberwock] Failed to upsert points:", error)
 			throw error
 		}
 	}
@@ -411,7 +411,7 @@ export class QdrantVectorStore implements IVectorStore {
 						must: Array<{ key: string; match: { value: string } }>
 						must_not?: Array<{ key: string; match: { value: string } }>
 				  }
-				| undefined = undefined
+				| undefined
 
 			if (directoryPrefix) {
 				// Check if the path represents current directory
@@ -469,7 +469,7 @@ export class QdrantVectorStore implements IVectorStore {
 				payload: p.payload as Record<string, unknown>, // isPayloadValid already checked this, but need to satisfy compiler
 			})) as VectorStoreSearchResult[]
 		} catch (error) {
-			console.error("Failed to search points:", error)
+			console.error("[jabberwock] Failed to search points:", error)
 			throw error
 		}
 	}
@@ -537,7 +537,7 @@ export class QdrantVectorStore implements IVectorStore {
 				(err?.status as string) || (errResponse?.status as string) || (err?.statusCode as string)
 			const errorDetails = (errResponse?.data as string) || (err?.data as string) || ""
 
-			console.error(`[QdrantVectorStore] Failed to delete points by file paths:`, {
+			console.error(`[jabberwock] [QdrantVectorStore] Failed to delete points by file paths:`, {
 				error: errorMessage,
 				status: errorStatus,
 				details: errorDetails,
@@ -559,7 +559,7 @@ export class QdrantVectorStore implements IVectorStore {
 				await this.client.deleteCollection(this.collectionName)
 			}
 		} catch (error) {
-			console.error(`[QdrantVectorStore] Failed to delete collection ${this.collectionName}:`, error)
+			console.error(`[jabberwock] [QdrantVectorStore] Failed to delete collection ${this.collectionName}:`, error)
 			throw error // Re-throw to allow calling code to handle it
 		}
 	}
@@ -576,7 +576,7 @@ export class QdrantVectorStore implements IVectorStore {
 				wait: true,
 			})
 		} catch (error) {
-			console.error("Failed to clear collection:", error)
+			console.error("[jabberwock] Failed to clear collection:", error)
 			throw error
 		}
 	}
@@ -625,7 +625,7 @@ export class QdrantVectorStore implements IVectorStore {
 			)
 			return pointsCount > 0
 		} catch (error) {
-			console.warn("[QdrantVectorStore] Failed to check if collection has data:", error)
+			console.warn("[jabberwock] [QdrantVectorStore] Failed to check if collection has data:", error)
 			return false
 		}
 	}
@@ -656,7 +656,7 @@ export class QdrantVectorStore implements IVectorStore {
 			})
 			console.log("[QdrantVectorStore] Marked indexing as complete")
 		} catch (error) {
-			console.error("[QdrantVectorStore] Failed to mark indexing as complete:", error)
+			console.error("[jabberwock] [QdrantVectorStore] Failed to mark indexing as complete:", error)
 			throw error
 		}
 	}
@@ -687,7 +687,7 @@ export class QdrantVectorStore implements IVectorStore {
 			})
 			console.log("[QdrantVectorStore] Marked indexing as incomplete (in progress)")
 		} catch (error) {
-			console.error("[QdrantVectorStore] Failed to mark indexing as incomplete:", error)
+			console.error("[jabberwock] [QdrantVectorStore] Failed to mark indexing as incomplete:", error)
 			throw error
 		}
 	}

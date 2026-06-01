@@ -96,7 +96,7 @@ export interface ApiStreamToolCallEndChunk {
 
 /**
  * Raw tool call chunk from the API stream.
- * Providers emit this simple format; NativeToolCallParser handles all state management
+ * Providers emit this simple format; rawChunkProcessor handles all state management
  * (tracking, buffering, emitting start/delta/end events).
  */
 export interface ApiStreamToolCallPartialChunk {

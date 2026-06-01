@@ -2,7 +2,8 @@ import { z } from "zod"
 
 import { JabberwockEventName } from "./events.ts"
 import type { JabberwockSettings } from "./global-settings.ts"
-import type { ClineMessage, QueuedMessage, TokenUsage } from "./message.ts"
+import type { Notification } from "./notification.ts"
+import type { ChatMessage, QueuedMessage, TokenUsage } from "./message.ts"
 import type { ToolUsage, ToolName } from "./tool.ts"
 import type { StaticAppProperties, GitProperties, TelemetryProperties } from "./telemetry.ts"
 import type { TodoItem } from "./todo.ts"
@@ -128,7 +129,7 @@ export interface TaskLike {
 	readonly childTaskId?: string
 	readonly metadata: TaskMetadata
 	readonly taskStatus: TaskStatus
-	readonly taskAsk: ClineMessage | undefined
+	readonly taskAsk: Notification | undefined
 	readonly queuedMessages: QueuedMessage[]
 	readonly tokenUsage: TokenUsage | undefined
 
@@ -162,7 +163,7 @@ export type TaskEvents = {
 	[JabberwockEventName.TaskDelegationResumed]: [parentTaskId: string, childTaskId: string]
 
 	// Task Execution
-	[JabberwockEventName.Message]: [{ action: "created" | "updated"; message: ClineMessage }]
+	[JabberwockEventName.Message]: [{ action: "created" | "updated"; message: Notification; chatMessage?: ChatMessage }]
 	[JabberwockEventName.TaskModeSwitched]: [taskId: string, mode: string]
 	[JabberwockEventName.TaskAskResponded]: []
 	[JabberwockEventName.TaskUserMessage]: [taskId: string]

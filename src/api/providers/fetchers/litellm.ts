@@ -60,14 +60,14 @@ export async function getLiteLLMModels(apiKey: string, baseUrl: string): Promise
 			}
 		} else {
 			// If response.data.data is not in the expected format, consider it an error.
-			console.error("Error fetching LiteLLM models: Unexpected response format", response.data)
+			console.error("[jabberwock] Error fetching LiteLLM models: Unexpected response format", response.data)
 			throw new Error("Failed to fetch LiteLLM models: Unexpected response format.")
 		}
 
 		return models
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error)
-		console.error("Error fetching LiteLLM models:", message)
+		console.error("[jabberwock] Error fetching LiteLLM models:", message)
 		if (axios.isAxiosError(error) && error.response) {
 			throw new Error(
 				`Failed to fetch LiteLLM models: ${error.response.status} ${error.response.statusText}. Check base URL and API key.`,

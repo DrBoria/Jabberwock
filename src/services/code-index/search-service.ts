@@ -49,7 +49,7 @@ export class CodeIndexSearchService {
 			}
 
 			// Handle directory prefix
-			let normalizedPrefix: string | undefined = undefined
+			let normalizedPrefix: string | undefined
 			if (directoryPrefix) {
 				normalizedPrefix = path.normalize(directoryPrefix)
 			}
@@ -58,7 +58,7 @@ export class CodeIndexSearchService {
 			const results = await this.vectorStore.search(vector, normalizedPrefix, minScore, maxResults)
 			return results
 		} catch (error) {
-			console.error("[CodeIndexSearchService] Error during search:", error)
+			console.error("[jabberwock] [CodeIndexSearchService] Error during search:", error)
 			this.stateManager.setSystemState("Error", `Search failed: ${(error as Error).message}`)
 
 			// Capture telemetry for the error

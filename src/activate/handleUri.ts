@@ -2,30 +2,25 @@ import * as vscode from "vscode"
 
 import { CloudService, getCloudService, hasCloudService } from "@jabberwock/cloud"
 
-import { EventBridge } from "../core/webview/EventBridge"
+import { handleOpenRouterCallback, handleRequestyCallback } from "./oauth-handlers"
 
 export const handleUri = async (uri: vscode.Uri) => {
 	const path = uri.path
 	const query = new URLSearchParams(uri.query.replace(/\+/g, "%2B"))
-	const visibleProvider = await EventBridge.getVisibleInstance()
-
-	if (!visibleProvider) {
-		return
-	}
 
 	switch (path) {
 		case "/openrouter": {
 			const code = query.get("code")
-			if (code && visibleProvider.handleOpenRouterCallback) {
-				await visibleProvider.handleOpenRouterCallback(code)
+			if (code) {
+				await handleOpenRouterCallback(code)
 			}
 			break
 		}
 		case "/requesty": {
 			const code = query.get("code")
 			const baseUrl = query.get("baseUrl")
-			if (code && visibleProvider.handleRequestyCallback) {
-				await visibleProvider.handleRequestyCallback(code, baseUrl)
+			if (code) {
+				await handleRequestyCallback(code, baseUrl)
 			}
 			break
 		}

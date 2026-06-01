@@ -1,5 +1,5 @@
 import { useMemo } from "react"
-import { useExtensionState } from "@src/context/ExtensionStateContext"
+import { rootStore } from "@src/features/store"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { MAX_MCP_TOOLS_THRESHOLD, countEnabledMcpTools } from "@jabberwock/types"
 
@@ -32,7 +32,7 @@ export interface TooManyToolsInfo {
  */
 export function useTooManyTools(): TooManyToolsInfo {
 	const { t } = useAppTranslation()
-	const { mcpServers } = useExtensionState()
+	const mcpServers = rootStore.settings.mcpServers
 
 	const { enabledServerCount, enabledToolCount } = useMemo(() => countEnabledMcpTools(mcpServers), [mcpServers])
 

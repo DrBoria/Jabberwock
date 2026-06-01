@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react"
-import { ToolUseBlock, ToolUseBlockHeader } from "@src/components/common/ToolUseBlock"
-import MarkdownBlock from "@src/components/common/MarkdownBlock"
+import { ToolUseBlock, ToolUseBlockHeader } from "@src/features/foundation/components/ToolUseBlock"
+import MarkdownBlock from "@src/features/foundation/components/MarkdownBlock"
 
 interface TodoItem {
 	id?: string
@@ -73,7 +73,7 @@ const UpdateTodoListToolBlock: React.FC<UpdateTodoListToolBlockProps> = ({
 	useEffect(() => {
 		if (typeof onChange !== "function") {
 			console.warn(
-				"UpdateTodoListToolBlock: onChange callback not passed, cannot notify model after todo changes!",
+				"[jabberwock] UpdateTodoListToolBlock: onChange callback not passed, cannot notify model after todo changes!",
 			)
 		}
 		// Only check once on mount

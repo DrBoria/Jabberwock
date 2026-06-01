@@ -52,7 +52,9 @@ export async function injectVariables<C extends InjectableConfigType>(
 				const nestedValue = value[name]
 
 				if (nestedValue == null) {
-					console.warn(`[injectVariables] variable "${name}" referenced but not found in "${key}"`)
+					console.warn(
+						`[jabberwock] [injectVariables] variable "${name}" referenced but not found in "${key}"`,
+					)
 					return propNotFoundValue ?? match
 				}
 

@@ -4,7 +4,6 @@ import OpenAI from "openai"
 import { type XAIModelId, xaiDefaultModelId, xaiModels, ApiProviderError } from "@jabberwock/types"
 import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 
-import { NativeToolCallParser } from "../../core/assistant-message/NativeToolCallParser"
 import type { ApiHandlerOptions } from "../../shared/api"
 
 import { ApiStream } from "../transform/stream"
@@ -105,7 +104,7 @@ export class XAIHandler extends BaseProvider implements SingleCompletionHandler 
 				}
 			}
 
-			// Handle tool calls in stream - emit partial chunks for NativeToolCallParser
+			// Handle tool calls in stream - emit partial chunks for rawChunkProcessor
 			if (delta?.tool_calls) {
 				for (const toolCall of delta.tool_calls) {
 					yield {
@@ -115,15 +114,6 @@ export class XAIHandler extends BaseProvider implements SingleCompletionHandler 
 						name: toolCall.function?.name,
 						arguments: toolCall.function?.arguments,
 					}
-				}
-			}
-
-			// Process finish_reason to emit tool_call_end events
-			// This ensures tool calls are finalized even if the stream doesn't properly close
-			if (finishReason) {
-				const endEvents = NativeToolCallParser.processFinishReason(finishReason)
-				for (const event of endEvents) {
-					yield event
 				}
 			}
 
@@ -137,11 +127,11 @@ export class XAIHandler extends BaseProvider implements SingleCompletionHandler 
 				const readTokens =
 					cachedTokens ||
 					("cache_read_input_tokens" in chunk.usage
-						? ((chunk.usage as Record<string, unknown>).$1 as number)
+						? ((chunk.usage as Record<string, unknown>).cache_read_input_tokens as number)
 						: 0)
 				const writeTokens =
 					"cache_creation_input_tokens" in chunk.usage
-						? ((chunk.usage as Record<string, unknown>).$1 as number)
+						? ((chunk.usage as Record<string, unknown>).cache_creation_input_tokens as number)
 						: 0
 
 				yield {

@@ -26,10 +26,10 @@ export const forceFullModelDetailsLoad = async (baseUrl: string, modelId: string
 	} catch (error) {
 		const err = error as { code?: string }
 		if (err.code === "ECONNREFUSED") {
-			console.warn(`Error connecting to LMStudio at ${baseUrl}`)
+			console.warn(`[jabberwock] Error connecting to LMStudio at ${baseUrl}`)
 		} else {
 			console.error(
-				`Error refreshing LMStudio model details: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`,
+				`[jabberwock] Error refreshing LMStudio model details: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`,
 			)
 		}
 	}
@@ -79,7 +79,7 @@ export async function getLMStudioModels(baseUrl = "http://localhost:1234"): Prom
 				models[model.path] = parseLMStudioModel(model)
 			}
 		} catch (error) {
-			console.warn("Failed to list downloaded models, falling back to loaded models only")
+			console.warn("[jabberwock] Failed to list downloaded models, falling back to loaded models only")
 		}
 
 		// Get loaded models for their runtime info (context size)
@@ -119,10 +119,10 @@ export async function getLMStudioModels(baseUrl = "http://localhost:1234"): Prom
 	} catch (error) {
 		const err = error as { code?: string }
 		if (err.code === "ECONNREFUSED") {
-			console.warn(`Error connecting to LMStudio at ${baseUrl}`)
+			console.warn(`[jabberwock] Error connecting to LMStudio at ${baseUrl}`)
 		} else {
 			console.error(
-				`Error fetching LMStudio models: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`,
+				`[jabberwock] Error fetching LMStudio models: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`,
 			)
 		}
 	}

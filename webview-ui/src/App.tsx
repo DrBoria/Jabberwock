@@ -4,38 +4,38 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
 import { type ExtensionMessage, type WebviewMessage, TelemetryEventName } from "@jabberwock/types"
 
-import { MarketplaceViewStateManager } from "./components/marketplace/MarketplaceViewStateManager"
+import { MarketplaceViewStateManager } from "./features/marketplace/components/MarketplaceViewStateManager"
 
 import { observer } from "mobx-react-lite"
-import { vscode } from "@jabberwock/devtool/react"
-import { createDomMessageHandler } from "@jabberwock/devtool/react"
+import { vscode } from "@jabberwock/devtool/webview"
+import { createDomMessageHandler } from "@jabberwock/devtool/webview"
 import { telemetryClient } from "./features/cloud/utils/TelemetryClient"
-import { initializeSourceMaps, exposeSourceMapsForDebugging } from "@jabberwock/devtool/react"
-import { useExtensionState } from "./context/ExtensionStateContext"
+import { initializeSourceMaps, exposeSourceMapsForDebugging } from "@jabberwock/devtool/webview"
 import { type WindowTypeValue } from "./features/foundation/window-manager/store"
 import { WindowLayer } from "./features/foundation/window-manager/window-layer"
 
-import ChatView, { ChatViewRef } from "./features/chat/messages-list/view"
+import ChatView, { ChatViewRef } from "./features/chat/task/messages/view"
 import { rootStore, RootStoreContext, createRootStore } from "./features/store"
-import HistoryView from "./components/history/HistoryView"
-import SettingsView, { SettingsViewRef } from "./components/settings/SettingsView"
-import WelcomeView from "./components/welcome/WelcomeViewProvider"
-import { MarketplaceView } from "./components/marketplace/MarketplaceView"
-import { CheckpointRestoreDialog } from "./features/chat/notifications/checkpoint/checkpoint-restore-dialog"
+import HistoryView from "./features/history/components/HistoryView"
+import SettingsView, { SettingsViewRef } from "./features/settings/components/SettingsView"
+import WelcomeView from "./features/chat/extension-state/components/WelcomeViewProvider"
+import { MarketplaceView } from "./features/marketplace/components/MarketplaceView"
+import { CheckpointRestoreDialog } from "./features/chat/task/notifications/checkpoint/checkpoint-restore-dialog"
 import {
 	DeleteMessageDialog,
 	EditMessageDialog,
-} from "./features/chat/notifications/message-modification-confirmation-dialog"
-import ErrorBoundary from "./components/ErrorBoundary"
-import { CloudView } from "./components/cloud/CloudView"
-import { useAddNonInteractiveClickListener } from "./components/ui/hooks/useNonInteractiveClick"
-import { TooltipProvider } from "./components/ui/tooltip"
-import { STANDARD_TOOLTIP_DELAY } from "./components/ui/standard-tooltip"
+} from "./features/chat/task/notifications/message-modification-confirmation-dialog"
+import ErrorBoundary from "./features/foundation/components/ErrorBoundary"
+import { CloudView } from "./features/cloud/components/CloudView"
+import { useAddNonInteractiveClickListener } from "./features/foundation/ui/hooks/useNonInteractiveClick"
+import { TooltipProvider } from "./features/foundation/ui/tooltip"
+import { STANDARD_TOOLTIP_DELAY } from "./features/foundation/ui/standard-tooltip"
 import { McpIframeRenderer } from "./features/settings/mcp/McpIframeRenderer"
 import { getAllModes } from "@shared/modes"
-import { LocatorBridge } from "@jabberwock/devtool/react"
-import { ChatTreeViewer } from "./features/chat/messages-list/sidebar"
-import { chatTreeStore } from "./features/chat/messages-list/store"
+import { LocatorBridge } from "@jabberwock/devtool/webview"
+import { ChatTreeViewer } from "./features/chat/task/messages/components/sidebar"
+import { chatTreeStore } from "./features/chat/task/messages/store"
+import { getFrontendActionBuffer } from "./features/root-store"
 
 interface DeleteMessageDialogState {
 	isOpen: boolean
@@ -67,23 +67,23 @@ const AppContent = observer(() => {
 	const appRenderCount = React.useRef(0)
 	appRenderCount.current++
 	console.log(`[DEBUG:APP] AppContent RENDER #${appRenderCount.current}`)
-	const {
-		didHydrateState,
-		showWelcome,
-		shouldShowAnnouncement,
-		telemetrySetting,
-		telemetryKey,
-		machineId,
-		cloudUserInfo,
-		cloudIsAuthenticated,
-		cloudApiUrl,
-		cloudOrganizations,
-		renderContext,
-		mdmCompliant,
-		interactiveAppUri,
-		setInteractiveAppUri,
-		customModes,
-	} = useExtensionState()
+	const s = rootStore.extensionState
+	const cloud = rootStore.cloud
+	const didHydrateState = rootStore.didHydrateState
+	const showWelcome = rootStore.showWelcome
+	const shouldShowAnnouncement = s.shouldShowAnnouncement
+	const telemetrySetting = s.telemetrySetting
+	const telemetryKey = s.telemetryKey
+	const machineId = s.machineId
+	const cloudUserInfo = s.cloudUserInfo
+	const cloudIsAuthenticated = cloud.cloudIsAuthenticated
+	const cloudApiUrl = s.cloudApiUrl
+	const cloudOrganizations = cloud.cloudOrganizations
+	const renderContext = s.renderContext
+	const mdmCompliant = s.mdmCompliant
+	const interactiveAppUri = rootStore.interactiveAppUri
+	const setInteractiveAppUri = (uri: string) => rootStore.setInteractiveAppUri(uri)
+	const customModes = s.customModes
 
 	const wm = rootStore.windowManager
 	console.log(`[DEBUG:APP] AppContent windows=[${wm.activeWindows.map((w: { type: string }) => w.type).join(",")}]`)
@@ -113,7 +113,7 @@ const AppContent = observer(() => {
 		(newTab: WindowTypeValue, props?: Record<string, unknown>) => {
 			console.log(`[App] switchTab requested: ${newTab}`, props)
 			if (mdmCompliant === false && newTab !== "cloud") {
-				console.warn(`[App] switchTab BLOCKED by mdmCompliant === false`)
+				console.warn(`[jabberwock] [App] switchTab BLOCKED by mdmCompliant === false`)
 				rootStore.chat.showMdmAuthNotification()
 				return
 			}
@@ -170,8 +170,32 @@ const AppContent = observer(() => {
 					}
 
 					// If the message has a requestId, respond with the active page after navigation
+					// Skip store query actions (handled by createDomMessageHandler) and DOM handler
+					// actions (handled by DevtoolProvider) to avoid double-handling
+					const storeQueryActions = [
+						"getRootSnapshot",
+						"getActionBuffer",
+						"applySnapshot",
+						"getConsoleLogs",
+						"searchConsole",
+					]
+					const domHandlerActions = [
+						"getActivePage",
+						"findElement",
+						"clickElement",
+						"typeText",
+						"scrollElement",
+						"selectOption",
+						"getScreenshot",
+						"dragElement",
+						"dragFromTo",
+					]
 					const requestId = message.requestId
-					if (requestId) {
+					if (
+						requestId &&
+						!storeQueryActions.includes(message.action) &&
+						!domHandlerActions.includes(message.action)
+					) {
 						const topWindow = wm.activeWindows[wm.activeWindows.length - 1]
 						const mstPage = topWindow?.type || "chat"
 						rootStore.windowManager.respondWithActivePage(requestId, mstPage)
@@ -209,239 +233,6 @@ const AppContent = observer(() => {
 	)
 
 	useEvent("message", onMessage)
-
-	// ── Store Query Handler (devtool MCP store inspection) ──────────
-	// Handles getStoreSnapshot, getStoreActions, filterStoreActions, etc.
-	// Separate from DevtoolProvider's DOM handler because store queries
-	// need access to rootStore which lives in this module.
-	useEffect(() => {
-		// ── Helper: resolve store by name from rootStore ────────────────
-		function resolveStoreByName(name: string): { store: unknown; label: string } | null {
-			switch (name) {
-				case "rootStore":
-					return { store: rootStore, label: "rootStore" }
-				case "chat":
-					return { store: rootStore.chat, label: "chat" }
-				case "settings":
-					return { store: rootStore.settings, label: "settings" }
-				case "marketplace":
-					return { store: rootStore.marketplace, label: "marketplace" }
-				case "cloud":
-					return { store: rootStore.cloud, label: "cloud" }
-				case "history":
-					return { store: rootStore.history, label: "history" }
-				case "windowManager":
-					return { store: rootStore.windowManager, label: "windowManager" }
-				case "extensionState":
-					return { store: rootStore.extensionState, label: "extensionState" }
-				default:
-					return null
-			}
-		}
-
-		// ── Helper: paginate an array ──────────────────────────────────
-		function paginateArray<T>(items: T[], cursor: number, limit: number) {
-			const page = items.slice(cursor, cursor + limit)
-			return {
-				items: page,
-				cursor: cursor + limit,
-				countLeft: Math.max(0, items.length - cursor - limit),
-				prevCount: cursor,
-				total: items.length,
-			}
-		}
-
-		// ── Helper: get available action names from an MST store ───────
-		function getActionNames(store: unknown): string[] {
-			if (store === null || store === undefined) return []
-			const names = new Set<string>()
-			let proto = Object.getPrototypeOf(store)
-			while (proto && proto !== Object.prototype) {
-				const descriptors = Object.getOwnPropertyDescriptors(proto)
-				for (const [key, desc] of Object.entries(descriptors)) {
-					if (key.startsWith("_") || key === "constructor") continue
-					if (typeof desc.value === "function" && !key.startsWith("$")) {
-						names.add(key)
-					}
-				}
-				proto = Object.getPrototypeOf(proto)
-			}
-			return Array.from(names).sort()
-		}
-
-		// ── Main store action handler ──────────────────────────────────
-		async function handleStoreAction(message: Record<string, unknown>): Promise<void> {
-			const action = message.action as string
-			const requestId = message.requestId as string
-			const storeName = (message.store as string) || "rootStore"
-			const limit = (message.limit as number) || 10
-			const cursor = (message.cursor as number) || 0
-
-			const resolved = resolveStoreByName(storeName)
-			if (!resolved) {
-				vscode.postMessage({
-					type: "domResponse",
-					requestId,
-					text: JSON.stringify({
-						error: `Unknown store '${storeName}'. Available: rootStore, chat, settings, marketplace, cloud, history, windowManager, extensionState`,
-					}),
-				})
-				return
-			}
-
-			switch (action) {
-				case "getStoreSnapshot":
-				case "filterStoreState": {
-					const { getSnapshot } = await import("mobx-state-tree")
-					const snapshot = getSnapshot(resolved.store as never) as Record<string, unknown>
-					const pathFilter =
-						action === "filterStoreState" ? (message.path as string) : (message.path as string | undefined)
-
-					if (pathFilter) {
-						const parts = pathFilter.split(".")
-						let value: unknown = snapshot
-						for (const part of parts) {
-							if (value && typeof value === "object" && part in (value as Record<string, unknown>)) {
-								value = (value as Record<string, unknown>)[part]
-							} else {
-								vscode.postMessage({
-									type: "domResponse",
-									requestId,
-									text: JSON.stringify({ error: `Path '${pathFilter}' not found at '${part}'` }),
-								})
-								return
-							}
-						}
-						if (value && typeof value === "object" && !Array.isArray(value)) {
-							const entries = Object.entries(value as Record<string, unknown>)
-							const result = paginateArray(
-								entries.map(([k, v]) => ({ key: k, value: v })),
-								cursor,
-								limit,
-							)
-							vscode.postMessage({ type: "domResponse", requestId, text: JSON.stringify(result) })
-						} else {
-							vscode.postMessage({
-								type: "domResponse",
-								requestId,
-								text: JSON.stringify({
-									items: [{ path: pathFilter, value }],
-									cursor: 1,
-									countLeft: 0,
-									prevCount: 0,
-									total: 1,
-								}),
-							})
-						}
-						return
-					}
-
-					const entries = Object.entries(snapshot)
-					const result = paginateArray(
-						entries.map(([k, v]) => ({ key: k, value: v })),
-						cursor,
-						limit,
-					)
-					vscode.postMessage({ type: "domResponse", requestId, text: JSON.stringify(result) })
-					break
-				}
-
-				case "getStoreActions": {
-					const actionNames = getActionNames(resolved.store)
-					const result = paginateArray(
-						actionNames.map((name) => ({ name })),
-						cursor,
-						limit,
-					)
-					vscode.postMessage({ type: "domResponse", requestId, text: JSON.stringify(result) })
-					break
-				}
-
-				case "filterStoreActions": {
-					const pattern = ((message.pattern as string) || "").toLowerCase()
-					const allActions = getActionNames(resolved.store)
-					const filtered = allActions.filter((name) => name.toLowerCase().includes(pattern))
-					const result = paginateArray(
-						filtered.map((name) => ({ name })),
-						cursor,
-						limit,
-					)
-					vscode.postMessage({ type: "domResponse", requestId, text: JSON.stringify(result) })
-					break
-				}
-
-				case "searchStoreActions": {
-					const query = ((message.query as string) || "").toLowerCase()
-					const allActions = getActionNames(resolved.store)
-					const matched = allActions.filter((name) => name.toLowerCase().includes(query))
-					const result = paginateArray(
-						matched.map((name) => ({ name })),
-						cursor,
-						limit,
-					)
-					vscode.postMessage({ type: "domResponse", requestId, text: JSON.stringify(result) })
-					break
-				}
-
-				case "countStoreActions": {
-					const actionNames = getActionNames(resolved.store)
-					vscode.postMessage({
-						type: "domResponse",
-						requestId,
-						text: JSON.stringify({ store: storeName, count: actionNames.length }),
-					})
-					break
-				}
-
-				case "applyStoreSnapshot": {
-					const { applySnapshot } = await import("mobx-state-tree")
-					const snapshot = message.snapshot as Record<string, unknown>
-					if (snapshot) {
-						applySnapshot(resolved.store as never, snapshot)
-						vscode.postMessage({
-							type: "domResponse",
-							requestId,
-							text: JSON.stringify({ success: true, store: storeName }),
-						})
-					} else {
-						vscode.postMessage({
-							type: "domResponse",
-							requestId,
-							text: JSON.stringify({ error: "No snapshot provided" }),
-						})
-					}
-					break
-				}
-			}
-		}
-
-		function handleStoreQuery(e: MessageEvent) {
-			const message = e.data as Record<string, unknown>
-			if (message.type !== "action" || !message.requestId) return
-			const action = message.action as string
-			const storeActions = [
-				"getStoreSnapshot",
-				"filterStoreState",
-				"getStoreActions",
-				"filterStoreActions",
-				"searchStoreActions",
-				"countStoreActions",
-				"applyStoreSnapshot",
-			]
-			if (storeActions.includes(action)) {
-				handleStoreAction(message).catch((err) => {
-					console.error("[STORE_QUERY] Error:", err)
-					vscode.postMessage({
-						type: "domResponse",
-						requestId: message.requestId as string,
-						text: JSON.stringify({ error: String(err) }),
-					})
-				})
-			}
-		}
-		window.addEventListener("message", handleStoreQuery)
-		return () => window.removeEventListener("message", handleStoreQuery)
-	}, [])
 
 	useEffect(() => {
 		if (shouldShowAnnouncement) {
@@ -701,10 +492,26 @@ const AppWithProviders = () => {
 	}, [rootStore])
 
 	useEffect(() => {
-		const handler = createDomMessageHandler(postMessage)
+		const handler = createDomMessageHandler(postMessage, rootStore, {
+			getActionBuffer: getFrontendActionBuffer,
+		})
 		window.addEventListener("message", handler)
 		return () => window.removeEventListener("message", handler)
-	}, [postMessage])
+	}, [postMessage, rootStore])
+
+	// Proactive state request: if the "state" message from the extension host
+	// is missed (race condition at startup), the webview will never hydrate
+	// and shows an empty DOM. This timeout sends a requestState message
+	// after 500ms if didHydrateState is still false.
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			if (!rootStore.didHydrateState) {
+				console.warn("[jabberwock] State not received within 500ms — requesting state from extension host")
+				vscode.postMessage({ type: "requestState" })
+			}
+		}, 500)
+		return () => clearTimeout(timer)
+	}, [rootStore])
 
 	return (
 		<RootStoreContext.Provider value={rootStore}>

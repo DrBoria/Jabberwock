@@ -127,14 +127,9 @@ export type IDynamicTextAreaStore = Instance<typeof DynamicTextAreaStore>
 
 // ── Action factory for ChatStore composition ──────────────────────────
 
-import { vscode } from "@jabberwock/devtool/react"
+import { vscode } from "@jabberwock/devtool/webview"
 import type { WebviewMessage } from "@jabberwock/types"
-import {
-	CHAT_TEXT_AREA_DRAGGED_IMAGES,
-	CHAT_TEXT_AREA_ENHANCE_PROMPT,
-	CHAT_TEXT_AREA_SEARCH_FILES,
-	CHAT_TEXT_AREA_SELECT_IMAGES,
-} from "@jabberwock/types"
+import { eventConstants } from "@jabberwock/types"
 
 /**
  * Creates text-area related actions for the ChatStore.
@@ -145,14 +140,14 @@ export function createTextAreaActions(_self: unknown) {
 		// ── Select images ──────────────────────────────────────────
 		selectImages() {
 			vscode.postMessage({
-				type: CHAT_TEXT_AREA_SELECT_IMAGES,
+				type: eventConstants.CHAT.TEXT_AREA.SELECT_IMAGES,
 			} satisfies WebviewMessage)
 		},
 
 		// ── Search files ───────────────────────────────────────────
 		searchFiles(query: string, requestId: string) {
 			vscode.postMessage({
-				type: CHAT_TEXT_AREA_SEARCH_FILES,
+				type: eventConstants.CHAT.TEXT_AREA.SEARCH_FILES,
 				query,
 				requestId,
 			} satisfies WebviewMessage)
@@ -161,7 +156,7 @@ export function createTextAreaActions(_self: unknown) {
 		// ── Dragged images ─────────────────────────────────────────
 		draggedImages(dataUrls: string[]) {
 			vscode.postMessage({
-				type: CHAT_TEXT_AREA_DRAGGED_IMAGES,
+				type: eventConstants.CHAT.TEXT_AREA.DRAGGED_IMAGES,
 				dataUrls,
 			} satisfies WebviewMessage)
 		},
@@ -169,7 +164,7 @@ export function createTextAreaActions(_self: unknown) {
 		// ── Enhance prompt ─────────────────────────────────────────
 		enhancePrompt(text: string) {
 			vscode.postMessage({
-				type: CHAT_TEXT_AREA_ENHANCE_PROMPT,
+				type: eventConstants.CHAT.TEXT_AREA.ENHANCE_PROMPT,
 				text,
 			} satisfies WebviewMessage)
 		},
@@ -177,7 +172,7 @@ export function createTextAreaActions(_self: unknown) {
 		// ── Select images for edit ─────────────────────────────────
 		selectImagesForEdit(context: string, messageTs: number) {
 			vscode.postMessage({
-				type: CHAT_TEXT_AREA_SELECT_IMAGES,
+				type: eventConstants.CHAT.TEXT_AREA.SELECT_IMAGES,
 				context,
 				messageTs,
 			} satisfies WebviewMessage)

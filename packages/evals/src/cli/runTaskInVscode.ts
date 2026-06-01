@@ -6,7 +6,7 @@ import pWaitFor from "p-wait-for"
 import { execa } from "execa"
 
 import {
-	type ClineSay,
+	type NotificationSay,
 	type ToolUsage,
 	TaskCommandName,
 	JabberwockEventName,
@@ -98,7 +98,7 @@ export const runTaskInVscode = async ({ run, task, publish, logger, jobToken }: 
 		log: [JabberwockEventName.TaskTokenUsageUpdated, JabberwockEventName.TaskAskResponded],
 	}
 
-	const loggableSays: ClineSay[] = [
+	const loggableSays: NotificationSay[] = [
 		"error",
 		"command_output",
 		"rooignore_error",

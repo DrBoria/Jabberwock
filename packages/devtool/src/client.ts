@@ -254,7 +254,7 @@ export class DevtoolClient {
 		}
 
 		this.transport.onerror = (err: Error) => {
-			console.error("[DevtoolClient] Transport error:", err.message)
+			console.error("[devtool] [DevtoolClient] Transport error:", err.message)
 		}
 
 		this.transport.onclose = () => {
@@ -268,7 +268,9 @@ export class DevtoolClient {
 			if (this.options.autoReconnect) {
 				console.log("[DevtoolClient] Auto-reconnecting in 1s...")
 				setTimeout(() => {
-					this.connect().catch((err) => console.error("[DevtoolClient] Reconnect failed:", err.message))
+					this.connect().catch((err) =>
+						console.error("[devtool] [DevtoolClient] Reconnect failed:", err.message),
+					)
 				}, 1000)
 			}
 		}
@@ -379,7 +381,7 @@ export class DevtoolClient {
 				return textContent
 			}
 		} catch (error) {
-			console.error(`[DevtoolClient] Tool call failed: ${name}`, error)
+			console.error(`[devtool] [DevtoolClient] Tool call failed: ${name}`, error)
 			throw error
 		}
 	}
@@ -452,10 +454,18 @@ export class DevtoolClient {
 	// ══════════════════════════════════════════════════════════════════════
 
 	/**
-	 * Get console logs from the devtool.
+	 * Get console logs from backend (extension host) or frontend (webview).
+	 * Supports filtering by environment and log level with cursor-based pagination.
 	 */
-	async getConsoleLogs(level?: string, limit?: number, offset?: number): Promise<string> {
-		return this.callTool("get_console_logs", { level, limit, offset }) as Promise<string>
+	async getConsole(env: "backend" | "frontend", level?: string, limit?: number, cursor?: number): Promise<string> {
+		return this.callTool("get_console", { env, level, limit, cursor }) as Promise<string>
+	}
+
+	/**
+	 * Search console logs by text content across backend or frontend.
+	 */
+	async searchConsole(query: string, env?: string, level?: string, limit?: number, cursor?: number): Promise<string> {
+		return this.callTool("search_console", { query, env, level, limit, cursor }) as Promise<string>
 	}
 
 	/**
@@ -489,32 +499,6 @@ export class DevtoolClient {
 		return this.callTool("clear_diagnostics", {}) as Promise<string>
 	}
 
-	// ══════════════════════════════════════════════════════════════════════
-	//  MST STATE
-	// ══════════════════════════════════════════════════════════════════════
-
-	/**
-	 * Query an MST store.
-	 */
-	async getMstState(params: {
-		store?: string
-		mode?: string
-		depth?: number
-		path?: string
-		nodeId?: string
-		fields?: string
-	}): Promise<unknown> {
-		// The server tool is named "get_mst_state" (registered in tools/state.ts).
-		// The bridge's getMstState() implementation handles:
-		//   - mode: "graph" (structural traversal with depth control)
-		//   - mode: "query" with path (dot-separated path resolution on MST proxies)
-		//   - mode: "query" with nodeId (lookup in nodes map)
-		// Store names like "chatStore", "diagnosticsStoreMst", "taskHistoryStoreMst"
-		// map to provider properties (extension-host MST stores).
-		const rawResult = await this.callTool("get_mst_state", params as Record<string, unknown>)
-		return rawResult
-	}
-
 	/**
 	 * Get state from the frontend (webview) or backend store via get_store_state MCP tool.
 	 * Frontend store paths use dot notation, e.g. "chat.tree.activeNodeId".
@@ -522,6 +506,23 @@ export class DevtoolClient {
 	 */
 	async getStoreState(params: { store?: string; path?: string; limit?: number; cursor?: number }): Promise<unknown> {
 		return this.callTool("get_store_state", params as Record<string, unknown>)
+	}
+
+	/**
+	 * Search state by content, ID, or partial text match.
+	 * @param params.store - "backend" or "frontend"
+	 * @param params.query - Search query (matched against all values as strings)
+	 * @param params.limit - Max results (default: 10)
+	 * @param params.cursor - Pagination offset (default: 0)
+	 */
+	async searchState(params: {
+		env: "backend" | "frontend"
+		query: string
+		store?: string
+		limit?: number
+		cursor?: number
+	}): Promise<unknown> {
+		return this.callTool("search_state", params as Record<string, unknown>)
 	}
 
 	/**

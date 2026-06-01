@@ -1,0 +1,108 @@
+import type { GlobalState } from "@jabberwock/types"
+import { EventBridge } from "../../foundation/webview/EventBridge"
+import { IntentType } from "@jabberwock/types"
+import { searchCommits } from "../../../utils/git"
+import { exportSettings } from "../../settings/actions/export"
+import { importSettingsWithFeedback } from "../../settings/actions/importSettings"
+import { t } from "../../../i18n"
+import * as vscode from "vscode"
+import { getSettingsAccess } from "@utils/settings-access"
+import { getVscodeContext } from "../../foundation/vscode/context"
+import { getProviderSettingsManager } from "../../settings/models/ProviderSettingsManager"
+
+import type { IntentBus } from "../../intents/bus"
+import { postStateToWebview } from "../../foundation/window-manager/store"
+import { initHistoryState } from "../../history"
+import { initFoundationState } from "../../foundation"
+import { initChatState } from "../../chat"
+import { initSettingsState } from "../../settings"
+import { initCloudState } from "../../cloud"
+import { initMarketplaceState } from "../../marketplace"
+
+/**
+ * Register all history-related intent handlers on the bus.
+ */
+export function registerOnHistory(bus: IntentBus): void {
+	bus.register(IntentType.HistoryCommitsSearch, async (intent, ctx) => {
+		const provider = ctx.provider
+		if (!provider) return
+
+		const payload = intent.payload as { query?: string }
+		const currentCline = ctx.rootStore.chat.activeTask
+		const cwd = currentCline?.cwd
+		if (cwd) {
+			try {
+				const commits = await searchCommits(payload.query || "", cwd)
+				await provider.postMessageToWebview({
+					type: "commitSearchResults",
+					commits,
+				})
+			} catch (error) {
+				EventBridge.outputChannel?.appendLine(
+					`Error searching commits: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`,
+				)
+				vscode.window.showErrorMessage(t("common:errors.search_commits"))
+			}
+		}
+	})
+
+	bus.register(IntentType.HistorySettingsImport, async (_intent, ctx) => {
+		const provider = ctx.provider
+		if (!provider) return
+
+		await importSettingsWithFeedback({
+			providerSettingsManager: getProviderSettingsManager()!,
+			contextProxy: getSettingsAccess(),
+
+			provider,
+		})
+	})
+
+	bus.register(IntentType.HistorySettingsExport, async (_intent, ctx) => {
+		const provider = ctx.provider
+		if (!provider) return
+
+		await exportSettings({
+			providerSettingsManager: getProviderSettingsManager()!,
+			contextProxy: getSettingsAccess(),
+		})
+	})
+
+	bus.register(IntentType.HistoryStateReset, async (_intent, ctx) => {
+		const provider = ctx.provider
+		if (!provider) return
+
+		const confirm = await vscode.window.showWarningMessage(
+			t("common:confirm.reset_state"),
+			{ modal: true },
+			t("common:yes"),
+		)
+		if (confirm !== t("common:yes")) return
+
+		// Abort current task if any
+		ctx.rootStore.chat.activeTask?.abortTask?.()
+
+		// Clear the task stack
+		ctx.rootStore.chat.clear()
+
+		// Re-initialize all feature stores
+		await initHistoryState(provider, {
+			getGlobalState: (key: string) => getVscodeContext().getGlobalState(key as keyof GlobalState),
+		})
+		await initFoundationState(provider)
+		initChatState(provider)
+		initSettingsState(provider)
+		initCloudState(provider)
+		initMarketplaceState(provider)
+
+		// Post updated state to webview
+		await postStateToWebview(provider)
+	})
+
+	bus.register(IntentType.HistoryButtonClicked, async (_intent, ctx) => {
+		const provider = ctx.provider
+		if (!provider) return
+
+		provider.postMessageToWebview({ type: "action", action: "historyButtonClicked" })
+	})
+}

@@ -1,9 +1,9 @@
-import type { ClineMessage } from "@jabberwock/types"
+import type { Notification } from "@jabberwock/types"
 
 import { detectAgentState } from "../agent-state.js"
 import { taskCompleted } from "../events.js"
 
-function createMessage(overrides: Partial<ClineMessage>): ClineMessage {
+function createMessage(overrides: Partial<Notification>): Notification {
 	return { ts: Date.now() + Math.random() * 1000, type: "say", ...overrides }
 }
 

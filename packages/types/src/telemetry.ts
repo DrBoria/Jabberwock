@@ -1,7 +1,7 @@
 import { z } from "zod"
 
 import { providerNames } from "./provider-settings.ts"
-import { clineMessageSchema } from "./message.ts"
+import { notificationSchema } from "./notification.ts"
 
 /**
  * TelemetrySetting
@@ -221,7 +221,7 @@ export const jabberwockTelemetryEventSchema = z.discriminatedUnion("type", [
 		properties: z.object({
 			...telemetryPropertiesSchema.shape,
 			taskId: z.string(),
-			message: clineMessageSchema,
+			message: notificationSchema,
 		}),
 	}),
 	z.object({
@@ -483,7 +483,11 @@ export function extractApiProviderErrorProperties(error: ApiProviderError): Reco
 /**
  * Reason why the consecutive mistake limit was reached.
  */
-export type ConsecutiveMistakeReason = "no_tools_used" | "tool_repetition" | "unknown"
+export type ConsecutiveMistakeReason =
+	| "no_tools_used"
+	| "tool_repetition"
+	| "unknown"
+	| "consecutive_mistake_tools_used"
 
 /**
  * Error class for "Jabberwock is having trouble" consecutive mistake scenarios.

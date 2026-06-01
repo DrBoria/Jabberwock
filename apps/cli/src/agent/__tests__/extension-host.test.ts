@@ -318,7 +318,7 @@ describe("ExtensionHost", () => {
 			// Simulate extension message.
 			host.emit("extensionWebviewMessage", {
 				type: "state",
-				state: { clineMessages: [] },
+				state: { messages: [] },
 			} as unknown as ExtensionMessage)
 
 			// Message listener is set up in activate(), which we can't easily call in unit tests.

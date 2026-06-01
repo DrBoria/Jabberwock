@@ -1,5 +1,5 @@
 import { ApiHandlerOptions } from "../../shared/api"
-import { ContextProxy } from "../../core/config/ContextProxy"
+import type { VscodeContextAccess } from "../../features/foundation/vscode/context"
 import { EmbedderProvider } from "./interfaces/manager"
 import { CodeIndexConfig, PreviousConfigSnapshot } from "./interfaces/config"
 import { DEFAULT_SEARCH_MIN_SCORE, DEFAULT_MAX_SEARCH_RESULTS } from "./constants"
@@ -27,7 +27,7 @@ export class CodeIndexConfigManager {
 	private searchMinScore?: number
 	private searchMaxResults?: number
 
-	constructor(private readonly contextProxy: ContextProxy) {
+	constructor(private readonly contextProxy: VscodeContextAccess) {
 		// Initialize with current configuration to avoid false restart triggers
 		this._loadAndSetConfiguration()
 	}
@@ -35,7 +35,7 @@ export class CodeIndexConfigManager {
 	/**
 	 * Gets the context proxy instance
 	 */
-	public getContextProxy(): ContextProxy {
+	public getContextProxy(): VscodeContextAccess {
 		return this.contextProxy
 	}
 
@@ -95,7 +95,7 @@ export class CodeIndexConfigManager {
 				this.modelDimension = dimension
 			} else {
 				console.warn(
-					`Invalid codebaseIndexEmbedderModelDimension value: ${rawDimension}. Must be a positive number.`,
+					`[jabberwock] Invalid codebaseIndexEmbedderModelDimension value: ${rawDimension}. Must be a positive number.`,
 				)
 				this.modelDimension = undefined
 			}

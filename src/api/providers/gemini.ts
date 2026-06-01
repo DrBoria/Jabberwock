@@ -258,7 +258,7 @@ export class GeminiHandler extends BaseProvider implements SingleCompletionHandl
 							} else if (part.functionCall) {
 								hasContent = true
 								// Gemini sends complete function calls in a single chunk
-								// Emit as partial chunks for consistent handling with NativeToolCallParser
+								// Emit as partial chunks for consistent handling with rawChunkProcessor
 								const callId = `${part.functionCall.name}-${toolCallCounter}`
 								const args = JSON.stringify(part.functionCall.args)
 

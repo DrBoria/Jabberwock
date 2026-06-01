@@ -26,7 +26,7 @@ import { calculateApiCostAnthropic } from "../../shared/cost"
 import {
 	convertOpenAIToolsToAnthropic,
 	convertOpenAIToolChoiceToAnthropic,
-} from "../../core/prompts/tools/native-tools/converters"
+} from "../../features/settings/context/tools/native-tools/converters"
 
 export class AnthropicHandler extends BaseProvider implements SingleCompletionHandler {
 	private options: ApiHandlerOptions
@@ -307,7 +307,7 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 					break
 				case "content_block_stop":
 					// Block complete - no action needed for now.
-					// NativeToolCallParser handles tool call completion
+					// rawChunkProcessor handles tool call completion
 					// Note: Signature for multi-turn thinking would require using stream.finalMessage()
 					// after iteration completes, which requires restructuring the streaming approach.
 					break

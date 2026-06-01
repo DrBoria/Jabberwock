@@ -166,7 +166,7 @@ export abstract class BaseOpenAiCompatibleProvider<ModelName extends string>
 				}
 			}
 
-			// Emit raw tool call chunks - NativeToolCallParser handles state management
+			// Emit raw tool call chunks - rawChunkProcessor handles state management
 			if (delta?.tool_calls) {
 				for (const toolCall of delta.tool_calls) {
 					if (toolCall.id) {

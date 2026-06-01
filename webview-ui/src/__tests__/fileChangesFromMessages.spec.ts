@@ -1,7 +1,7 @@
-import type { ClineMessage } from "@jabberwock/types"
-import { fileChangesFromMessages } from "../features/chat/messages-list/utils/file-changes-from-messages"
+import type { Notification } from "@jabberwock/types"
+import { fileChangesFromMessages } from "../features/chat/task/messages/components/utils/file-changes-from-messages"
 
-function msg(overrides: Partial<ClineMessage> & { text: string }): ClineMessage {
+function msg(overrides: Partial<Notification> & { text: string }): Notification {
 	return {
 		type: "say",
 		say: "tool",
@@ -21,7 +21,7 @@ describe("fileChangesFromMessages", () => {
 	})
 
 	it("ignores non-tool messages", () => {
-		const messages: ClineMessage[] = [
+		const messages: Notification[] = [
 			msg({ type: "say", say: "text", text: "hello" }),
 			msg({ type: "ask", ask: "followup", text: "world" }),
 		]
@@ -29,7 +29,7 @@ describe("fileChangesFromMessages", () => {
 	})
 
 	it("ignores tool messages with non-file-edit tool type", () => {
-		const messages: ClineMessage[] = [
+		const messages: Notification[] = [
 			msg({
 				type: "ask",
 				ask: "tool",
@@ -40,7 +40,7 @@ describe("fileChangesFromMessages", () => {
 	})
 
 	it("skips partial messages", () => {
-		const messages: ClineMessage[] = [
+		const messages: Notification[] = [
 			msg({
 				type: "ask",
 				ask: "tool",
@@ -68,7 +68,7 @@ describe("fileChangesFromMessages", () => {
 	})
 
 	it("includes ask tool file-edit when isAnswered is true", () => {
-		const messages: ClineMessage[] = [
+		const messages: Notification[] = [
 			msg({
 				type: "ask",
 				ask: "tool",
@@ -86,7 +86,7 @@ describe("fileChangesFromMessages", () => {
 	})
 
 	it("extracts single-file edit from ask tool message", () => {
-		const messages: ClineMessage[] = [
+		const messages: Notification[] = [
 			msg({
 				type: "ask",
 				ask: "tool",
@@ -109,7 +109,7 @@ describe("fileChangesFromMessages", () => {
 	})
 
 	it("extracts single-file edit from say tool message", () => {
-		const messages: ClineMessage[] = [
+		const messages: Notification[] = [
 			msg({
 				type: "say",
 				say: "tool",
@@ -127,7 +127,7 @@ describe("fileChangesFromMessages", () => {
 	})
 
 	it("uses content when diff is missing for single-file", () => {
-		const messages: ClineMessage[] = [
+		const messages: Notification[] = [
 			msg({
 				type: "ask",
 				ask: "tool",
@@ -145,7 +145,7 @@ describe("fileChangesFromMessages", () => {
 	})
 
 	it("ignores single-file tool when path is missing", () => {
-		const messages: ClineMessage[] = [
+		const messages: Notification[] = [
 			msg({
 				type: "ask",
 				ask: "tool",
@@ -159,7 +159,7 @@ describe("fileChangesFromMessages", () => {
 	})
 
 	it("ignores single-file tool when diff and content are empty", () => {
-		const messages: ClineMessage[] = [
+		const messages: Notification[] = [
 			msg({
 				type: "ask",
 				ask: "tool",
@@ -173,7 +173,7 @@ describe("fileChangesFromMessages", () => {
 	})
 
 	it("extracts from batchDiffs", () => {
-		const messages: ClineMessage[] = [
+		const messages: Notification[] = [
 			msg({
 				type: "ask",
 				ask: "tool",
@@ -196,7 +196,7 @@ describe("fileChangesFromMessages", () => {
 	})
 
 	it("includes diffStats from batchDiffs when present", () => {
-		const messages: ClineMessage[] = [
+		const messages: Notification[] = [
 			msg({
 				type: "ask",
 				ask: "tool",
@@ -217,10 +217,10 @@ describe("fileChangesFromMessages", () => {
 		expect(result[0].diffStats).toEqual({ added: 2, removed: 1 })
 	})
 
-	it("recognizes all ClineSayTool file-edit tool names (editedExistingFile, appliedDiff, newFileCreated)", () => {
+	it("recognizes all SayToolData file-edit tool names (editedExistingFile, appliedDiff, newFileCreated)", () => {
 		const tools = ["editedExistingFile", "appliedDiff", "newFileCreated"]
 		for (const tool of tools) {
-			const messages: ClineMessage[] = [
+			const messages: Notification[] = [
 				msg({
 					type: "ask",
 					ask: "tool",
@@ -239,7 +239,7 @@ describe("fileChangesFromMessages", () => {
 	})
 
 	it("returns multiple entries for multiple file-edit messages", () => {
-		const messages: ClineMessage[] = [
+		const messages: Notification[] = [
 			msg({
 				type: "ask",
 				ask: "tool",
@@ -268,7 +268,7 @@ describe("fileChangesFromMessages", () => {
 	})
 
 	it("skips invalid JSON in message text", () => {
-		const messages: ClineMessage[] = [
+		const messages: Notification[] = [
 			msg({
 				type: "ask",
 				ask: "tool",

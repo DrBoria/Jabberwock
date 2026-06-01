@@ -1,6 +1,5 @@
 import { types } from "mobx-state-tree"
 import * as vscode from "vscode"
-import type { Task } from "./chat/task/Task"
 import type WorkspaceTracker from "../integrations/workspace/WorkspaceTracker"
 
 // ─── Non-serializable type aliases ──────────────────────────────────────────
@@ -118,26 +117,6 @@ export const PendingActivePageRequestsType = types.custom<string[], Map<string, 
 })
 
 /**
- * Wraps Map<string, unknown[]> for task event listeners.
- * Snapshot is the list of event names with registered listeners.
- */
-export const TaskEventListenersType = types.custom<string[], Map<string, unknown[]>>({
-	name: "TaskEventListeners",
-	fromSnapshot(_snapshot: string[]) {
-		return new Map()
-	},
-	toSnapshot(value: Map<string, unknown[]>) {
-		return Array.from(value.keys())
-	},
-	isTargetType(value: unknown): value is Map<string, unknown[]> {
-		return value instanceof Map
-	},
-	getValidationMessage() {
-		return ""
-	},
-})
-
-/**
  * Wraps a function reference (callback).
  * Snapshot is the function name or "anonymous".
  */
@@ -158,7 +137,7 @@ export const CallbackType = types.custom<string, (...args: unknown[]) => unknown
 })
 
 /**
- * Wraps Map<string, ChatNode> for messages-list nodes.
+ * Wraps Map<string, ChatNode> for messages nodes.
  * Snapshot is the list of node keys.
  */
 export const NodesMapType = types.custom<string[], Map<string, ChatNode>>({
@@ -171,65 +150,6 @@ export const NodesMapType = types.custom<string[], Map<string, ChatNode>>({
 	},
 	isTargetType(value: unknown): value is Map<string, ChatNode> {
 		return value instanceof Map
-	},
-	getValidationMessage() {
-		return ""
-	},
-})
-
-/**
- * Wraps a reference to a Task class instance.
- * Snapshot is the task ID or empty string.
- */
-export const TaskRefType = types.custom<string, Task | null>({
-	name: "TaskRef",
-	fromSnapshot(_snapshot: string) {
-		return null
-	},
-	toSnapshot(value: Task | null) {
-		return value?.taskId ?? ""
-	},
-	isTargetType(value: unknown): value is Task {
-		return value !== null && typeof value === "object" && "taskId" in value
-	},
-	getValidationMessage() {
-		return ""
-	},
-})
-
-/**
- * Wraps a reference to a TaskCreationCallback function.
- */
-export const TaskCreationCallbackType = types.custom<string, TaskCreationCallback | null>({
-	name: "TaskCreationCallback",
-	fromSnapshot(_snapshot: string) {
-		return null
-	},
-	toSnapshot(value: TaskCreationCallback | null) {
-		return value ? "callback" : ""
-	},
-	isTargetType(value: unknown): boolean {
-		return value === null || typeof value === "function"
-	},
-	getValidationMessage() {
-		return ""
-	},
-})
-
-/**
- * Wraps a Task[] array reference.
- * Snapshot is the count of tasks.
- */
-export const TaskStackType = types.custom<string, Task[]>({
-	name: "TaskStack",
-	fromSnapshot(_snapshot: string) {
-		return []
-	},
-	toSnapshot(value: Task[]) {
-		return `tasks_${value.length}`
-	},
-	isTargetType(value: unknown): value is Task[] {
-		return Array.isArray(value)
 	},
 	getValidationMessage() {
 		return ""

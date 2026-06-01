@@ -17,7 +17,7 @@
 		{
 			"label": "watch:webview",
 			"type": "shell",
-			"command": "pnpm --filter @jabberwock/vscode-webview dev",
+			"command": "pnpm --filter @jabberwock/vscode-webview build:watch",
 			"group": "build",
 			"problemMatcher": {
 				"owner": "vite",
@@ -26,8 +26,8 @@
 				},
 				"background": {
 					"activeOnStart": true,
-					"beginsPattern": ".*VITE.*",
-					"endsPattern": ".*Local:.*"
+					"beginsPattern": ".*vite.*building.*",
+					"endsPattern": ".*built in.*"
 				}
 			},
 			"isBackground": true,
@@ -39,7 +39,7 @@
 		{
 			"label": "watch:bundle",
 			"type": "shell",
-			"command": "npx turbo watch:bundle",
+			"command": "pnpm --filter jabberwock watch:bundle",
 			"group": "build",
 			"problemMatcher": {
 				"owner": "esbuild",
@@ -61,7 +61,7 @@
 		{
 			"label": "watch:tsc",
 			"type": "shell",
-			"command": "npx turbo watch:tsc",
+			"command": "pnpm --filter jabberwock watch:tsc",
 			"group": "build",
 			"problemMatcher": "$tsc-watch",
 			"isBackground": true,

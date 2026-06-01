@@ -1,6 +1,6 @@
 import { types, Instance } from "mobx-state-tree"
-import type { EventBridge } from "../../core/webview/EventBridge"
-import { getState } from "../storeSingleton"
+import type { EventBridge } from "../../features/foundation/webview/EventBridge"
+import { getState } from "@features/storeSingleton"
 
 export const CloudModel = types.model("Cloud", {})
 
@@ -11,8 +11,10 @@ export type CloudState = object
 
 export function initCloudState(_provider: EventBridge): void {}
 
-export function getCloudState(provider: EventBridge): CloudState {
-	return getState(provider).cloud as CloudState
+import type { IBackendRootStore } from "../store"
+
+export function getCloudState(rootStore: IBackendRootStore): CloudState {
+	return rootStore.cloud as CloudState
 }
 
 /**

@@ -23,7 +23,7 @@ export const copyToClipboard = async (text: string, options?: CopyOptions): Prom
 	} catch (error) {
 		const err = error instanceof Error ? error : new Error("Failed to copy to clipboard")
 		options?.onError?.(err)
-		console.error("Failed to copy to clipboard:", err)
+		console.error("[jabberwock] Failed to copy to clipboard:", err)
 		return false
 	}
 }

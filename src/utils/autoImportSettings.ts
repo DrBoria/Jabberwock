@@ -6,7 +6,7 @@ import { Package } from "../shared/package"
 import { fileExistsAtPath } from "./fs"
 import { t } from "../i18n"
 
-import { importSettingsFromPath, ImportOptions } from "../core/config/importExport"
+import { importSettingsFromPath, ImportOptions } from "../features/settings/actions/importSettings"
 
 /**
  * Automatically imports Jabberwock settings from a specified path if it exists.
@@ -15,7 +15,7 @@ import { importSettingsFromPath, ImportOptions } from "../core/config/importExpo
  */
 export async function autoImportSettings(
 	outputChannel: vscode.OutputChannel,
-	{ providerSettingsManager, contextProxy, customModesManager }: ImportOptions,
+	{ providerSettingsManager, contextProxy }: ImportOptions,
 ): Promise<void> {
 	try {
 		// Get the auto-import settings path from VSCode settings
@@ -40,7 +40,6 @@ export async function autoImportSettings(
 		const result = await importSettingsFromPath(resolvedPath, {
 			providerSettingsManager,
 			contextProxy,
-			customModesManager,
 		})
 
 		if (result.success) {
@@ -61,7 +60,7 @@ export async function autoImportSettings(
 		outputChannel.appendLine(`[AutoImport] Unexpected error during auto-import: ${errorMessage}`)
 
 		// Log error but don't fail extension activation
-		console.warn("Auto-import settings error:", error)
+		console.warn("[jabberwock] Auto-import settings error:", error)
 	}
 }
 

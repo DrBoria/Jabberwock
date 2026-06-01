@@ -1,5 +1,5 @@
 import {
-	type ClineMessage,
+	type Notification,
 	type ExtensionMessage,
 	isIdleAsk,
 	isResumableAsk,
@@ -10,12 +10,12 @@ import {
 import { AgentLoopState, detectAgentState } from "../agent-state.js"
 import { createMockClient } from "../extension-client.js"
 
-function createMessage(overrides: Partial<ClineMessage>): ClineMessage {
+function createMessage(overrides: Partial<Notification>): Notification {
 	return { ts: Date.now() + Math.random() * 1000, type: "say", ...overrides }
 }
 
-function createStateMessage(messages: ClineMessage[], mode?: string): ExtensionMessage {
-	return { type: "state", state: { clineMessages: messages, mode } } as ExtensionMessage
+function createStateMessage(messages: Notification[], mode?: string): ExtensionMessage {
+	return { type: "state", state: { messages, mode } } as ExtensionMessage
 }
 
 describe("detectAgentState", () => {
@@ -28,7 +28,7 @@ describe("detectAgentState", () => {
 		})
 
 		it("should return NO_TASK for undefined messages", () => {
-			const state = detectAgentState(undefined as unknown as ClineMessage[])
+			const state = detectAgentState(undefined as unknown as Notification[])
 			expect(state.state).toBe(AgentLoopState.NO_TASK)
 		})
 	})
@@ -466,7 +466,7 @@ describe("ExtensionClient", () => {
 			// Now update the message.
 			client.handleMessage({
 				type: "messageUpdated",
-				clineMessage: createMessage({ ts: 123, type: "ask", ask: "tool", partial: false }),
+				message: createMessage({ ts: 123, type: "ask", ask: "tool", partial: false }),
 			})
 
 			expect(client.isStreaming()).toBe(false)
@@ -761,7 +761,7 @@ describe("Edge Cases", () => {
 
 		it("should handle very long message arrays", () => {
 			// Create many messages.
-			const messages: ClineMessage[] = []
+			const messages: Notification[] = []
 
 			for (let i = 0; i < 100; i++) {
 				messages.push(createMessage({ say: "text", text: `Message ${i}` }))
@@ -776,14 +776,14 @@ describe("Edge Cases", () => {
 	})
 
 	describe("State message edge cases", () => {
-		it("should handle state message with empty clineMessages", () => {
+		it("should handle state message with empty messages", () => {
 			const { client } = createMockClient()
-			client.handleMessage({ type: "state", state: { clineMessages: [] } } as unknown as ExtensionMessage)
+			client.handleMessage({ type: "state", state: { messages: [] } } as unknown as ExtensionMessage)
 			expect(client.getCurrentState()).toBe(AgentLoopState.NO_TASK)
 			expect(client.isInitialized()).toBe(true)
 		})
 
-		it("should handle state message with missing clineMessages", () => {
+		it("should handle state message with missing messages", () => {
 			const { client } = createMockClient()
 
 			client.handleMessage({

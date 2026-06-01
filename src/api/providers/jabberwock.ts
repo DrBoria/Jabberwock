@@ -4,8 +4,6 @@ import OpenAI from "openai"
 import { rooDefaultModelId, getApiProtocol, type ImageGenerationApiMethod } from "@jabberwock/types"
 import { CloudService, getCloudService, hasCloudService } from "@jabberwock/cloud"
 
-import { NativeToolCallParser } from "../../core/assistant-message/NativeToolCallParser"
-
 import { Package } from "../../shared/package"
 import type { ApiHandlerOptions } from "../../shared/api"
 import { ApiStream } from "../transform/stream"
@@ -66,7 +64,7 @@ export class RooHandler extends BaseOpenAiCompatibleProvider<string> {
 		this.fetcherBaseURL = baseURL.endsWith("/v1") ? baseURL.slice(0, -3) : baseURL
 
 		this.loadDynamicModels(this.fetcherBaseURL, sessionToken).catch((error) => {
-			console.error("[RooHandler] Failed to load dynamic models:", error)
+			console.error("[jabberwock] [RooHandler] Failed to load dynamic models:", error)
 		})
 	}
 
@@ -141,7 +139,7 @@ export class RooHandler extends BaseOpenAiCompatibleProvider<string> {
 
 			const stream = await this.createStream(systemPrompt, messages, metadata, { headers })
 
-			let lastUsage: RooUsage | undefined = undefined
+			let lastUsage: RooUsage | undefined
 			// Accumulator for reasoning_details FROM the API.
 			// We preserve the original shape of reasoning_details to prevent malformed responses.
 			const reasoningDetailsAccumulator = new Map<
@@ -254,7 +252,7 @@ export class RooHandler extends BaseOpenAiCompatibleProvider<string> {
 						}
 					}
 
-					// Emit raw tool call chunks - NativeToolCallParser handles state management
+					// Emit raw tool call chunks - rawChunkProcessor handles state management
 					if ("tool_calls" in delta && Array.isArray(delta.tool_calls)) {
 						for (const toolCall of delta.tool_calls) {
 							yield {
@@ -272,13 +270,6 @@ export class RooHandler extends BaseOpenAiCompatibleProvider<string> {
 							type: "text",
 							text: delta.content,
 						}
-					}
-				}
-
-				if (finishReason) {
-					const endEvents = NativeToolCallParser.processFinishReason(finishReason)
-					for (const event of endEvents) {
-						yield event
 					}
 				}
 
@@ -327,7 +318,7 @@ export class RooHandler extends BaseOpenAiCompatibleProvider<string> {
 				hasTaskId: Boolean(metadata?.taskId),
 			}
 
-			console.error(`[RooHandler] Error during message streaming: ${JSON.stringify(errorContext)}`)
+			console.error(`[jabberwock] [RooHandler] Error during message streaming: ${JSON.stringify(errorContext)}`)
 
 			throw error
 		}
@@ -348,7 +339,7 @@ export class RooHandler extends BaseOpenAiCompatibleProvider<string> {
 			})
 		} catch (error) {
 			// Enhanced error logging with more context
-			console.error("[RooHandler] Error loading dynamic models:", {
+			console.error("[jabberwock] [RooHandler] Error loading dynamic models:", {
 				error: error instanceof Error ? error.message : String(error),
 				stack: error instanceof Error ? error.stack : undefined,
 				baseURL,

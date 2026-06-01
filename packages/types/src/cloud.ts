@@ -7,7 +7,8 @@ import { TaskStatus, taskMetadataSchema } from "./task.ts"
 import { globalSettingsSchema } from "./global-settings.ts"
 import { providerSettingsWithIdSchema } from "./provider-settings.ts"
 import { mcpMarketplaceItemSchema } from "./marketplace.ts"
-import { clineMessageSchema, queuedMessageSchema, tokenUsageSchema } from "./message.ts"
+import { notificationSchema } from "./notification.ts"
+import { queuedMessageSchema, tokenUsageSchema } from "./message.ts"
 import { staticAppPropertiesSchema, gitPropertiesSchema } from "./telemetry.ts"
 
 /**
@@ -391,7 +392,7 @@ export const INSTANCE_TTL_SECONDS = 60
 const extensionTaskSchema = z.object({
 	taskId: z.string(),
 	taskStatus: z.nativeEnum(TaskStatus),
-	taskAsk: clineMessageSchema.optional(),
+	taskAsk: notificationSchema.optional(),
 	queuedMessages: z.array(queuedMessageSchema).optional(),
 	parentTaskId: z.string().optional(),
 	childTaskId: z.string().optional(),
@@ -413,7 +414,7 @@ export const extensionInstanceSchema = z.object({
 	gitProperties: gitPropertiesSchema.optional(),
 	lastHeartbeat: z.coerce.number(),
 	task: extensionTaskSchema,
-	taskAsk: clineMessageSchema.optional(),
+	taskAsk: notificationSchema.optional(),
 	taskHistory: z.array(z.string()),
 	mode: z.string().optional(),
 	modes: z.array(z.object({ slug: z.string(), name: z.string() })).optional(),
@@ -439,7 +440,7 @@ export const taskBridgeEventSchema = z.discriminatedUnion("type", [
 		type: z.literal(TaskBridgeEventName.Message),
 		taskId: z.string(),
 		action: z.string(),
-		message: clineMessageSchema,
+		message: notificationSchema,
 	}),
 	z.object({
 		type: z.literal(TaskBridgeEventName.TaskModeSwitched),

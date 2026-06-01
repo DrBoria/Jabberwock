@@ -2,7 +2,7 @@
  * State Store
  *
  * This module manages the client's internal state, including:
- * - The clineMessages array (source of truth for agent state)
+ * - The messages array (source of truth for agent state)
  * - The computed agent state info
  * - Any extension state we want to cache
  *
@@ -12,7 +12,7 @@
  * - Queryable: Current state is always accessible
  */
 
-import { ClineMessage, ExtensionState } from "@jabberwock/types"
+import { Notification, ChatMessage, ExtensionState } from "@jabberwock/types"
 
 import { detectAgentState, AgentStateInfo, AgentLoopState } from "./agent-state.js"
 import { Observable } from "./events.js"
@@ -29,7 +29,14 @@ export interface StoreState {
 	 * The array of messages from the extension.
 	 * This is the primary data used to compute agent state.
 	 */
-	messages: ClineMessage[]
+	messages: Notification[]
+
+	/**
+	 * Optional ChatMessage array from the task context.
+	 * Used alongside `messages` during the Notification → ChatMessage migration.
+	 * @deprecated Eventually replaces `messages` once all consumers migrate to ChatMessage.
+	 */
+	chatMessages?: ChatMessage[]
 
 	/**
 	 * The computed agent state info.
@@ -82,7 +89,7 @@ function createInitialState(): StoreState {
  * StateStore manages all client state and provides reactive updates.
  *
  * Key features:
- * - Stores the clineMessages array
+ * - Stores the messages array
  * - Automatically computes agent state when messages change
  * - Provides observable pattern for state changes
  * - Tracks state history for debugging (optional)
@@ -144,14 +151,14 @@ export class StateStore {
 	/**
 	 * Get the current messages array.
 	 */
-	getMessages(): ClineMessage[] {
+	getMessages(): Notification[] {
 		return this.state.messages
 	}
 
 	/**
 	 * Get the last message, if any.
 	 */
-	getLastMessage(): ClineMessage | undefined {
+	getLastMessage(): Notification | undefined {
 		return this.state.messages[this.state.messages.length - 1]
 	}
 
@@ -205,52 +212,135 @@ export class StateStore {
 	 * Set the complete messages array.
 	 * This is typically called when receiving a full state update from the extension.
 	 *
-	 * @param messages - The new messages array
+	 * @param messages - The new Notification messages array
 	 * @returns The previous agent state (for comparison)
 	 */
-	setMessages(messages: ClineMessage[]): AgentStateInfo {
+	setMessages(messages: Notification[]): AgentStateInfo
+	/**
+	 * Set the complete ChatMessage array.
+	 * Called when receiving task context with ChatMessages.
+	 *
+	 * @param messages - The new ChatMessage array
+	 * @returns The previous agent state (for comparison)
+	 */
+	setMessages(messages: ChatMessage[]): AgentStateInfo
+	setMessages(messages: Notification[] | ChatMessage[]): AgentStateInfo {
 		const previousAgentState = this.state.agentState
-		const newAgentState = detectAgentState(messages)
 
-		this.updateState({
-			messages,
-			agentState: newAgentState,
-			isInitialized: true,
-			lastUpdatedAt: Date.now(),
-			currentMode: this.state.currentMode, // Preserve mode across message updates
-		})
+		// Check if these are ChatMessages by inspecting the first element's discriminant
+		const first = messages[0]
+		if (
+			first &&
+			(first.type === "agent" || first.type === "user" || first.type === "mcp_tool" || first.type === "system")
+		) {
+			const chatMsgs = messages as ChatMessage[]
+			this.updateState({
+				...this.state,
+				chatMessages: chatMsgs,
+				agentState: detectAgentState(chatMsgs),
+				isInitialized: true,
+				lastUpdatedAt: Date.now(),
+			})
+		} else {
+			const notifs = messages as Notification[]
+			this.updateState({
+				messages: notifs,
+				agentState: detectAgentState(notifs),
+				isInitialized: true,
+				lastUpdatedAt: Date.now(),
+				currentMode: this.state.currentMode,
+			})
+		}
 
 		return previousAgentState
 	}
 
 	/**
-	 * Add a single message to the end of the messages array.
+	 * Add a single Notification to the end of the messages array.
 	 * Useful when receiving incremental updates.
 	 *
-	 * @param message - The message to add
+	 * @param message - The Notification to add
 	 * @returns The previous agent state
 	 */
-	addMessage(message: ClineMessage): AgentStateInfo {
-		const newMessages = [...this.state.messages, message]
+	addMessage(message: Notification): AgentStateInfo
+	/**
+	 * Add a single ChatMessage to the end of the chatMessages array.
+	 *
+	 * @param message - The ChatMessage to add
+	 * @returns The previous agent state
+	 */
+	addMessage(message: ChatMessage): AgentStateInfo
+	addMessage(message: Notification | ChatMessage): AgentStateInfo {
+		// Determine if it's a ChatMessage by checking the discriminant
+		if (
+			message.type === "agent" ||
+			message.type === "user" ||
+			message.type === "mcp_tool" ||
+			message.type === "system"
+		) {
+			const previousAgentState = this.state.agentState
+			const chatMessages = [...(this.state.chatMessages ?? []), message]
+			this.updateState({
+				...this.state,
+				chatMessages,
+				agentState: detectAgentState(chatMessages),
+				isInitialized: true,
+				lastUpdatedAt: Date.now(),
+			})
+			return previousAgentState
+		}
+		const newMessages = [...this.state.messages, message as Notification]
 		return this.setMessages(newMessages)
 	}
 
 	/**
-	 * Update a message in place (e.g., when partial becomes complete).
+	 * Update a Notification in place (e.g., when partial becomes complete).
 	 * Finds the message by timestamp and replaces it.
 	 *
-	 * @param message - The updated message
+	 * @param message - The updated Notification
 	 * @returns The previous agent state, or undefined if message not found
 	 */
-	updateMessage(message: ClineMessage): AgentStateInfo | undefined {
+	updateMessage(message: Notification): AgentStateInfo | undefined
+	/**
+	 * Update a ChatMessage in the chatMessages array.
+	 *
+	 * @param message - The updated ChatMessage
+	 * @returns The previous agent state, or undefined if message not found
+	 */
+	updateMessage(message: ChatMessage): AgentStateInfo | undefined
+	updateMessage(message: Notification | ChatMessage): AgentStateInfo | undefined {
+		// If it's a ChatMessage, update in chatMessages array
+		if (
+			message.type === "agent" ||
+			message.type === "user" ||
+			message.type === "mcp_tool" ||
+			message.type === "system"
+		) {
+			const chatMessages = this.state.chatMessages ?? []
+			const index = chatMessages.findIndex((m) => m.ts === message.ts)
+			if (index === -1) {
+				return this.addMessage(message)
+			}
+			const previousAgentState = this.state.agentState
+			const newChatMessages = [...chatMessages]
+			newChatMessages[index] = message
+			this.updateState({
+				...this.state,
+				chatMessages: newChatMessages,
+				agentState: detectAgentState(newChatMessages),
+				lastUpdatedAt: Date.now(),
+			})
+			return previousAgentState
+		}
+
+		// Notification path
 		const index = this.state.messages.findIndex((m) => m.ts === message.ts)
 		if (index === -1) {
-			// Message not found, add it instead
 			return this.addMessage(message)
 		}
 
 		const newMessages = [...this.state.messages]
-		newMessages[index] = message
+		newMessages[index] = message as Notification
 		return this.setMessages(newMessages)
 	}
 
@@ -303,8 +393,19 @@ export class StateStore {
 	 */
 	setExtensionState(extensionState: Partial<ExtensionState>): void {
 		// Extract and store messages if present
-		if (extensionState.clineMessages) {
-			this.setMessages(extensionState.clineMessages)
+		if (extensionState.messages) {
+			this.setMessages(extensionState.messages)
+		}
+
+		// Extract and store chatMessages if present (new ChatMessage format)
+		if (extensionState.chatMessages) {
+			this.updateState({
+				...this.state,
+				chatMessages: extensionState.chatMessages,
+				agentState: detectAgentState(extensionState.chatMessages),
+				isInitialized: true,
+				lastUpdatedAt: Date.now(),
+			})
 		}
 
 		// Store the rest of the extension state

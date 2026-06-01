@@ -1,11 +1,11 @@
 import { Anthropic } from "@anthropic-ai/sdk"
 
-import type { ClineAsk, ToolProgressStatus, ToolGroup, ToolName, GenerateImageParams } from "@jabberwock/types"
+import type { NotificationAsk, ToolProgressStatus, ToolGroup, ToolName, GenerateImageParams } from "@jabberwock/types"
 
 export type ToolResponse = string | Array<Anthropic.TextBlockParam | Anthropic.ImageBlockParam>
 
 export type AskApproval = (
-	type: ClineAsk,
+	type: NotificationAsk,
 	partialMessage?: string,
 	progressStatus?: ToolProgressStatus,
 	forceApproval?: boolean,

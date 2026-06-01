@@ -23,7 +23,7 @@ export async function run() {
 	})
 
 	await vscode.commands.executeCommand("jabberwock.SidebarProvider.focus")
-	await waitFor(() => api.isReady())
+	await waitFor(() => api.healthcheck())
 
 	globalThis.api = api
 

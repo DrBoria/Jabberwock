@@ -188,7 +188,7 @@ export async function searchWorkspaceFiles(
 
 		return verifiedResults
 	} catch (error) {
-		console.error("Error in searchWorkspaceFiles:", error)
+		console.error("[jabberwock] Error in searchWorkspaceFiles:", error)
 		return []
 	}
 }

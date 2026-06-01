@@ -23,7 +23,7 @@ export async function getRequestyModels(baseUrl?: string, apiKey?: string): Prom
 
 		if (!Array.isArray(rawModels)) {
 			console.error(
-				`[getRequestyModels] Unexpected response format: rawModels is not iterable`,
+				`[jabberwock] [getRequestyModels] Unexpected response format: rawModels is not iterable`,
 				typeof rawModels,
 				rawModels,
 			)
@@ -57,7 +57,9 @@ export async function getRequestyModels(baseUrl?: string, apiKey?: string): Prom
 			models[rawModel.id] = modelInfo
 		}
 	} catch (error) {
-		console.error(`Error fetching Requesty models: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`)
+		console.error(
+			`[jabberwock] Error fetching Requesty models: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`,
+		)
 	}
 
 	return models

@@ -267,7 +267,7 @@ export class NativeOllamaHandler extends BaseProvider implements SingleCompletio
 						}
 					}
 
-					// Handle tool calls - emit partial chunks for NativeToolCallParser compatibility
+					// Handle tool calls - emit partial chunks for rawChunkProcessor compatibility
 					if (chunk.message.tool_calls && chunk.message.tool_calls.length > 0) {
 						for (const toolCall of chunk.message.tool_calls) {
 							// Generate a unique ID for this tool call
@@ -317,7 +317,7 @@ export class NativeOllamaHandler extends BaseProvider implements SingleCompletio
 				}
 			} catch (streamError) {
 				const streamErrMsg = streamError instanceof Error ? streamError.message : String(streamError)
-				console.error("Error processing Ollama stream:", streamError)
+				console.error("[jabberwock] Error processing Ollama stream:", streamError)
 				throw new Error(`Ollama stream processing error: ${streamErrMsg}`)
 			}
 		} catch (error) {
@@ -336,7 +336,7 @@ export class NativeOllamaHandler extends BaseProvider implements SingleCompletio
 				)
 			}
 
-			console.error(`Ollama API error (${statusCode || "unknown"}): ${errorMessage}`)
+			console.error(`[jabberwock] Ollama API error (${statusCode || "unknown"}): ${errorMessage}`)
 			throw error
 		}
 	}

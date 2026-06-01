@@ -1,8 +1,8 @@
 import * as vscode from "vscode"
 
 import { Package } from "../shared/package"
-import { EventBridge } from "../core/webview/EventBridge"
-import { handleCodeAction } from "../features/foundation/agent-state/handlers"
+import { EventBridge } from "../features/foundation/webview/EventBridge"
+import { handleCodeAction } from "../features/settings/agents/handlers"
 import { t } from "../i18n"
 
 export const handleNewTask = async (params: { prompt?: string } | null | undefined) => {

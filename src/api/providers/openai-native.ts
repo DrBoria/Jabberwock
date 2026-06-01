@@ -1312,7 +1312,7 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 			const args = (event.delta || event.arguments) as string | undefined
 
 			// Avoid emitting incomplete tool_call_partial chunks; the downstream
-			// NativeToolCallParser needs a name to start a call.
+			// rawChunkProcessor needs a name to start a call.
 			if (typeof name === "string" && name.length > 0 && typeof callId === "string" && callId.length > 0) {
 				this.streamedToolCallIds.add(callId)
 				yield {
@@ -1331,7 +1331,7 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 			event?.type === "response.tool_call_arguments.done" ||
 			event?.type === "response.function_call_arguments.done"
 		) {
-			// Tool call complete - no action needed, NativeToolCallParser handles completion
+			// Tool call complete - no action needed, rawChunkProcessor handles completion
 			return
 		}
 

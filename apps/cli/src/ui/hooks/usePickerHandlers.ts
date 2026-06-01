@@ -108,7 +108,7 @@ export function usePickerHandlers({
 
 					// Send message to resume the selected task
 					// This triggers createTaskWithHistoryItem -> postStateToWebview
-					// which includes clineMessages and handles mode restoration
+					// which includes messages and handles mode restoration
 					sendToExtension({ type: "showTaskWithId", text: historyItem.id })
 				}
 

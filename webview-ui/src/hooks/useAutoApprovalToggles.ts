@@ -1,11 +1,12 @@
 import { useMemo } from "react"
-import { useExtensionState } from "@src/context/ExtensionStateContext"
+import { rootStore } from "@src/features/store"
 
 /**
  * Custom hook that creates and returns the auto-approval toggles object
  * This encapsulates the logic for creating the toggles object from extension state
  */
 export function useAutoApprovalToggles() {
+	const s = rootStore.extensionState
 	const {
 		alwaysAllowReadOnly,
 		alwaysAllowWrite,
@@ -14,7 +15,7 @@ export function useAutoApprovalToggles() {
 		alwaysAllowModeSwitch,
 		alwaysAllowSubtasks,
 		alwaysAllowFollowupQuestions,
-	} = useExtensionState()
+	} = s
 
 	const toggles = useMemo(
 		() => ({

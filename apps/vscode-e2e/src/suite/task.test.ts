@@ -1,6 +1,6 @@
 import * as assert from "assert"
 
-import { JabberwockEventName, type ClineMessage } from "@jabberwock/types"
+import { JabberwockEventName, type Notification } from "@jabberwock/types"
 
 import { waitUntilCompleted } from "./utils"
 import { setDefaultSuiteTimeout } from "./test-utils"
@@ -11,7 +11,7 @@ suite("Jabberwock Task", function () {
 	test("Should handle prompt and response correctly", async () => {
 		const api = globalThis.api
 
-		const messages: ClineMessage[] = []
+		const messages: Notification[] = []
 
 		api.on(JabberwockEventName.Message, ({ message }) => {
 			if (message.type === "say" && message.partial === false) {

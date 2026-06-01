@@ -1,12 +1,12 @@
 import React from "react"
 import { fireEvent, render, screen } from "@/utils/test-utils"
-import type { ClineMessage } from "@jabberwock/types"
+import type { Notification } from "@jabberwock/types"
 import { TranslationProvider } from "@/i18n/__mocks__/TranslationContext"
-import FileChangesPanel from "../features/chat/messages-list/file-changes-panel"
+import FileChangesPanel from "../features/chat/task/messages/components/file-changes-panel"
 
 const mockPostMessage = vi.fn()
 
-vi.mock("@jabberwock/devtool/react", () => ({
+vi.mock("@jabberwock/devtool/webview", () => ({
 	vscode: {
 		postMessage: (...args: unknown[]) => mockPostMessage(...args),
 	},
@@ -25,7 +25,7 @@ vi.mock("react-i18next", () => ({
 }))
 
 // Lightweight mock so we don't pull in CodeBlock/DiffView
-vi.mock("@src/components/common/CodeAccordion", () => ({
+vi.mock("@src/features/foundation/components/CodeAccordion", () => ({
 	default: ({
 		path,
 		isExpanded,
@@ -48,7 +48,7 @@ function createFileEditMessage(
 	path: string,
 	diff: string,
 	diffStats?: { added: number; removed: number },
-): ClineMessage {
+): Notification {
 	return {
 		type: "ask",
 		ask: "tool",
@@ -64,10 +64,10 @@ function createFileEditMessage(
 	}
 }
 
-function renderPanel(messages: ClineMessage[] | undefined) {
+function renderPanel(messages: Notification[] | undefined) {
 	return render(
 		<TranslationProvider>
-			<FileChangesPanel clineMessages={messages} />
+			<FileChangesPanel messages={messages} />
 		</TranslationProvider>,
 	)
 }
@@ -77,18 +77,18 @@ describe("FileChangesPanel", () => {
 		vi.clearAllMocks()
 	})
 
-	it("renders nothing when clineMessages is undefined", () => {
+	it("renders nothing when messages is undefined", () => {
 		const { container } = renderPanel(undefined)
 		expect(container.firstChild).toBeNull()
 	})
 
-	it("renders nothing when clineMessages is empty", () => {
+	it("renders nothing when messages is empty", () => {
 		const { container } = renderPanel([])
 		expect(container.firstChild).toBeNull()
 	})
 
 	it("renders nothing when there are no file-edit messages", () => {
-		const messages: ClineMessage[] = [
+		const messages: Notification[] = [
 			{
 				type: "say",
 				say: "text",
@@ -109,7 +109,7 @@ describe("FileChangesPanel", () => {
 	})
 
 	it("renders nothing when file-edit ask tool is not approved (isAnswered false or missing)", () => {
-		const messages: ClineMessage[] = [
+		const messages: Notification[] = [
 			{
 				type: "ask",
 				ask: "tool",

@@ -14,7 +14,7 @@ import { mergeEnvironmentDetailsForMiniMax } from "../transform/minimax-format"
 import { BaseProvider } from "./base-provider"
 import type { SingleCompletionHandler, ApiHandlerCreateMessageMetadata } from "../index"
 import { calculateApiCostAnthropic } from "../../shared/cost"
-import { convertOpenAIToolsToAnthropic } from "../../core/prompts/tools/native-tools/converters"
+import { convertOpenAIToolsToAnthropic } from "../../features/settings/context/tools/native-tools/converters"
 
 /**
  * Converts OpenAI tool_choice to Anthropic ToolChoice format
@@ -212,7 +212,7 @@ export class MiniMaxHandler extends BaseProvider implements SingleCompletionHand
 
 					break
 				case "content_block_stop":
-					// Block is complete - no action needed, NativeToolCallParser handles completion
+					// Block is complete - no action needed, rawChunkProcessor handles completion
 					break
 			}
 		}

@@ -3,7 +3,7 @@
  * Handles URL paste and image paste from clipboard.
  */
 
-import { MAX_ATTACHED_IMAGES } from "../../messages-list/constants"
+import { MAX_ATTACHED_IMAGES } from "../../task/messages/components/constants"
 
 const ACCEPTED_IMAGE_TYPES = ["png", "jpeg", "webp"]
 
@@ -28,7 +28,7 @@ export function readImageFromItem(item: DataTransferItem): Promise<string | null
 		const reader = new FileReader()
 		reader.onloadend = () => {
 			if (reader.error) {
-				console.error("Error reading image file", reader.error)
+				console.error("[jabberwock] Error reading image file", reader.error)
 				resolve(null)
 			} else {
 				resolve(typeof reader.result === "string" ? reader.result : null)
@@ -46,7 +46,7 @@ export function readImageFromFile(file: File): Promise<string | null> {
 		const reader = new FileReader()
 		reader.onloadend = () => {
 			if (reader.error) {
-				console.error("Error reading image file", reader.error)
+				console.error("[jabberwock] Error reading image file", reader.error)
 				resolve(null)
 			} else {
 				resolve(typeof reader.result === "string" ? reader.result : null)

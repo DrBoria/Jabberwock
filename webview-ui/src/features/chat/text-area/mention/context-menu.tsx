@@ -15,7 +15,7 @@ import {
 import { removeLeadingNonAlphanumeric } from "@src/utils/removeLeadingNonAlphanumeric"
 import { rootStore } from "@src/features/store"
 
-import { buildDocLink } from "@/features/settings/utils/docLinks"
+import { buildDocLink } from "@/utils/docLinks"
 
 interface ContextMenuProps {
 	onSelect: (type: ContextMenuOptionType, value?: string) => void

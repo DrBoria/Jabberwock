@@ -1,7 +1,7 @@
-import { ClineMessage } from "@jabberwock/types"
+import { Notification } from "@jabberwock/types"
 
-export function getLatestTodo(clineMessages: ClineMessage[]) {
-	const todos = clineMessages
+export function getLatestTodo(messages: Notification[]) {
+	const todos = messages
 		.filter(
 			(msg) =>
 				(msg.type === "ask" && msg.ask === "tool") || (msg.type === "say" && msg.say === "user_edit_todos"),

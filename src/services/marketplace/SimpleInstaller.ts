@@ -10,7 +10,12 @@ import type {
 } from "@jabberwock/types"
 import { GlobalFileNames } from "../../shared/globalFileNames"
 import { ensureSettingsDirectoryExists } from "../../utils/globalContext"
-import type { CustomModesManager } from "../../core/config/CustomModesManager"
+import {
+	importModeWithRules,
+	deleteCustomModeFromFile,
+	getCustomModesFilePath,
+} from "../../features/settings/agents/modesFileService"
+import { getState } from "@features/storeSingleton"
 
 export interface InstallOptions extends InstallMarketplaceItemOptions {
 	target: "project" | "global"
@@ -18,10 +23,7 @@ export interface InstallOptions extends InstallMarketplaceItemOptions {
 }
 
 export class SimpleInstaller {
-	constructor(
-		private readonly context: vscode.ExtensionContext,
-		private readonly customModesManager?: CustomModesManager,
-	) {}
+	constructor(private readonly context: vscode.ExtensionContext) {}
 
 	async installItem(item: MarketplaceItem, options: InstallOptions): Promise<{ filePath: string; line?: number }> {
 		const { target } = options
@@ -49,114 +51,39 @@ export class SimpleInstaller {
 			throw new Error("Mode content should not be an array")
 		}
 
-		// If CustomModesManager is available, use importModeWithRules
-		if (this.customModesManager) {
-			// Transform marketplace content to import format (wrap in customModes array)
-			const importData = {
-				customModes: [yaml.parse(item.content)],
-			}
-			const importYaml = yaml.stringify(importData)
+		// Use importModeWithRules from modesFileService
+		const importData = {
+			customModes: [yaml.parse(item.content)],
+		}
+		const importYaml = yaml.stringify(importData)
 
-			// Call customModesManager.importModeWithRules
-			const result = await this.customModesManager.importModeWithRules(importYaml, target)
+		const result = await importModeWithRules(importYaml, target)
 
-			if (!result.success) {
-				throw new Error(result.error || "Failed to import mode")
-			}
-
-			// Return the file path and line number for VS Code to open
-			const filePath = await this.getModeFilePath(target)
-
-			// Try to find the line number where the mode was added
-			let line: number | undefined
-			try {
-				const fileContent = await fs.readFile(filePath, "utf-8")
-				const lines = fileContent.split("\n")
-				const modeData = yaml.parse(item.content)
-
-				// Find the line containing the slug of the added mode
-				if (modeData?.slug) {
-					const slugLineIndex = lines.findIndex(
-						(l) => l.includes(`slug: ${modeData.slug}`) || l.includes(`slug: "${modeData.slug}"`),
-					)
-					if (slugLineIndex >= 0) {
-						line = slugLineIndex + 1 // Convert to 1-based line number
-					}
-				}
-			} catch (error) {
-				// If we can't find the line number, that's okay
-			}
-
-			return { filePath, line }
+		if (!result.success) {
+			throw new Error(result.error || "Failed to import mode")
 		}
 
-		// Fallback to original implementation if CustomModesManager is not available
+		// Return the file path and line number for VS Code to open
 		const filePath = await this.getModeFilePath(target)
-		const modeData = yaml.parse(item.content)
 
-		// Read existing file or create new structure
-		let existingData: { customModes: { slug: string }[] } = { customModes: [] }
-		try {
-			const existing = await fs.readFile(filePath, "utf-8")
-			const parsed = yaml.parse(existing)
-			// Ensure we have a valid object with customModes array
-			existingData = parsed && typeof parsed === "object" ? parsed : { customModes: [] }
-		} catch (error) {
-			const nodeErr = error as NodeJS.ErrnoException & Error
-			if (nodeErr.code === "ENOENT") {
-				// File doesn't exist, use default structure - this is fine
-				existingData = { customModes: [] }
-			} else if (nodeErr.name === "YAMLParseError" || nodeErr.message?.includes("YAML")) {
-				// YAML parsing error - don't overwrite the file!
-				const fileName = target === "project" ? ".jabberwockmodes" : "custom-modes.yaml"
-				throw new Error(
-					`Cannot install mode: The ${fileName} file contains invalid YAML. ` +
-						`Please fix the syntax errors in the file before installing new modes.`,
-				)
-			} else {
-				// Other unexpected errors - re-throw
-				throw error
-			}
-		}
-
-		// Ensure customModes array exists
-		if (!existingData.customModes) {
-			existingData.customModes = []
-		}
-
-		// The content is now a single mode object directly
-		if (!modeData.slug) {
-			throw new Error("Invalid mode content: mode missing slug")
-		}
-
-		// Remove existing mode with same slug if it exists
-		existingData.customModes = existingData.customModes.filter(
-			(mode: { slug: string }) => mode.slug !== modeData.slug,
-		)
-
-		// Add the new mode
-		existingData.customModes.push(modeData)
-		const addedModeIndex = existingData.customModes.length - 1
-
-		// Write back to file
-		await fs.mkdir(path.dirname(filePath), { recursive: true })
-		const yamlContent = yaml.stringify(existingData, { lineWidth: 0 })
-		await fs.writeFile(filePath, yamlContent, "utf-8")
-
-		// Calculate approximate line number where the new mode was added
+		// Try to find the line number where the mode was added
 		let line: number | undefined
-		if (addedModeIndex >= 0) {
-			const lines = yamlContent.split("\n")
+		try {
+			const fileContent = await fs.readFile(filePath, "utf-8")
+			const lines = fileContent.split("\n")
+			const modeData = yaml.parse(item.content)
+
 			// Find the line containing the slug of the added mode
-			const addedMode = existingData.customModes[addedModeIndex]
-			if (addedMode?.slug) {
+			if (modeData?.slug) {
 				const slugLineIndex = lines.findIndex(
-					(l) => l.includes(`slug: ${addedMode.slug}`) || l.includes(`slug: "${addedMode.slug}"`),
+					(l) => l.includes(`slug: ${modeData.slug}`) || l.includes(`slug: "${modeData.slug}"`),
 				)
 				if (slugLineIndex >= 0) {
 					line = slugLineIndex + 1 // Convert to 1-based line number
 				}
 			}
+		} catch (error) {
+			// If we can't find the line number, that's okay
 		}
 
 		return { filePath, line }
@@ -235,7 +162,7 @@ export class SimpleInstaller {
 		const mcpData = JSON.parse(contentToUse)
 
 		// Read existing file or create new structure
-		let existingData: Record<string, unknown> = { mcpServers: {} }
+		let existingData: { [key: string]: unknown } = { mcpServers: {} }
 		try {
 			const existing = await fs.readFile(filePath, "utf-8")
 			existingData = JSON.parse(existing) || { mcpServers: {} }
@@ -262,8 +189,8 @@ export class SimpleInstaller {
 		}
 
 		// Add or update the single server
-		const mcpServers = existingData.mcpServers as Record<string, unknown>
-		mcpServers[item.id] = mcpData as Record<string, unknown>
+		const mcpServers = existingData.mcpServers as { [key: string]: unknown }
+		mcpServers[item.id] = mcpData as { [key: string]: unknown }
 
 		// Write back to file
 		await fs.mkdir(path.dirname(filePath), { recursive: true })
@@ -300,10 +227,6 @@ export class SimpleInstaller {
 	}
 
 	private async removeMode(item: MarketplaceItem, target: "project" | "global"): Promise<void> {
-		if (!this.customModesManager) {
-			throw new Error("CustomModesManager is not available")
-		}
-
 		// Parse the item content to get the slug
 		let content: string
 		if (Array.isArray(item.content)) {
@@ -325,13 +248,9 @@ export class SimpleInstaller {
 			throw new Error("Mode missing slug identifier")
 		}
 
-		// Get the current modes to determine the source
-		const modes = await this.customModesManager.getCustomModes()
-		const mode = modes.find((m) => m.slug === modeSlug)
-
-		// Use CustomModesManager to delete the mode configuration
+		// Delete the mode configuration using modesFileService
 		// This also handles rules folder deletion
-		await this.customModesManager.deleteCustomMode(modeSlug, true)
+		await deleteCustomModeFromFile(modeSlug, this.context, true)
 	}
 
 	private async removeMcp(item: MarketplaceItem, target: "project" | "global"): Promise<void> {
@@ -352,7 +271,7 @@ export class SimpleInstaller {
 				}
 
 				const removeItemId = item.id
-				delete (existingData.mcpServers as Record<string, unknown>)[removeItemId]
+				delete (existingData.mcpServers as { [key: string]: unknown })[removeItemId]
 
 				// Always write back the file, even if empty
 				await fs.writeFile(filePath, JSON.stringify(existingData, null, 2), "utf-8")

@@ -9,10 +9,11 @@
 		"test": "vitest run",
 		"format": "prettier --write src",
 		"dev": "vite",
+		"build:watch": "vite build --watch",
 		"build": "tsc -b && vite build",
 		"build:nightly": "tsc -b && vite build --mode nightly",
 		"preview": "vite preview",
-		"clean": "rimraf ../src/webview-ui ../apps/vscode-nightly/build/webview-ui tsconfig.tsbuildinfo .turbo"
+		"clean": "rimraf build ../apps/vscode-nightly/build/webview-ui tsconfig.tsbuildinfo .turbo"
 	},
 	"dependencies": {
 		"@dnd-kit/core": "^6.3.1",

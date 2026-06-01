@@ -1,4 +1,6 @@
 import i18next from "i18next"
+import fs from "fs"
+import path from "path"
 
 // Build translations object
 const translations: Record<string, Record<string, string>> = {}
@@ -9,10 +11,6 @@ const isTestEnv = process.env.NODE_ENV === "test"
 // Load translations based on environment
 if (!isTestEnv) {
 	try {
-		// Dynamic imports to avoid browser compatibility issues
-		const fs = require("fs")
-		const path = require("path")
-
 		const localesDir = path.join(__dirname, "i18n", "locales")
 
 		try {
@@ -54,17 +52,17 @@ if (!isTestEnv) {
 						const content = fs.readFileSync(filePath, "utf8")
 						translations[language][namespace] = JSON.parse(content)
 					} catch (error) {
-						console.error(`Error loading translation file ${filePath}:`, error)
+						console.error(`[jabberwock] Error loading translation file ${filePath}:`, error)
 					}
 				})
 			})
 
 			console.log(`Loaded translations for languages: ${Object.keys(translations).join(", ")}`)
 		} catch (dirError) {
-			console.error(`Error processing directory ${localesDir}:`, dirError)
+			console.error(`[jabberwock] Error processing directory ${localesDir}:`, dirError)
 		}
 	} catch (error) {
-		console.error("Error loading translations:", error)
+		console.error("[jabberwock] Error loading translations:", error)
 	}
 }
 
