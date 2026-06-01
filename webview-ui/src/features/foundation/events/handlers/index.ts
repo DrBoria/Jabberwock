@@ -12,6 +12,7 @@ import type {
 	McpServer,
 	SkillMetadata,
 	MarketplaceItem,
+	MarketplaceInstalledMetadata,
 	OrganizationAllowList,
 	ProfileThresholds,
 } from "@jabberwock/types"

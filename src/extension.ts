@@ -481,10 +481,12 @@ export async function activate(context: vscode.ExtensionContext) {
 							"./features/foundation/webview/events/handlers/on-webview-message"
 						)
 						registerDomResponseHandler(
-							onWebviewMessage as (
-								type: string,
-								handler: (provider: unknown, message: Record<string, unknown>) => void,
-							) => void,
+							(type, handler) => {
+								onWebviewMessage(type, (provider, message) => {
+									// eslint-disable-next-line no-restricted-syntax
+									handler(provider, message as unknown as Record<string, unknown>)
+								})
+							},
 							(requestId, result) => {
 								backendStore.foundation.windowManager.resolveDomRequest(requestId, result)
 							},
