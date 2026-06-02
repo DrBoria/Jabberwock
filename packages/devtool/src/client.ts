@@ -504,7 +504,13 @@ export class DevtoolClient {
 	 * Frontend store paths use dot notation, e.g. "chat.tree.activeNodeId".
 	 * Returns a paginated response: { items: [{ path, value } | { key, value }], total, cursor, ... }
 	 */
-	async getStoreState(params: { store?: string; path?: string; limit?: number; cursor?: number }): Promise<unknown> {
+	async getStoreState(params: {
+		store?: string
+		path?: string
+		limit?: number
+		cursor?: number
+		fields?: string
+	}): Promise<unknown> {
 		return this.callTool("get_store_state", params as Record<string, unknown>)
 	}
 

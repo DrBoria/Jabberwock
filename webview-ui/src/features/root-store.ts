@@ -532,6 +532,8 @@ export const RootStore = types
 		handleExtensionMessage(event: MessageEvent) {
 			const message: ExtensionMessage = event.data
 
+			console.log(`[jabberwock] [DEBUG:WEBVIEW-MSG] got message type="${message.type}"`)
+
 			// Handle DOM operations inline (not through IntentBus)
 			if (message.type === "action") {
 				if (message.action === "didBecomeVisible") {

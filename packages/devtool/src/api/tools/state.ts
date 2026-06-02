@@ -21,16 +21,28 @@ export function registerStateTools(mcpServer: McpServer, bridge: ExtensionBridge
 				.describe(
 					"Store name or dot-separated path (e.g. 'chat', 'chat.isRunning'). Requires `env` to be set.",
 				),
+			path: z
+				.string()
+				.optional()
+				.describe(
+					"Path within the store to query (e.g. 'tasks[0]' to access first task). Overrides `store` when specified.",
+				),
 			limit: z.number().min(1).max(10).default(10).describe("Items per page"),
 			cursor: z.number().min(0).default(0).describe("Pagination cursor"),
+			fields: z
+				.string()
+				.optional()
+				.describe("Comma-separated field names to extract from array elements (e.g. 'id,tokensOut')"),
 		},
 		async (params) => {
 			try {
 				const result = await bridge.getStoreState({
 					env: params.env,
 					store: params.store,
+					path: params.path,
 					limit: params.limit,
 					cursor: params.cursor,
+					fields: params.fields,
 				})
 				return { content: [{ type: "text", text: result }] }
 			} catch (error) {
@@ -81,6 +93,12 @@ export function registerStateTools(mcpServer: McpServer, bridge: ExtensionBridge
 				.describe(
 					"Search by content, ID, or partial text match (e.g. a message fragment, taskId, property value)",
 				),
+			store: z
+				.string()
+				.optional()
+				.describe(
+					"Optional specific store to search within (e.g. 'chat', 'chat.tasks'). If omitted, searches all stores.",
+				),
 			limit: z.number().min(1).max(20).default(10).describe("Maximum results"),
 			cursor: z.number().min(0).default(0).describe("Pagination cursor"),
 		},
@@ -89,6 +107,7 @@ export function registerStateTools(mcpServer: McpServer, bridge: ExtensionBridge
 				const result = await bridge.searchState({
 					env: params.env,
 					query: params.query,
+					store: params.store,
 					limit: params.limit,
 					cursor: params.cursor,
 				})

@@ -26,6 +26,7 @@ export interface ExtensionBridge {
 		level?: string
 		limit?: number
 		cursor?: number
+		search?: string
 	}): Promise<string>
 
 	/**
@@ -75,8 +76,10 @@ export interface ExtensionBridge {
 	getStoreState(params: {
 		env?: "backend" | "frontend"
 		store?: string
+		path?: string
 		limit?: number
 		cursor?: number
+		fields?: string
 	}): Promise<string>
 
 	/** Get paginated available actions on a store */

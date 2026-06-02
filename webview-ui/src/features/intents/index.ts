@@ -1,6 +1,7 @@
 import { IntentBus } from "./bus"
 import type { IRootStore } from "../root-store"
 import type { IIntentStore } from "./store"
+import { registerAllFrontendIntents } from "./registrations"
 
 export { IntentBus } from "./bus"
 export { IntentStoreModel, IntentModel } from "./store"
@@ -26,6 +27,8 @@ export function setupIntents(rootStore: IRootStore): {
 	const intentStore: IIntentStore = rootStore.intentStore
 	const bus = new IntentBus()
 	const ctx = { rootStore, intentStore }
+
+	registerAllFrontendIntents(bus)
 
 	bus.start(intentStore, ctx)
 

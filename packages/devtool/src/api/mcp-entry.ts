@@ -164,6 +164,12 @@ async function main() {
 				description: "Store name or dot-separated path (e.g. 'chat', 'chat.isRunning')",
 				optional: true,
 			},
+			path: {
+				type: "string" as const,
+				description:
+					"Path within the store to query (e.g. 'tasks[0]' to access first task). Overrides `store` when specified.",
+				optional: true,
+			},
 			limit: {
 				type: "number" as const,
 				description: "Items per page (max 10)",
@@ -173,6 +179,11 @@ async function main() {
 				type: "number" as const,
 				description: "Pagination cursor (0-based)",
 				defaultValue: 0,
+			},
+			fields: {
+				type: "string" as const,
+				description: "Comma-separated field names to extract from array elements (e.g. 'id,tokensOut')",
+				optional: true,
 			},
 		},
 		async (params) => {
@@ -370,6 +381,12 @@ async function main() {
 				type: "string" as const,
 				description: "Search query",
 			},
+			store: {
+				type: "string" as const,
+				description:
+					"Optional specific store to search within (e.g. 'chat', 'chat.tasks'). Searches all stores if omitted.",
+				optional: true,
+			},
 			limit: {
 				type: "number" as const,
 				description: "Maximum results (max 20)",
@@ -564,7 +581,7 @@ async function main() {
 
 	server.tool(
 		"get_console",
-		"Get console logs from backend (extension host) or frontend (webview). Supports filtering by environment and log level with cursor-based pagination.",
+		"Get console logs from backend (extension host) or frontend (webview). Supports filtering by environment, log level, text search, and cursor-based pagination.",
 		{
 			env: {
 				type: "string" as const,
@@ -573,6 +590,11 @@ async function main() {
 			level: {
 				type: "string" as const,
 				description: "Filter by log level: error/warn/info/debug",
+				optional: true,
+			},
+			search: {
+				type: "string" as const,
+				description: "Optional text search within log messages (case-insensitive substring match)",
 				optional: true,
 			},
 			limit: { type: "number" as const, description: "Max entries (default: 10)", defaultValue: 10 },

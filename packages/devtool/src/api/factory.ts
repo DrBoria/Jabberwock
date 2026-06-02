@@ -143,7 +143,7 @@ export function createDevtoolBridge(
 			})
 		},
 
-		async getConsole({ env, level, limit = 10, cursor = 0 }) {
+		async getConsole({ env, level, limit = 10, cursor = 0, search }) {
 			try {
 				if (env === "backend") {
 					const allLogs = diagnosticsManager.getAllLogs()
@@ -154,6 +154,12 @@ export function createDevtoolBridge(
 						const normalizedLevel =
 							level === "info" ? ("info" as const) : (level as "warn" | "error" | "debug")
 						filtered = filtered.filter((e) => e.level === normalizedLevel)
+					}
+
+					// Filter by search text (case-insensitive)
+					if (search) {
+						const searchLower = search.toLowerCase()
+						filtered = filtered.filter((e) => e.message.toLowerCase().includes(searchLower))
 					}
 
 					const totalLines = filtered.length
@@ -173,7 +179,7 @@ export function createDevtoolBridge(
 					if (!frontendBridge) {
 						return JSON.stringify({ lines: [], totalLines: 0 })
 					}
-					return frontendBridge.getConsoleLogs({ level, limit, cursor })
+					return frontendBridge.getConsoleLogs({ level, limit, cursor, search })
 				}
 
 				return JSON.stringify({ lines: [], totalLines: 0, error: `Unknown env: ${env}` })
@@ -305,7 +311,14 @@ export function createDevtoolBridge(
 
 		async getStoreState(params) {
 			return getStoreState(
-				{ env: params?.env ?? "backend", store: params?.store, limit: params?.limit, cursor: params?.cursor },
+				{
+					env: params?.env,
+					store: params?.store,
+					path: params?.path,
+					limit: params?.limit,
+					cursor: params?.cursor,
+					fields: params?.fields,
+				},
 				backendStore,
 				frontendBridge,
 			)

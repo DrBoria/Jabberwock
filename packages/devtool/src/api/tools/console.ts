@@ -10,7 +10,7 @@ import type { ExtensionBridge } from "../bridge.js"
 export function registerConsoleTools(mcpServer: McpServer, bridge: ExtensionBridge) {
 	mcpServer.tool(
 		"get_console",
-		"Get console logs from backend (extension host) or frontend (webview), with level filtering and cursor-based pagination",
+		"Get console logs from backend (extension host) or frontend (webview), with level filtering, text search, and cursor-based pagination",
 		{
 			env: z
 				.enum(["backend", "frontend"])
@@ -19,6 +19,10 @@ export function registerConsoleTools(mcpServer: McpServer, bridge: ExtensionBrid
 				.enum(["error", "warn", "info", "debug"])
 				.optional()
 				.describe("Filter by log level. If omitted, returns all levels."),
+			search: z
+				.string()
+				.optional()
+				.describe("Optional text to search for within log messages (case-insensitive substring match)."),
 			limit: z.number().optional().default(10).describe("Maximum number of log entries to return (default: 10)."),
 			cursor: z
 				.number()
@@ -26,9 +30,9 @@ export function registerConsoleTools(mcpServer: McpServer, bridge: ExtensionBrid
 				.default(0)
 				.describe("Number of entries to skip from the end (for pagination, default: 0)."),
 		},
-		async ({ env, level, limit = 10, cursor = 0 }) => {
+		async ({ env, level, search, limit = 10, cursor = 0 }) => {
 			try {
-				const result = await bridge.getConsole({ env, level, limit, cursor })
+				const result = await bridge.getConsole({ env, level, search, limit, cursor })
 				return { content: [{ type: "text", text: result }] }
 			} catch (error) {
 				return {

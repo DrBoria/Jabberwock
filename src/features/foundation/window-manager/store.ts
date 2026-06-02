@@ -1,4 +1,5 @@
 import * as vscode from "vscode"
+import * as path from "path"
 import { types, Instance } from "mobx-state-tree"
 import type { EventBridge } from "../../../features/foundation/webview/EventBridge"
 import type { ProviderSettingsEntry, Notification } from "@jabberwock/types"
@@ -182,7 +183,9 @@ export async function resolveWebviewView(
 	const webview = webviewView.webview
 	webview.options = {
 		enableScripts: true,
-		localResourceRoots: [vscode.Uri.joinPath(getVscodeContext().extensionUri, "webview-ui", "build")],
+		localResourceRoots: [
+			vscode.Uri.file(path.join(path.dirname(getVscodeContext().extensionUri.fsPath), "webview-ui", "build")),
+		],
 	}
 
 	// Set up message listener with error handling to prevent unhandled promise
@@ -321,19 +324,23 @@ export async function resolveWebviewView(
 function getHtmlContent(provider: EventBridge, webview: vscode.Webview): string {
 	const nonce = getNonce()
 	const buildVersion = Date.now().toString(36)
+	const workspaceRootUri = vscode.Uri.file(path.resolve(getVscodeContext().extensionUri.fsPath, ".."))
 	const scriptUri =
-		String(getUri(webview, getVscodeContext().extensionUri, ["webview-ui", "build", "assets", "index.js"])) +
-		`?v=${buildVersion}`
+		String(getUri(webview, workspaceRootUri, ["webview-ui", "build", "assets", "index.js"])) + `?v=${buildVersion}`
 	const styleUri =
-		String(getUri(webview, getVscodeContext().extensionUri, ["webview-ui", "build", "assets", "index.css"])) +
-		`?v=${buildVersion}`
+		String(getUri(webview, workspaceRootUri, ["webview-ui", "build", "assets", "index.css"])) + `?v=${buildVersion}`
+
+	const isDev = getVscodeContext().extensionMode === vscode.ExtensionMode.Development
+	const cspMeta = isDev
+		? ""
+		: `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource}; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}' ${webview.cspSource} 'wasm-unsafe-eval'; connect-src 'self' https: http:">`
 
 	return `<!DOCTYPE html>
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource}; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}' ${webview.cspSource} 'wasm-unsafe-eval'; connect-src 'self' https: http:">
+	${cspMeta}
 	<link rel="stylesheet" type="text/css" href="${styleUri}">
 	<title>Jabberwock</title>
 </head>
@@ -351,7 +358,50 @@ function getHtmlContent(provider: EventBridge, webview: vscode.Webview): string 
  * that can cause an empty DOM in VS Code's webview.
  */
 function getHMRHtmlContent(provider: EventBridge, webview: vscode.Webview): string {
-	return getHtmlContent(provider, webview)
+	try {
+		// Read the Vite dev server port persisted by the vite.config.ts persistPortPlugin
+		const vitePortPath = path.join(path.dirname(getVscodeContext().extensionUri.fsPath), "webview-ui", ".vite-port")
+		const { existsSync, readFileSync } = require("fs") as typeof import("fs")
+		if (!existsSync(vitePortPath)) {
+			console.warn("[jabberwock] .vite-port not found, falling back to production build")
+			return getHtmlContent(provider, webview)
+		}
+
+		const port = Number(readFileSync(vitePortPath, "utf-8").trim())
+		if (Number.isNaN(port) || port <= 0) {
+			console.warn("[jabberwock] Invalid .vite-port value, falling back to production build")
+			return getHtmlContent(provider, webview)
+		}
+
+		// Verify Vite is actually running on that port
+		try {
+			const { execSync } = require("child_process") as typeof import("child_process")
+			execSync(`lsof -i :${port} 2>/dev/null`, { timeout: 1000 })
+		} catch {
+			console.warn("[jabberwock] Vite dev server not running, falling back to production build")
+			return getHtmlContent(provider, webview)
+		}
+
+		const nonce = getNonce()
+
+		// Dev mode: no CSP restrictions to avoid blocking localhost resources
+		return `<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<script type="module" nonce="${nonce}" src="http://localhost:${port}/@vite/client"></script>
+	<title>Jabberwock</title>
+</head>
+<body>
+	<div id="root"></div>
+	<script type="module" nonce="${nonce}" src="http://localhost:${port}/src/index.tsx"></script>
+</body>
+</html>`
+	} catch (error) {
+		console.error("[jabberwock] Error in getHMRHtmlContent:", error)
+		return getHtmlContent(provider, webview)
+	}
 }
 
 /**
@@ -435,6 +485,9 @@ export function postMessageToWebview(
  */
 export async function postStateToWebview(provider: EventBridge, additionalState?: WebviewStatePayload): Promise<void> {
 	const state = getWindowManagerState(provider)
+	console.log(
+		`[jabberwock] [DEBUG:POSTSTATE] ENTERED postStateToWebview, has state.view=${!!state.view}, additionalState keys=${Object.keys(additionalState ?? {}).join(",") || "(empty)"}`,
+	)
 
 	// Always enrich the state with apiConfiguration and listApiConfigMeta so that
 	// callers who pass no args (or minimal state) don't accidentally send an empty
@@ -492,7 +545,9 @@ export async function postStateToWebview(provider: EventBridge, additionalState?
 	}
 
 	if (state.view) {
+		console.log(`[jabberwock] [DEBUG:POSTSTATE] SENDING state with keys:`, Object.keys(enrichedState))
 		await provider.postMessageToWebview({ type: "state", state: enrichedState })
+		console.log(`[jabberwock] [DEBUG:POSTSTATE] postMessageToWebview completed`)
 	} else {
 		console.warn(`[jabberwock] [DEBUG:POSTMSG] postStateToWebview SKIPPED - no provider.view!`)
 	}

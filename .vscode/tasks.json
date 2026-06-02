@@ -6,12 +6,22 @@
 		{
 			"label": "watch",
 			"dependsOn": ["watch:webview", "watch:bundle", "watch:tsc"],
+			"dependsOrder": "sequence",
 			"presentation": {
 				"reveal": "never"
 			},
 			"group": {
 				"kind": "build",
 				"isDefault": true
+			}
+		},
+		{
+			"label": "build:webview",
+			"type": "shell",
+			"command": "pnpm --filter @jabberwock/vscode-webview build",
+			"group": "build",
+			"presentation": {
+				"reveal": "always"
 			}
 		},
 		{
