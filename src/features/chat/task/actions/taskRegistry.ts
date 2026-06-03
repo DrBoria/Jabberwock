@@ -1,4 +1,4 @@
-import type { EventBridge } from "../../../../features/foundation/webview/EventBridge"
+import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
 import type { ITaskModel } from "../store"
 import { getTaskWithId as getTaskWithIdFromHistory } from "../../../history/actions"
 import { getBackendRootStore } from "@features/storeSingleton"
@@ -30,7 +30,7 @@ export function getTask(taskId: string): ITaskModel {
 /**
  * Checks if a task with the given ID is in the task history.
  */
-export async function isTaskInHistory(provider: EventBridge, taskId: string): Promise<boolean> {
+export async function isTaskInHistory(provider: ProviderHandle, taskId: string): Promise<boolean> {
 	try {
 		await getTaskWithIdFromHistory(provider, taskId)
 		return true

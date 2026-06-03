@@ -6,12 +6,12 @@ import * as os from "os"
 import type { ProviderSettings } from "@jabberwock/types"
 
 import type { ITaskModel } from "../store"
-import type { EventBridge } from "../../../foundation/webview/EventBridge"
+import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
 import { getBackendRootStore } from "@features/storeSingleton"
 import { getWorkspacePath } from "../../../../utils/path"
 
 export interface CreateTaskModelOptions {
-	provider: EventBridge
+	provider: ProviderHandle
 	apiConfiguration: ProviderSettings
 	historyItem?: {
 		id: string
@@ -72,6 +72,13 @@ export function createTaskModel(options: CreateTaskModelOptions): ITaskModel {
 	// ── Set up volatile properties (migrated from Task class) ────
 	model.providerRef = new WeakRef(provider)
 	model.globalStoragePath = provider.context.globalStorageUri.fsPath
+
+	// Initialize mode from history item or default to "code"
+	const taskMode = historyItem?.mode ?? "code"
+	model.setTaskMode(taskMode)
+
+	// Initialize the taskModeReady promise so await task.taskModeReady resolves immediately
+	model.taskModeReady = Promise.resolve()
 
 	// Initialize mode/api-config promises based on whether we're resuming
 	if (historyItem) {

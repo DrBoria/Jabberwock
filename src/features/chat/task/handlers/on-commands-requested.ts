@@ -2,7 +2,7 @@ import { IntentType } from "@jabberwock/types"
 import type { IntentBus } from "../../../intents/bus"
 import type { Command } from "../../../../services/command/commands"
 import { getCommands } from "../../../../services/command/commands"
-import { EventBridge } from "../../../foundation/webview/EventBridge"
+import { EventBridge } from "@features/foundation/webview/EventBridge"
 import { getSkillsManager } from "../../../settings/skills/store"
 import { getMstState } from "../../../foundation/mst/store"
 import { defaultModeSlug } from "../../../../shared/modes"
@@ -39,13 +39,7 @@ export function registerOnTopicCommandsRequested(bus: IntentBus): void {
 				const getCurrentMode = async (): Promise<string> => {
 					const currentTask = ctx.rootStore.chat.activeTask
 					if (currentTask) {
-						try {
-							return await currentTask.getTaskMode()
-						} catch (error) {
-							EventBridge.outputChannel?.appendLine(
-								`Error resolving current task mode for command discovery: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`,
-							)
-						}
+						return (await currentTask.getTaskMode()) ?? defaultModeSlug
 					}
 					return defaultModeSlug
 				}

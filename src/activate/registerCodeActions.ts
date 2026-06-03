@@ -4,7 +4,7 @@ import { CodeActionId, CodeActionName } from "@jabberwock/types"
 
 import { getCodeActionCommand } from "../utils/commands"
 import { EditorUtils } from "../integrations/editor/EditorUtils"
-import { EventBridge } from "../features/foundation/webview/EventBridge"
+import { EventBridge } from "@features/foundation/webview/EventBridge"
 import { handleCodeAction } from "../features/settings/agents/handlers"
 
 export const registerCodeActions = (context: vscode.ExtensionContext) => {

@@ -16,8 +16,8 @@ export async function handleFindElement(ctx: DomHandlerContext, req: Record<stri
 
 	try {
 		// Resolve depth/maxChildren defaults
-		const domDepth = (req.depth as number | undefined) ?? (selector === "*" ? 20 : 3)
-		const domMaxChildren = (req.maxChildren as number | undefined) ?? 20
+		const domDepth = (req.depth as number | undefined) ?? (selector === "*" ? 10 : 3)
+		const domMaxChildren = (req.maxChildren as number | undefined) ?? 10
 
 		// Check if selector targets an iframe (e.g., "iframe[src*='...'] button")
 		if (selector !== "*") {

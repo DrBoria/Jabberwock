@@ -2,7 +2,7 @@ import { IntentType } from "@jabberwock/types"
 import type { IntentBus } from "../../../../intents/bus"
 import { setTtsSpeed } from "../../../../../utils/tts"
 import { getVscodeContext } from "../../../../foundation/vscode/context"
-import { postStateToWebview } from "../../../../foundation/window-manager/store"
+import { postStateToWebview } from "@features/foundation/window-manager/store"
 
 /**
  * Handles notification.tts.speed.set intent — sets TTS playback speed.

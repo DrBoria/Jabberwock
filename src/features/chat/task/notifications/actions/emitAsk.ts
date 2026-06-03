@@ -66,7 +66,7 @@ export async function emitAsk(
 				throw new AskIgnoredError("updating existing partial")
 			} else {
 				askTs = task.generateUniqueTs()
-				task.lastMessageTs = askTs
+				task.setLastMessageTs(askTs)
 				const notification: Notification = {
 					mode: task._state._taskMode,
 					ts: askTs,
@@ -82,7 +82,7 @@ export async function emitAsk(
 		} else {
 			if (isUpdatingPreviousPartial) {
 				askTs = lastMessage.ts
-				task.lastMessageTs = askTs
+				task.setLastMessageTs(askTs)
 				lastMessage.text = text
 				lastMessage.partial = false
 				lastMessage.progressStatus = progressStatus
@@ -90,7 +90,7 @@ export async function emitAsk(
 				emitUpdateNotification(task.taskId, notificationType, lastMessage)
 			} else {
 				askTs = task.generateUniqueTs()
-				task.lastMessageTs = askTs
+				task.setLastMessageTs(askTs)
 				const notification: Notification = {
 					mode: task._state._taskMode,
 					ts: askTs,
@@ -104,7 +104,7 @@ export async function emitAsk(
 		}
 	} else {
 		askTs = task.generateUniqueTs()
-		task.lastMessageTs = askTs
+		task.setLastMessageTs(askTs)
 		const notification: Notification = {
 			mode: task._state._taskMode,
 			ts: askTs,

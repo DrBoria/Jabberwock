@@ -11,7 +11,7 @@ import * as fs from "fs/promises"
 import { fileExistsAtPath } from "../../../utils/fs"
 import { getWorkspacePath } from "../../../utils/path"
 import { resolveDefaultSaveUri, saveLastExportPath } from "../../../utils/export"
-import { postStateToWebview } from "../../foundation/window-manager/store"
+import { postStateToWebview } from "@features/foundation/window-manager/store"
 import { getVscodeContext } from "../../foundation/vscode/context"
 import { getSettingsAccess } from "@utils/settings-access"
 import {
@@ -24,6 +24,7 @@ import {
 	checkRulesDirectoryHasContent,
 	getCustomModesFilePath,
 } from "../agents/modesFileService"
+import { EventBridge } from "@features/foundation/webview/EventBridge"
 
 /**
  * Register all agents/modes settings intent handlers.
@@ -119,12 +120,10 @@ export function registerOnSettingsAgents(bus: IntentBus): void {
 		if (rulesFolderExists) {
 			try {
 				await fs.rm(rulesFolderPath, { recursive: true, force: true })
-				const { EventBridge } = await import("../../foundation/webview/EventBridge")
 				EventBridge.outputChannel?.appendLine(
 					`Deleted rules folder for mode ${payload.slug}: ${rulesFolderPath}`,
 				)
 			} catch (error) {
-				const { EventBridge } = await import("../../foundation/webview/EventBridge")
 				EventBridge.outputChannel?.appendLine(
 					`Failed to delete rules folder for mode ${payload.slug}: ${error}`,
 				)
@@ -207,7 +206,6 @@ export function registerOnSettingsAgents(bus: IntentBus): void {
 			}
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(`Failed to export mode ${payload.slug}: ${errorMessage}`)
 			provider.postMessageToWebview({
 				type: "exportModeResult",
@@ -289,7 +287,6 @@ export function registerOnSettingsAgents(bus: IntentBus): void {
 			}
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(`Failed to import mode: ${errorMessage}`)
 			provider.postMessageToWebview({
 				type: "importModeResult",
@@ -338,7 +335,6 @@ export function registerOnSettingsAgents(bus: IntentBus): void {
 			const modes = getAllModes(customModes) as { slug: string; name: string }[]
 			await provider.postMessageToWebview({ type: "modes", modes })
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(
 				`Error fetching modes: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 			)

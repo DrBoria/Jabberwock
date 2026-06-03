@@ -1,6 +1,6 @@
 import { reaction } from "mobx"
 import { getSnapshot } from "mobx-state-tree"
-import type { EventBridge } from "../webview/EventBridge"
+import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
 import type { IBackendRootStore } from "../../store"
 import { postStateToWebview, scheduleStatePush } from "./store"
 
@@ -17,7 +17,7 @@ import { postStateToWebview, scheduleStatePush } from "./store"
  * All reactions are disposed when the returned disposer is called (tied to
  * the webview view lifecycle via `webviewDisposables`).
  */
-export function setupSyncer(provider: EventBridge, store: IBackendRootStore): () => void {
+export function setupSyncer(provider: ProviderHandle, store: IBackendRootStore): () => void {
 	const disposers: Array<() => void> = []
 
 	// ── Reaction 1: activeTaskId → full state push ─────────────────────

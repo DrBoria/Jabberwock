@@ -4,14 +4,25 @@ import type { TaskProviderEvents } from "@jabberwock/types"
 
 import { Package } from "../../../shared/package"
 import type { MdmService } from "../../../services/mdm/MdmService"
+import { getBackendRootStore } from "@features/storeSingleton"
 
 import {
 	resolveWebviewView as resolveWindowManagerView,
 	postMessageToWebview as postMessageToWebviewStore,
 	getWindowManagerState,
 	WebviewOutboundMessage,
-} from "../window-manager/store"
+} from "@features/foundation/window-manager/store"
 import { webviewMessageHandler } from "./events/handlers/on-webview-message"
+
+/**
+ * Narrow provider handle for use by action creators.
+ * Action creators MUST NOT import the full EventBridge class.
+ * Only event handlers and the messages exception may import EventBridge directly.
+ */
+export interface ProviderHandle {
+	postMessageToWebview(message: Record<string, unknown>): Promise<boolean>
+	context: { globalStorageUri: { fsPath: string } }
+}
 
 export class EventBridge extends EventEmitter<TaskProviderEvents> implements vscode.WebviewViewProvider {
 	readonly mdmService?: MdmService
@@ -69,6 +80,20 @@ export class EventBridge extends EventEmitter<TaskProviderEvents> implements vsc
 
 	// ─── Public API — pure IPC ─────────────────────────────
 	async postMessageToWebview(message: WebviewOutboundMessage): Promise<boolean> {
+		// Log to MST store for debug visibility via devtool MCP
+		try {
+			const store = getBackendRootStore()
+			if (store) {
+				store.logEvent({
+					type: message.type ?? "unknown",
+					ts: Date.now(),
+					direction: "outgoing",
+					payload: message,
+				})
+			}
+		} catch {
+			// Store may not be initialized yet during early startup
+		}
 		return postMessageToWebviewStore(this, message)
 	}
 

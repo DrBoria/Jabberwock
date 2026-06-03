@@ -7,11 +7,13 @@ import { generateSystemPrompt } from "../context/generateSystemPrompt"
 import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 import { t } from "../../../i18n"
 import * as vscode from "vscode"
-import type { WebviewStatePayload } from "../../foundation/window-manager/store"
+import type { WebviewStatePayload } from "@features/foundation/window-manager/store"
+import { EventBridge } from "@features/foundation/webview/EventBridge"
 
 /**
  * Register all context/prompt settings intent handlers.
  */
+
 export function registerOnSettingsContext(bus: IntentBus): void {
 	// ── updatePrompt ──────────────────────────────────────────────────
 	bus.register(IntentType.SettingsPromptUpdate, async (intent, ctx) => {
@@ -101,7 +103,6 @@ export function registerOnSettingsContext(bus: IntentBus): void {
 				mode: payload.mode,
 			})
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(
 				`Error getting system prompt: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 			)
@@ -122,7 +123,6 @@ export function registerOnSettingsContext(bus: IntentBus): void {
 			await vscode.env.clipboard.writeText(systemPrompt)
 			await vscode.window.showInformationMessage(t("common:info.clipboard_copy"))
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(
 				`Error getting system prompt: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 			)

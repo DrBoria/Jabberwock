@@ -1,6 +1,6 @@
 import { IntentType } from "@jabberwock/types"
 import type { IntentBus } from "../../../intents/bus"
-import { postStateToWebview } from "../../../foundation/window-manager/store"
+import { postStateToWebview } from "@features/foundation/window-manager/store"
 
 /**
  * Handles task.clear.requested intent — clears the active task.

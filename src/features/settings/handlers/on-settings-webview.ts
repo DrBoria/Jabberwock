@@ -1,7 +1,7 @@
 import { IntentType } from "@jabberwock/types"
 import type { IntentBus } from "../../intents/bus"
 import * as vscode from "vscode"
-import { getWindowManagerState, postStateToWebview } from "../../foundation/window-manager/store"
+import { getWindowManagerState, postStateToWebview } from "@features/foundation/window-manager/store"
 import { Package } from "../../../shared/package"
 import { getVscodeContext } from "../../foundation/vscode/context"
 import { getSettingsAccess } from "@utils/settings-access"

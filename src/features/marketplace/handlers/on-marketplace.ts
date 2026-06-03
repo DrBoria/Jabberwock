@@ -1,4 +1,4 @@
-import type { EventBridge } from "../../foundation/webview/EventBridge"
+import type { EventBridge } from "@features/foundation/webview/EventBridge"
 import { IntentType } from "@jabberwock/types"
 import type { MarketplaceItem } from "@jabberwock/types"
 import { MarketplaceManager, MarketplaceItemType } from "../../../services/marketplace"
@@ -6,7 +6,7 @@ import * as vscode from "vscode"
 import * as path from "path"
 
 import type { IntentBus } from "../../intents/bus.js"
-import { postStateToWebview } from "../../foundation/window-manager/store"
+import { postStateToWebview } from "@features/foundation/window-manager/store"
 import { getRooDirectoriesForCwd } from "../../../services/jabberwock-config/index.js"
 import { customToolRegistry } from "@jabberwock/core"
 

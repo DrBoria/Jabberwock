@@ -60,7 +60,6 @@ export async function handleContextWindowExceededError(
 	let allTools: import("openai").default.Chat.ChatCompletionTool[] = []
 	if (provider) {
 		const toolsResult = await buildNativeToolsArrayWithRestrictions({
-			provider,
 			cwd: task.cwd,
 			mode,
 			customModes: contextValues.customModes as ModeConfig[] | undefined,

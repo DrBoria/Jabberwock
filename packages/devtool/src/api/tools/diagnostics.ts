@@ -9,7 +9,15 @@ import type { ExtensionBridge } from "../bridge.js"
 export function registerDiagnosticTools(mcpServer: McpServer, bridge: ExtensionBridge) {
 	mcpServer.tool(
 		"get_logs",
-		{ lines: z.number().optional().describe("Number of recent lines to read. Default is 100.") },
+		{
+			lines: z
+				.number()
+				.min(1)
+				.max(10)
+				.optional()
+				.default(10)
+				.describe("Number of recent lines to read. Default: 10, max: 10."),
+		},
 		async ({ lines = 100 }) => {
 			try {
 				const result = await bridge.getLogs(lines)
@@ -28,11 +36,17 @@ export function registerDiagnosticTools(mcpServer: McpServer, bridge: ExtensionB
 	mcpServer.tool(
 		"get_diagnostics_snapshot",
 		{
-			limit: z.number().optional().describe("Max log entries to return (last N). Default: 50. Use -1 for all."),
+			limit: z
+				.number()
+				.min(1)
+				.max(10)
+				.optional()
+				.default(10)
+				.describe("Max log entries to return (last N). Default: 10, max: 10."),
 			offset: z.number().optional().describe("Skip N entries from start (for pagination). Default: 0."),
 			level: z.enum(["info", "warn", "error", "debug"]).optional().describe("Filter by log level."),
 			search: z.string().optional().describe("Filter logs containing this substring (case-insensitive)."),
-			includeLogs: z.boolean().optional().describe("Include log entries. Default: true (limited to 50)."),
+			includeLogs: z.boolean().optional().describe("Include log entries. Default: true (limited to 10)."),
 			includeMetrics: z.boolean().optional().describe("Include performance metrics. Default: false."),
 			includePatches: z.boolean().optional().describe("Include MST patches. Default: false."),
 			includeTraces: z.boolean().optional().describe("Include task/tool traces. Default: false."),

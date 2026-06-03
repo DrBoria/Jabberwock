@@ -1,8 +1,6 @@
 import type { ITaskModel } from "../../task/store"
-import type { EventBridge } from "../../../../features/foundation/webview/EventBridge"
+import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
 
-import { getTaskWithId } from "../../../../features/history/actions"
-import { postStateToWebview } from "../../../../features/foundation/window-manager/store"
 import { getBackendRootStore } from "@features/storeSingleton"
 
 /**
@@ -47,7 +45,7 @@ export async function resumeAfterDelegation(taskId: string, completionResult?: s
  * Called when a child task completes and wants to return control to its parent.
  */
 export async function reopenParentFromDelegation(
-	provider: EventBridge,
+	provider: ProviderHandle,
 	params: {
 		parentTaskId: string
 		childTaskId: string
@@ -69,7 +67,7 @@ export async function reopenParentFromDelegation(
  * Used when a tool call needs to be delegated to a different mode/agent.
  */
 export async function delegateParentAndOpenChild(
-	provider: EventBridge,
+	provider: ProviderHandle,
 	params: {
 		parentTaskId: string
 		message: string

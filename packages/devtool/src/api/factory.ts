@@ -144,6 +144,7 @@ export function createDevtoolBridge(
 		},
 
 		async getConsole({ env, level, limit = 10, cursor = 0, search }) {
+			if (limit > 10) throw new Error(`Limit cannot exceed 10, got ${limit}`)
 			try {
 				if (env === "backend") {
 					const allLogs = diagnosticsManager.getAllLogs()
@@ -193,6 +194,7 @@ export function createDevtoolBridge(
 		},
 
 		async searchConsole({ env, query, level, limit = 10, cursor = 0 }) {
+			if (limit > 10) throw new Error(`Limit cannot exceed 10, got ${limit}`)
 			try {
 				const results: { lines: string[]; totalLines: number; env: string }[] = []
 				const envs = env ? [env] : (["backend", "frontend"] as const)

@@ -5,6 +5,7 @@ import { registerOnToolExecutionRequired } from "./on-tool-execution-required"
 import { registerOnScriptFinished } from "./on-script-finished"
 import { registerOnTaskNewRequested } from "./on-new-requested"
 import { registerOnTaskCancelRequested } from "./on-cancel-requested"
+import { registerOnTaskCompletionRequested } from "./on-task-completion-requested"
 import { registerOnTaskClearRequested } from "./on-clear-requested"
 import { registerOnTaskSyncEnabledSet } from "./on-sync-enabled-set"
 import { registerOnTaskCondenseContextRequested } from "./on-condense-context-requested"
@@ -27,6 +28,7 @@ export function registerAllTaskHandlers(bus: IntentBus): void {
 	registerOnScriptFinished(bus)
 	registerOnTaskNewRequested(bus)
 	registerOnTaskCancelRequested(bus)
+	registerOnTaskCompletionRequested(bus)
 	registerOnTaskClearRequested(bus)
 	registerOnTaskSyncEnabledSet(bus)
 	registerOnTaskCondenseContextRequested(bus)

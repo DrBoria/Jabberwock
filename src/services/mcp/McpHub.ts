@@ -34,7 +34,7 @@ import type {
 
 import { t } from "../../i18n"
 
-import { EventBridge } from "../../features/foundation/webview/EventBridge"
+import { ProviderHandle } from "@features/foundation/webview/EventBridge"
 
 import { diagnosticsManager } from "@jabberwock/devtool"
 
@@ -338,7 +338,8 @@ const McpSettingsSchema = z.object({
 })
 
 export class McpHub extends EventEmitter {
-	providerRef: WeakRef<EventBridge>
+	providerRef: WeakRef<ProviderHandle>
+	private _context: vscode.ExtensionContext
 	private disposables: vscode.Disposable[] = []
 	private settingsWatcher?: vscode.FileSystemWatcher
 	private fileWatchers: Map<string, FSWatcher[]> = new Map()
@@ -353,9 +354,10 @@ export class McpHub extends EventEmitter {
 	private sanitizedNameRegistry: Map<string, string> = new Map()
 	private initializationPromise: Promise<void>
 
-	constructor(provider: EventBridge) {
+	constructor(provider: ProviderHandle, context: vscode.ExtensionContext) {
 		super()
 		this.providerRef = new WeakRef(provider)
+		this._context = context
 		this.watchMcpSettingsFile()
 		this.watchProjectMcpFile().catch(console.error)
 		this.setupWorkspaceFoldersWatcher()
@@ -703,7 +705,7 @@ export class McpHub extends EventEmitter {
 		if (!provider) {
 			throw new Error("Provider not available")
 		}
-		const settingsPath = await getSettingsDirectoryPath(provider.context.globalStorageUri.fsPath)
+		const settingsPath = await getSettingsDirectoryPath(this._context.globalStorageUri.fsPath)
 		const mcpServersPath = path.join(settingsPath, "mcpServers")
 		await fs.mkdir(mcpServersPath, { recursive: true })
 		return mcpServersPath
@@ -715,7 +717,7 @@ export class McpHub extends EventEmitter {
 			throw new Error("Provider not available")
 		}
 		const mcpSettingsFilePath = path.join(
-			await ensureSettingsDirectoryExists(provider.context),
+			await ensureSettingsDirectoryExists(this._context),
 			GlobalFileNames.mcpSettings,
 		)
 		const fileExists = await fileExistsAtPath(mcpSettingsFilePath)
@@ -915,7 +917,7 @@ export class McpHub extends EventEmitter {
 			const client = new Client(
 				{
 					name: "Jabberwock",
-					version: this.providerRef.deref()?.context.extension?.packageJSON?.version ?? "1.0.0",
+					version: this._context.extension?.packageJSON?.version ?? "1.0.0",
 				},
 				{
 					capabilities: {
@@ -1717,7 +1719,7 @@ export class McpHub extends EventEmitter {
 		})
 
 		// Send sorted servers to webview
-		const targetProvider: EventBridge | undefined = this.providerRef.deref()
+		const targetProvider = this.providerRef.deref()
 
 		if (targetProvider) {
 			const serversToSend = sortedConnections.map((connection) => connection.server)

@@ -2,7 +2,7 @@ import { IntentType } from "@jabberwock/types"
 import type { IntentBus } from "../../../intents/bus"
 import { resolveImageMentions } from "../messages/actions/resolveImageMentions"
 import { createTask } from "../actions/startTask"
-import { postStateToWebview } from "../../../foundation/window-manager/store"
+import { postStateToWebview } from "@features/foundation/window-manager/store"
 import * as vscode from "vscode"
 
 /**

@@ -5,12 +5,14 @@ import { openFile } from "../../../integrations/misc/open-file"
 import { t } from "../../../i18n"
 import { getSkillsManager } from "../skills/store"
 import { getMstState } from "../../foundation/mst/store"
+import { EventBridge } from "@features/foundation/webview/EventBridge"
 
 type SkillSource = SkillMetadata["source"]
 
 /**
  * Register all skills settings intent handlers.
  */
+
 export function registerOnSettingsSkills(bus: IntentBus): void {
 	// ── requestSkills ─────────────────────────────────────────────────
 	bus.register(IntentType.SettingsSkillsRequest, async (_intent, ctx) => {
@@ -28,7 +30,6 @@ export function registerOnSettingsSkills(bus: IntentBus): void {
 				getMstState(ctx.rootStore).skillsStore?.setSkills([])
 			}
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(
 				`Error fetching skills: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 			)
@@ -74,7 +75,6 @@ export function registerOnSettingsSkills(bus: IntentBus): void {
 			getMstState(ctx.rootStore).skillsStore?.setSkills(skills)
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(`Error creating skill: ${errorMessage}`)
 			vscode.window.showErrorMessage(`Failed to create skill: ${errorMessage}`)
 		}
@@ -113,7 +113,6 @@ export function registerOnSettingsSkills(bus: IntentBus): void {
 			getMstState(ctx.rootStore).skillsStore?.setSkills(skills)
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(`Error deleting skill: ${errorMessage}`)
 			vscode.window.showErrorMessage(`Failed to delete skill: ${errorMessage}`)
 		}
@@ -153,7 +152,6 @@ export function registerOnSettingsSkills(bus: IntentBus): void {
 			getMstState(ctx.rootStore).skillsStore?.setSkills(skills)
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(`Error moving skill: ${errorMessage}`)
 			vscode.window.showErrorMessage(`Failed to move skill: ${errorMessage}`)
 		}
@@ -191,7 +189,6 @@ export function registerOnSettingsSkills(bus: IntentBus): void {
 			getMstState(ctx.rootStore).skillsStore?.setSkills(skills)
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(`Error updating skill modes: ${errorMessage}`)
 			vscode.window.showErrorMessage(`Failed to update skill modes: ${errorMessage}`)
 		}
@@ -228,7 +225,6 @@ export function registerOnSettingsSkills(bus: IntentBus): void {
 			openFile(skill.path)
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(`Error opening skill file: ${errorMessage}`)
 			vscode.window.showErrorMessage(`Failed to open skill file: ${errorMessage}`)
 		}

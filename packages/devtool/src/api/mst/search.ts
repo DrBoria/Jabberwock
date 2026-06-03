@@ -74,33 +74,45 @@ function paginateSearchResults(results: SearchResult[] | undefined, limit = 10, 
 	return JSON.stringify({ results: paginated, totalResults })
 }
 
-function searchSnapshot(obj: Record<string, unknown>, query: string): SearchResult[] {
+function searchSnapshot(obj: Record<string, unknown>, query: string, maxDepth = 10, maxResults = 1000): SearchResult[] {
 	const results: SearchResult[] = []
 
-	function traverse(obj: unknown, currentPath: string): void {
+	function traverse(obj: unknown, currentPath: string, depth: number): void {
 		if (obj === null || obj === undefined) {
+			return
+		}
+		if (depth > maxDepth) {
+			return
+		}
+		if (results.length >= maxResults) {
 			return
 		}
 		if (typeof obj === "object" && !Array.isArray(obj)) {
 			for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+				if (results.length >= maxResults) {
+					return
+				}
 				const newPath = currentPath ? `${currentPath}.${key}` : key
 				if (key.toLowerCase().includes(query)) {
 					const rawVal = typeof value === "string" ? value : JSON.stringify(value)
-					const val: string = rawVal ?? "undefined"
+					const val = rawVal ?? "null"
 					results.push({ path: newPath, value: val.length > 200 ? val.slice(0, 200) + "..." : val })
 				}
-				traverse(value, newPath)
+				traverse(value, newPath, depth + 1)
 			}
 		} else if (Array.isArray(obj)) {
 			obj.forEach((item, index) => {
+				if (results.length >= maxResults) {
+					return
+				}
 				const newPath = `${currentPath}[${index}]`
-				traverse(item, newPath)
+				traverse(item, newPath, depth + 1)
 			})
 		} else if (typeof obj === "string" && obj.toLowerCase().includes(query)) {
 			results.push({ path: currentPath, value: obj.length > 200 ? obj.slice(0, 200) + "..." : obj })
 		}
 	}
 
-	traverse(obj, "")
+	traverse(obj, "", 0)
 	return results
 }

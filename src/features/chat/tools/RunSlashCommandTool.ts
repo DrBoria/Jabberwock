@@ -7,7 +7,7 @@ import type { ToolUse } from "../../../shared/tools"
 import { getModeBySlug } from "../../../shared/modes"
 import { getBackendRootStore } from "../../../features/storeSingleton"
 import { getSkillsManager } from "../../../features/settings/skills/store"
-import { handleModeSwitch } from "../../../features/foundation/window-manager/store"
+import { handleModeSwitch } from "@features/foundation/window-manager/store"
 import { ask } from "../task/notifications/actions/ask"
 import { sayAndCreateMissingParamError } from "../task/messages/actions/missingParamError"
 

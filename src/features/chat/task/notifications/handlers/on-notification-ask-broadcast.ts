@@ -1,8 +1,8 @@
 import { IntentConstants } from "@intentConstants"
-import type { IntentBus } from "../../../../intents/bus"
-import type { IntentHandlerContext } from "../../../../intents/context"
+import type { IntentBus } from "@features/intents/bus"
+import type { IntentHandlerContext } from "@features/intents/context"
 import type { Notification } from "@jabberwock/types"
-import { saveMessages } from "../../../task/messages/actions/persistMessages"
+import { saveMessages } from "@features/chat/task/messages/actions/persistMessages"
 
 /**
  * The 3 notification ask intent types handled by this broadcast handler.
@@ -27,6 +27,9 @@ const NOTIFICATION_TYPES = [
  * - "update" → calls `saveMessages()` + `updateNotification()` to persist
  *   the already-mutated store and notify the webview
  */
+import { addNotification } from "@features/chat/task/notifications/actions/addNotification"
+import { updateNotification } from "@features/chat/task/notifications/actions/updateNotification"
+
 export function registerOnNotificationAskBroadcast(bus: IntentBus): void {
 	for (const type of NOTIFICATION_TYPES) {
 		bus.register(type, async (intent, ctx: IntentHandlerContext) => {
@@ -37,13 +40,9 @@ export function registerOnNotificationAskBroadcast(bus: IntentBus): void {
 			}
 
 			if (payload.action === "update") {
-				// MST model is already mutated by emitAsk.ts — just persist + notify webview
 				await saveMessages(payload.taskId)
-				const { updateNotification } = await import("../actions/updateNotification")
 				await updateNotification(payload.taskId, payload.notification)
 			} else {
-				// Dynamic import to avoid circular dependencies
-				const { addNotification } = await import("../actions/addNotification")
 				await addNotification(payload.taskId, payload.notification)
 			}
 		})

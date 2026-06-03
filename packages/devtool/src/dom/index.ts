@@ -76,6 +76,14 @@ function createStoreQueryHandlers(
 		getConsoleLogs: (_ctx, req) => {
 			const level = req.level as string | undefined
 			const limit = (req.limit as number) ?? 10
+			if (limit > 10) {
+				_ctx.postMessage({
+					type: "domResponse",
+					requestId: req.requestId as string,
+					text: JSON.stringify({ lines: [], totalLines: 0, error: `Limit cannot exceed 10, got ${limit}` }),
+				})
+				return
+			}
 			const cursor = (req.cursor as number) ?? 0
 			const search = req.search as string | undefined
 			const result = getWebviewConsoleLogs(level, limit, cursor, search)
@@ -90,6 +98,14 @@ function createStoreQueryHandlers(
 			const query = req.query as string
 			const level = req.level as string | undefined
 			const limit = (req.limit as number) ?? 10
+			if (limit > 10) {
+				_ctx.postMessage({
+					type: "domResponse",
+					requestId: req.requestId as string,
+					text: JSON.stringify({ lines: [], totalLines: 0, error: `Limit cannot exceed 10, got ${limit}` }),
+				})
+				return
+			}
 			const cursor = (req.cursor as number) ?? 0
 			const result = getWebviewConsoleLogs(level, limit, cursor, query)
 			_ctx.postMessage({

@@ -33,9 +33,10 @@ export class IntentBus {
 	 * Called from extension.ts after the provider is created, so that intent
 	 * handlers can access the provider directly without casting rootStore.
 	 */
-	setProvider(provider: import("../foundation/webview/EventBridge").EventBridge): void {
+	setProvider(provider: import("@features/foundation/webview/EventBridge").EventBridge): void {
 		if (this.ctx) {
-			;(this.ctx as { provider?: import("../foundation/webview/EventBridge").EventBridge }).provider = provider
+			;(this.ctx as { provider?: import("@features/foundation/webview/EventBridge").EventBridge }).provider =
+				provider
 		}
 	}
 

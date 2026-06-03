@@ -60,7 +60,7 @@ export class CodebaseSearchTool extends BaseTool<"codebase_search"> {
 				throw new Error("Extension context is not available.")
 			}
 
-			const manager = getCodeIndexManager(context)
+			const manager = getCodeIndexManager(context as vscode.ExtensionContext)
 
 			if (!manager) {
 				throw new Error("CodeIndexManager is not available.")

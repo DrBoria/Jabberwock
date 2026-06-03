@@ -1,5 +1,5 @@
 import { types, Instance } from "mobx-state-tree"
-import type { EventBridge } from "../../../features/foundation/webview/EventBridge"
+import type { EventBridge } from "@features/foundation/webview/EventBridge"
 import { StoreRefType } from "../../mst-custom-types"
 import { getState } from "@features/storeSingleton"
 

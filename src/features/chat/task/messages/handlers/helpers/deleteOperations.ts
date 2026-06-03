@@ -1,11 +1,11 @@
 import * as vscode from "vscode"
-import type { EventBridge } from "../../../../../foundation/webview/EventBridge"
+import type { EventBridge } from "@features/foundation/webview/EventBridge"
 import type { ITaskModel } from "../../../../task/store"
 import type { Notification } from "@jabberwock/types"
 import { handleCheckpointRestoreOperation } from "../../../../task/notifications/handlers/checkpointRestoreHandler"
 import { saveTaskMessages } from "../../actions/saveMessages"
 import { getVscodeContext } from "../../../../../foundation/vscode/context"
-import { postStateToWebview } from "../../../../../foundation/window-manager/store"
+import { postStateToWebview } from "@features/foundation/window-manager/store"
 import { t } from "../../../../../../i18n"
 import { findMessageIndices, findFirstApiIndexAtOrAfter } from "./findMessageIndices"
 

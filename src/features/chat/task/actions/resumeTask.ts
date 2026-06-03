@@ -1,7 +1,6 @@
 import { Anthropic } from "@anthropic-ai/sdk"
-import { when } from "mobx"
 
-import { type NotificationAsk, type ApiReqData } from "@jabberwock/types"
+import { type NotificationAsk, type ApiReqData, IntentType, IntentStatus } from "@jabberwock/types"
 
 import { type ApiMessage } from "../messages/actions/saveApiConversation"
 
@@ -14,7 +13,7 @@ import type { ITaskModel } from "../store"
 import { ask } from "../notifications/actions/ask"
 import { userBroadcast } from "../messages/actions/say"
 import { getBackendRootStore } from "@features/storeSingleton"
-import { registerTask, unregisterTask } from "./taskRegistry"
+import { registerTask } from "./taskRegistry"
 
 /**
  * Resumes a task from saved history.
@@ -289,7 +288,7 @@ export async function resumeTaskFromHistory(task: ITaskModel): Promise<void> {
 
 	// Create a UserMessageReceived intent with the built resume content
 	// — the IntentBus reaction picks it up and dispatches to the registered handler.
-	const { IntentType, IntentStatus } = await import("@jabberwock/types")
+	// IntentType/IntentStatus are statically imported at top of file.
 	store.intentStore.createIntent({
 		id: crypto.randomUUID(),
 		type: IntentType.UserMessageReceived,
@@ -300,14 +299,6 @@ export async function resumeTaskFromHistory(task: ITaskModel): Promise<void> {
 		status: IntentStatus.Queued,
 		createdAt: Date.now(),
 	})
-
-	// Wait until the execution model signals completion or abort
-	// Each pipeline iteration creates the next UserMessageReceived intent via
-	// executeTools, forming a reactive loop instead of a recursive one.
-	await when(() => store.chat.isCompleted || store.chat.abort)
-
-	// Cleanup
-	unregisterTask(task.taskId)
 }
 
 // Alias for backward compatibility with existing consumers

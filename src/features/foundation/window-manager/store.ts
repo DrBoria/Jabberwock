@@ -1,7 +1,7 @@
 import * as vscode from "vscode"
 import * as path from "path"
 import { types, Instance } from "mobx-state-tree"
-import type { EventBridge } from "../../../features/foundation/webview/EventBridge"
+import type { EventBridge, ProviderHandle } from "@features/foundation/webview/EventBridge"
 import type { ProviderSettingsEntry, Notification } from "@jabberwock/types"
 import WorkspaceTracker from "../../../integrations/workspace/WorkspaceTracker"
 import type { IBackendRootStore } from "../../store"
@@ -127,23 +127,23 @@ export interface WindowManagerState {
 
 const PUSH_DEBOUNCE_MS = 50
 
-export function initWindowManagerState(_provider: EventBridge): void {
+export function initWindowManagerState(_provider: ProviderHandle): void {
 	// No-op — state is initialized via MST model defaults
 }
 
-function lazyGetState(provider: EventBridge): { foundation: { windowManager: IWindowManagerModel } } {
+function lazyGetState(provider: ProviderHandle): { foundation: { windowManager: IWindowManagerModel } } {
 	const rootStore = getBackendRootStore()
 	return rootStore as { foundation: { windowManager: IWindowManagerModel } }
 }
 
-export function getWindowManagerState(provider: EventBridge): IWindowManagerModel {
+export function getWindowManagerState(provider: ProviderHandle): IWindowManagerModel {
 	return lazyGetState(provider).foundation.windowManager as IWindowManagerModel
 }
 
 /**
  * Gets or lazily creates the WorkspaceTracker for the given provider.
  */
-export async function getWorkspaceTracker(provider: EventBridge): Promise<WorkspaceTracker | undefined> {
+export async function getWorkspaceTracker(provider: ProviderHandle): Promise<WorkspaceTracker | undefined> {
 	const state = getWindowManagerState(provider)
 	if (!state.workspaceTracker) {
 		// StoreRefType's runtime check accepts any non-null object.
@@ -158,10 +158,10 @@ export async function getWorkspaceTracker(provider: EventBridge): Promise<Worksp
 }
 
 // Type for webview message handler function
-export type WebviewMessageHandler = (provider: EventBridge, message: { [key: string]: unknown }) => Promise<void>
+export type WebviewMessageHandler = (provider: ProviderHandle, message: { [key: string]: unknown }) => Promise<void>
 
 export async function resolveWebviewView(
-	provider: EventBridge,
+	provider: ProviderHandle,
 	webviewView: vscode.WebviewView | vscode.WebviewPanel,
 	messageHandler?: WebviewMessageHandler,
 ) {
@@ -321,7 +321,7 @@ export async function resolveWebviewView(
 	state.addWebviewDisposable(configDisposable)
 }
 
-function getHtmlContent(provider: EventBridge, webview: vscode.Webview): string {
+function getHtmlContent(provider: ProviderHandle, webview: vscode.Webview): string {
 	const nonce = getNonce()
 	const buildVersion = Date.now().toString(36)
 	const workspaceRootUri = vscode.Uri.file(path.resolve(getVscodeContext().extensionUri.fsPath, ".."))
@@ -357,7 +357,7 @@ function getHtmlContent(provider: EventBridge, webview: vscode.Webview): string 
  * Using build assets instead of Vite dev server avoids CSP issues with localhost
  * that can cause an empty DOM in VS Code's webview.
  */
-function getHMRHtmlContent(provider: EventBridge, webview: vscode.Webview): string {
+function getHMRHtmlContent(provider: ProviderHandle, webview: vscode.Webview): string {
 	try {
 		// Read the Vite dev server port persisted by the vite.config.ts persistPortPlugin
 		const vitePortPath = path.join(path.dirname(getVscodeContext().extensionUri.fsPath), "webview-ui", ".vite-port")
@@ -447,7 +447,7 @@ function escapeHtml(text: string): string {
 // flooding the webview with redundant state updates. Only the LAST call in a
 // 50ms window is delivered.
 
-export function scheduleStatePush(provider: EventBridge, state?: WebviewStatePayload): void {
+export function scheduleStatePush(provider: ProviderHandle, state?: WebviewStatePayload): void {
 	const stateModel = lazyGetState(provider).foundation.windowManager as IWindowManagerModel
 	stateModel.scheduleStatePush(() => {
 		postStateToWebview(provider, state)
@@ -468,7 +468,7 @@ export type WebviewOutboundMessage =
 	| { type: string; [key: string]: unknown }
 
 export function postMessageToWebview(
-	provider: EventBridge,
+	provider: ProviderHandle,
 	message: WebviewOutboundMessage | { [key: string]: unknown },
 ): boolean {
 	const state = getWindowManagerState(provider)
@@ -483,7 +483,10 @@ export function postMessageToWebview(
 /**
  * Posts the current state to the webview.
  */
-export async function postStateToWebview(provider: EventBridge, additionalState?: WebviewStatePayload): Promise<void> {
+export async function postStateToWebview(
+	provider: ProviderHandle,
+	additionalState?: WebviewStatePayload,
+): Promise<void> {
 	const state = getWindowManagerState(provider)
 	console.log(
 		`[jabberwock] [DEBUG:POSTSTATE] ENTERED postStateToWebview, has state.view=${!!state.view}, additionalState keys=${Object.keys(additionalState ?? {}).join(",") || "(empty)"}`,
@@ -557,7 +560,7 @@ export async function postStateToWebview(provider: EventBridge, additionalState?
  * Posts full state minus messages to the webview.
  * Loads api configuration, settings, and currentApiConfigName from the provider.
  */
-export async function postStateToWebviewWithoutMessages(provider: EventBridge): Promise<void> {
+export async function postStateToWebviewWithoutMessages(provider: ProviderHandle): Promise<void> {
 	const state: WebviewStatePayload = {}
 	try {
 		const psm = getProviderSettingsManager()
@@ -595,14 +598,14 @@ export async function postStateToWebviewWithoutMessages(provider: EventBridge): 
  * Alias for postStateToWebviewWithoutMessages.
  * Posts state to webview excluding task history / messages.
  */
-export async function postStateToWebviewWithoutTaskHistory(provider: EventBridge): Promise<void> {
+export async function postStateToWebviewWithoutTaskHistory(provider: ProviderHandle): Promise<void> {
 	await postStateToWebviewWithoutMessages(provider)
 }
 
 /**
  * Refreshes the workspace.
  */
-export async function refreshWorkspace(provider: EventBridge): Promise<void> {
+export async function refreshWorkspace(provider: ProviderHandle): Promise<void> {
 	await vscode.commands.executeCommand("workbench.action.reloadWindow")
 }
 
@@ -610,7 +613,7 @@ export async function refreshWorkspace(provider: EventBridge): Promise<void> {
  * Handles mode switching: updates global state, loads/saves API config per mode,
  * updates task mode, and posts updated state to webview.
  */
-export async function handleModeSwitch(provider: EventBridge, modeSlug: string): Promise<void> {
+export async function handleModeSwitch(provider: ProviderHandle, modeSlug: string): Promise<void> {
 	// 1. Check lockApiConfigAcrossModes (read-time override)
 	// Note: this key is stored in workspaceState (per-workspace), not globalState
 	const lockApiConfig = getVscodeContext().extensionContext.workspaceState.get<boolean>("lockApiConfigAcrossModes")
@@ -667,7 +670,7 @@ export async function handleModeSwitch(provider: EventBridge, modeSlug: string):
 	await postStateToWebview(provider)
 }
 
-export function resolveActivePageRequest(provider: EventBridge, requestId: string, activePage: string) {
+export function resolveActivePageRequest(provider: ProviderHandle, requestId: string, activePage: string) {
 	const stateModel = lazyGetState(provider).foundation.windowManager as IWindowManagerModel
 	stateModel.resolveActivePageRequest(requestId, activePage)
 }

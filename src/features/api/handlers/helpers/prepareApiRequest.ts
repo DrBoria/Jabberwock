@@ -22,7 +22,8 @@ import { getEnvironmentDetails } from "../../../chat/task/condense/actions/conde
 import { processUserContentMentions } from "../../../chat/task/messages/actions/processUserContentMentions"
 
 import { type TaskDelegate } from "../../../chat/task/condense/actions/types"
-import { postStateToWebviewWithoutTaskHistory, handleModeSwitch } from "../../../foundation/window-manager/store"
+import { maybeWaitForProviderRateLimit } from "./rateLimit"
+import { postStateToWebviewWithoutTaskHistory, handleModeSwitch } from "@features/foundation/window-manager/store"
 import { getSkillsManager } from "../../../settings/skills/store"
 import { getFileContextTracker } from "../../../foundation/time-machine/actions/getTimeMachine"
 import { ask } from "../../../chat/task/notifications/actions/ask"
@@ -126,7 +127,25 @@ export async function prepareApiRequest(
 		modelId,
 	)
 
-	await delegate.maybeWaitForProviderRateLimit(retryAttempt)
+	await maybeWaitForProviderRateLimit(
+		task,
+		{
+			say: (type: string, ...args: unknown[]) =>
+				systemBroadcast(
+					task.taskId,
+					type as Parameters<typeof systemBroadcast>[1],
+					args[0] as string | undefined,
+					args[1] as string[] | undefined,
+					args[2] as boolean | undefined,
+				),
+			getSystemPrompt: async () => "",
+			getEnvironmentDetails: async () => "",
+			overwriteApiConversationHistory: async () => {},
+			buildCleanConversationHistory: () => [],
+			ask: async () => ({ response: "" }),
+		},
+		retryAttempt,
+	)
 	task.setLastApiRequestTime(performance.now())
 
 	await systemBroadcast(task.taskId, "api_req_started", JSON.stringify({ apiProtocol }))

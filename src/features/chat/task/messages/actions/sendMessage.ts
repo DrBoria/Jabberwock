@@ -1,4 +1,4 @@
-import type { EventBridge } from "../../../../foundation/webview/EventBridge"
+import type { EventBridge } from "@features/foundation/webview/EventBridge"
 import { getBackendRootStore } from "@features/storeSingleton"
 
 function getViewLaunched(): boolean {

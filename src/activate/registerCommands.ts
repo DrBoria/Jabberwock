@@ -6,7 +6,7 @@ import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jab
 
 import { Package } from "../shared/package"
 import { getCommand } from "../utils/commands"
-import { EventBridge } from "../features/foundation/webview/EventBridge"
+import { EventBridge } from "@features/foundation/webview/EventBridge"
 import { initVscodeContext, getVscodeContext } from "../features/foundation/vscode/context"
 import { getSettingsAccess } from "@utils/settings-access"
 import { getProviderSettingsManager } from "../features/settings/models/ProviderSettingsManager"

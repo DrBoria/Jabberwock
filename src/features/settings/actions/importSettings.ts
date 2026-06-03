@@ -18,7 +18,7 @@ import type { SettingsAccess } from "@utils/settings-access"
 import { updateCustomModeInFile, requireContext } from "../agents/modesFileService"
 import { getBackendRootStore } from "@features/storeSingleton"
 import { resolveDefaultSaveUri } from "../../../utils/export"
-import { postStateToWebview } from "../../foundation/window-manager/store"
+import { postStateToWebview } from "@features/foundation/window-manager/store"
 import { t } from "../../../i18n"
 
 export type ImportOptions = {
@@ -27,7 +27,7 @@ export type ImportOptions = {
 }
 
 type ImportWithProviderOptions = ImportOptions & {
-	provider: import("../../foundation/webview/EventBridge").EventBridge
+	provider: import("@features/foundation/webview/EventBridge").ProviderHandle
 }
 
 /**

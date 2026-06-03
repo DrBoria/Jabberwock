@@ -1,6 +1,6 @@
 import * as vscode from "vscode"
 
-import { JabberwockEventName, type HistoryItem } from "@jabberwock/types"
+import { JabberwockEventName, type HistoryItem, IntentType, IntentStatus } from "@jabberwock/types"
 import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 
 import type { ITaskModel } from "../../../features/chat/task/store"
@@ -10,7 +10,7 @@ import type { ToolUse } from "../../../shared/tools"
 import { t } from "../../../i18n"
 
 import { BaseTool, ToolCallbacks } from "./BaseTool"
-import type { EventBridge } from "../../../features/foundation/webview/EventBridge"
+import type { EventBridge } from "@features/foundation/webview/EventBridge"
 import { getTaskWithId } from "../../../features/history/actions"
 import { reopenParentFromDelegation } from "../task/actions/delegateTask"
 import { ask } from "../task/notifications/actions/ask"
@@ -34,6 +34,8 @@ function getTaskForCommit(
 ): ITaskModel & { commitChanges: () => Promise<void>; emitFinalTokenUsageUpdate: () => void } {
 	return task as ITaskModel & { commitChanges: () => Promise<void>; emitFinalTokenUsageUpdate: () => void }
 }
+
+import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
 
 export class AttemptCompletionTool extends BaseTool<"attempt_completion"> {
 	readonly name = "attempt_completion" as const
@@ -85,8 +87,16 @@ export class AttemptCompletionTool extends BaseTool<"attempt_completion"> {
 
 			task._state.setCompletionResultSummary(result) // Jabberwock: store result for await_batch_completion
 			task._state.setIsCompleted(true) // Jabberwock: mark as completed
-			// Also signal ChatStore-level completion so startTask()'s when() resolves
+			// Signal ChatStore-level completion
 			getBackendRootStore().chat.setIsCompleted(true)
+			// Create cleanup intent: task.completion.requested handler owns unregisterTask + state push
+			getBackendRootStore().intentStore.createIntent({
+				id: crypto.randomUUID(),
+				type: IntentType.TaskCompletionRequested,
+				payload: { taskId: task.taskId },
+				status: IntentStatus.Queued,
+				createdAt: Date.now(),
+			})
 
 			task._state.setConsecutiveMistakeCount(0)
 
@@ -186,7 +196,7 @@ export class AttemptCompletionTool extends BaseTool<"attempt_completion"> {
 	private async delegateToParent(
 		task: ITaskModel,
 		result: string,
-		provider: EventBridge,
+		provider: ProviderHandle,
 		askFinishSubTaskApproval: () => Promise<boolean>,
 		pushToolResult: (result: string) => void,
 	): Promise<"delegated" | "denied" | "continue"> {

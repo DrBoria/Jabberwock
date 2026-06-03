@@ -3,7 +3,7 @@ import * as path from "path"
 import * as vscode from "vscode"
 import matter from "gray-matter"
 
-import type { EventBridge } from "../../features/foundation/webview/EventBridge"
+import type { EventBridge } from "@features/foundation/webview/EventBridge"
 import { getGlobalRooDirectory, getGlobalAgentsDirectory, getProjectAgentsDirectoryForCwd } from "../jabberwock-config"
 import { directoryExists, fileExists } from "../jabberwock-config"
 import { SkillMetadata, SkillContent } from "../../shared/skills"

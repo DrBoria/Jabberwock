@@ -169,7 +169,7 @@ export async function getEnvironmentDetails(task: ITaskModel, includeFileDetails
 	details += `\n\n====\n\nSYSTEM INFORMATION\n\nOperating System: ${osInfo}\nDefault Shell: ${getShell()}\nHome Directory: ${os.homedir().toPosix()}\nCurrent Workspace Directory: ${task.cwd.toPosix()}\n\nThe Current Workspace Directory is the active VS Code project directory...`
 
 	// ── Current Mode ─────────────────────────────────────────────────
-	const currentMode = task.taskMode
+	const currentMode = task.taskMode ?? "code"
 	const customModes: ModeConfig[] = []
 	const modeDetails = await getFullModeDetails(currentMode, customModes, undefined, {
 		cwd: task.cwd,

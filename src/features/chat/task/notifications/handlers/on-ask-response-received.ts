@@ -1,5 +1,5 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "../../../../intents/bus"
+import type { IntentBus } from "@features/intents/bus"
 import type { AskResponseValue } from "@jabberwock/types"
 
 /**
@@ -7,6 +7,8 @@ import type { AskResponseValue } from "@jabberwock/types"
  * (approve/deny) and performs the actual work: resolving the ask promise,
  * creating checkpoints, marking asks as answered, and persisting state.
  */
+import { resolveAskResponse } from "@features/chat/task/notifications/actions/respondToAsk"
+
 export function registerOnAskResponseReceived(bus: IntentBus): void {
 	bus.register(IntentType.AskResponseReceived, async (intent, ctx) => {
 		const { taskId, response, text, images } = intent.payload as {
@@ -22,8 +24,6 @@ export function registerOnAskResponseReceived(bus: IntentBus): void {
 			return
 		}
 
-		// Delegate to the internal response resolver (avoids circular intent emission)
-		const { resolveAskResponse } = await import("../actions/respondToAsk")
 		resolveAskResponse(taskId, response as AskResponseValue, text ?? "", images ?? [])
 	})
 }

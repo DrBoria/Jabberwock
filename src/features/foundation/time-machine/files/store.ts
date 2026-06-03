@@ -1,5 +1,5 @@
 import { types, Instance } from "mobx-state-tree"
-import type { EventBridge } from "../../webview/EventBridge"
+import type { EventBridge } from "@features/foundation/webview/EventBridge"
 import { getState } from "@features/storeSingleton"
 
 export const FilesModel = types.model("Files", {})

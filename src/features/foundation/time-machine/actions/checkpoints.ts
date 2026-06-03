@@ -129,14 +129,14 @@ export async function getCheckpointService(task: ITaskModel, { interval = 250 }:
 	}
 }
 
-import { EventBridge } from "../../webview/EventBridge"
+import { EventBridge, type ProviderHandle } from "@features/foundation/webview/EventBridge"
 import { systemBroadcast } from "../../../chat/task/messages/actions/say"
 
 async function checkGitInstallation(
 	task: ITaskModel,
 	service: RepoPerTaskCheckpointService,
 	log: (message: string) => void,
-	provider: EventBridge,
+	provider: ProviderHandle,
 ) {
 	try {
 		const gitInstalled = await checkGitInstalled()

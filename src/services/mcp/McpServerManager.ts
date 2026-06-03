@@ -1,6 +1,6 @@
 import * as vscode from "vscode"
 import { McpHub } from "./McpHub"
-import { EventBridge } from "../../features/foundation/webview/EventBridge"
+import { ProviderHandle } from "@features/foundation/webview/EventBridge"
 
 /**
  * Singleton manager for MCP server instances.
@@ -10,14 +10,14 @@ export class McpServerManager {
 	private static readonly GLOBAL_STATE_KEY = "mcpHubInstanceId"
 
 	private _mcpHub: McpHub | null = null
-	private providers: Set<EventBridge> = new Set()
+	private providers: Set<ProviderHandle> = new Set()
 	private _initializationPromise: Promise<McpHub> | null = null
 
 	/**
 	 * Get (or create) the singleton McpHub instance.
 	 * Registers the provider for notifications.
 	 */
-	async getInstance(context: vscode.ExtensionContext, provider: EventBridge): Promise<McpHub> {
+	async getInstance(context: vscode.ExtensionContext, provider: ProviderHandle): Promise<McpHub> {
 		// Register the provider
 		this.providers.add(provider)
 
@@ -36,7 +36,7 @@ export class McpServerManager {
 			try {
 				// Double-check instance in case it was created while we were waiting
 				if (!this._mcpHub) {
-					const hub = new McpHub(provider)
+					const hub = new McpHub(provider, context)
 					// Wait for all MCP servers to finish connecting (or timing out)
 					await hub.waitUntilReady()
 					this._mcpHub = hub
@@ -64,7 +64,7 @@ export class McpServerManager {
 	 * Remove a provider from the tracked set.
 	 * This is called when a webview is disposed.
 	 */
-	unregisterProvider(provider: EventBridge): void {
+	unregisterProvider(provider: ProviderHandle): void {
 		this.providers.delete(provider)
 	}
 

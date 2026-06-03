@@ -1,6 +1,6 @@
 import { safeWriteJson } from "../../../../../utils/safeWriteJson"
 import type { ITaskModel } from "../../store"
-import { postStateToWebview } from "../../../../foundation/window-manager/store"
+import { postStateToWebview } from "@features/foundation/window-manager/store"
 import * as path from "path"
 import * as fs from "fs/promises"
 

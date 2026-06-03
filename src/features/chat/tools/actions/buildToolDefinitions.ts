@@ -5,7 +5,6 @@ import type OpenAI from "openai"
 import type { ProviderSettings, ModeConfig, ModelInfo } from "@jabberwock/types"
 import { customToolRegistry, formatNative } from "@jabberwock/core"
 
-import type { EventBridge } from "../../../foundation/webview/EventBridge"
 import { getMcpServerManager } from "../../../../services/mcp/McpServerManager"
 import { getVscodeContext } from "../../../../features/foundation/vscode/context"
 import { getRooDirectoriesForCwd } from "../../../../services/jabberwock-config/index.js"
@@ -18,7 +17,6 @@ import {
 } from "../../../settings/context/tools/filter-tools-for-mode"
 
 interface BuildToolsOptions {
-	provider: EventBridge
 	cwd: string
 	mode: string | undefined
 	customModes: ModeConfig[] | undefined
@@ -81,9 +79,10 @@ export async function buildNativeToolsArray(options: BuildToolsOptions): Promise
  * @param options - Configuration options for building the tools
  * @returns BuildToolsResult with tools array and optional allowedFunctionNames
  */
+import { CodeIndexManager, getCodeIndexManager } from "../../../../services/code-index/manager"
+
 export async function buildNativeToolsArrayWithRestrictions(options: BuildToolsOptions): Promise<BuildToolsResult> {
 	const {
-		provider,
 		cwd,
 		mode,
 		customModes,
@@ -97,7 +96,6 @@ export async function buildNativeToolsArrayWithRestrictions(options: BuildToolsO
 	const mcpHub = getMcpServerManager().getMcpHub() ?? undefined
 
 	// Get CodeIndexManager for feature checking.
-	const { CodeIndexManager, getCodeIndexManager } = await import("../../../../services/code-index/manager")
 	const codeIndexManager = getCodeIndexManager(getVscodeContext().extensionContext, cwd)
 
 	// Build settings object for tool filtering.

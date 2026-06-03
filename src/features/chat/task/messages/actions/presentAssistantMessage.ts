@@ -38,12 +38,14 @@ import { updateTodoListTool } from "../../../tools/UpdateTodoListTool"
 import { runSlashCommandTool } from "../../../tools/RunSlashCommandTool"
 import { skillTool } from "../../../tools/SkillTool"
 import { generateImageTool } from "../../../tools/GenerateImageTool"
+import { analyzeImageTool } from "../../../tools/AnalyzeImageTool"
 import { applyDiffTool as applyDiffToolClass } from "../../../tools/ApplyDiffTool"
 import { isValidToolName, validateToolUse } from "../../../tools/validateToolUse"
 import { codebaseSearchTool } from "../../../tools/CodebaseSearchTool"
 import { thinkTool } from "../../../tools/ThinkTool"
 
 import { formatResponse } from "../../../../settings/context/responses"
+import { resolveToolAlias } from "../../../../settings/context/tools/filter-tools-for-mode"
 import { sanitizeToolUseId } from "../../../../../utils/tool-id"
 import { diagnosticsManager } from "@jabberwock/devtool"
 import { agentStore } from "../../../../settings/agents/store"
@@ -664,9 +666,6 @@ export async function presentAssistantMessage(task: ITaskModel) {
 					// Resolve aliases in includedTools before validation
 					// e.g., "edit_file" should resolve to "apply_diff"
 					const rawIncludedTools = modelInfo?.info?.includedTools
-					const { resolveToolAlias } = await import(
-						"../../../../settings/context/tools/filter-tools-for-mode"
-					)
 					const includedTools = rawIncludedTools?.map((tool) => resolveToolAlias(tool))
 
 					try {
@@ -1021,7 +1020,6 @@ Please execute this tool and confirm once done.`
 						})
 						break
 					case "analyze_image": {
-						const analyzeImageTool = (await import("../../../tools/AnalyzeImageTool")).analyzeImageTool
 						await checkpointSaveAndMark(task)
 						await analyzeImageTool.handle(task, block as ToolUse<"analyze_image">, {
 							askApproval,

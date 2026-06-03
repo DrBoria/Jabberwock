@@ -95,7 +95,7 @@ export class SwitchModeTool extends BaseTool<"switch_mode"> {
 	}
 }
 
-import { handleModeSwitch } from "../../../features/foundation/window-manager/store"
+import { handleModeSwitch } from "@features/foundation/window-manager/store"
 import { ask } from "../task/notifications/actions/ask"
 import { sayAndCreateMissingParamError } from "../task/messages/actions/missingParamError"
 

@@ -1,7 +1,7 @@
-import type { EventBridge } from "../../EventBridge"
+import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
 import { WebviewMessage } from "@jabberwock/types"
 
-type WebviewMessageHandler = (provider: EventBridge, message: { [key: string]: unknown }) => Promise<void>
+type WebviewMessageHandler = (provider: ProviderHandle, message: { [key: string]: unknown }) => Promise<void>
 
 /**
  * Registry of per-type webview message handlers.
@@ -11,7 +11,7 @@ type WebviewMessageHandler = (provider: EventBridge, message: { [key: string]: u
  * Each handler receives the full message and is responsible for creating
  * the appropriate intent(s) on the IntentBus.
  */
-const messageHandlers = new Map<string, (provider: EventBridge, message: WebviewMessage) => void>()
+const messageHandlers = new Map<string, (provider: ProviderHandle, message: WebviewMessage) => void>()
 
 /**
  * Register a handler for a specific webview message type.
@@ -25,7 +25,7 @@ const messageHandlers = new Map<string, (provider: EventBridge, message: Webview
  */
 export function onWebviewMessage(
 	type: string,
-	handler: (provider: EventBridge, message: WebviewMessage) => void,
+	handler: (provider: ProviderHandle, message: WebviewMessage) => void,
 ): void {
 	if (messageHandlers.has(type)) {
 		console.warn(`[jabberwock] [webviewMessageHandler] Overwriting existing handler for message type: "${type}"`)

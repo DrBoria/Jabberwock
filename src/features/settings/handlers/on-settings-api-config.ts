@@ -5,12 +5,14 @@ import { t } from "../../../i18n"
 import { getVscodeContext } from "../../foundation/vscode/context"
 import { getProviderSettingsManager } from "../models/ProviderSettingsManager"
 import { upsertProviderProfile, activateProviderProfile, deleteProviderProfile } from "../models/api-config-store"
-import { postStateToWebview } from "../../foundation/window-manager/store"
+import { postStateToWebview } from "@features/foundation/window-manager/store"
 import { getMstState } from "../../foundation/mst/store"
+import { EventBridge } from "@features/foundation/webview/EventBridge"
 
 /**
  * Register all API config settings intent handlers.
  */
+
 export function registerOnSettingsApiConfig(bus: IntentBus): void {
 	// ── saveApiConfiguration ────────────────────────────────────────────
 	bus.register(IntentType.SettingsApiConfigSave, async (intent, ctx) => {
@@ -25,7 +27,6 @@ export function registerOnSettingsApiConfig(bus: IntentBus): void {
 			const listApiConfig = await getProviderSettingsManager()!.listConfig()
 			await getVscodeContext().updateGlobalState("listApiConfigMeta", listApiConfig)
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(
 				`Error save api configuration: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 			)
@@ -76,7 +77,6 @@ export function registerOnSettingsApiConfig(bus: IntentBus): void {
 			console.log(
 				`[handlers/upsertApiConfiguration] ERROR: ${error instanceof Error ? error.message : String(error)}`,
 			)
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(
 				`Error create new api configuration: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 			)
@@ -108,7 +108,6 @@ export function registerOnSettingsApiConfig(bus: IntentBus): void {
 
 			await activateProviderProfile(provider, { name: newName })
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(
 				`Error rename api configuration: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 			)
@@ -144,7 +143,6 @@ export function registerOnSettingsApiConfig(bus: IntentBus): void {
 			await getProviderSettingsManager()!.deleteConfig(oldName)
 			await activateProviderProfile(provider, { name: newName })
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(
 				`Error delete api configuration: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 			)
@@ -167,7 +165,6 @@ export function registerOnSettingsApiConfig(bus: IntentBus): void {
 			}
 			await postStateToWebview(provider)
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(
 				`Error load api configuration: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 			)
@@ -191,7 +188,6 @@ export function registerOnSettingsApiConfig(bus: IntentBus): void {
 			}
 			await postStateToWebview(provider)
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(
 				`Error load api configuration by ID: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 			)
@@ -210,7 +206,6 @@ export function registerOnSettingsApiConfig(bus: IntentBus): void {
 			provider.postMessageToWebview({ type: "listApiConfig", listApiConfig })
 			getMstState(ctx.rootStore).listApiConfigStore?.setListApiConfig(listApiConfig)
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(
 				`Error get list api configuration: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 			)

@@ -147,13 +147,18 @@ async function getFrontendStoreHelper(
 	try {
 		const snapshot = await frontendBridge.getRootSnapshot()
 		if (store) {
-			const storeData = (snapshot as Record<string, unknown>)[store]
+			// Support dot-separated store paths (e.g. "chat.tasks")
+			const storeData = resolveNestedPath(snapshot as Record<string, unknown>, store)
 			if (storeData === undefined) {
 				return JSON.stringify({ error: `Store "${store}" not found` })
 			}
 			if (path) {
 				const resolved = resolvePath(storeData as Record<string, unknown>, path)
-				return JSON.stringify(resolved ?? { error: `Path "${path}" not found in store "${store}"` })
+				if (resolved === undefined) {
+					return JSON.stringify({ error: `Path "${path}" not found in store "${store}"` })
+				}
+				const truncated = truncateDeep(resolved, 5, undefined, 0, 10, 500, cursor, limit)
+				return JSON.stringify(truncated)
 			}
 			return getFrontendStoreData(storeData as Record<string, unknown>, cursor, limit, fields)
 		}
@@ -199,13 +204,18 @@ function getBackendStoreHelper(
 	}
 
 	if (store) {
-		const storeData = (mstStore as Record<string, unknown>)[store]
+		// Support dot-separated store paths (e.g. "chat.tasks")
+		const storeData = resolveNestedPath(mstStore as Record<string, unknown>, store)
 		if (storeData === undefined) {
 			return JSON.stringify({ error: `Store "${store}" not found` })
 		}
 		if (path) {
 			const resolved = resolvePath(storeData as Record<string, unknown>, path)
-			return JSON.stringify(resolved ?? { error: `Path "${path}" not found in store "${store}"` })
+			if (resolved === undefined) {
+				return JSON.stringify({ error: `Path "${path}" not found in store "${store}"` })
+			}
+			const truncated = truncateDeep(resolved, 5, undefined, 0, 10, 500, cursor, limit)
+			return JSON.stringify(truncated)
 		}
 		return getBackendStoreData(storeData as Record<string, unknown>, cursor, limit, fields)
 	}
@@ -253,17 +263,54 @@ function resolvePath(obj: Record<string, unknown>, path: string): unknown {
 }
 
 /**
- * Recursively truncate a value — replaces deeply nested arrays with a short preview
- * and applies `fields` filtering to array-of-objects elements.
+ * Resolve a dot-separated nested path from a root object.
+ * e.g. resolveNestedPath({ a: { b: { c: 42 } } }, "a.b.c") → 42
  */
-function truncateDeep(value: unknown, maxPreview = 5, fields?: string[]): unknown {
+function resolveNestedPath(obj: Record<string, unknown>, path: string): unknown {
+	const parts = path.split(".")
+	let current: unknown = obj
+	for (const part of parts) {
+		if (current === null || current === undefined || typeof current !== "object") {
+			return undefined
+		}
+		current = (current as Record<string, unknown>)[part]
+	}
+	return current
+}
+
+function truncateDeep(
+	value: unknown,
+	maxPreview = 5,
+	fields?: string[],
+	depth = 0,
+	maxDepth = 10,
+	maxStrLength = 500,
+	cursor = 0,
+	limit = 10,
+): unknown {
+	if (depth > maxDepth) {
+		return "[Truncated: max depth reached]"
+	}
 	if (value === undefined) {
-		return "(undefined)"
+		return null
+	}
+	if (typeof value === "string") {
+		if (value.length > maxStrLength) {
+			return value.slice(0, maxStrLength) + `... (${value.length - maxStrLength} more chars)`
+		}
+		return value
 	}
 	if (Array.isArray(value)) {
+		// Apply cursor/limit slice (newest-first, reverse order)
+		const endIndex = Math.max(0, value.length - cursor)
+		const startIndex = Math.max(0, endIndex - limit)
+		const sliced = value.slice(startIndex, endIndex)
+
 		// Process each element first (recursive)
-		const processed = value.map((item) => truncateDeep(item, maxPreview, undefined))
-		// Truncate the array itself
+		const processed = sliced.map((item) =>
+			truncateDeep(item, maxPreview, undefined, depth + 1, maxDepth, maxStrLength),
+		)
+		// Truncate the processed array itself
 		if (processed.length > maxPreview) {
 			return [
 				fields ? filterFields(processed[0] as Record<string, unknown>, fields) : processed[0],
@@ -286,7 +333,10 @@ function truncateDeep(value: unknown, maxPreview = 5, fields?: string[]): unknow
 		const obj = value as Record<string, unknown>
 		const result: Record<string, unknown> = {}
 		for (const [k, v] of Object.entries(obj)) {
-			result[k] = truncateDeep(v, maxPreview, undefined)
+			if (v === undefined) {
+				continue // skip undefined values — consistent with JSON serialization
+			}
+			result[k] = truncateDeep(v, maxPreview, undefined, depth + 1, maxDepth, maxStrLength)
 		}
 		return result
 	}
@@ -334,6 +384,10 @@ function paginateSnapshot(
 
 	const limited = sliced.map(([k, v]) => {
 		const processed = truncateDeep(v, 5, fieldList)
+		// Apply fields filter at the top level for map-like objects (e.g. chat.tasks)
+		if (fieldList && typeof processed === "object" && !Array.isArray(processed) && processed !== null) {
+			return [k, filterFields(processed as Record<string, unknown>, fieldList)] as [string, unknown]
+		}
 		return [k, processed] as [string, unknown]
 	})
 	return Object.fromEntries(limited)

@@ -43,11 +43,16 @@ export function registerDomTools(mcpServer: McpServer, bridge: ExtensionBridge) 
 				),
 			depth: z
 				.number()
+				.min(1)
+				.max(10)
 				.optional()
-				.describe(
-					"DOM serialization depth. Default: unlimited for '*', 3 for specifics. Lower = faster/shallower.",
-				),
-			maxChildren: z.number().optional().describe("Max children per node (default: all). Truncates wide lists."),
+				.describe("DOM serialization depth (1-10). Default: 10 for '*', 3 for specifics."),
+			maxChildren: z
+				.number()
+				.min(1)
+				.max(10)
+				.optional()
+				.describe("Max children per node (1-10). Default: 10. Truncates wide lists."),
 			command: z
 				.string()
 				.optional()

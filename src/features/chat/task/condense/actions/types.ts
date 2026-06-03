@@ -2,7 +2,7 @@ import type { Anthropic } from "@anthropic-ai/sdk"
 import type { ProviderSettings } from "@jabberwock/types"
 import type { ApiMessage } from "../../messages/actions/saveApiConversation"
 import type { ITaskModel } from "../../store"
-import type { EventBridge } from "../../../../foundation/webview/EventBridge"
+import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
 import type { AssistantMessageContent } from "../../messages/actions"
 
 /**
@@ -37,7 +37,6 @@ export interface TaskDelegate {
 	streamingToolCallIndices: Map<string, number>
 	assistantMessageContent: AssistantMessageContent[]
 	backoffAndAnnounce(retryAttempt: number, error: Error): Promise<void>
-	providerRef: WeakRef<EventBridge>
-	maybeWaitForProviderRateLimit(retryAttempt: number): Promise<void>
+	providerRef: WeakRef<ProviderHandle>
 	apiConfiguration: ProviderSettings
 }

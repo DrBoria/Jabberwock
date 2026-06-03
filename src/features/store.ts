@@ -31,60 +31,80 @@ export interface ActionLogEntry {
 	timestamp: number
 }
 
-// ─── Root Model ─────────────────────────────────────────────────────
-export const BackendRootModel = types.model("BackendRoot", {
-	chat: types.optional(ChatModel, () => ({
-		streaming: { entries: {} },
-		checkpoint: { entries: {} },
-		tasks: {},
-		activeTaskId: undefined,
-	})),
-	foundation: types.optional(FoundationModel, () => ({
-		windowManager: {
-			view: null,
-			disposables: [],
-			webviewDisposables: [],
-			viewLaunched: false,
-			workspaceStore: null,
-			workspaceTracker: null,
-			pendingDomRequests: new Map(),
-			pendingActivePageRequests: new Map(),
-			pendingPushTimers: new Map(),
-		},
-		agentState: { pendingEditOp: "" },
-		mst: {},
-		timerQueue: {},
-	})),
-	history: types.optional(HistoryModel, {
-		items: [],
-		currentTaskId: "",
-	}),
-	settings: types
-		.model("Settings", {
-			apiConfig: ApiConfigModel,
-			files: FilesModel,
-			mcp: McpModel,
-			models: ModelsModel,
-			modes: ModesModel,
-			prompts: PromptsModel,
-			skills: SkillsModel,
-			webview: WebviewModel,
-			settingsImportedAt: types.number,
-		})
-		.actions((self) => ({
-			setSettingsImportedAt(value: number) {
-				self.settingsImportedAt = value
-			},
-		})),
-	cloud: CloudModel,
-	marketplace: MarketplaceModel,
-	intentStore: types.optional(IntentStoreModel, () => ({
-		intents: [],
-	})),
-	fileContextTracker: types.optional(FileContextTrackerStoreModel, () => ({
-		entries: {},
-	})),
+// ─── Event log entry for debug visibility ──────────────────────────
+export const EventLogModel = types.model("EventLog", {
+	type: types.string,
+	ts: types.number,
+	direction: types.enumeration(["outgoing", "incoming"]),
+	payload: types.frozen(),
 })
+
+export type IEventLog = Instance<typeof EventLogModel>
+
+// ─── Root Model ─────────────────────────────────────────────────────
+export const BackendRootModel = types
+	.model("BackendRoot", {
+		chat: types.optional(ChatModel, () => ({
+			streaming: { entries: {} },
+			checkpoint: { entries: {} },
+			tasks: {},
+			activeTaskId: undefined,
+		})),
+		foundation: types.optional(FoundationModel, () => ({
+			windowManager: {
+				view: null,
+				disposables: [],
+				webviewDisposables: [],
+				viewLaunched: false,
+				workspaceStore: null,
+				workspaceTracker: null,
+				pendingDomRequests: new Map(),
+				pendingActivePageRequests: new Map(),
+				pendingPushTimers: new Map(),
+			},
+			agentState: { pendingEditOp: "" },
+			mst: {},
+			timerQueue: {},
+		})),
+		history: types.optional(HistoryModel, {
+			items: [],
+			currentTaskId: "",
+		}),
+		settings: types
+			.model("Settings", {
+				apiConfig: ApiConfigModel,
+				files: FilesModel,
+				mcp: McpModel,
+				models: ModelsModel,
+				modes: ModesModel,
+				prompts: PromptsModel,
+				skills: SkillsModel,
+				webview: WebviewModel,
+				settingsImportedAt: types.number,
+			})
+			.actions((self) => ({
+				setSettingsImportedAt(value: number) {
+					self.settingsImportedAt = value
+				},
+			})),
+		cloud: CloudModel,
+		marketplace: MarketplaceModel,
+		intentStore: types.optional(IntentStoreModel, () => ({
+			intents: [],
+		})),
+		fileContextTracker: types.optional(FileContextTrackerStoreModel, () => ({
+			entries: {},
+		})),
+		eventLog: types.array(EventLogModel),
+	})
+	.actions((self) => ({
+		logEvent(event: { type: string; ts: number; direction: "outgoing" | "incoming"; payload: unknown }) {
+			self.eventLog.push(event)
+			if (self.eventLog.length > 1000) {
+				self.eventLog.splice(0, self.eventLog.length - 1000)
+			}
+		},
+	}))
 
 export type IBackendRootStore = Instance<typeof BackendRootModel>
 export type FeatureState = IBackendRootStore
@@ -141,6 +161,7 @@ function createDefaultSnapshot(): Record<string, unknown> {
 			items: [],
 			currentTaskId: "",
 		},
+		eventLog: [],
 	}
 }
 

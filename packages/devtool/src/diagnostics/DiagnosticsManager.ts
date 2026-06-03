@@ -128,7 +128,7 @@ export class DiagnosticsManager {
 	public getSnapshot(filters?: SnapshotFilters): ExtendedDiagnosticSnapshot {
 		const traces = this.tracer.getTraces()
 		const {
-			limit = 50,
+			limit = 10,
 			offset: offsetVal = 0,
 			level,
 			search,
@@ -163,10 +163,14 @@ export class DiagnosticsManager {
 				const searchLower = search.toLowerCase()
 				filteredLogs = filteredLogs.filter((l) => l.message.toLowerCase().includes(searchLower))
 			}
-			// Pagination
+			// Pagination from end (newest first), with limit validation
+			if (limit > 10) {
+				throw new Error(`Limit cannot exceed 10, got ${limit}`)
+			}
 			if (limit >= 0) {
-				const start = offsetVal
-				filteredLogs = filteredLogs.slice(start, start + limit)
+				const endIndex = filteredLogs.length - offsetVal
+				const startIndex = Math.max(0, endIndex - limit)
+				filteredLogs = filteredLogs.slice(startIndex, endIndex).reverse()
 			}
 			snapshot.logs = filteredLogs
 		}

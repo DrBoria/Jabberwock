@@ -7,8 +7,9 @@ import { t } from "../../../i18n"
 import { openFile } from "../../../integrations/misc/open-file"
 import { fileExistsAtPath } from "../../../utils/fs"
 import { safeWriteJson } from "../../../utils/safeWriteJson"
-import { postStateToWebview } from "../../foundation/window-manager/store"
+import { postStateToWebview } from "@features/foundation/window-manager/store"
 import { getMcpServerManager } from "../../../services/mcp/McpServerManager"
+import { EventBridge } from "@features/foundation/webview/EventBridge"
 
 /**
  * Register all MCP settings intent handlers.
@@ -61,7 +62,6 @@ export function registerOnSettingsMcp(bus: IntentBus): void {
 		if (!payload.serverName) return
 
 		try {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(`Attempting to delete MCP server: ${payload.serverName}`)
 			const deleteMcpHub = await getMcpServerManager().getMcpHub()
 			await deleteMcpHub?.deleteServer(payload.serverName, payload.source as "global" | "project")
@@ -69,7 +69,6 @@ export function registerOnSettingsMcp(bus: IntentBus): void {
 
 			await postStateToWebview(provider)
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			const errorMessage = error instanceof Error ? error.message : String(error)
 			EventBridge.outputChannel?.appendLine(`Failed to delete MCP server: ${errorMessage}`)
 		}
@@ -83,7 +82,6 @@ export function registerOnSettingsMcp(bus: IntentBus): void {
 			const restartMcpHub = await getMcpServerManager().getMcpHub()
 			await restartMcpHub?.restartConnection(payload.text, payload.source as "global" | "project")
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(
 				`Failed to retry connection for ${payload.text}: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 			)
@@ -108,7 +106,6 @@ export function registerOnSettingsMcp(bus: IntentBus): void {
 				Boolean(payload.alwaysAllow),
 			)
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(
 				`Failed to toggle auto-approve for tool ${payload.toolName}: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 			)
@@ -133,7 +130,6 @@ export function registerOnSettingsMcp(bus: IntentBus): void {
 				Boolean(payload.isEnabled),
 			)
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(
 				`Failed to toggle enabled for prompt for tool ${payload.toolName}: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 			)
@@ -156,7 +152,6 @@ export function registerOnSettingsMcp(bus: IntentBus): void {
 				payload.source as "global" | "project",
 			)
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(
 				`Failed to toggle MCP server ${payload.serverName}: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 			)
@@ -176,7 +171,6 @@ export function registerOnSettingsMcp(bus: IntentBus): void {
 			const mcpHub = await getMcpServerManager().getMcpHub()
 			await mcpHub?.updateServerTimeout(payload.serverName, timeout, payload.source as "global" | "project")
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(
 				`Failed to update MCP timeout for ${payload.serverName}: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 			)

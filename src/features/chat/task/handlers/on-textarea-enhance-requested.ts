@@ -1,7 +1,7 @@
 import { IntentType } from "@jabberwock/types"
 import type { ProviderSettings } from "@jabberwock/types"
 import type { IntentBus } from "../../../intents/bus"
-import { EventBridge } from "../../../foundation/webview/EventBridge"
+import { EventBridge } from "@features/foundation/webview/EventBridge"
 import { MessageEnhancer } from "./messageEnhancer"
 import { getProviderSettingsManager } from "../../../settings/models/ProviderSettingsManager"
 import * as vscode from "vscode"

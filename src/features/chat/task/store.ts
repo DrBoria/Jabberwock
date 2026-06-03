@@ -11,7 +11,7 @@ import type { VirtualWorkspace } from "../../../features/foundation/time-machine
 
 import { buildApiHandler } from "../../../api/index"
 import type { Anthropic } from "@anthropic-ai/sdk"
-import type { EventBridge } from "../../foundation/webview/EventBridge"
+import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
 import type { JabberwockTerminalProcessResultPromise } from "../../../integrations/terminal/types"
 import type { AssistantMessageContent } from "./messages/actions"
 import debounce from "lodash.debounce"
@@ -391,7 +391,7 @@ export const TaskModel = types
 
 		// Task runtime state (migrated from legacy Task class)
 		diffStrategy: undefined as import("../../../shared/tools").DiffStrategy | undefined,
-		providerRef: undefined as WeakRef<EventBridge> | undefined,
+		providerRef: undefined as WeakRef<ProviderHandle> | undefined,
 		globalStoragePath: "",
 		lastUsedTs: 0,
 		lastApiRequestTime: 0 as number | undefined,
@@ -458,12 +458,7 @@ export const TaskModel = types
 			if (self.isCompleted) return "completed"
 			return "active"
 		},
-		get taskMode(): string {
-			if (self._taskMode === undefined) {
-				throw new Error(
-					"Task mode accessed before initialization. Use getTaskMode() or wait for taskModeReady.",
-				)
-			}
+		get taskMode(): string | undefined {
 			return self._taskMode
 		},
 		get taskApiConfigName(): string | undefined {
@@ -540,8 +535,8 @@ export const TaskModel = types
 			self.apiConfiguration = config
 			self.api = buildApiHandler(config)
 		},
-		getTaskMode(): Promise<string> {
-			return Promise.resolve(self.taskMode)
+		getTaskMode(): Promise<string | undefined> {
+			return Promise.resolve(self._taskMode)
 		},
 		handleTerminalOperation(operation: unknown): void {
 			const tp = self.terminalProcess
@@ -607,6 +602,10 @@ export const TaskModel = types
 
 		setLastApiRequestTime(t: number | undefined) {
 			self.lastApiRequestTime = t
+		},
+
+		setLastMessageTs(ts: number) {
+			self.lastMessageTs = ts
 		},
 
 		// ── Execution state actions (per-task) ────────────────────────

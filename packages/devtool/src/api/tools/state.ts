@@ -99,7 +99,7 @@ export function registerStateTools(mcpServer: McpServer, bridge: ExtensionBridge
 				.describe(
 					"Optional specific store to search within (e.g. 'chat', 'chat.tasks'). If omitted, searches all stores.",
 				),
-			limit: z.number().min(1).max(20).default(10).describe("Maximum results"),
+			limit: z.number().min(1).max(10).default(10).describe("Maximum results"),
 			cursor: z.number().min(0).default(0).describe("Pagination cursor"),
 		},
 		async (params) => {

@@ -9,10 +9,12 @@ import { getModels, flushModels } from "../../../api/providers/fetchers/modelCac
 import { toRouterName } from "../../../shared/api"
 import type { GetModelsOptions } from "../../../shared/api"
 import { getCloudService, hasCloudService } from "@jabberwock/cloud"
+import { EventBridge } from "@features/foundation/webview/EventBridge"
 
 /**
  * Register all models settings intent handlers.
  */
+
 export function registerOnSettingsModels(bus: IntentBus): void {
 	// ── requestRouterModels ───────────────────────────────────────────
 	bus.register(IntentType.SettingsModelsRouterRequest, async (intent, ctx) => {
@@ -33,7 +35,6 @@ export function registerOnSettingsModels(bus: IntentBus): void {
 					} as GetModelsOptions)
 					return result
 				} catch (error) {
-					const { EventBridge } = await import("../../foundation/webview/EventBridge")
 					EventBridge.outputChannel?.appendLine(
 						`Error fetching router models: ${error instanceof Error ? error.message : String(error)}`,
 					)
@@ -68,7 +69,6 @@ export function registerOnSettingsModels(bus: IntentBus): void {
 				models: aggregatedModels.routerModels,
 			})
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(
 				`Error in requestRouterModels: ${error instanceof Error ? error.message : String(error)}`,
 			)
@@ -96,7 +96,6 @@ export function registerOnSettingsModels(bus: IntentBus): void {
 				baseUrl: payload.values.baseUrl,
 			})
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(
 				`Error fetching OpenAI models: ${error instanceof Error ? error.message : String(error)}`,
 			)
@@ -118,7 +117,6 @@ export function registerOnSettingsModels(bus: IntentBus): void {
 			const models = await getOllamaModels()
 			await provider.postMessageToWebview({ type: "ollamaModels", models })
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(
 				`Error fetching Ollama models: ${error instanceof Error ? error.message : String(error)}`,
 			)
@@ -135,7 +133,6 @@ export function registerOnSettingsModels(bus: IntentBus): void {
 			const models = await getLMStudioModels()
 			await provider.postMessageToWebview({ type: "lmStudioModels", models })
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(
 				`Error fetching LM Studio models: ${error instanceof Error ? error.message : String(error)}`,
 			)
@@ -152,7 +149,6 @@ export function registerOnSettingsModels(bus: IntentBus): void {
 			const models = await getRooModels("", "")
 			await provider.postMessageToWebview({ type: "rooModels", models })
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(
 				`Error fetching Roo models: ${error instanceof Error ? error.message : String(error)}`,
 			)
@@ -184,7 +180,6 @@ export function registerOnSettingsModels(bus: IntentBus): void {
 				values: { balance },
 			})
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(
 				`Error fetching Roo credit balance: ${error instanceof Error ? error.message : String(error)}`,
 			)
@@ -205,7 +200,6 @@ export function registerOnSettingsModels(bus: IntentBus): void {
 			const models = await getVsCodeLmModels()
 			await provider.postMessageToWebview({ type: "vsCodeLmModels", models })
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(
 				`Error fetching VS Code LM models: ${error instanceof Error ? error.message : String(error)}`,
 			)

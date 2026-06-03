@@ -19,12 +19,13 @@ import { fileExistsAtPath } from "../../../utils/fs"
 import { getCommand, getCommands } from "../../../services/command/commands"
 import { getWorkspacePath } from "../../../utils/path"
 import { getTaskDirectoryPath } from "../../../utils/storage"
-import { postStateToWebview, WebviewStatePayload } from "../../foundation/window-manager/store"
+import { postStateToWebview, WebviewStatePayload } from "@features/foundation/window-manager/store"
 import { getMstState } from "../../foundation/mst/store"
 import { generateErrorDiagnostics } from "./on-diagnostics"
 import type { ErrorDiagnosticsValues } from "./on-diagnostics"
 import { openAiCodexOAuthManager } from "../../../integrations/openai-codex/oauth"
 import { fetchOpenAiCodexRateLimitInfo } from "../../../integrations/openai-codex/rate-limits"
+import { EventBridge } from "@features/foundation/webview/EventBridge"
 
 /**
  * Register all core settings intent handlers (from the old settings/handlers.ts).
@@ -176,7 +177,6 @@ export function registerOnSettingsCore(bus: IntentBus): void {
 				list: updatedList,
 			})
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(
 				`Failed to dismiss upsell: ${error instanceof Error ? error.message : String(error)}`,
 			)
@@ -212,7 +212,6 @@ export function registerOnSettingsCore(bus: IntentBus): void {
 			const doc = await vscode.workspace.openTextDocument(tempFilePath)
 			await vscode.commands.executeCommand("markdown.showPreview", doc.uri)
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			const errorMessage = error instanceof Error ? error.message : String(error)
 			EventBridge.outputChannel?.appendLine(`Error opening markdown preview: ${errorMessage}`)
 			vscode.window.showErrorMessage(`Failed to open markdown preview: ${errorMessage}`)
@@ -313,7 +312,6 @@ export function registerOnSettingsCore(bus: IntentBus): void {
 				}
 			}
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(
 				`Error opening command file: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 			)
@@ -336,14 +334,12 @@ export function registerOnSettingsCore(bus: IntentBus): void {
 
 				if (command && command.filePath) {
 					await fs.unlink(command.filePath)
-					const { EventBridge } = await import("../../foundation/webview/EventBridge")
 					EventBridge.outputChannel?.appendLine(`Deleted command file: ${command.filePath}`)
 				} else {
 					vscode.window.showErrorMessage(t("common:errors.command_not_found", { name: payload.text }))
 				}
 			}
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(
 				`Error deleting command: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 			)
@@ -362,7 +358,6 @@ export function registerOnSettingsCore(bus: IntentBus): void {
 			const fileName = payload.text
 
 			if (!source) {
-				const { EventBridge } = await import("../../foundation/webview/EventBridge")
 				EventBridge.outputChannel?.appendLine("Missing source for createCommand")
 				return
 			}
@@ -437,7 +432,6 @@ export function registerOnSettingsCore(bus: IntentBus): void {
 
 			const templateContent = t("common:errors.command_template_content")
 			await fs.writeFile(filePath, templateContent, "utf8")
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(`Created new command file: ${filePath}`)
 
 			openFile(filePath)
@@ -459,7 +453,6 @@ export function registerOnSettingsCore(bus: IntentBus): void {
 			})
 			getMstState(ctx.rootStore).commandsStore?.setCommands(commandList)
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(
 				`Error creating command: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 			)
@@ -503,7 +496,6 @@ export function registerOnSettingsCore(bus: IntentBus): void {
 				values: rateLimits,
 			})
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			const errorMessage = error instanceof Error ? error.message : String(error)
 			EventBridge.outputChannel?.appendLine(`Error fetching OpenAI Codex rate limits: ${errorMessage}`)
 			provider.postMessageToWebview({
@@ -557,7 +549,6 @@ export function registerOnSettingsCore(bus: IntentBus): void {
 			const doc = await vscode.workspace.openTextDocument(tempFilePath)
 			await vscode.window.showTextDocument(doc, { preview: true })
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			const errorMessage = error instanceof Error ? error.message : String(error)
 			EventBridge.outputChannel?.appendLine(`Error opening debug history: ${errorMessage}`)
 			vscode.window.showErrorMessage(`Failed to open debug history: ${errorMessage}`)
@@ -608,7 +599,6 @@ export function registerOnSettingsCore(bus: IntentBus): void {
 			const doc = await vscode.workspace.openTextDocument(tempFilePath)
 			await vscode.window.showTextDocument(doc, { preview: true })
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			const errorMessage = error instanceof Error ? error.message : String(error)
 			EventBridge.outputChannel?.appendLine(`Error opening debug history: ${errorMessage}`)
 			vscode.window.showErrorMessage(`Failed to open debug history: ${errorMessage}`)
@@ -626,7 +616,6 @@ export function registerOnSettingsCore(bus: IntentBus): void {
 			return
 		}
 
-		const { EventBridge } = await import("../../foundation/webview/EventBridge")
 		await generateErrorDiagnostics({
 			taskId: currentTask.taskId,
 			globalStoragePath: getVscodeContext().globalStorageUri.fsPath,

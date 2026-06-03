@@ -1,10 +1,10 @@
 import { types, Instance } from "mobx-state-tree"
 import { isSecretStateKey, type JabberwockSettings } from "@jabberwock/types"
-import { EventBridge } from "../../foundation/webview/EventBridge"
+import { EventBridge, type ProviderHandle } from "@features/foundation/webview/EventBridge"
 import { getBackendRootStore } from "@features/storeSingleton"
 import { getSettingsAccess } from "@utils/settings-access"
 import { getProviderSettingsManager } from "./ProviderSettingsManager"
-import { postStateToWebview } from "../../foundation/window-manager/store"
+import { postStateToWebview } from "@features/foundation/window-manager/store"
 
 const KNOWN_FIELDS = [
 	"apiProvider",
@@ -200,7 +200,7 @@ export async function upsertProviderProfile(
  * Activates a provider profile by name.
  */
 export async function activateProviderProfile(
-	provider: EventBridge,
+	provider: ProviderHandle,
 	options: { name: string } | { id: string },
 ): Promise<{ [key: string]: unknown } | undefined> {
 	try {

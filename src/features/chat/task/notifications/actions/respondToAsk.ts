@@ -1,5 +1,4 @@
 import type { AskResponseValue } from "@jabberwock/types"
-import type { EventBridge } from "../../../../../features/foundation/webview/EventBridge"
 import { findLastIndex } from "../../../../../shared/array"
 import { getTask } from "../../../task/actions/taskRegistry"
 import { getBackendRootStore } from "@features/storeSingleton"
@@ -125,7 +124,7 @@ export function denyAsk(taskId: string, { text, images }: { text?: string; image
  */
 export function supersedePendingAsk(taskId: string): void {
 	const task = getTask(taskId)
-	task.lastMessageTs = task.generateUniqueTs()
+	task.setLastMessageTs(task.generateUniqueTs())
 }
 
 /**
@@ -137,20 +136,4 @@ export function cancelAutoApprovalTimeout(taskId: string): void {
 		clearTimeout(task.autoApprovalTimeoutRef)
 		task.autoApprovalTimeoutRef = undefined
 	}
-}
-
-/**
- * Simulates pressing the primary button in the chat interface.
- * Used by API and external consumers.
- */
-export async function pressPrimaryButton(provider: EventBridge): Promise<void> {
-	await provider.postMessageToWebview({ type: "invoke", invoke: "primaryButtonClick" })
-}
-
-/**
- * Simulates pressing the secondary button in the chat interface.
- * Used by API and external consumers.
- */
-export async function pressSecondaryButton(provider: EventBridge): Promise<void> {
-	await provider.postMessageToWebview({ type: "invoke", invoke: "secondaryButtonClick" })
 }

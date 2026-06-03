@@ -56,7 +56,7 @@ import { initVscodeContext, getVscodeContext } from "./features/foundation/vscod
 import { getSettingsAccess } from "@utils/settings-access"
 import { runSettingsMigrations } from "@features/settings/actions/runMigrations"
 import { ProviderSettingsManager } from "./features/settings/models/ProviderSettingsManager"
-import { EventBridge } from "./features/foundation/webview/EventBridge"
+import { EventBridge } from "@features/foundation/webview/EventBridge"
 import { DIFF_VIEW_URI_SCHEME_JABBERWOCK } from "./integrations/editor/DiffViewProvider"
 import { TerminalRegistry } from "./integrations/terminal/TerminalRegistry"
 import { openAiCodexOAuthManager } from "./integrations/openai-codex/oauth"
@@ -81,7 +81,14 @@ import { resumeTask } from "./features/chat/task/actions/resumeTask"
 import { isTaskInHistory, getCurrentTaskStack } from "./features/chat/task/actions/taskRegistry"
 import { popTaskFromStack, abortRunningTask } from "./features/chat/task/actions/abortRunningTask"
 import { sendMessage } from "./features/chat/task/messages/actions/sendMessage"
-import { pressPrimaryButton, pressSecondaryButton } from "./features/chat/task/notifications/actions/respondToAsk"
+import {
+	handleWebviewAskResponse,
+	resolveAskResponse,
+	approveAsk,
+	denyAsk,
+	supersedePendingAsk,
+	cancelAutoApprovalTimeout,
+} from "./features/chat/task/notifications/actions/respondToAsk"
 import { healthcheck } from "./features/foundation/window-manager/actions/ready"
 import {
 	getConfiguration,
@@ -374,6 +381,38 @@ export async function activate(context: vscode.ExtensionContext) {
 		// Set the provider on the bus context so handlers can access it
 		// without casting rootStore as unknown.
 		intentsBus.setProvider(provider)
+
+		// Create and set a TelemetryPropertiesProvider so telemetry clients can read
+		// app/environment properties (appName, appVersion, vscodeVersion, etc.).
+		// Without this call every telemetry event fails schema validation because
+		// the TelemetryClient.getEventProperties() method reads from the provider.
+		// Dynamic properties (language, mode) are read live from VS Code and the
+		// backend root store on each event.
+		telemetryService.setProvider({
+			getTelemetryProperties: async () => {
+				const store = getBackendRootStore()
+
+				let mode = "ask"
+				if (store !== undefined) {
+					const activeTask = store.chat.activeTask
+					if (activeTask !== undefined && activeTask.taskMode !== undefined) {
+						mode = activeTask.taskMode
+					}
+				}
+
+				return {
+					appName: Package.name,
+					appVersion: Package.version,
+					vscodeVersion: vscode.version,
+					platform: process.platform,
+					editorName: "vscode",
+					hostname: process.env.HOSTNAME ?? undefined,
+					language: vscode.env.language,
+					mode,
+				}
+			},
+		})
+
 		console.log("[extension] IntentBus handlers registered")
 	} else {
 		console.warn("[extension] IntentBus not available — handlers not registered")
@@ -876,17 +915,24 @@ export async function activate(context: vscode.ExtensionContext) {
 		resumeTask: async (taskId: string) => {
 			const { getTaskWithId } = await import("./features/history/actions")
 			const historyItem = await getTaskWithId(provider, taskId)
+
 			if (historyItem) {
 				await createTaskWithHistoryItem(provider, historyItem)
 			}
 		},
 		isTaskInHistory: (taskId: string) => isTaskInHistory(provider, taskId),
 		getCurrentTaskStack: () => getCurrentTaskStack(),
-		popTaskFromStack: (lastMessage?: string) => popTaskFromStack(provider, lastMessage),
+		popTaskFromStack: async (lastMessage?: string) => {
+			await popTaskFromStack(lastMessage)
+		},
 		abortRunningTask: () => abortRunningTask(provider),
 		sendMessage: (text?: string, images?: string[]) => sendMessage(provider, text, images),
-		pressPrimaryButton: () => pressPrimaryButton(provider),
-		pressSecondaryButton: () => pressSecondaryButton(provider),
+		pressPrimaryButton: async () => {
+			await provider.postMessageToWebview({ type: "invoke", invoke: "primaryButtonClick" })
+		},
+		pressSecondaryButton: async () => {
+			await provider.postMessageToWebview({ type: "invoke", invoke: "secondaryButtonClick" })
+		},
 		healthcheck: () => healthcheck(),
 
 		// Configuration management

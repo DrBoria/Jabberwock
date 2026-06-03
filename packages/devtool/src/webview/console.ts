@@ -101,6 +101,9 @@ export function initWebviewConsoleBridge() {
  * @returns JSON string with { lines, totalLines }
  */
 export function getWebviewConsoleLogs(level?: string, limit: number = 10, cursor: number = 0, search?: string): string {
+	if (limit > 10) {
+		return JSON.stringify({ lines: [], totalLines: 0, error: `Limit cannot exceed 10, got ${limit}` })
+	}
 	let entries = logBuffer
 
 	// Filter by level if specified

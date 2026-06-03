@@ -91,6 +91,7 @@ export type AllIntents =
 	| { type: "task.sync.enabled.set"; payload: { enabled: boolean } }
 	| { type: "task.condense.context.requested"; payload: Record<string, never> }
 	| { type: "task.webview.launched"; payload: Record<string, never> }
+	| { type: "task.completion.requested"; payload: { taskId: string } }
 	// ── Foundation / Window Manager ─────────────────────────────────
 	| { type: "foundation.focus.panel.requested"; payload: Record<string, never> }
 	| { type: "foundation.tab.switch"; payload: { tab: string; values?: Record<string, unknown>; fromMCP?: boolean } }
@@ -387,6 +388,7 @@ export const IntentType = {
 	TaskSyncEnabledSet: "task.sync.enabled.set",
 	TaskCondenseContextRequested: "task.condense.context.requested",
 	TaskWebviewLaunched: "task.webview.launched",
+	TaskCompletionRequested: "task.completion.requested",
 
 	// ── Foundation / Window Manager ─────────────────────────────────
 	FoundationFocusPanelRequested: "foundation.focus.panel.requested",

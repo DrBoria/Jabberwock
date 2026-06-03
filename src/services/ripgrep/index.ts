@@ -94,8 +94,26 @@ export async function getBinPath(vscodeAppRoot: string): Promise<string | undefi
 		(await checkPath("node_modules/@vscode/ripgrep/bin/")) ||
 		(await checkPath("node_modules/vscode-ripgrep/bin")) ||
 		(await checkPath("node_modules.asar.unpacked/vscode-ripgrep/bin/")) ||
-		(await checkPath("node_modules.asar.unpacked/@vscode/ripgrep/bin/"))
+		(await checkPath("node_modules.asar.unpacked/@vscode/ripgrep/bin/")) ||
+		(await findSystemRipgrep())
 	)
+}
+
+/**
+ * Fallback: try to find ripgrep on the system PATH.
+ * This helps in development/debug mode where vscode.env.appRoot may not contain
+ * the bundled ripgrep binary.
+ */
+async function findSystemRipgrep(): Promise<string | undefined> {
+	try {
+		const result = childProcess.execSync("which rg", { encoding: "utf-8" }).trim()
+		if (result) {
+			return result
+		}
+	} catch {
+		// rg not found on system PATH
+	}
+	return undefined
 }
 
 async function execRipgrep(bin: string, args: string[]): Promise<string> {

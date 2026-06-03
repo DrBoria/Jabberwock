@@ -1,7 +1,7 @@
 import { IntentType } from "@jabberwock/types"
 import type { IntentBus } from "../../../intents/bus"
 import { getCloudService } from "@jabberwock/cloud"
-import { EventBridge } from "../../../foundation/webview/EventBridge"
+import { EventBridge } from "@features/foundation/webview/EventBridge"
 
 /**
  * Handles task.sync.enabled.set intent — enables/disables cloud task sync.

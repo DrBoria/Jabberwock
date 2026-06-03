@@ -1,6 +1,6 @@
 import { IntentType } from "@jabberwock/types"
 import type { IntentBus } from "../../intents/bus"
-import { handleModeSwitch } from "../../foundation/window-manager/store"
+import { handleModeSwitch } from "@features/foundation/window-manager/store"
 
 /**
  * Handles topic.mode.switch.requested intent — switches the active mode.

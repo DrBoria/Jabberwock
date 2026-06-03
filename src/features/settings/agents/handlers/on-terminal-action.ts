@@ -1,4 +1,4 @@
-import type { EventBridge } from "../../../foundation/webview/EventBridge"
+import type { EventBridge } from "@features/foundation/webview/EventBridge"
 
 /** Message payload for a terminal action forwarded from VS Code command handlers. */
 export interface TerminalActionMessage {

@@ -1,9 +1,12 @@
 import { IntentType, IntentStatus } from "@jabberwock/types"
-import type { IntentBus } from "../../../intents/bus"
+import type { IntentBus } from "@features/intents/bus"
 
 /**
  * Handles task.resume.requested intent — resumes a task from history.
  */
+import { getTaskWithId } from "@features/history/actions/index"
+import { createTaskWithHistoryItem } from "@features/chat/task/actions/startTask"
+
 export function registerOnTaskResumeRequested(bus: IntentBus): void {
 	bus.register(IntentType.TaskResumeRequested, async (intent, ctx) => {
 		const provider = ctx.provider
@@ -14,10 +17,8 @@ export function registerOnTaskResumeRequested(bus: IntentBus): void {
 		const { taskId } = intent.payload as { taskId: string }
 
 		try {
-			const { getTaskWithId } = await import("../../../history/actions/index")
 			const { historyItem } = await getTaskWithId(provider, taskId)
 			if (historyItem) {
-				const { createTaskWithHistoryItem } = await import("../../task/actions/startTask")
 				await createTaskWithHistoryItem(provider, historyItem)
 			}
 		} catch (error) {

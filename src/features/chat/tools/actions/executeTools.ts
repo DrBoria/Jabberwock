@@ -22,6 +22,8 @@ import { waitForToolExecutionAndPrepareNextContent } from "./toolCallExecutor"
  *
  * Returns the next userContent for the next iteration, or null if done.
  */
+import { IntentType, IntentStatus } from "@jabberwock/types"
+
 export async function executeTools(
 	taskId: string,
 	assistantMessage: string,
@@ -44,7 +46,6 @@ export async function executeTools(
 			// Create a UserMessageReceived intent for the next iteration.
 			// Pass the content blocks directly so the handler can use them
 			// without reading from the notification cursor.
-			const { IntentType, IntentStatus } = await import("@jabberwock/types")
 			store.intentStore.createIntent({
 				id: crypto.randomUUID(),
 				type: IntentType.UserMessageReceived,
@@ -88,7 +89,6 @@ export async function executeTools(
 	if (response === "yesButtonClicked") {
 		await systemBroadcast(task.taskId, "api_req_retried")
 		// Create a UserMessageReceived intent for retry instead of calling continuePipeline
-		const { IntentType, IntentStatus } = await import("@jabberwock/types")
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
 			type: IntentType.UserMessageReceived,

@@ -1,6 +1,6 @@
 import { serializeError } from "serialize-error"
 
-import { type CancelReason, type Notification, type ModelInfo, IntentStatus } from "@jabberwock/types"
+import { type CancelReason, type Notification, type ModelInfo, IntentType, IntentStatus } from "@jabberwock/types"
 
 import { GroundingSource, type ApiStreamChunk } from "../../../../api/transform/stream"
 import { t } from "../../../../i18n"
@@ -22,7 +22,7 @@ import {
 	resetStreamingState,
 	drainStreamInBackground,
 } from "./requestAbortManager"
-import { postStateToWebviewWithoutTaskHistory } from "../../../foundation/window-manager/store"
+import { postStateToWebviewWithoutTaskHistory } from "@features/foundation/window-manager/store"
 import { systemBroadcast } from "../../../chat/task/messages/actions/say"
 import { saveMessages } from "../../../chat/task/messages/actions/persistMessages"
 
@@ -380,7 +380,6 @@ export async function handleStream(ctx: ApiRequestContext): Promise<StreamResult
 
 				// Create a UserMessageReceived intent for retry instead of calling continuePipeline.
 				// Pass the content blocks directly so the handler can re-process them.
-				const { IntentType } = await import("@jabberwock/types")
 				store.intentStore.createIntent({
 					id: crypto.randomUUID(),
 					type: IntentType.UserMessageReceived,

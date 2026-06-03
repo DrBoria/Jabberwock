@@ -1,7 +1,7 @@
 import { type Notification, TelemetryEventName } from "@jabberwock/types"
 import { getCloudService, isCloudEnabled } from "@jabberwock/cloud"
 import { getTask } from "../../actions/taskRegistry"
-import { postStateToWebviewWithoutTaskHistory } from "../../../../foundation/window-manager/store"
+import { postStateToWebviewWithoutTaskHistory } from "@features/foundation/window-manager/store"
 import { getBackendRootStore } from "@features/storeSingleton"
 import { saveMessages } from "./persistMessages"
 

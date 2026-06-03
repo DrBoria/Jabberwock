@@ -4,7 +4,8 @@ import { getSettingsAccess } from "@utils/settings-access"
 import { getVscodeContext } from "../../foundation/vscode/context"
 import { CodeIndexManager, getCodeIndexManager, getAllCodeIndexManagers } from "../../../services/code-index/manager"
 import { t } from "../../../i18n"
-import { postStateToWebview } from "../../foundation/window-manager/store"
+import { postStateToWebview } from "@features/foundation/window-manager/store"
+import { EventBridge } from "@features/foundation/webview/EventBridge"
 
 /** Helper: concise get/update of global state via contextProxy API */
 const getGlobalState = async <K extends keyof import("@jabberwock/types").GlobalState>(
@@ -120,7 +121,6 @@ export function registerOnSettingsCodeIndex(bus: IntentBus): void {
 					try {
 						await currentCodeIndexManager.handleSettingsChange()
 					} catch (error) {
-						const { EventBridge } = await import("../../foundation/webview/EventBridge")
 						EventBridge.outputChannel?.appendLine(
 							`Embedder validation failed after provider change: ${error instanceof Error ? error.message : String(error)}`,
 						)
@@ -134,7 +134,6 @@ export function registerOnSettingsCodeIndex(bus: IntentBus): void {
 					try {
 						await currentCodeIndexManager.handleSettingsChange()
 					} catch (error) {
-						const { EventBridge } = await import("../../foundation/webview/EventBridge")
 						EventBridge.outputChannel?.appendLine(
 							`Settings change handling error: ${error instanceof Error ? error.message : String(error)}`,
 						)
@@ -147,10 +146,8 @@ export function registerOnSettingsCodeIndex(bus: IntentBus): void {
 					if (!currentCodeIndexManager.isInitialized) {
 						try {
 							await currentCodeIndexManager.initialize(getVscodeContext())
-							const { EventBridge } = await import("../../foundation/webview/EventBridge")
 							EventBridge.outputChannel?.appendLine(`Code index manager initialized after settings save`)
 						} catch (error) {
-							const { EventBridge } = await import("../../foundation/webview/EventBridge")
 							EventBridge.outputChannel?.appendLine(
 								`Code index initialization failed: ${error instanceof Error ? error.message : String(error)}`,
 							)
@@ -162,7 +159,6 @@ export function registerOnSettingsCodeIndex(bus: IntentBus): void {
 					}
 				}
 			} else {
-				const { EventBridge } = await import("../../foundation/webview/EventBridge")
 				EventBridge.outputChannel?.appendLine("Cannot save code index settings: No workspace folder open")
 				await provider.postMessageToWebview({
 					type: "indexingStatusUpdate",
@@ -177,7 +173,6 @@ export function registerOnSettingsCodeIndex(bus: IntentBus): void {
 			}
 		} catch (error) {
 			const errMsg = error instanceof Error ? error.message : String(error)
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(`Error saving code index settings: ${errMsg}`)
 			await provider.postMessageToWebview({
 				type: "codeIndexSettingsSaved",
@@ -260,7 +255,6 @@ export function registerOnSettingsCodeIndex(bus: IntentBus): void {
 						currentItemUnit: "items",
 					},
 				})
-				const { EventBridge } = await import("../../foundation/webview/EventBridge")
 				EventBridge.outputChannel?.appendLine("Cannot start indexing: No workspace folder open")
 				return
 			}
@@ -283,7 +277,6 @@ export function registerOnSettingsCodeIndex(bus: IntentBus): void {
 				}
 			}
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(
 				`Error starting indexing: ${error instanceof Error ? error.message : String(error)}`,
 			)
@@ -298,7 +291,6 @@ export function registerOnSettingsCodeIndex(bus: IntentBus): void {
 		try {
 			const manager = getCodeIndexManager(getVscodeContext().extensionContext)
 			if (!manager) {
-				const { EventBridge } = await import("../../foundation/webview/EventBridge")
 				EventBridge.outputChannel?.appendLine("Cannot stop indexing: No workspace folder open")
 				return
 			}
@@ -308,7 +300,6 @@ export function registerOnSettingsCodeIndex(bus: IntentBus): void {
 				values: manager.getCurrentStatus(),
 			})
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(
 				`Error stopping indexing: ${error instanceof Error ? error.message : String(error)}`,
 			)
@@ -325,7 +316,6 @@ export function registerOnSettingsCodeIndex(bus: IntentBus): void {
 		try {
 			const manager = getCodeIndexManager(getVscodeContext().extensionContext)
 			if (!manager) {
-				const { EventBridge } = await import("../../foundation/webview/EventBridge")
 				EventBridge.outputChannel?.appendLine("Cannot toggle workspace indexing: No workspace folder open")
 				return
 			}
@@ -342,7 +332,6 @@ export function registerOnSettingsCodeIndex(bus: IntentBus): void {
 				values: manager.getCurrentStatus(),
 			})
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(
 				`Error toggling workspace indexing: ${error instanceof Error ? error.message : String(error)}`,
 			)
@@ -359,7 +348,6 @@ export function registerOnSettingsCodeIndex(bus: IntentBus): void {
 		try {
 			const manager = getCodeIndexManager(getVscodeContext().extensionContext)
 			if (!manager) {
-				const { EventBridge } = await import("../../foundation/webview/EventBridge")
 				EventBridge.outputChannel?.appendLine("Cannot set auto-enable default: No workspace folder open")
 				return
 			}
@@ -381,7 +369,6 @@ export function registerOnSettingsCodeIndex(bus: IntentBus): void {
 				values: manager.getCurrentStatus(),
 			})
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(
 				`Error setting auto-enable default: ${error instanceof Error ? error.message : String(error)}`,
 			)
@@ -396,7 +383,6 @@ export function registerOnSettingsCodeIndex(bus: IntentBus): void {
 		try {
 			const manager = getCodeIndexManager(getVscodeContext().extensionContext)
 			if (!manager) {
-				const { EventBridge } = await import("../../foundation/webview/EventBridge")
 				EventBridge.outputChannel?.appendLine("Cannot clear index data: No workspace folder open")
 				provider.postMessageToWebview({
 					type: "indexCleared",
@@ -410,7 +396,6 @@ export function registerOnSettingsCodeIndex(bus: IntentBus): void {
 			await manager.clearIndexData()
 			provider.postMessageToWebview({ type: "indexCleared", values: { success: true } })
 		} catch (error) {
-			const { EventBridge } = await import("../../foundation/webview/EventBridge")
 			EventBridge.outputChannel?.appendLine(
 				`Error clearing index data: ${error instanceof Error ? error.message : String(error)}`,
 			)

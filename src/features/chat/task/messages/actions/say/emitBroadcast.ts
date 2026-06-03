@@ -74,7 +74,7 @@ export async function emitBroadcast(
 				const sayTs = task.generateUniqueTs()
 
 				if (!options.isNonInteractive) {
-					task.lastMessageTs = sayTs
+					task.setLastMessageTs(sayTs)
 				}
 
 				emitMessageCreate(taskId, broadcastType, {
@@ -93,7 +93,7 @@ export async function emitBroadcast(
 			// Now have a complete version of a previously partial message.
 			if (isUpdatingPreviousPartial) {
 				if (!options.isNonInteractive) {
-					task.lastMessageTs = lastMessage.ts
+					task.setLastMessageTs(lastMessage.ts)
 				}
 
 				lastMessage.text = text
@@ -107,7 +107,7 @@ export async function emitBroadcast(
 				const sayTs = task.generateUniqueTs()
 
 				if (!options.isNonInteractive) {
-					task.lastMessageTs = sayTs
+					task.setLastMessageTs(sayTs)
 				}
 
 				emitMessageCreate(taskId, broadcastType, {
@@ -127,7 +127,7 @@ export async function emitBroadcast(
 		const sayTs = task.generateUniqueTs()
 
 		if (!options.isNonInteractive) {
-			task.lastMessageTs = sayTs
+			task.setLastMessageTs(sayTs)
 		}
 
 		emitMessageCreate(taskId, broadcastType, {

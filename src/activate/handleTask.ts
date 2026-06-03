@@ -1,7 +1,7 @@
 import * as vscode from "vscode"
 
 import { Package } from "../shared/package"
-import { EventBridge } from "../features/foundation/webview/EventBridge"
+import { EventBridge } from "@features/foundation/webview/EventBridge"
 import { handleCodeAction } from "../features/settings/agents/handlers"
 import { t } from "../i18n"
 

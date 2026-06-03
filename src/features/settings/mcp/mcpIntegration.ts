@@ -5,6 +5,8 @@ import { countEnabledMcpTools } from "@jabberwock/types"
 import { getSettingsAccess } from "@utils/settings-access"
 
 /** Typed helper to access Task-only `pendingElicitationResolve` on an ITaskModel. */
+import * as vscode from "vscode"
+
 function getTaskForElicitation(
 	task: ITaskModel,
 ): ITaskModel & { pendingElicitationResolve?: (data: { [key: string]: unknown }) => void } {
@@ -28,7 +30,7 @@ export async function getEnabledMcpToolsCount(
 			return { enabledToolCount: 0, enabledServerCount: 0 }
 		}
 
-		const mcpHub = await getMcpServerManager().getInstance(provider.context, provider)
+		const mcpHub = await getMcpServerManager().getInstance(provider.context as vscode.ExtensionContext, provider)
 		if (!mcpHub) {
 			return { enabledToolCount: 0, enabledServerCount: 0 }
 		}

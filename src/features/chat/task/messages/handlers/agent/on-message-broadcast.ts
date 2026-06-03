@@ -1,8 +1,8 @@
 import { IntentConstants } from "@intentConstants"
-import type { IntentBus } from "../../../../../intents/bus"
-import type { IntentHandlerContext } from "../../../../../intents/context"
+import type { IntentBus } from "@features/intents/bus"
+import type { IntentHandlerContext } from "@features/intents/context"
 import type { Notification } from "@jabberwock/types"
-import { saveMessages } from "../../actions/persistMessages"
+import { saveMessages } from "@features/chat/task/messages/actions/persistMessages"
 
 /**
  * Register a handler for all 4 message broadcast intent types
@@ -16,6 +16,8 @@ import { saveMessages } from "../../actions/persistMessages"
  * - "create" → calls `addNotification(taskId, notification)`
  * - "update" → mutates the existing notification in-place + saves
  */
+import { addNotification } from "@features/chat/task/notifications/actions/addNotification"
+
 export function registerOnMessageBroadcast(bus: IntentBus): void {
 	const broadcastTypes = [
 		IntentConstants.messages.AGENT_BROADCAST,
@@ -39,7 +41,6 @@ export function registerOnMessageBroadcast(bus: IntentBus): void {
 			}
 
 			if (payload.action === "update") {
-				// Find and update the existing notification in-place
 				const existing = store.notifications.items.find((n: Notification) => n.ts === payload.notification.ts)
 				if (existing) {
 					Object.assign(existing, payload.notification)
@@ -48,8 +49,6 @@ export function registerOnMessageBroadcast(bus: IntentBus): void {
 				}
 				await saveMessages(payload.taskId)
 			} else {
-				// Dynamic import to avoid circular dependencies
-				const { addNotification } = await import("../../../notifications/actions/addNotification")
 				await addNotification(payload.taskId, payload.notification)
 			}
 		})

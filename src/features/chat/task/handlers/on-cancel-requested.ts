@@ -1,6 +1,8 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "../../../intents/bus"
-import { postStateToWebview } from "../../../foundation/window-manager/store"
+import type { IntentBus } from "@features/intents/bus"
+import { postStateToWebview } from "@features/foundation/window-manager/store"
+import { unregisterTask } from "@features/chat/task/actions/taskRegistry"
+import { clearTimeMachineState } from "@features/foundation/time-machine/actions/getTimeMachine"
 
 /**
  * Handles task.cancel.requested intent — cancels the active task.
@@ -13,7 +15,17 @@ export function registerOnTaskCancelRequested(bus: IntentBus): void {
 			return
 		}
 
-		ctx.rootStore.chat.activeTask?.abortTask?.()
+		const activeTask = ctx.rootStore.chat.activeTask
+		activeTask?.abortTask?.()
+
+		// Clean up module-level registry
+		if (activeTask) {
+			unregisterTask(activeTask.taskId)
+		}
+
+		// Clean up time-machine state
+		clearTimeMachineState()
+
 		await provider.postMessageToWebview({ type: "invoke", invoke: "newChat" })
 
 		ctx.rootStore.foundation.windowManager.clearPendingPushTimers()

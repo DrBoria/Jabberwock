@@ -13,8 +13,8 @@
  * See plans/architectural-restructure-v2.md §Streaming Architecture
  */
 
-import type { EventBridge } from "../../../foundation/webview/EventBridge"
-import { postMessageToWebview } from "../../../foundation/window-manager/store"
+import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
+import { postMessageToWebview } from "@features/foundation/window-manager/store"
 
 /**
  * Send a raw stream chunk to the webview, bypassing EventConstants and IntentBus.
@@ -25,7 +25,7 @@ import { postMessageToWebview } from "../../../foundation/window-manager/store"
  * @param provider - EventBridge instance (accessible via task.delegate.providerRef)
  * @param payload - Streaming payload with taskId and accumulated text
  */
-export function sendStreamChunk(provider: EventBridge, payload: { taskId: string; text: string }): void {
+export function sendStreamChunk(provider: ProviderHandle, payload: { taskId: string; text: string }): void {
 	postMessageToWebview(provider, {
 		type: "streamChunk", // NOT an EventConstant — hardcoded literal (intentional)
 		taskId: payload.taskId,

@@ -16,7 +16,7 @@ import { diagnosticsManager } from "@jabberwock/devtool"
 
 import { buildAssistantContentForApi, enforceNewTaskIsolation, saveAssistantMessageToHistory } from "./toolCallExecutor"
 import { type TaskDelegate } from "../../task/condense/actions/types"
-import { postStateToWebviewWithoutTaskHistory } from "../../../foundation/window-manager/store"
+import { postStateToWebviewWithoutTaskHistory } from "@features/foundation/window-manager/store"
 import { agentBroadcast } from "../../task/messages/actions/say"
 import { saveMessages } from "../../task/messages/actions/persistMessages"
 import { updateMessage } from "../../task/messages/actions/updateMessage"

@@ -3,7 +3,7 @@ import { VirtualWorkspace } from "../../features/foundation/time-machine/Virtual
 import * as path from "path"
 
 import { listFiles } from "../../services/glob/list-files"
-import { EventBridge } from "../../features/foundation/webview/EventBridge"
+import { EventBridge, type ProviderHandle } from "@features/foundation/webview/EventBridge"
 import { toRelativePath, getWorkspacePath } from "../../utils/path"
 import { getBackendRootStore } from "@features/storeSingleton"
 
@@ -11,7 +11,7 @@ const MAX_INITIAL_FILES = 1_000
 
 // Note: this is not a drop-in replacement for listFiles at the start of tasks, since that will be done for Desktops when there is no workspace selected
 class WorkspaceTracker {
-	private providerRef: WeakRef<EventBridge>
+	private providerRef: WeakRef<ProviderHandle>
 	private disposables: vscode.Disposable[] = []
 	private filePaths: Set<string> = new Set()
 	private updateTimer: NodeJS.Timeout | null = null
@@ -22,7 +22,7 @@ class WorkspaceTracker {
 	get cwd() {
 		return getWorkspacePath()
 	}
-	constructor(provider: EventBridge) {
+	constructor(provider: ProviderHandle) {
 		this.providerRef = new WeakRef(provider)
 		this.registerListeners()
 	}

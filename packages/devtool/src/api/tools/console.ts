@@ -23,7 +23,13 @@ export function registerConsoleTools(mcpServer: McpServer, bridge: ExtensionBrid
 				.string()
 				.optional()
 				.describe("Optional text to search for within log messages (case-insensitive substring match)."),
-			limit: z.number().optional().default(10).describe("Maximum number of log entries to return (default: 10)."),
+			limit: z
+				.number()
+				.min(1)
+				.max(10)
+				.optional()
+				.default(10)
+				.describe("Maximum number of log entries to return (default: 10, max: 10)."),
 			cursor: z
 				.number()
 				.optional()
@@ -58,7 +64,13 @@ export function registerConsoleTools(mcpServer: McpServer, bridge: ExtensionBrid
 				.enum(["error", "warn", "info", "debug"])
 				.optional()
 				.describe("Filter by log level. If omitted, returns all levels."),
-			limit: z.number().optional().default(10).describe("Maximum number of log entries to return (default: 10)."),
+			limit: z
+				.number()
+				.min(1)
+				.max(10)
+				.optional()
+				.default(10)
+				.describe("Maximum number of log entries to return (default: 10, max: 10)."),
 			cursor: z
 				.number()
 				.optional()

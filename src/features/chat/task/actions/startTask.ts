@@ -1,14 +1,15 @@
 import { Anthropic } from "@anthropic-ai/sdk"
-import { when } from "mobx"
 import * as vscode from "vscode"
 
 import { createTaskModel } from "./createTaskModel"
-import type { EventBridge } from "../../../../features/foundation/webview/EventBridge"
+import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
 import {
 	JabberwockEventName,
 	type ProviderSettings,
 	type CreateTaskOptions,
 	type JabberwockSettings,
+	IntentType,
+	IntentStatus,
 } from "@jabberwock/types"
 import type { ITaskModel } from "../../task/store"
 import { checkExistKey } from "../../../../shared/checkExistApiConfig"
@@ -18,7 +19,14 @@ import { registerTask, unregisterTask } from "./taskRegistry"
 import { getTask } from "./taskRegistry"
 import { Package } from "../../../../shared/package"
 import { openClineInNewTab } from "../../../../activate/registerCommands"
-import { postStateToWebview } from "../../../../features/foundation/window-manager/store"
+import { postStateToWebview } from "@features/foundation/window-manager/store"
+import {
+	setTimeMachineState,
+	clearTimeMachineState,
+} from "../../../../features/foundation/time-machine/actions/getTimeMachine"
+import { DiffViewProvider } from "../../../../integrations/editor/DiffViewProvider"
+import { virtualWorkspace } from "../../../../features/foundation/time-machine/VirtualWorkspace"
+import { FileContextTracker } from "../../../../features/foundation/time-machine/file-context/FileContextTracker"
 
 /**
  * Registers a Task class instance with the new MST TaskManagerModel.
@@ -62,9 +70,23 @@ export async function startTask(taskId: string, taskText?: string, images?: stri
 	// Register task in the module-level registry so handlers can look it up
 	registerTask(taskId, task)
 
+	// ── Initialize time-machine state ─────────────────────────────────
+	// Create DiffViewProvider, FileContextTracker and set them along with
+	// the VirtualWorkspace singleton so that prepareApiRequest and tool
+	// implementations can access them via getDiffViewProvider()/etc.
+	const providerRef = task.providerRef
+	const provider = providerRef !== undefined ? providerRef.deref() : undefined
+	if (provider !== undefined) {
+		setTimeMachineState({
+			diffViewProvider: new DiffViewProvider(task.cwd, task),
+			virtualWorkspace,
+			fileContextTracker: new FileContextTracker(provider, taskId),
+		})
+	}
+
 	// Create a UserMessageReceived intent — the IntentBus reaction picks it up
 	// and dispatches to the registered handler which runs the API pipeline.
-	const { IntentType, IntentStatus } = await import("@jabberwock/types")
+	// IntentType/IntentStatus are statically imported at top of file.
 	store.intentStore.createIntent({
 		id: crypto.randomUUID(),
 		type: IntentType.UserMessageReceived,
@@ -72,18 +94,12 @@ export async function startTask(taskId: string, taskText?: string, images?: stri
 		status: IntentStatus.Queued,
 		createdAt: Date.now(),
 	})
-
-	// Wait until the execution model signals completion or abort
-	await when(() => store.chat.isCompleted || store.chat.abort)
-
-	// Cleanup
-	unregisterTask(taskId)
 }
 
 /**
  * Creates a task with the given history item.
  */
-export async function createTaskWithHistoryItem(provider: EventBridge, historyItem: unknown): Promise<void> {
+export async function createTaskWithHistoryItem(provider: ProviderHandle, historyItem: unknown): Promise<void> {
 	const currentTask = getBackendRootStore().chat.activeTask
 	if (!currentTask) {
 		throw new Error("No current task available to resume history item")
@@ -109,7 +125,7 @@ export const start = startTask
  * Uses the reactive event-driven flow directly (no loop, no recursion).
  */
 export async function createTask(
-	provider: EventBridge,
+	provider: ProviderHandle,
 	text?: string,
 	images?: string[],
 	taskConfiguration?: { [key: string]: unknown },
@@ -125,8 +141,21 @@ export async function createTask(
 
 		registerTask(taskInstance.taskId, taskInstance)
 
+		// ── Re-initialize time-machine state ────────────────────────
+		// After extension reload the module-level _state is reset, so we
+		// must re-set it here before dispatching UserMessageReceived.
+		const providerRef = taskInstance.providerRef
+		const taskProvider = providerRef !== undefined ? providerRef.deref() : undefined
+		if (taskProvider !== undefined) {
+			setTimeMachineState({
+				diffViewProvider: new DiffViewProvider(taskInstance.cwd, taskInstance),
+				virtualWorkspace,
+				fileContextTracker: new FileContextTracker(taskProvider, taskInstance.taskId),
+			})
+		}
+
 		// Create a UserMessageReceived intent — the IntentBus reaction picks it up
-		const { IntentType, IntentStatus } = await import("@jabberwock/types")
+		// IntentType/IntentStatus are statically imported at top of file.
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
 			type: IntentType.UserMessageReceived,
@@ -134,11 +163,8 @@ export async function createTask(
 			status: IntentStatus.Queued,
 			createdAt: Date.now(),
 		})
-
-		await when(() => store.chat.isCompleted || store.chat.abort)
-
-		unregisterTask(taskInstance.taskId)
-
+		// REMOVED: await when(...) — no longer blocks processQueue
+		// REMOVED: unregisterTask(...) — handled by task.completion.requested handler
 		return currentTask
 	}
 
@@ -187,7 +213,7 @@ export async function createTask(
  * Unlike delegateParentAndOpenChild, the parent task continues running.
  */
 export async function startBackgroundTask(
-	provider: EventBridge,
+	provider: ProviderHandle,
 	params: {
 		parentTaskId: string
 		message: string
@@ -221,7 +247,7 @@ export async function startBackgroundTask(
  * Opens the task in a new tab or the current sidebar based on the `newTab` option.
  */
 export async function startNewTask(
-	provider: EventBridge,
+	provider: ProviderHandle,
 	context: vscode.ExtensionContext,
 	outputChannel: vscode.OutputChannel,
 	options: {
@@ -232,7 +258,7 @@ export async function startNewTask(
 	},
 ): Promise<string> {
 	const { configuration, text, images, newTab } = options
-	let targetProvider: EventBridge
+	let targetProvider: ProviderHandle
 
 	if (newTab) {
 		await vscode.commands.executeCommand("workbench.action.files.revert")

@@ -1,5 +1,5 @@
 import { Instance, getSnapshot } from "mobx-state-tree"
-import type { EventBridge } from "../../../features/foundation/webview/EventBridge"
+import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
 import type { HistoryItem } from "@jabberwock/types"
 import { getBackendRootStore } from "@features/storeSingleton"
 import { getVscodeContext } from "../../foundation/vscode/context"
@@ -39,8 +39,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 // ─── Standalone functions ─────────────────────────────────────────────
 
+import { HistoryTaskModel } from "@features/history/store"
+
 export async function initHistoryState(
-	provider: EventBridge,
+	provider: ProviderHandle,
 	ctx?: { getGlobalState?: (key: string) => unknown },
 ): Promise<void> {
 	// MST default factory handles initialization
@@ -50,8 +52,6 @@ export async function initHistoryState(
 	try {
 		const persistedTasks = ctx?.getGlobalState?.("taskHistory")
 		if (persistedTasks && Array.isArray(persistedTasks) && persistedTasks.length > 0) {
-			const { getBackendRootStore } = await import("@features/storeSingleton")
-			const { HistoryTaskModel } = await import("../store")
 			const model = getBackendRootStore().history
 			if (model) {
 				const sanitized = persistedTasks.map((raw: unknown) => {
@@ -101,7 +101,7 @@ export function getHistoryState(rootStore: IBackendRootStore): HistoryState {
  * Gets a task by ID from history state.
  */
 export async function getTaskWithId(
-	provider: EventBridge,
+	provider: ProviderHandle,
 	id: string,
 ): Promise<{ historyItem: HistoryTaskItem | undefined }> {
 	const state = getHistoryState(getBackendRootStore())
@@ -113,7 +113,7 @@ export async function getTaskWithId(
 /**
  * Deletes a task from state using MST action.
  */
-export async function deleteTaskFromState(provider: EventBridge, taskId: string): Promise<void> {
+export async function deleteTaskFromState(provider: ProviderHandle, taskId: string): Promise<void> {
 	const model = getBackendRootStore().history
 	model.removeItem(taskId)
 	// Serialize snapshot to plain objects for cross-boundary messages
@@ -127,8 +127,7 @@ export async function deleteTaskFromState(provider: EventBridge, taskId: string)
 /**
  * Updates task history using MST actions.
  */
-export async function updateTaskHistory(provider: EventBridge, item: Partial<HistoryItem>): Promise<HistoryItem[]> {
-	const { HistoryTaskModel } = await import("../store")
+export async function updateTaskHistory(provider: ProviderHandle, item: Partial<HistoryItem>): Promise<HistoryItem[]> {
 	const model = getBackendRootStore().history
 	const itemId = String(item.id ?? "")
 	const idx = model.items.findIndex((t) => t.id === itemId)

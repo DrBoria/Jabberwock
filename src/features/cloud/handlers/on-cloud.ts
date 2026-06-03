@@ -1,4 +1,4 @@
-import { EventBridge } from "../../foundation/webview/EventBridge"
+import { EventBridge } from "@features/foundation/webview/EventBridge"
 import { getTelemetryService } from "@jabberwock/telemetry"
 import { IntentType, TelemetryEventName } from "@jabberwock/types"
 import { getCloudService } from "@jabberwock/cloud"
@@ -6,7 +6,7 @@ import * as vscode from "vscode"
 import { t } from "../../../i18n"
 
 import type { IntentBus } from "../../intents/bus"
-import { postStateToWebview } from "../../foundation/window-manager/store"
+import { postStateToWebview } from "@features/foundation/window-manager/store"
 import { openAiCodexOAuthManager } from "../../../integrations/openai-codex/oauth"
 
 /**

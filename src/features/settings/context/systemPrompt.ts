@@ -61,7 +61,7 @@ export async function getSystemPrompt(task: ITaskModel): Promise<string> {
 		}
 
 		// Wait for MCP hub initialization through McpServerManager
-		mcpHub = await getMcpServerManager().getInstance(provider.context, provider)
+		mcpHub = await getMcpServerManager().getInstance(provider.context as vscode.ExtensionContext, provider)
 
 		if (!mcpHub) {
 			throw new Error("Failed to get MCP hub from server manager")
@@ -91,7 +91,7 @@ export async function getSystemPrompt(task: ITaskModel): Promise<string> {
 		const modelInfo = task.api!.getModel().info
 
 		return SYSTEM_PROMPT(
-			provider.context,
+			provider.context as vscode.ExtensionContext,
 			task.cwd,
 			false,
 			mcpHub,

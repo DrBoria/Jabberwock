@@ -12,7 +12,7 @@ import { getProviderSettingsManager } from "../../../settings/models/ProviderSet
 import { getMstState } from "../../../foundation/mst/store"
 import { getVscodeContext } from "../../../foundation/vscode/context"
 import { getHistoryState } from "../../../history/actions"
-import { postStateToWebview, getWorkspaceTracker } from "../../../foundation/window-manager/store"
+import { postStateToWebview, getWorkspaceTracker } from "@features/foundation/window-manager/store"
 import { getTheme } from "../../../../integrations/theme/getTheme"
 import { getMcpServerManager } from "../../../../services/mcp/McpServerManager"
 import { checkExistKey } from "../../../../shared/checkExistApiConfig"
@@ -105,8 +105,15 @@ export function registerOnTaskWebviewLaunched(bus: IntentBus): void {
 		postStateToWebview(provider, Object.keys(additionalState).length > 0 ? additionalState : undefined)
 
 		// ── 6. Workspace Tracker ─────────────────────────────────────
-		const workspaceTracker = await getWorkspaceTracker(provider)
-		await workspaceTracker?.initializeFilePaths()
+		try {
+			const workspaceTracker = await getWorkspaceTracker(provider)
+			await workspaceTracker?.initializeFilePaths()
+		} catch (error: unknown) {
+			console.error(
+				`[jabberwock] [${new Date().toISOString()}] webviewDidLaunch: failed to initialize workspace tracker:`,
+				error,
+			)
+		}
 
 		// ── 7. Theme ─────────────────────────────────────────────────
 		getTheme().then((theme: { [key: string]: unknown }) =>

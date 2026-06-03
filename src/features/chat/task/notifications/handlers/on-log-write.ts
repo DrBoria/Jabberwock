@@ -1,5 +1,5 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "../../../../intents/bus"
+import type { IntentBus } from "@features/intents/bus"
 
 /**
  * Handles log.write intent — writes a log message to console and diagnostics.
@@ -7,6 +7,8 @@ import type { IntentBus } from "../../../../intents/bus"
  * Action creators like ask() emit this intent to decouple logging from
  * notification creation.
  */
+import { diagnosticsManager } from "@jabberwock/devtool"
+
 export function registerOnLogWrite(bus: IntentBus): void {
 	bus.register(IntentType.LogWrite, async (intent) => {
 		const { message, level } = intent.payload as {
@@ -23,8 +25,6 @@ export function registerOnLogWrite(bus: IntentBus): void {
 				break
 			default: {
 				console.log(message)
-				// Forward info-level logs to diagnostics
-				const { diagnosticsManager } = await import("@jabberwock/devtool")
 				diagnosticsManager.log(message, "info")
 				break
 			}
