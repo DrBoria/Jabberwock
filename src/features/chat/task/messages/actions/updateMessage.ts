@@ -1,9 +1,10 @@
 import { type Notification, TelemetryEventName } from "@jabberwock/types"
 import { getCloudService, isCloudEnabled } from "@jabberwock/cloud"
-import { getTask } from "../../actions/taskRegistry"
-import { restoreTodoListForTask } from "../../../tools/UpdateTodoListTool"
+import { getTask } from "@features/chat/task/actions/taskRegistry"
+import { restoreTodoListForTask } from "@features/chat/tools"
 import { getBackendRootStore } from "@features/storeSingleton"
-import { saveMessages } from "./persistMessages"
+import { saveMessages } from "./saveMessages"
+import { sendMessageUpdated } from "@features/chat/task/messages/events/actions/sendMessageEvent"
 
 /**
  * Overwrite all messages with a new array.
@@ -30,8 +31,8 @@ export async function overwriteMessages(taskId: string, newMessages: Notificatio
  */
 export async function updateMessage(taskId: string, message: Notification) {
 	const task = getTask(taskId)
-	const provider = task.providerRef!.deref()
-	await provider?.postMessageToWebview({ type: "messageUpdated", message: message })
+	// Notify the webview via event action (only code path allowed for postMessage)
+	sendMessageUpdated(message)
 
 	// TODO(phase-e): Move event emit to reactive layer
 	// task.emit(JabberwockEventName.Message, { action: "updated", message })

@@ -158,7 +158,23 @@ export function getEsbuildScriptPath(extensionPath?: string): string {
  */
 export async function runEsbuild(options: EsbuildOptions, extensionPath?: string): Promise<void> {
 	const scriptPath = getEsbuildScriptPath(extensionPath)
+	const args = buildEsbuildArgs(options, scriptPath)
 
+	const env: NodeJS.ProcessEnv = { ...process.env }
+	if (options.nodePaths && options.nodePaths.length > 0) {
+		env.NODE_PATH = options.nodePaths.join(path.delimiter)
+	}
+
+	try {
+		await execa(process.execPath, args, { env, stdin: "ignore" })
+	} catch (error) {
+		const execaError = error as { stderr?: string; stdout?: string; exitCode?: number; message: string }
+		const errorMessage = execaError.stderr || execaError.stdout || `esbuild exited with code ${execaError.exitCode}`
+		throw new Error(`esbuild failed: ${errorMessage}`)
+	}
+}
+
+function buildEsbuildArgs(options: EsbuildOptions, scriptPath: string): string[] {
 	const args: string[] = [
 		scriptPath,
 		options.entryPoint,
@@ -172,38 +188,29 @@ export async function runEsbuild(options: EsbuildOptions, extensionPath?: string
 		args.push("--bundle")
 	}
 
-	if (options.sourcemap) {
-		args.push(options.sourcemap === true ? "--sourcemap" : `--sourcemap=${options.sourcemap}`)
-	}
+	addSourcemapArg(args, options.sourcemap)
 
 	if (options.packages) {
 		args.push(`--packages=${options.packages}`)
 	}
 
-	// Add external modules - these won't be bundled and will be resolved at runtime.
-	if (options.external && options.external.length > 0) {
-		for (const ext of options.external) {
-			args.push(`--external:${ext}`)
-		}
-	}
+	addExternalArgs(args, options.external)
 
-	// Add banner code (e.g., for CommonJS require shim in ESM bundles).
 	if (options.banner) {
 		args.push(`--banner:js=${options.banner}`)
 	}
 
-	// Build environment with NODE_PATH for module resolution.
-	const env: NodeJS.ProcessEnv = { ...process.env }
+	return args
+}
 
-	if (options.nodePaths && options.nodePaths.length > 0) {
-		env.NODE_PATH = options.nodePaths.join(path.delimiter)
-	}
+function addSourcemapArg(args: string[], sourcemap: EsbuildOptions["sourcemap"]): void {
+	if (!sourcemap) return
+	args.push(sourcemap === true ? "--sourcemap" : `--sourcemap=${sourcemap}`)
+}
 
-	try {
-		await execa(process.execPath, args, { env, stdin: "ignore" })
-	} catch (error) {
-		const execaError = error as { stderr?: string; stdout?: string; exitCode?: number; message: string }
-		const errorMessage = execaError.stderr || execaError.stdout || `esbuild exited with code ${execaError.exitCode}`
-		throw new Error(`esbuild failed: ${errorMessage}`)
+function addExternalArgs(args: string[], external: EsbuildOptions["external"]): void {
+	if (!external || external.length === 0) return
+	for (const ext of external) {
+		args.push(`--external:${ext}`)
 	}
 }

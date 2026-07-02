@@ -1,19 +1,23 @@
 import { OpenAI } from "openai"
-import { OpenAiNativeHandler } from "../../../api/providers/openai-native"
-import { ApiHandlerOptions } from "../../../shared/api"
-import { IEmbedder, EmbeddingResponse, EmbedderInfo } from "../interfaces"
+import { OpenAiNativeHandler } from "@api/providers/openai-native"
+import { ApiHandlerOptions } from "@shared/api"
+import { IEmbedder, EmbeddingResponse, EmbedderInfo } from "@services/code-index/interfaces"
 import {
 	MAX_BATCH_TOKENS,
 	MAX_ITEM_TOKENS,
 	MAX_BATCH_RETRIES as MAX_RETRIES,
 	INITIAL_RETRY_DELAY_MS as INITIAL_DELAY_MS,
-} from "../constants"
-import { getModelQueryPrefix } from "../../../shared/embeddingModels"
-import { t } from "../../../i18n"
-import { withValidationErrorHandling, formatEmbeddingError, HttpError } from "../shared/validation-helpers"
+} from "@services/code-index/constants"
+import { getModelQueryPrefix } from "@shared/api/embeddingModels"
+import { t } from "@i18n"
+import {
+	withValidationErrorHandling,
+	formatEmbeddingError,
+	HttpError,
+} from "@services/code-index/shared/validateContent"
 import { TelemetryEventName } from "@jabberwock/types"
 import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
-import { handleOpenAIError } from "../../../api/providers/utils/openai-error-handler"
+import { handleProviderError } from "@api/providers/utils/error-handler"
 
 /**
  * OpenAI implementation of the embedder interface with batching and rate limiting
@@ -35,7 +39,7 @@ export class OpenAiEmbedder extends OpenAiNativeHandler implements IEmbedder {
 			this.embeddingsClient = new OpenAI({ apiKey })
 		} catch (error) {
 			// Use the error handler to transform ByteString conversion errors
-			throw handleOpenAIError(error, "OpenAI")
+			throw handleProviderError(error, "OpenAI")
 		}
 
 		this.defaultModelId = options.openAiEmbeddingModelId || "text-embedding-3-small"
@@ -142,48 +146,49 @@ export class OpenAiEmbedder extends OpenAiNativeHandler implements IEmbedder {
 					model: model,
 				})
 
-				return {
-					embeddings: response.data.map((item) => item.embedding),
-					usage: {
-						promptTokens: response.usage?.prompt_tokens || 0,
-						totalTokens: response.usage?.total_tokens || 0,
-					},
-				}
+				return this._processOpenAiEmbeddingResponse(response)
 			} catch (error) {
-				const hasMoreAttempts = attempts < MAX_RETRIES - 1
-
-				// Check if it's a rate limit error
-				const httpError = error as HttpError
-				if (httpError?.status === 429 && hasMoreAttempts) {
-					const delayMs = INITIAL_DELAY_MS * Math.pow(2, attempts)
-					console.warn(
-						t("embeddings:rateLimitRetry", {
-							delayMs,
-							attempt: attempts + 1,
-							maxRetries: MAX_RETRIES,
-						}),
-					)
-					await new Promise((resolve) => setTimeout(resolve, delayMs))
-					continue
-				}
-
-				// Capture telemetry before reformatting the error
-				getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
-					error: error instanceof Error ? error.message : String(error),
-					stack: error instanceof Error ? error.stack : undefined,
-					location: "OpenAiEmbedder:_embedBatchWithRetries",
-					attempt: attempts + 1,
-				})
-
-				// Log the error for debugging
-				console.error(`[jabberwock] OpenAI embedder error (attempt ${attempts + 1}/${MAX_RETRIES}):`, error)
-
-				// Format and throw the error
-				throw formatEmbeddingError(error, MAX_RETRIES)
+				await this._handleOpenAiRetryError(error, attempts)
 			}
 		}
 
 		throw new Error(t("embeddings:failedMaxAttempts", { attempts: MAX_RETRIES }))
+	}
+
+	private _processOpenAiEmbeddingResponse(response: OpenAI.Embeddings.CreateEmbeddingResponse): {
+		embeddings: number[][]
+		usage: { promptTokens: number; totalTokens: number }
+	} {
+		return {
+			embeddings: response.data.map((item) => item.embedding),
+			usage: {
+				promptTokens: response.usage?.prompt_tokens || 0,
+				totalTokens: response.usage?.total_tokens || 0,
+			},
+		}
+	}
+
+	private async _handleOpenAiRetryError(error: unknown, attempts: number): Promise<void> {
+		const hasMoreAttempts = attempts < MAX_RETRIES - 1
+		const httpError = error as HttpError
+
+		if (httpError?.status === 429 && hasMoreAttempts) {
+			const delayMs = INITIAL_DELAY_MS * Math.pow(2, attempts)
+			console.warn(t("embeddings:rateLimitRetry", { delayMs, attempt: attempts + 1, maxRetries: MAX_RETRIES }))
+			await new Promise((resolve) => setTimeout(resolve, delayMs))
+			return
+		}
+
+		getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
+			error: error instanceof Error ? error.message : String(error),
+			stack: error instanceof Error ? error.stack : undefined,
+			location: "OpenAiEmbedder:_embedBatchWithRetries",
+			attempt: attempts + 1,
+		})
+
+		console.error(`[jabberwock] OpenAI embedder error (attempt ${attempts + 1}/${MAX_RETRIES}):`, error)
+
+		throw formatEmbeddingError(error, MAX_RETRIES)
 	}
 
 	/**

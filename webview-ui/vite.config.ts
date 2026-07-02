@@ -128,9 +128,20 @@ export default defineConfig(({ mode }) => {
 				"@src": resolve(__dirname, "./src"),
 				"@shared": resolve(__dirname, "../src/shared"),
 				"@intentConstants": resolve(__dirname, "./src/features/intents/IntentConstants"),
-				"@eventConstants": resolve(__dirname, "../packages/types/src/event-constants"),
+				"@eventConstants": resolve(__dirname, "../packages/types/src/events/constants.ts"),
 				"@features": resolve(__dirname, "../src/features"),
+				"@services": resolve(__dirname, "../src/services"),
+				"@api": resolve(__dirname, "../src/api"),
+				"@i18n": resolve(__dirname, "../src/i18n"),
 				"@utils": resolve(__dirname, "../src/utils"),
+				"@components": resolve(__dirname, "./src/components"),
+				"@sections": resolve(__dirname, "./src/sections"),
+				"@packageJson": resolve(__dirname, "../src/package.json"),
+				"@integrations": resolve(__dirname, "../src/integrations"),
+				// json-stream-stringify is Node-only (uses stream.Readable). It's only used by
+				// safeWriteJson (file writing), which should never execute in the webview but
+				// gets bundled via @utils/io barrel exports. This alias replaces it with a stub.
+				"json-stream-stringify": resolve(__dirname, "./src/shims/json-stream-stringify.ts"),
 			},
 		},
 		build: {

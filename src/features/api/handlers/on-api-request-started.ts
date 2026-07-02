@@ -8,7 +8,7 @@
  * handleStream() internally dispatches STREAMING_STARTED as a side-effect
  * notification — this handler reacts to it by setting up the MST entry.
  */
-import type { IntentBus } from "../../intents/bus"
+import type { IntentBus } from "@features/intents/bus"
 import { IntentConstants } from "@intentConstants"
 
 export function registerOnApiRequestStarted(bus: IntentBus): void {

@@ -113,3 +113,5 @@ export interface TaskHistoryItem {
 	tokensIn?: number
 	tokensOut?: number
 }
+
+export type ToolFormatter = (toolInfo: Record<string, unknown>) => string

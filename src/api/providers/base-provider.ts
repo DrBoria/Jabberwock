@@ -4,10 +4,10 @@ import type { ModelInfo } from "@jabberwock/types"
 
 import type OpenAI from "openai"
 
-import type { ApiHandler, ApiHandlerCreateMessageMetadata } from "../index"
-import { ApiStream } from "../transform/stream"
-import { countTokens } from "../../utils/countTokens"
-import { isMcpTool } from "../../utils/mcp-name"
+import type { ApiHandler, ApiHandlerCreateMessageMetadata } from "@api/index"
+import { ApiStream } from "@api/transform/stream"
+import { countTokens } from "@utils/token"
+import { isMcpTool } from "@utils/mcp"
 
 /**
  * Base class for API providers that implements common functionality.
@@ -68,6 +68,36 @@ export abstract class BaseProvider implements ApiHandler {
 	 * Internal type representing a JSON Schema node with known structural properties.
 	 * Index signature allows passing unknown extra keys through.
 	 */
+	private static handleNullableType(propObj: Record<string, unknown>): void {
+		const propType = propObj["type"]
+		if (Array.isArray(propType) && propType.includes("null")) {
+			const nonNullTypes = propType.filter((t: string) => t !== "null")
+			propObj["type"] = nonNullTypes.length === 1 ? nonNullTypes[0] : nonNullTypes
+		}
+	}
+
+	private static processProperty(key: string, newProps: Record<string, unknown>): void {
+		const prop = newProps[key]
+		if (!prop || typeof prop !== "object") {
+			return
+		}
+		const propObj = prop as Record<string, unknown>
+
+		this.handleNullableType(propObj)
+
+		if (propObj["type"] === "object") {
+			newProps[key] = this.jsonSchemaForOpenAI(propObj)
+		} else if (propObj["type"] === "array") {
+			const items = propObj["items"]
+			if (items && typeof items === "object" && (items as Record<string, unknown>)["type"] === "object") {
+				newProps[key] = {
+					...propObj,
+					items: this.jsonSchemaForOpenAI(items as Record<string, unknown>),
+				}
+			}
+		}
+	}
+
 	private static jsonSchemaForOpenAI(schema: Record<string, unknown>): Record<string, unknown> {
 		if (!schema || typeof schema !== "object") {
 			return schema
@@ -79,8 +109,6 @@ export abstract class BaseProvider implements ApiHandler {
 
 		const result: Record<string, unknown> = { ...schema }
 
-		// OpenAI Responses API requires additionalProperties: false on all object schemas
-		// Only add if not already set to false (to avoid unnecessary mutations)
 		if (result["additionalProperties"] !== false) {
 			result["additionalProperties"] = false
 		}
@@ -88,37 +116,11 @@ export abstract class BaseProvider implements ApiHandler {
 		const properties = result["properties"]
 		if (properties && typeof properties === "object" && !Array.isArray(properties)) {
 			const allKeys = Object.keys(properties)
-			// OpenAI strict mode requires ALL properties to be in required array
 			result["required"] = allKeys
 
-			// Recursively process nested objects and convert nullable types
 			const newProps: Record<string, unknown> = { ...(properties as Record<string, unknown>) }
 			for (const key of allKeys) {
-				const prop = newProps[key]
-				if (!prop || typeof prop !== "object") {
-					continue
-				}
-				const propObj = prop as Record<string, unknown>
-
-				// Handle nullable types by removing null
-				const propType = propObj["type"]
-				if (Array.isArray(propType) && propType.includes("null")) {
-					const nonNullTypes = propType.filter((t: string) => t !== "null")
-					propObj["type"] = nonNullTypes.length === 1 ? nonNullTypes[0] : nonNullTypes
-				}
-
-				// Recursively process nested objects
-				if (propObj["type"] === "object") {
-					newProps[key] = this.jsonSchemaForOpenAI(propObj)
-				} else if (propObj["type"] === "array") {
-					const items = propObj["items"]
-					if (items && typeof items === "object" && (items as Record<string, unknown>)["type"] === "object") {
-						newProps[key] = {
-							...propObj,
-							items: this.jsonSchemaForOpenAI(items as Record<string, unknown>),
-						}
-					}
-				}
+				this.processProperty(key, newProps)
 			}
 			result["properties"] = newProps
 		}

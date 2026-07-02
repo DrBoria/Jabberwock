@@ -11,6 +11,42 @@ interface WindowLayerProps {
 	isInStack: boolean
 }
 
+function getWindowPosition(fullScreen: boolean): React.CSSProperties["position"] {
+	return fullScreen ? "absolute" : "relative"
+}
+
+function getWindowPointerEvents(isActive: boolean): React.CSSProperties["pointerEvents"] {
+	return isActive ? "auto" : "none"
+}
+
+function getWindowBoxShadow(isActive: boolean): React.CSSProperties["boxShadow"] {
+	return isActive ? "-20px 0 40px rgba(0,0,0,0.3)" : "none"
+}
+
+function WindowLayerStripe({
+	id,
+	index,
+	popWindow,
+}: {
+	id: string
+	index: number
+	popWindow: (index: number) => void
+}) {
+	return (
+		<div
+			data-testid={`window-layer-stripe-${id}`}
+			className="absolute left-0 top-0 w-[40px] h-full cursor-pointer hover:bg-vscode-toolbar-hoverBackground transition-colors pointer-events-auto flex flex-col items-center py-4 group"
+			onClick={(e) => {
+				e.stopPropagation()
+				popWindow(index)
+			}}>
+			<div className="vertical-text opacity-30 group-hover:opacity-100 transition-opacity font-medium text-[10px]">
+				{id}
+			</div>
+		</div>
+	)
+}
+
 export const WindowLayer: React.FC<WindowLayerProps> = ({
 	id,
 	children,
@@ -22,19 +58,15 @@ export const WindowLayer: React.FC<WindowLayerProps> = ({
 }) => {
 	const { popWindow } = useWindowManager()
 
-	// Since we want standard CSS animations, we will maintain an `isVisible` local state
-	// that tracks when it should be rendered to the DOM vs unmounted or hidden.
 	const [isRendered, setIsRendered] = useState(isInStack)
 	const [opacity, setOpacity] = useState(0)
 
 	useEffect(() => {
 		if (isInStack) {
 			setIsRendered(true)
-			// Trigger a reflow to start the transition
 			requestAnimationFrame(() => requestAnimationFrame(() => setOpacity(1)))
 		} else {
 			setOpacity(0)
-			// Wait for the transition to finish before unmounting completely
 			const timer = setTimeout(() => setIsRendered(false), 300)
 			return () => clearTimeout(timer)
 		}
@@ -44,11 +76,12 @@ export const WindowLayer: React.FC<WindowLayerProps> = ({
 		return null
 	}
 
-	// Calculate transformation effect.
-	// The user wants a 40px offset for underlying windows so the edge is visible.
 	const offset = index * 40
-	const transform = isActive ? `translateX(${offset}px) scale(1)` : `translateX(${offset}px) scale(0.98)`
+	const transform = `translateX(${offset}px) scale(${isActive ? 1 : 0.98})`
 	const filter = isActive ? "none" : "blur(1px) brightness(0.9)"
+	const position = getWindowPosition(fullScreen)
+	const pointerEvents = getWindowPointerEvents(isActive)
+	const boxShadow = getWindowBoxShadow(isActive)
 
 	return (
 		<div
@@ -57,38 +90,22 @@ export const WindowLayer: React.FC<WindowLayerProps> = ({
 			data-testid={`window-layer-${id}`}
 			data-active={isActive}
 			style={{
-				position: fullScreen ? "absolute" : "relative",
+				position,
 				top: 0,
 				left: 0,
 				width: `calc(100% - ${offset}px)`,
 				height: "100%",
-				zIndex: zIndex,
-				opacity: opacity,
+				zIndex,
+				opacity,
 				transform,
 				filter,
 				transition: "opacity 0.3s ease, transform 0.3s ease, filter 0.3s ease, left 0.3s ease, width 0.3s ease",
 				backgroundColor: "var(--vscode-editor-background)",
-				pointerEvents: isActive ? "auto" : "none",
+				pointerEvents,
 				overflow: "hidden",
-				boxShadow: isActive ? "-20px 0 40px rgba(0,0,0,0.3)" : "none",
+				boxShadow,
 			}}>
-			{/* Side Stripe for underlying windows to allow clicking back */}
-			{!isActive && (
-				<div
-					data-testid={`window-layer-stripe-${id}`}
-					className="absolute left-0 top-0 w-[40px] h-full cursor-pointer hover:bg-vscode-toolbar-hoverBackground transition-colors pointer-events-auto flex flex-col items-center py-4 group"
-					onClick={(e) => {
-						e.stopPropagation()
-						console.log(
-							`[WindowLayer] popWindow clicked for ${id} at index ${index}, activeWindows length: ${/* will be logged by store */ ""}`,
-						)
-						popWindow(index)
-					}}>
-					<div className="vertical-text opacity-30 group-hover:opacity-100 transition-opacity font-medium text-[10px]">
-						{id}
-					</div>
-				</div>
-			)}
+			{!isActive && <WindowLayerStripe id={id} index={index} popWindow={popWindow} />}
 
 			<div
 				className={cn(

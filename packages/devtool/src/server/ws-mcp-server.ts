@@ -64,12 +64,32 @@ export class WsMcpServer {
 	}
 
 	/**
+	 * Create the McpServer instance WITHOUT starting the WebSocket listener.
+	 * Call this first, register tools on the returned server, then call start().
+	 * This prevents the race condition where a client connects before tools are registered.
+	 */
+	createServer(): McpServer {
+		this._mcpServer = new McpServer(
+			{ name: "Jabberwock DevTools", version: "1.0.0" },
+			{ capabilities: { tools: {} } },
+		)
+		return this._mcpServer
+	}
+
+	/**
 	 * Start the WebSocket MCP server.
+	 * If createServer() was called first, the existing McpServer is reused.
+	 * Otherwise, a new McpServer is created (backward compat).
 	 * Retries up to `maxRetries` times with short delay if the
 	 * port is still in TIME_WAIT from a previous process.
 	 */
 	async start(maxRetries: number = 3): Promise<number> {
-		this._mcpServer = new McpServer({ name: "Jabberwock DevTools", version: "1.0.0" })
+		if (!this._mcpServer) {
+			this._mcpServer = new McpServer(
+				{ name: "Jabberwock DevTools", version: "1.0.0" },
+				{ capabilities: { tools: {} } },
+			)
+		}
 
 		let lastError: Error | null = null
 
@@ -129,7 +149,7 @@ export class WsMcpServer {
 	 */
 	getMcpServer(): McpServer {
 		if (!this._mcpServer) {
-			throw new Error("WsMcpServer not started. Call start() first.")
+			throw new Error("WsMcpServer not started. Call start() or createServer() first.")
 		}
 		return this._mcpServer
 	}

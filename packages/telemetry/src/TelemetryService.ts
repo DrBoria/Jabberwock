@@ -7,11 +7,6 @@ import {
 	type TelemetrySetting,
 } from "@jabberwock/types"
 
-/**
- * TelemetryService wrapper class that defers initialization.
- * This ensures that we only create the various clients after environment
- * variables are loaded.
- */
 export class TelemetryService {
 	constructor(private clients: TelemetryClient[]) {}
 
@@ -19,30 +14,16 @@ export class TelemetryService {
 		this.clients.push(client)
 	}
 
-	/**
-	 * Sets the EventBridge reference to use for global properties
-	 * @param provider A EventBridge instance to use
-	 */
 	public setProvider(provider: TelemetryPropertiesProvider): void {
-		// If client is initialized, pass the provider reference.
 		if (this.isReady) {
 			this.clients.forEach((client) => client.setProvider(provider))
 		}
 	}
 
-	/**
-	 * Base method for all telemetry operations
-	 * Checks if the service is initialized before performing any operation
-	 * @returns Whether the service is ready to use
-	 */
 	private get isReady(): boolean {
 		return this.clients.length > 0
 	}
 
-	/**
-	 * Updates the telemetry state based on user preferences and VSCode settings
-	 * @param isOptedIn Whether the user is opted into telemetry
-	 */
 	public updateTelemetryState(isOptedIn: boolean): void {
 		if (!this.isReady) {
 			return
@@ -51,13 +32,7 @@ export class TelemetryService {
 		this.clients.forEach((client) => client.updateTelemetryState(isOptedIn))
 	}
 
-	/**
-	 * Generic method to capture any type of event with specified properties
-	 * @param eventName The event name to capture
-	 * @param properties The event properties
-	 */
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	public captureEvent(eventName: TelemetryEventName, properties?: Record<string, any>): void {
+	public captureEvent(eventName: TelemetryEventName, properties?: Record<string, unknown>): void {
 		if (!this.isReady) {
 			return
 		}
@@ -65,11 +40,6 @@ export class TelemetryService {
 		this.clients.forEach((client) => client.capture({ event: eventName, properties }))
 	}
 
-	/**
-	 * Captures an exception using PostHog's error tracking
-	 * @param error The error to capture
-	 * @param additionalProperties Additional properties to include with the exception
-	 */
 	public captureException(error: Error, additionalProperties?: Record<string, unknown>): void {
 		if (!this.isReady) {
 			return
@@ -148,7 +118,6 @@ export class TelemetryService {
 	}
 
 	public captureSchemaValidationError({ schemaName, error }: { schemaName: string; error: ZodError }): void {
-		// https://zod.dev/ERROR_HANDLING?id=formatting-errors
 		this.captureEvent(TelemetryEventName.SCHEMA_VALIDATION_ERROR, { schemaName, error: error.format() })
 	}
 
@@ -164,46 +133,24 @@ export class TelemetryService {
 		this.captureEvent(TelemetryEventName.CONSECUTIVE_MISTAKE_ERROR, { taskId })
 	}
 
-	/**
-	 * Captures when a tab is shown due to user action
-	 * @param tab The tab that was shown
-	 */
 	public captureTabShown(tab: string): void {
 		this.captureEvent(TelemetryEventName.TAB_SHOWN, { tab })
 	}
 
-	/**
-	 * Captures when a setting is changed in ModesView
-	 * @param settingName The name of the setting that was changed
-	 */
 	public captureModeSettingChanged(settingName: string): void {
 		this.captureEvent(TelemetryEventName.MODE_SETTINGS_CHANGED, { settingName })
 	}
 
-	/**
-	 * Captures when a user creates a new custom mode
-	 * @param modeSlug The slug of the custom mode
-	 * @param modeName The name of the custom mode
-	 */
 	public captureCustomModeCreated(modeSlug: string, modeName: string): void {
 		this.captureEvent(TelemetryEventName.CUSTOM_MODE_CREATED, { modeSlug, modeName })
 	}
 
-	/**
-	 * Captures a marketplace item installation event
-	 * @param itemId The unique identifier of the marketplace item
-	 * @param itemType The type of item (mode or mcp)
-	 * @param itemName The human-readable name of the item
-	 * @param target The installation target (project or global)
-	 * @param properties Additional properties like hasParameters, installationMethod
-	 */
 	public captureMarketplaceItemInstalled(
 		itemId: string,
 		itemType: string,
 		itemName: string,
 		target: string,
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		properties?: Record<string, any>,
+		properties?: Record<string, unknown>,
 	): void {
 		this.captureEvent(TelemetryEventName.MARKETPLACE_ITEM_INSTALLED, {
 			itemId,
@@ -214,13 +161,6 @@ export class TelemetryService {
 		})
 	}
 
-	/**
-	 * Captures a marketplace item removal event
-	 * @param itemId The unique identifier of the marketplace item
-	 * @param itemType The type of item (mode or mcp)
-	 * @param itemName The human-readable name of the item
-	 * @param target The removal target (project or global)
-	 */
 	public captureMarketplaceItemRemoved(itemId: string, itemType: string, itemName: string, target: string): void {
 		this.captureEvent(TelemetryEventName.MARKETPLACE_ITEM_REMOVED, {
 			itemId,
@@ -230,19 +170,10 @@ export class TelemetryService {
 		})
 	}
 
-	/**
-	 * Captures a title button click event
-	 * @param button The button that was clicked
-	 */
 	public captureTitleButtonClicked(button: string): void {
 		this.captureEvent(TelemetryEventName.TITLE_BUTTON_CLICKED, { button })
 	}
 
-	/**
-	 * Captures when telemetry settings are changed
-	 * @param previousSetting The previous telemetry setting
-	 * @param newSetting The new telemetry setting
-	 */
 	public captureTelemetrySettingsChanged(previousSetting: TelemetrySetting, newSetting: TelemetrySetting): void {
 		this.captureEvent(TelemetryEventName.TELEMETRY_SETTINGS_CHANGED, {
 			previousSetting,
@@ -250,10 +181,6 @@ export class TelemetryService {
 		})
 	}
 
-	/**
-	 * Checks if telemetry is currently enabled
-	 * @returns Whether telemetry is enabled
-	 */
 	public isTelemetryEnabled(): boolean {
 		return this.isReady && this.clients.some((client) => client.isTelemetryEnabled())
 	}
@@ -266,34 +193,3 @@ export class TelemetryService {
 		this.clients.forEach((client) => client.shutdown())
 	}
 }
-
-// --- Module-level accessor functions (replaces static singleton) ---
-
-let _globalTelemetryService: TelemetryService | null = null
-
-export function createTelemetryService(clients: TelemetryClient[] = []): TelemetryService {
-	if (_globalTelemetryService) {
-		throw new Error("TelemetryService instance already created")
-	}
-
-	_globalTelemetryService = new TelemetryService(clients)
-	return _globalTelemetryService
-}
-
-export function getTelemetryService(): TelemetryService {
-	if (!_globalTelemetryService) {
-		throw new Error("TelemetryService not initialized")
-	}
-
-	return _globalTelemetryService
-}
-
-export function hasTelemetryService(): boolean {
-	return _globalTelemetryService !== null
-}
-
-export function resetTelemetryService(): void {
-	_globalTelemetryService = null
-}
-
-export type { TelemetryService as TelemetryServiceType }

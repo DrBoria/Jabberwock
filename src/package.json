@@ -72,7 +72,7 @@
 		"commands": [
 			{
 				"command": "jabberwock.plusButtonClicked",
-				"title": "%command.newTask.title%",
+				"title": "%command.newChat.title%",
 				"icon": "$(edit)"
 			},
 			{
@@ -126,8 +126,8 @@
 				"category": "%configuration.title%"
 			},
 			{
-				"command": "jabberwock.newTask",
-				"title": "%command.newTask.title%",
+				"command": "jabberwock.newChat",
+				"title": "%command.newChat.title%",
 				"category": "%configuration.title%"
 			},
 			{
@@ -444,10 +444,9 @@
 		}
 	},
 	"scripts": {
-		"lint": "eslint . --ext=ts --max-warnings=0",
 		"check-types": "tsc --noEmit",
-		"pretest": "turbo run bundle --cwd ..",
-		"test": "vitest run",
+		"lint": "eslint . --ext=ts --max-warnings=0",
+		"build": "pnpm bundle",
 		"format": "prettier --write .",
 		"bundle": "node esbuild.mjs",
 		"vscode:prepublish": "pnpm bundle --production",

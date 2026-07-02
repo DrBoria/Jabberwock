@@ -155,6 +155,7 @@
 		"noResults": "Tidak ada hasil yang ditemukan"
 	},
 	"addImages": "Tambahkan gambar ke pesan",
+	"addGoal": "Tambahkan sebagai tujuan",
 	"sendMessage": "Kirim pesan",
 	"pressToSend": "Tekan {{keyCombination}} untuk mengirim",
 	"stopTts": "Hentikan text-to-speech",

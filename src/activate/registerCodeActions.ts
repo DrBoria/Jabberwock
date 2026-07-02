@@ -2,10 +2,10 @@ import * as vscode from "vscode"
 
 import { CodeActionId, CodeActionName } from "@jabberwock/types"
 
-import { getCodeActionCommand } from "../utils/commands"
-import { EditorUtils } from "../integrations/editor/EditorUtils"
+import { getCodeActionCommand } from "@utils/mcp/commands"
+import { EditorUtils } from "@integrations/editor/EditorUtils"
 import { EventBridge } from "@features/foundation/webview/EventBridge"
-import { handleCodeAction } from "../features/settings/agents/handlers"
+import { handleCodeAction } from "@features/settings/agents/handlers"
 
 export const registerCodeActions = (context: vscode.ExtensionContext) => {
 	registerCodeAction(context, "explainCode", "EXPLAIN")

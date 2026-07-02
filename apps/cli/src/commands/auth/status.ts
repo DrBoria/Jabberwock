@@ -15,6 +15,31 @@ export interface StatusResult {
 	createdAt?: Date
 }
 
+function printAuthenticatedStatus(
+	expiringSoon: boolean,
+	expiresAt: Date | null,
+	createdAt: Date | undefined,
+	verbose: boolean,
+) {
+	if (expiringSoon) {
+		console.log("⚠ Expires soon; refresh with `jabberwock auth login`")
+	} else {
+		console.log("✓ Authenticated")
+	}
+
+	if (expiresAt) {
+		console.log(`  Expires:      ${formatDate(expiresAt)} (${getTimeRemaining(expiresAt)})`)
+	}
+
+	if (createdAt && verbose) {
+		console.log(`  Created:      ${formatDate(createdAt)}`)
+	}
+
+	if (verbose) {
+		console.log(`  Credentials:  ${getCredentialsPath()}`)
+	}
+}
+
 export async function status(options: StatusOptions = {}): Promise<StatusResult> {
 	const { verbose = false } = options
 
@@ -31,47 +56,19 @@ export async function status(options: StatusOptions = {}): Promise<StatusResult>
 	const expired = !isTokenValid(token)
 	const expiringSoon = isTokenExpired(token, 24 * 60 * 60) && !expired
 
-	const credentials = await loadCredentials()
-	const createdAt = credentials?.createdAt ? new Date(credentials.createdAt) : undefined
-
 	if (expired) {
 		console.log("✗ Authentication token expired")
 		console.log("")
 		console.log("Run: jabberwock auth login")
-
-		return {
-			authenticated: false,
-			expired: true,
-			expiresAt: expiresAt ?? undefined,
-		}
+		return { authenticated: false, expired: true, expiresAt: expiresAt ?? undefined }
 	}
 
-	if (expiringSoon) {
-		console.log("⚠ Expires soon; refresh with `jabberwock auth login`")
-	} else {
-		console.log("✓ Authenticated")
-	}
+	const credentials = await loadCredentials()
+	const createdAt = credentials?.createdAt ? new Date(credentials.createdAt) : undefined
 
-	if (expiresAt) {
-		const remaining = getTimeRemaining(expiresAt)
-		console.log(`  Expires:      ${formatDate(expiresAt)} (${remaining})`)
-	}
+	printAuthenticatedStatus(expiringSoon, expiresAt, createdAt, verbose)
 
-	if (createdAt && verbose) {
-		console.log(`  Created:      ${formatDate(createdAt)}`)
-	}
-
-	if (verbose) {
-		console.log(`  Credentials:  ${getCredentialsPath()}`)
-	}
-
-	return {
-		authenticated: true,
-		expired: false,
-		expiringSoon,
-		expiresAt: expiresAt ?? undefined,
-		createdAt,
-	}
+	return { authenticated: true, expired: false, expiringSoon, expiresAt: expiresAt ?? undefined, createdAt }
 }
 
 function formatDate(date: Date): string {

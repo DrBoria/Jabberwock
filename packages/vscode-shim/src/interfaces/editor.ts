@@ -2,11 +2,11 @@
  * Editor-related interfaces for VSCode API
  */
 
-import type { Range } from "../classes/Range.ts"
-import type { Position } from "../classes/Position.ts"
-import type { Selection } from "../classes/Selection.ts"
-import type { Uri } from "../classes/Uri.ts"
-import type { ThemeColor } from "../classes/Additional.ts"
+import type { Range } from "../classes/types/Range.ts"
+import type { Position } from "../classes/types/Position.ts"
+import type { Selection } from "../classes/types/Selection.ts"
+import type { Uri } from "../classes/types/Uri.ts"
+import type { ThemeColor } from "../classes/types/Additional.ts"
 import type {
 	Thenable,
 	ViewColumn,

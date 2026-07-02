@@ -1,50 +1,18 @@
 "use client"
 
-import {
-	ArrowRight,
-	GitPullRequest,
-	Wrench,
-	Key,
-	MessageSquareCode,
-	Blocks,
-	ListChecks,
-	BookMarked,
-	History,
-	LucideIcon,
-} from "lucide-react"
+import { ArrowRight } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 
 import { Button } from "@/components/ui"
 import { AnimatedBackground, UseExamplesSection } from "@/components/homepage"
 import { EXTERNAL_LINKS } from "@/lib/constants"
-import { type AgentPageContent, type IconName } from "./agent-page-content"
-
-/**
- * Maps icon names to actual Lucide icon components
- */
-const iconMap: Record<IconName, LucideIcon> = {
-	GitPullRequest,
-	Wrench,
-	Key,
-	MessageSquareCode,
-	Blocks,
-	ListChecks,
-	BookMarked,
-	History,
-}
-
-/**
- * Converts an icon name string to a Lucide icon component
- */
-function getIcon(iconName?: IconName): LucideIcon | undefined {
-	return iconName ? iconMap[iconName] : undefined
-}
+import { type AgentPageContent } from "./agent-page-content"
+import { getIcon } from "./agent-icons"
 
 export function AgentLandingContent({ content }: { content: AgentPageContent }) {
 	return (
 		<>
-			{/* Hero Section */}
 			<section className="relative flex min-h-screen md:min-h-[calc(70vh-theme(spacing.12))] items-center overflow-hidden py-12 md:py-0">
 				<AnimatedBackground />
 				<div className="container relative flex items-center h-full z-10 mx-auto px-4 sm:px-6 lg:px-8">
@@ -59,14 +27,11 @@ export function AgentLandingContent({ content }: { content: AgentPageContent }) 
 										})()}
 									{content.hero.heading}
 								</h1>
-
 								<div className="mt-4 max-w-full lg:max-w-lg space-y-4 text-base text-muted-foreground md:text-left sm:mt-6">
 									{content.hero.paragraphs.map((paragraph, index) => (
 										<p key={index}>{paragraph}</p>
 									))}
 								</div>
-
-								{/* Cross-agent link */}
 								<div className="mt-6 flex flex-col md:flex-row md:items-center gap-2">
 									{content.hero.crossAgentLink.text}
 									{content.hero.crossAgentLink.links.map((link, index) => {
@@ -124,7 +89,6 @@ export function AgentLandingContent({ content }: { content: AgentPageContent }) 
 				</div>
 			</section>
 
-			{/* How It Works Section */}
 			<section className="relative overflow-hidden border-t border-border py-32">
 				<div className="absolute inset-y-0 left-1/2 h-full w-full max-w-[1200px] -translate-x-1/2 z-1">
 					<div className="absolute left-1/2 top-1/2 h-[400px] w-full -translate-x-1/2 -translate-y-1/2 rounded-full bg-violet-500/10 dark:bg-violet-700/20 blur-[140px]" />
@@ -137,7 +101,6 @@ export function AgentLandingContent({ content }: { content: AgentPageContent }) 
 							</h2>
 						</div>
 					</div>
-
 					<div className="relative mx-auto md:max-w-[1200px]">
 						<ul className="grid grid-cols-1 place-items-center gap-6 md:grid-cols-3 lg:gap-8">
 							{content.howItWorks.steps.map((step, index) => {
@@ -161,7 +124,6 @@ export function AgentLandingContent({ content }: { content: AgentPageContent }) 
 				</div>
 			</section>
 
-			{/* Why Better Section */}
 			<section className="relative overflow-hidden border-t border-border py-32">
 				<div className="absolute inset-y-0 left-1/2 h-full w-full max-w-[1200px] -translate-x-1/2 z-1">
 					<div className="absolute left-1/2 top-1/2 h-[400px] w-full -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-500/10 dark:bg-blue-700/20 blur-[140px]" />
@@ -174,7 +136,6 @@ export function AgentLandingContent({ content }: { content: AgentPageContent }) 
 							</h2>
 						</div>
 					</div>
-
 					<div className="relative mx-auto md:max-w-[1200px]">
 						<ul className="grid grid-cols-1 place-items-center gap-6 md:grid-cols-2 lg:grid-cols-3 lg:gap-8">
 							{content.whyBetter.features.map((feature, index) => {
@@ -189,10 +150,9 @@ export function AgentLandingContent({ content }: { content: AgentPageContent }) 
 										</h3>
 										<div className="leading-relaxed font-light text-muted-foreground space-y-2">
 											{feature.description && <p>{feature.description}</p>}
-											{feature.paragraphs &&
-												feature.paragraphs.map((paragraph, pIndex) => (
-													<p key={pIndex}>{paragraph}</p>
-												))}
+											{feature.paragraphs?.map((paragraph, pIndex) => (
+												<p key={pIndex}>{paragraph}</p>
+											))}
 										</div>
 									</li>
 								)
@@ -204,7 +164,6 @@ export function AgentLandingContent({ content }: { content: AgentPageContent }) 
 
 			<UseExamplesSection agentTitle={true} />
 
-			{/* CTA Section */}
 			<section className="py-20">
 				<div className="container mx-auto px-4 sm:px-6 lg:px-8">
 					<div className="mx-auto max-w-4xl rounded-3xl border border-border/50 bg-gradient-to-br from-blue-500/5 via-cyan-500/5 to-purple-500/5 p-8 text-center shadow-2xl backdrop-blur-xl dark:border-white/20 dark:bg-gradient-to-br dark:from-gray-800 dark:via-gray-900 dark:to-black sm:p-12">

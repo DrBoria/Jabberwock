@@ -3,10 +3,10 @@ import fs from "fs/promises"
 
 import * as vscode from "vscode"
 
-import type { ProviderSettingsManager } from "../models/ProviderSettingsManager"
-import type { SettingsAccess } from "@utils/settings-access"
-import { resolveDefaultSaveUri, saveLastExportPath } from "../../../utils/export"
-import { safeWriteJson } from "../../../utils/safeWriteJson"
+import type { ProviderSettingsManager } from "@features/settings/models/provider-settings-manager/ProviderSettingsManager"
+import type { SettingsAccess } from "@utils/settings"
+import { resolveDefaultSaveUri, saveLastExportPath } from "@utils/io/export"
+import { safeWriteJson } from "@utils/io"
 
 import os from "os"
 export type ExportOptions = {

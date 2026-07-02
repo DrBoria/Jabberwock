@@ -1,13 +1,13 @@
-import type { EventBridge } from "@features/foundation/webview/EventBridge"
+import type { EventBridge, ProviderHandle } from "@features/foundation/webview/EventBridge"
 import { IntentType } from "@jabberwock/types"
 import type { MarketplaceItem } from "@jabberwock/types"
-import { MarketplaceManager, MarketplaceItemType } from "../../../services/marketplace"
+import { MarketplaceManager, MarketplaceItemType } from "@services/marketplace"
 import * as vscode from "vscode"
 import * as path from "path"
 
-import type { IntentBus } from "../../intents/bus.js"
+import type { IntentBus } from "@features/intents/bus.js"
 import { postStateToWebview } from "@features/foundation/window-manager/store"
-import { getRooDirectoriesForCwd } from "../../../services/jabberwock-config/index.js"
+import { getRooDirectoriesForCwd } from "@services/jabberwock-config/index.js"
 import { customToolRegistry } from "@jabberwock/core"
 
 /**
@@ -102,61 +102,7 @@ export function registerOnMarketplace(bus: IntentBus): void {
 		}
 	})
 
-	bus.register(IntentType.MarketplaceItemRemove, async (intent, ctx) => {
-		const provider = ctx.provider
-		if (!provider) return
-
-		const payload = intent.payload as {
-			marketplaceManager?: MarketplaceManager
-			mpItem?: { [key: string]: unknown }
-			mpInstallOptions?: { [key: string]: unknown }
-		}
-		const marketplaceManager = payload.marketplaceManager
-		const mpItem = payload.mpItem
-		const mpInstallOptions = payload.mpInstallOptions
-		if (marketplaceManager && mpItem && mpInstallOptions) {
-			try {
-				await marketplaceManager.removeInstalledMarketplaceItem(
-					mpItem as MarketplaceItem,
-					mpInstallOptions as { target?: "global" | "project" },
-				)
-				await postStateToWebview(provider)
-				provider.postMessageToWebview({
-					type: "marketplaceRemoveResult",
-					success: true,
-					slug: mpItem.id as string,
-				})
-			} catch (error) {
-				console.error(`[jabberwock] Error removing marketplace item: ${error}`)
-
-				vscode.window.showErrorMessage(
-					`Failed to remove marketplace item: ${error instanceof Error ? error.message : String(error)}`,
-				)
-				provider.postMessageToWebview({
-					type: "marketplaceRemoveResult",
-					success: false,
-					error: error instanceof Error ? error.message : String(error),
-					slug: mpItem.id as string,
-				})
-			}
-		} else {
-			const errorMessage = !marketplaceManager
-				? "Marketplace manager is not available"
-				: "Missing required parameters for marketplace item removal"
-			console.error(`[jabberwock] ${errorMessage}`)
-
-			vscode.window.showErrorMessage(errorMessage)
-
-			if (mpItem?.id) {
-				provider.postMessageToWebview({
-					type: "marketplaceRemoveResult",
-					success: false,
-					error: errorMessage,
-					slug: mpItem.id as string,
-				})
-			}
-		}
-	})
+	bus.register(IntentType.MarketplaceItemRemove, handleMarketplaceItemRemove)
 
 	bus.register(IntentType.MarketplaceDataFetch, async () => {
 		// fetchMarketplaceData was removed from EventBridge - no-op for now
@@ -196,4 +142,78 @@ export function registerOnMarketplace(bus: IntentBus): void {
 
 		provider.postMessageToWebview({ type: "action", action: "marketplaceButtonClicked" })
 	})
+}
+
+async function handleMarketplaceItemRemove(
+	intent: { id: string; type: string; payload: { [key: string]: unknown } },
+	ctx: { provider?: EventBridge },
+): Promise<void> {
+	const provider = ctx.provider as ProviderHandle | undefined
+	if (!provider) return
+
+	const payload = intent.payload as {
+		marketplaceManager?: MarketplaceManager
+		mpItem?: { [key: string]: unknown }
+		mpInstallOptions?: { [key: string]: unknown }
+	}
+	const marketplaceManager = payload.marketplaceManager
+	const mpItem = payload.mpItem
+	const mpInstallOptions = payload.mpInstallOptions
+	if (marketplaceManager && mpItem && mpInstallOptions) {
+		await removeMarketplaceItem(provider, marketplaceManager, mpItem, mpInstallOptions)
+	} else {
+		await handleMarketplaceRemoveError(provider, marketplaceManager, mpItem)
+	}
+}
+
+async function removeMarketplaceItem(
+	provider: ProviderHandle,
+	marketplaceManager: MarketplaceManager,
+	mpItem: { [key: string]: unknown },
+	mpInstallOptions: { [key: string]: unknown },
+): Promise<void> {
+	try {
+		await marketplaceManager.removeInstalledMarketplaceItem(
+			mpItem as MarketplaceItem,
+			mpInstallOptions as { target?: "global" | "project" },
+		)
+		await postStateToWebview(provider)
+		provider.postMessageToWebview({
+			type: "marketplaceRemoveResult",
+			success: true,
+			slug: mpItem.id as string,
+		})
+	} catch (error) {
+		console.error(`[jabberwock] Error removing marketplace item: ${error}`)
+		vscode.window.showErrorMessage(
+			`Failed to remove marketplace item: ${error instanceof Error ? error.message : String(error)}`,
+		)
+		provider.postMessageToWebview({
+			type: "marketplaceRemoveResult",
+			success: false,
+			error: error instanceof Error ? error.message : String(error),
+			slug: mpItem.id as string,
+		})
+	}
+}
+
+async function handleMarketplaceRemoveError(
+	provider: ProviderHandle,
+	marketplaceManager: MarketplaceManager | undefined,
+	mpItem: { [key: string]: unknown } | undefined,
+): Promise<void> {
+	const errorMessage = !marketplaceManager
+		? "Marketplace manager is not available"
+		: "Missing required parameters for marketplace item removal"
+	console.error(`[jabberwock] ${errorMessage}`)
+	vscode.window.showErrorMessage(errorMessage)
+
+	if (mpItem?.id) {
+		provider.postMessageToWebview({
+			type: "marketplaceRemoveResult",
+			success: false,
+			error: errorMessage,
+			slug: mpItem.id as string,
+		})
+	}
 }

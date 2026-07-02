@@ -1,7 +1,7 @@
 import * as assert from "assert"
 import * as vscode from "vscode"
 
-import { setDefaultSuiteTimeout } from "./test-utils"
+import { setDefaultSuiteTimeout } from "./helpers/test-utils"
 
 suite("Jabberwock Extension", function () {
 	setDefaultSuiteTimeout(this)

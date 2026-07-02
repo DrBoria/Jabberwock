@@ -17,6 +17,7 @@
 		"moduleResolution": "bundler",
 		"resolveJsonModule": true,
 		"isolatedModules": true,
+		"allowArbitraryExtensions": true,
 		"noEmit": true,
 		"jsx": "react-jsx",
 		"baseUrl": ".",
@@ -25,13 +26,20 @@
 			"@src/*": ["./src/*"],
 			"@shared/*": ["../src/shared/*"],
 			"@jabberwock/types": ["../../packages/types/src/index.ts"],
-			"@jabberwock/core/browser": ["../../packages/core/src/browser.ts"],
 			"@jabberwock/devtool/webview": ["../../packages/devtool/src/webview-entry.ts"],
 			"@eventConstants": ["../../packages/types/src/event-constants"],
 			"@intentConstants": ["./src/features/intents/IntentConstants"],
+			"@packageJson": ["../src/package.json"],
+			"@utils/*": ["../src/utils/*"],
+			"@api/*": ["../src/api/*"],
+			"@components/*": ["./src/components/*"],
+			"@sections/*": ["./src/sections/*"],
+			"@i18n": ["../src/i18n"],
+			"@i18n/*": ["../src/i18n/*"],
 			"@features/*": ["../src/features/*"],
-			"@utils/*": ["../src/utils/*"]
+			"@services/*": ["../src/services/*"]
 		}
 	},
-	"include": ["src", "../src/shared", "../src/types", "vitest.setup.ts"]
+	"include": ["src", "../src/types", "../src/package.json", "vitest.setup.ts"],
+	"exclude": ["node_modules"]
 }

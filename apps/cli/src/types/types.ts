@@ -13,7 +13,8 @@ export const supportedProviders = [
 export type SupportedProvider = (typeof supportedProviders)[number]
 
 export function isSupportedProvider(provider: string): provider is SupportedProvider {
-	return supportedProviders.includes(provider as SupportedProvider)
+	const isSupported = supportedProviders.includes(provider as SupportedProvider)
+	return isSupported
 }
 
 export type ReasoningEffortFlagOptions = ReasoningEffortExtended | "unspecified" | "disabled"

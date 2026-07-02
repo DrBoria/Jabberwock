@@ -1,13 +1,9 @@
 import { z } from "zod"
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import type { ExtensionBridge } from "../bridge.js"
+import { wrapBridge } from "./tool-utils.js"
 
-/**
- * Register state inspection tools on the MCP server.
- * These tools provide access to MST stores, extension info, and current state.
- */
 export function registerStateTools(mcpServer: McpServer, bridge: ExtensionBridge) {
-	// ── get_store_state ────────────────────────────────────────────
 	mcpServer.tool(
 		"get_store_state",
 		{
@@ -34,29 +30,19 @@ export function registerStateTools(mcpServer: McpServer, bridge: ExtensionBridge
 				.optional()
 				.describe("Comma-separated field names to extract from array elements (e.g. 'id,tokensOut')"),
 		},
-		async (params) => {
-			try {
-				const result = await bridge.getStoreState({
+		async (params) =>
+			wrapBridge(() =>
+				bridge.getStoreState({
 					env: params.env,
 					store: params.store,
 					path: params.path,
 					limit: params.limit,
 					cursor: params.cursor,
 					fields: params.fields,
-				})
-				return { content: [{ type: "text", text: result }] }
-			} catch (error) {
-				return {
-					content: [
-						{ type: "text", text: `Error: ${error instanceof Error ? error.message : String(error)}` },
-					],
-					isError: true,
-				}
-			}
-		},
+				}),
+			),
 	)
 
-	// ── get_store_actions ──────────────────────────────────────────
 	mcpServer.tool(
 		"get_store_actions",
 		{
@@ -64,26 +50,16 @@ export function registerStateTools(mcpServer: McpServer, bridge: ExtensionBridge
 			limit: z.number().min(1).max(10).default(10).describe("Items per page"),
 			cursor: z.number().min(0).default(0).describe("Pagination cursor"),
 		},
-		async (params) => {
-			try {
-				const result = await bridge.getStoreActions({
+		async (params) =>
+			wrapBridge(() =>
+				bridge.getStoreActions({
 					env: params.env,
 					limit: params.limit,
 					cursor: params.cursor,
-				})
-				return { content: [{ type: "text", text: result }] }
-			} catch (error) {
-				return {
-					content: [
-						{ type: "text", text: `Error: ${error instanceof Error ? error.message : String(error)}` },
-					],
-					isError: true,
-				}
-			}
-		},
+				}),
+			),
 	)
 
-	// ── search_state (replaces filter_state) ───────────────────────
 	mcpServer.tool(
 		"search_state",
 		{
@@ -102,28 +78,18 @@ export function registerStateTools(mcpServer: McpServer, bridge: ExtensionBridge
 			limit: z.number().min(1).max(10).default(10).describe("Maximum results"),
 			cursor: z.number().min(0).default(0).describe("Pagination cursor"),
 		},
-		async (params) => {
-			try {
-				const result = await bridge.searchState({
+		async (params) =>
+			wrapBridge(() =>
+				bridge.searchState({
 					env: params.env,
 					query: params.query,
 					store: params.store,
 					limit: params.limit,
 					cursor: params.cursor,
-				})
-				return { content: [{ type: "text", text: result }] }
-			} catch (error) {
-				return {
-					content: [
-						{ type: "text", text: `Error: ${error instanceof Error ? error.message : String(error)}` },
-					],
-					isError: true,
-				}
-			}
-		},
+				}),
+			),
 	)
 
-	// ── filter_actions ─────────────────────────────────────────────
 	mcpServer.tool(
 		"filter_actions",
 		{
@@ -132,27 +98,17 @@ export function registerStateTools(mcpServer: McpServer, bridge: ExtensionBridge
 			limit: z.number().min(1).max(10).default(10).describe("Items per page"),
 			cursor: z.number().min(0).default(0).describe("Pagination cursor"),
 		},
-		async (params) => {
-			try {
-				const result = await bridge.filterActions({
+		async (params) =>
+			wrapBridge(() =>
+				bridge.filterActions({
 					env: params.env,
 					pattern: params.pattern,
 					limit: params.limit,
 					cursor: params.cursor,
-				})
-				return { content: [{ type: "text", text: result }] }
-			} catch (error) {
-				return {
-					content: [
-						{ type: "text", text: `Error: ${error instanceof Error ? error.message : String(error)}` },
-					],
-					isError: true,
-				}
-			}
-		},
+				}),
+			),
 	)
 
-	// ── search_actions ─────────────────────────────────────────────
 	mcpServer.tool(
 		"search_actions",
 		{
@@ -161,90 +117,41 @@ export function registerStateTools(mcpServer: McpServer, bridge: ExtensionBridge
 			limit: z.number().min(1).max(10).default(10).describe("Items per page"),
 			cursor: z.number().min(0).default(0).describe("Pagination cursor"),
 		},
-		async (params) => {
-			try {
-				const result = await bridge.searchActions({
+		async (params) =>
+			wrapBridge(() =>
+				bridge.searchActions({
 					env: params.env,
 					query: params.query,
 					limit: params.limit,
 					cursor: params.cursor,
-				})
-				return { content: [{ type: "text", text: result }] }
-			} catch (error) {
-				return {
-					content: [
-						{ type: "text", text: `Error: ${error instanceof Error ? error.message : String(error)}` },
-					],
-					isError: true,
-				}
-			}
-		},
+				}),
+			),
 	)
 
-	// ── count_actions ──────────────────────────────────────────────
 	mcpServer.tool(
 		"count_actions",
 		{
 			env: z.enum(["backend", "frontend"]).describe("Which environment to query"),
 		},
-		async (params) => {
-			try {
-				const result = await bridge.countActions({ env: params.env })
-				return { content: [{ type: "text", text: result }] }
-			} catch (error) {
-				return {
-					content: [
-						{ type: "text", text: `Error: ${error instanceof Error ? error.message : String(error)}` },
-					],
-					isError: true,
-				}
-			}
-		},
+		async (params) => wrapBridge(() => bridge.countActions({ env: params.env })),
 	)
 
-	// ── apply_previous_state (undo) ────────────────────────────────
 	mcpServer.tool(
 		"apply_previous_state",
 		{
 			env: z.enum(["backend", "frontend"]).describe("Which environment to query"),
 		},
-		async (params) => {
-			try {
-				const result = await bridge.applyPreviousState({ env: params.env })
-				return { content: [{ type: "text", text: result }] }
-			} catch (error) {
-				return {
-					content: [
-						{ type: "text", text: `Error: ${error instanceof Error ? error.message : String(error)}` },
-					],
-					isError: true,
-				}
-			}
-		},
+		async (params) => wrapBridge(() => bridge.applyPreviousState({ env: params.env })),
 	)
 
-	// ── apply_next_state (redo) ────────────────────────────────────
 	mcpServer.tool(
 		"apply_next_state",
 		{
 			env: z.enum(["backend", "frontend"]).describe("Which environment to query"),
 		},
-		async (params) => {
-			try {
-				const result = await bridge.applyNextState({ env: params.env })
-				return { content: [{ type: "text", text: result }] }
-			} catch (error) {
-				return {
-					content: [
-						{ type: "text", text: `Error: ${error instanceof Error ? error.message : String(error)}` },
-					],
-					isError: true,
-				}
-			}
-		},
+		async (params) => wrapBridge(() => bridge.applyNextState({ env: params.env })),
 	)
 
-	// ── get_store_actions_log ─────────────────────────────────────
 	mcpServer.tool(
 		"get_store_actions_log",
 		{
@@ -252,47 +159,17 @@ export function registerStateTools(mcpServer: McpServer, bridge: ExtensionBridge
 			before: z.number().optional().describe("Number of entries before cursor"),
 			after: z.number().optional().describe("Number of entries after cursor"),
 		},
-		async (params) => {
-			try {
-				const result = await bridge.getStoreActionsLog({
+		async (params) =>
+			wrapBridge(() =>
+				bridge.getStoreActionsLog({
 					env: params.env,
 					before: params.before,
 					after: params.after,
-				})
-				return { content: [{ type: "text", text: result }] }
-			} catch (error) {
-				return {
-					content: [
-						{ type: "text", text: `Error: ${error instanceof Error ? error.message : String(error)}` },
-					],
-					isError: true,
-				}
-			}
-		},
+				}),
+			),
 	)
 
-	// ── Keep legacy tools for backward compatibility ───────────────
-	mcpServer.tool("get_extension_info", {}, async () => {
-		try {
-			const result = await bridge.getExtensionInfo()
-			return { content: [{ type: "text", text: result }] }
-		} catch (error) {
-			return {
-				content: [{ type: "text", text: `Error: ${error instanceof Error ? error.message : String(error)}` }],
-				isError: true,
-			}
-		}
-	})
+	mcpServer.tool("get_extension_info", {}, async () => wrapBridge(() => bridge.getExtensionInfo()))
 
-	mcpServer.tool("get_current_state", {}, async () => {
-		try {
-			const result = await bridge.getCurrentState()
-			return { content: [{ type: "text", text: result }] }
-		} catch (error) {
-			return {
-				content: [{ type: "text", text: `Error: ${error instanceof Error ? error.message : String(error)}` }],
-				isError: true,
-			}
-		}
-	})
+	mcpServer.tool("get_current_state", {}, async () => wrapBridge(() => bridge.getCurrentState()))
 }

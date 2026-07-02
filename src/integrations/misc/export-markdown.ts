@@ -63,47 +63,46 @@ export async function downloadTask(
 	return undefined
 }
 
+function formatToolUseInput(input: unknown): string {
+	if (typeof input === "object" && input !== null) {
+		return Object.entries(input)
+			.map(([key, value]) => {
+				const formattedKey = key.charAt(0).toUpperCase() + key.slice(1)
+				const formattedValue =
+					typeof value === "object" && value !== null ? JSON.stringify(value, null, 2) : String(value)
+				return `${formattedKey}: ${formattedValue}`
+			})
+			.join("\n")
+	}
+	return String(input)
+}
+
+function formatToolResultContent(content: ExtendedContentBlock[] | string, isError: boolean | undefined): string {
+	const toolName = "Tool"
+	if (typeof content === "string") {
+		return `[${toolName}${isError ? " (Error)" : ""}]\n${content}`
+	}
+	if (Array.isArray(content)) {
+		return `[${toolName}${isError ? " (Error)" : ""}]\n${content
+			.map((contentBlock) => formatContentBlockToMarkdown(contentBlock))
+			.join("\n")}`
+	}
+	return `[${toolName}${isError ? " (Error)" : ""}]`
+}
+
 export function formatContentBlockToMarkdown(block: ExtendedContentBlock): string {
 	switch (block.type) {
 		case "text":
 			return block.text
 		case "image":
 			return `[Image]`
-		case "tool_use": {
-			let input: string
-			if (typeof block.input === "object" && block.input !== null) {
-				input = Object.entries(block.input)
-					.map(([key, value]) => {
-						const formattedKey = key.charAt(0).toUpperCase() + key.slice(1)
-						// Handle nested objects/arrays by JSON stringifying them
-						const formattedValue =
-							typeof value === "object" && value !== null ? JSON.stringify(value, null, 2) : String(value)
-						return `${formattedKey}: ${formattedValue}`
-					})
-					.join("\n")
-			} else {
-				input = String(block.input)
-			}
-			return `[Tool Use: ${block.name}]\n${input}`
-		}
-		case "tool_result": {
-			// For now we're not doing tool name lookup since we don't use tools anymore
-			// const toolName = findToolName(block.tool_use_id, messages)
-			const toolName = "Tool"
-			if (typeof block.content === "string") {
-				return `[${toolName}${block.is_error ? " (Error)" : ""}]\n${block.content}`
-			} else if (Array.isArray(block.content)) {
-				return `[${toolName}${block.is_error ? " (Error)" : ""}]\n${block.content
-					.map((contentBlock) => formatContentBlockToMarkdown(contentBlock))
-					.join("\n")}`
-			} else {
-				return `[${toolName}${block.is_error ? " (Error)" : ""}]`
-			}
-		}
+		case "tool_use":
+			return `[Tool Use: ${block.name}]\n${formatToolUseInput(block.input)}`
+		case "tool_result":
+			return formatToolResultContent(block.content as ExtendedContentBlock[] | string, block.is_error)
 		case "reasoning":
 			return `[Reasoning]\n${block.text}`
 		case "thoughtSignature":
-			// Not relevant for human-readable exports
 			return ""
 		default:
 			return `[Unexpected content type: ${block.type}]`

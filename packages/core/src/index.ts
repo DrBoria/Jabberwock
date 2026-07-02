@@ -1,4 +1,5 @@
-export * from "./custom-tools/index.ts"
+export { type RegistryOptions, CustomToolRegistry, customToolRegistry } from "./custom-tools/custom-tool-registry.ts"
+export { serializeCustomTool, formatNative } from "./custom-tools/serialize.ts"
 export * from "./debug-log/index.ts"
 export * from "./message-utils/index.ts"
 export * from "./task-history/index.ts"

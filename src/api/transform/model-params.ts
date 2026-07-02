@@ -13,7 +13,7 @@ import {
 	shouldUseReasoningBudget,
 	shouldUseReasoningEffort,
 	getModelMaxOutputTokens,
-} from "../../shared/api"
+} from "@shared/api"
 
 import {
 	type AnthropicReasoningParams,
@@ -24,7 +24,7 @@ import {
 	getOpenAiReasoning,
 	getGeminiReasoning,
 	getOpenRouterReasoning,
-} from "./reasoning"
+} from "./content/reasoning"
 
 type Format = "anthropic" | "openai" | "gemini" | "openrouter"
 
@@ -67,11 +67,127 @@ type OpenRouterModelParams = {
 
 export type ModelParams = AnthropicModelParams | OpenAiModelParams | GeminiModelParams | OpenRouterModelParams
 
+function resolveReasoningBudget(
+	model: ModelInfo,
+	settings: ProviderSettings,
+	maxTokens: number | undefined,
+	modelId: string,
+): { reasoningBudget: number | undefined; temperature: number | undefined } {
+	const { modelMaxThinkingTokens: customMaxThinkingTokens } = settings
+
+	const isGemini25Pro = modelId.includes("gemini-2.5-pro")
+	const defaultThinkingTokens = isGemini25Pro
+		? GEMINI_25_PRO_MIN_THINKING_TOKENS
+		: DEFAULT_HYBRID_REASONING_MODEL_THINKING_TOKENS
+	let reasoningBudget = customMaxThinkingTokens ?? defaultThinkingTokens
+
+	if (maxTokens && reasoningBudget > Math.floor(maxTokens * 0.8)) {
+		reasoningBudget = Math.floor(maxTokens * 0.8)
+	}
+
+	const minThinkingTokens = isGemini25Pro ? GEMINI_25_PRO_MIN_THINKING_TOKENS : 1024
+	if (reasoningBudget < minThinkingTokens) {
+		reasoningBudget = minThinkingTokens
+	}
+
+	return { reasoningBudget, temperature: 1.0 }
+}
+
+function resolveReasoningEffort(settings: ProviderSettings, model: ModelInfo): ReasoningEffortExtended | undefined {
+	const { reasoningEffort: customReasoningEffort } = settings
+
+	const effort =
+		customReasoningEffort !== undefined
+			? customReasoningEffort
+			: (model.reasoningEffort as ReasoningEffortExtended | "disable" | undefined)
+
+	if (effort && effort !== "disable") {
+		return effort as ReasoningEffortExtended
+	}
+
+	return undefined
+}
+
+function buildAnthropicParams(
+	params: BaseModelParams,
+	model: ModelInfo,
+	settings: ProviderSettings,
+): AnthropicModelParams {
+	return {
+		format: "anthropic",
+		...params,
+		reasoning: getAnthropicReasoning({
+			model,
+			reasoningBudget: params.reasoningBudget,
+			reasoningEffort: params.reasoningEffort,
+			settings,
+		}),
+	}
+}
+
+function buildOpenAiParams(
+	params: BaseModelParams,
+	modelId: string,
+	model: ModelInfo,
+	settings: ProviderSettings,
+): OpenAiModelParams {
+	if (modelId.startsWith("o1") || modelId.startsWith("o3-mini")) {
+		params.temperature = undefined
+	}
+
+	return {
+		format: "openai",
+		...params,
+		reasoning: getOpenAiReasoning({
+			model,
+			reasoningBudget: params.reasoningBudget,
+			reasoningEffort: params.reasoningEffort,
+			settings,
+		}),
+	}
+}
+
+function buildGeminiParams(params: BaseModelParams, model: ModelInfo, settings: ProviderSettings): GeminiModelParams {
+	return {
+		format: "gemini",
+		...params,
+		reasoning: getGeminiReasoning({
+			model,
+			reasoningBudget: params.reasoningBudget,
+			reasoningEffort: params.reasoningEffort,
+			settings,
+		}),
+	}
+}
+
+function buildOpenRouterParams(
+	params: BaseModelParams,
+	modelId: string,
+	model: ModelInfo,
+	settings: ProviderSettings,
+): OpenRouterModelParams {
+	if (modelId === "openai/o1-pro") {
+		params.temperature = undefined
+	}
+
+	return {
+		format: "openrouter",
+		...params,
+		reasoning: getOpenRouterReasoning({
+			model,
+			reasoningBudget: params.reasoningBudget,
+			reasoningEffort: params.reasoningEffort,
+			settings,
+		}),
+	}
+}
+
 // Function overloads for specific return types
 export function getModelParams(options: GetModelParamsOptions<"anthropic">): AnthropicModelParams
 export function getModelParams(options: GetModelParamsOptions<"openai">): OpenAiModelParams
 export function getModelParams(options: GetModelParamsOptions<"gemini">): GeminiModelParams
 export function getModelParams(options: GetModelParamsOptions<"openrouter">): OpenRouterModelParams
+
 export function getModelParams({
 	format,
 	modelId,
@@ -79,112 +195,38 @@ export function getModelParams({
 	settings,
 	defaultTemperature,
 }: GetModelParamsOptions<Format>): ModelParams {
-	const {
-		modelMaxTokens: customMaxTokens,
-		modelMaxThinkingTokens: customMaxThinkingTokens,
-		modelTemperature: customTemperature,
-		reasoningEffort: customReasoningEffort,
-		verbosity: customVerbosity,
-	} = settings
+	const { modelTemperature: customTemperature, verbosity: customVerbosity } = settings
 
-	// Use the centralized logic for computing maxTokens
-	const maxTokens = getModelMaxOutputTokens({
-		modelId,
-		model,
-		settings,
-		format,
-	})
+	const maxTokens = getModelMaxOutputTokens({ modelId, model, settings, format })
 
-	let temperature = customTemperature ?? model.defaultTemperature ?? defaultTemperature
+	let temperature: number | undefined = customTemperature ?? model.defaultTemperature ?? defaultTemperature
 	let reasoningBudget: ModelParams["reasoningBudget"] = undefined
 	let reasoningEffort: ModelParams["reasoningEffort"] = undefined
-	let verbosity: VerbosityLevel | undefined = customVerbosity
 
 	if (shouldUseReasoningBudget({ model, settings })) {
-		// Check if this is a Gemini 2.5 Pro model
-		const isGemini25Pro = modelId.includes("gemini-2.5-pro")
-
-		// If `customMaxThinkingTokens` is not specified use the default.
-		// For Gemini 2.5 Pro, default to 128 instead of 8192
-		const defaultThinkingTokens = isGemini25Pro
-			? GEMINI_25_PRO_MIN_THINKING_TOKENS
-			: DEFAULT_HYBRID_REASONING_MODEL_THINKING_TOKENS
-		reasoningBudget = customMaxThinkingTokens ?? defaultThinkingTokens
-
-		// Reasoning cannot exceed 80% of the `maxTokens` value.
-		// maxTokens should always be defined for reasoning budget models, but add a guard just in case
-		if (maxTokens && reasoningBudget > Math.floor(maxTokens * 0.8)) {
-			reasoningBudget = Math.floor(maxTokens * 0.8)
-		}
-
-		// Reasoning cannot be less than minimum tokens.
-		// For Gemini 2.5 Pro models, the minimum is 128 tokens
-		// For other models, the minimum is 1024 tokens
-		const minThinkingTokens = isGemini25Pro ? GEMINI_25_PRO_MIN_THINKING_TOKENS : 1024
-		if (reasoningBudget < minThinkingTokens) {
-			reasoningBudget = minThinkingTokens
-		}
-
-		// Let's assume that "Hybrid" reasoning models require a temperature of
-		// 1.0 since Anthropic does.
-		temperature = 1.0
+		const budgetResult = resolveReasoningBudget(model, settings, maxTokens, modelId)
+		reasoningBudget = budgetResult.reasoningBudget
+		temperature = budgetResult.temperature
 	} else if (shouldUseReasoningEffort({ model, settings })) {
-		// "Traditional" reasoning models use the `reasoningEffort` parameter.
-		// Only fallback to model default if user hasn't explicitly set a value.
-		// If customReasoningEffort is "disable", don't fallback to model default.
-		const effort =
-			customReasoningEffort !== undefined
-				? customReasoningEffort
-				: (model.reasoningEffort as ReasoningEffortExtended | "disable" | undefined)
-		// Capability and settings checks are handled by shouldUseReasoningEffort.
-		// Here we simply propagate the resolved effort into the params, while
-		// still treating "disable" as an omission.
-		if (effort && effort !== "disable") {
-			reasoningEffort = effort as ReasoningEffortExtended
-		}
+		reasoningEffort = resolveReasoningEffort(settings, model)
 	}
 
-	const params: BaseModelParams = { maxTokens, temperature, reasoningEffort, reasoningBudget, verbosity }
+	const params: BaseModelParams = {
+		maxTokens,
+		temperature,
+		reasoningEffort,
+		reasoningBudget,
+		verbosity: customVerbosity,
+	}
 
-	if (format === "anthropic") {
-		return {
-			format,
-			...params,
-			reasoning: getAnthropicReasoning({ model, reasoningBudget, reasoningEffort, settings }),
-		}
-	} else if (format === "openai") {
-		// Special case for o1 and o3-mini, which don't support temperature.
-		// TODO: Add a `supportsTemperature` field to the model info.
-		if (modelId.startsWith("o1") || modelId.startsWith("o3-mini")) {
-			params.temperature = undefined
-		}
-
-		return {
-			format,
-			...params,
-			reasoning: getOpenAiReasoning({ model, reasoningBudget, reasoningEffort, settings }),
-			// Whether tools are included is determined by whether the caller provided tool definitions.
-		}
-	} else if (format === "gemini") {
-		return {
-			format,
-			...params,
-			reasoning: getGeminiReasoning({ model, reasoningBudget, reasoningEffort, settings }),
-		}
-	} else {
-		// Special case for o1-pro, which doesn't support temperature.
-		// Note that OpenRouter's `supported_parameters` field includes
-		// `temperature`, which is probably a bug.
-		// TODO: Add a `supportsTemperature` field to the model info and populate
-		// it appropriately in the OpenRouter fetcher.
-		if (modelId === "openai/o1-pro") {
-			params.temperature = undefined
-		}
-
-		return {
-			format,
-			...params,
-			reasoning: getOpenRouterReasoning({ model, reasoningBudget, reasoningEffort, settings }),
-		}
+	switch (format) {
+		case "anthropic":
+			return buildAnthropicParams(params, model, settings)
+		case "openai":
+			return buildOpenAiParams(params, modelId, model, settings)
+		case "gemini":
+			return buildGeminiParams(params, model, settings)
+		default:
+			return buildOpenRouterParams(params, modelId, model, settings)
 	}
 }

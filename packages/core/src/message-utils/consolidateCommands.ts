@@ -30,131 +30,144 @@ export function consolidateCommands(messages: Notification[]): Notification[] {
 	const consolidatedMessages = new Map<number, Notification>()
 	const processedIndices = new Set<number>()
 
-	// Single pass through all messages
 	for (let i = 0; i < messages.length; i++) {
 		const msg = messages[i]
 		if (!msg) continue
 
-		// Handle MCP server requests
 		if (msg.type === "ask" && msg.ask === "use_mcp_server") {
-			// Look ahead for MCP responses
-			const responses: string[] = []
-			let j = i + 1
-
-			while (j < messages.length) {
-				const nextMsg = messages[j]
-				if (!nextMsg) {
-					j++
-					continue
-				}
-				if (nextMsg.say === "mcp_server_response") {
-					responses.push(nextMsg.text || "")
-					processedIndices.add(j)
-					j++
-				} else if (nextMsg.type === "ask" && nextMsg.ask === "use_mcp_server") {
-					// Stop if we encounter another MCP request
-					break
-				} else {
-					j++
-				}
-			}
-
-			if (responses.length > 0) {
-				// Parse the JSON from the message text
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				const jsonObj = safeJsonParse<any>(msg.text || "{}", {})
-
-				// Add the response to the JSON object
-				jsonObj.response = responses.join("\n")
-
-				// Stringify the updated JSON object
-				const consolidatedText = JSON.stringify(jsonObj)
-
-				consolidatedMessages.set(msg.ts, { ...msg, text: consolidatedText })
-			} else {
-				// If there's no response, just keep the original message
-				consolidatedMessages.set(msg.ts, { ...msg })
-			}
-		}
-		// Handle command sequences
-		else if (msg.type === "ask" && msg.ask === "command") {
-			let consolidatedText = msg.text || ""
-			let j = i + 1
-			let previous: { type: "ask" | "say"; text: string } | undefined
-			let lastProcessedIndex = i
-
-			while (j < messages.length) {
-				const currentMsg = messages[j]
-				if (!currentMsg) {
-					j++
-					continue
-				}
-				const { type, ask, say, text = "" } = currentMsg
-
-				if (type === "ask" && ask === "command") {
-					break // Stop if we encounter the next command.
-				}
-
-				if (ask === "command_output" || say === "command_output") {
-					if (!previous) {
-						consolidatedText += `\n${COMMAND_OUTPUT_STRING}`
-					}
-
-					const isDuplicate = previous && previous.type !== type && previous.text === text
-
-					if (text.length > 0 && !isDuplicate) {
-						// Add a newline before adding the text if there's already content
-						if (
-							previous &&
-							consolidatedText.length >
-								consolidatedText.indexOf(COMMAND_OUTPUT_STRING) + COMMAND_OUTPUT_STRING.length
-						) {
-							consolidatedText += "\n"
-						}
-						consolidatedText += text
-					}
-
-					previous = { type, text }
-					processedIndices.add(j)
-					lastProcessedIndex = j
-				}
-
-				j++
-			}
-
-			consolidatedMessages.set(msg.ts, { ...msg, text: consolidatedText })
-
-			// Only skip ahead if we actually processed command outputs
-			if (lastProcessedIndex > i) {
-				i = lastProcessedIndex
-			}
+			i = handleMcpServerRequest(messages, i, msg, consolidatedMessages, processedIndices)
+		} else if (msg.type === "ask" && msg.ask === "command") {
+			i = handleCommandSequence(messages, i, msg, consolidatedMessages, processedIndices)
 		}
 	}
 
-	// Build final result: filter out processed messages and use consolidated versions
+	return buildConsolidatedResult(messages, processedIndices, consolidatedMessages)
+}
+
+function handleMcpServerRequest(
+	messages: Notification[],
+	startIndex: number,
+	msg: Notification,
+	consolidatedMessages: Map<number, Notification>,
+	processedIndices: Set<number>,
+): number {
+	const responses: string[] = []
+	let j = startIndex + 1
+
+	while (j < messages.length) {
+		const nextMsg = messages[j]
+		if (!nextMsg) {
+			j++
+			continue
+		}
+		if (nextMsg.say === "mcp_server_response") {
+			responses.push(nextMsg.text || "")
+			processedIndices.add(j)
+			j++
+		} else if (nextMsg.type === "ask" && nextMsg.ask === "use_mcp_server") {
+			break
+		} else {
+			j++
+		}
+	}
+
+	if (responses.length > 0) {
+		const jsonObj = safeJsonParse<Record<string, unknown>>(msg.text || "{}", {})
+		if (jsonObj) {
+			jsonObj.response = responses.join("\n")
+			consolidatedMessages.set(msg.ts, { ...msg, text: JSON.stringify(jsonObj) })
+		}
+	} else {
+		consolidatedMessages.set(msg.ts, { ...msg })
+	}
+
+	return startIndex
+}
+
+function handleCommandSequence(
+	messages: Notification[],
+	startIndex: number,
+	msg: Notification,
+	consolidatedMessages: Map<number, Notification>,
+	processedIndices: Set<number>,
+): number {
+	let consolidatedText = msg.text || ""
+	let j = startIndex + 1
+	let previous: { type: "ask" | "say"; text: string } | undefined
+	let lastProcessedIndex = startIndex
+
+	while (j < messages.length) {
+		const currentMsg = messages[j]
+		if (!currentMsg) {
+			j++
+			continue
+		}
+		const { type, ask, say, text = "" } = currentMsg
+
+		if (type === "ask" && ask === "command") {
+			break
+		}
+
+		if (ask === "command_output" || say === "command_output") {
+			const output = processCommandOutput(text, type, previous, consolidatedText)
+			consolidatedText += output.delta
+			previous = output.previous
+			processedIndices.add(j)
+			lastProcessedIndex = j
+		}
+
+		j++
+	}
+
+	consolidatedMessages.set(msg.ts, { ...msg, text: consolidatedText })
+
+	return lastProcessedIndex > startIndex ? lastProcessedIndex : startIndex
+}
+
+function processCommandOutput(
+	text: string,
+	type: "ask" | "say",
+	previous: { type: "ask" | "say"; text: string } | undefined,
+	accumulatedText: string,
+): { delta: string; previous: { type: "ask" | "say"; text: string } } {
+	let delta = ""
+	if (!previous) {
+		delta += `\n${COMMAND_OUTPUT_STRING}`
+	}
+
+	const isDuplicate = previous && previous.type !== type && previous.text === text
+
+	if (text.length > 0 && !isDuplicate) {
+		if (
+			previous &&
+			accumulatedText.length > accumulatedText.indexOf(COMMAND_OUTPUT_STRING) + COMMAND_OUTPUT_STRING.length
+		) {
+			delta += "\n"
+		}
+		delta += text
+	}
+
+	return { delta, previous: { type, text } }
+}
+
+function buildConsolidatedResult(
+	messages: Notification[],
+	processedIndices: Set<number>,
+	consolidatedMessages: Map<number, Notification>,
+): Notification[] {
 	const result: Notification[] = []
 	for (let i = 0; i < messages.length; i++) {
 		const msg = messages[i]
 		if (!msg) continue
 
-		// Skip messages that were processed as outputs/responses
-		if (processedIndices.has(i)) {
-			continue
-		}
+		if (processedIndices.has(i)) continue
 
-		// Skip command_output and mcp_server_response messages
 		if (msg.ask === "command_output" || msg.say === "command_output" || msg.say === "mcp_server_response") {
 			continue
 		}
 
-		// Use consolidated version if available
 		const consolidatedMsg = consolidatedMessages.get(msg.ts)
-		if (consolidatedMsg) {
-			result.push(consolidatedMsg)
-		} else {
-			result.push(msg)
-		}
+		result.push(consolidatedMsg ?? msg)
 	}
-
 	return result
 }

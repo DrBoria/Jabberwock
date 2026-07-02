@@ -1,4 +1,4 @@
-import { extensions as allExtensions } from "../../tree-sitter"
+import { extensions as allExtensions } from "@services/tree-sitter"
 
 // Include all extensions including markdown for the scanner
 export const scannerExtensions = allExtensions
@@ -23,12 +23,3 @@ export const fallbackExtensions = [
 	".scala", // Scala - uses fallback chunking instead of Lua query workaround
 	".swift", // Swift - uses fallback chunking due to parser instability
 ]
-
-/**
- * Check if a file extension should use fallback chunking
- * @param extension File extension (including the dot)
- * @returns true if the extension should use fallback chunking
- */
-export function shouldUseFallbackChunking(extension: string): boolean {
-	return fallbackExtensions.includes(extension.toLowerCase())
-}

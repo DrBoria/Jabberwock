@@ -1,5 +1,5 @@
-import type { ITaskModel } from "../../../../task/store"
-import { resolveImageMentions } from "../../actions/resolveImageMentions"
+import type { ITaskModel } from "@features/chat/task/store"
+import { resolveImageMentions } from "@features/chat/task/messages/actions/mentions/resolveImageMentions"
 
 /**
  * Resolves image file mentions in incoming messages.

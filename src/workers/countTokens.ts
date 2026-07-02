@@ -2,7 +2,7 @@ import workerpool from "workerpool"
 
 import { Anthropic } from "@anthropic-ai/sdk"
 
-import { tiktoken } from "../utils/tiktoken"
+import { tiktoken } from "@utils/token"
 
 import { type CountTokensResult } from "./types"
 

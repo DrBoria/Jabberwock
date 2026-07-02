@@ -50,20 +50,15 @@ export function ensureDirectoryExists(dirPath: string): void {
  * Initialize workspace directories
  */
 export function initializeWorkspace(workspacePath: string): void {
-	const dirs = [getGlobalStorageDir(), getWorkspaceStorageDir(workspacePath), getLogsDir()]
+	const globalStorageDir = path.join(getBaseStorageDir(), "global-storage")
+	const logsDir = path.join(getBaseStorageDir(), "logs")
+	const dirs = [globalStorageDir, getWorkspaceStorageDir(workspacePath), logsDir]
 
 	for (const dir of dirs) {
 		if (!fs.existsSync(dir)) {
 			fs.mkdirSync(dir, { recursive: true })
 		}
 	}
-}
-
-/**
- * Get global storage directory
- */
-export function getGlobalStorageDir(): string {
-	return path.join(getBaseStorageDir(), "global-storage")
 }
 
 /**
@@ -74,16 +69,9 @@ export function getWorkspaceStorageDir(workspacePath: string): string {
 	return path.join(getBaseStorageDir(), "workspace-storage", hash)
 }
 
-/**
- * Get logs directory
- */
-export function getLogsDir(): string {
-	return path.join(getBaseStorageDir(), "logs")
-}
-
 export const VSCodeMockPaths = {
 	initializeWorkspace,
-	getGlobalStorageDir,
 	getWorkspaceStorageDir,
-	getLogsDir,
+	getGlobalStorageDir: (): string => path.join(getBaseStorageDir(), "global-storage"),
+	getLogsDir: (): string => path.join(getBaseStorageDir(), "logs"),
 }

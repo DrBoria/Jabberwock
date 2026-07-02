@@ -90,136 +90,59 @@ export async function loadRequiredLanguageParsers(filesToParse: string[], source
 	const extensionsToLoad = new Set(filesToParse.map((file) => path.extname(file).toLowerCase().slice(1)))
 	const parsers: LanguageParser = {}
 
-	for (const ext of extensionsToLoad) {
-		let language: LanguageT
-		let query: QueryT
-		let parserKey = ext // Default to using extension as key
+	type ExtensionConfig = {
+		languageName: string
+		query: string
+		parserKey?: string
+	}
 
-		switch (ext) {
-			case "js":
-			case "jsx":
-			case "json":
-				language = await loadLanguage("javascript", sourceDirectory)
-				query = new QueryT(language, javascriptQuery)
-				break
-			case "ts":
-				language = await loadLanguage("typescript", sourceDirectory)
-				query = new QueryT(language, typescriptQuery)
-				break
-			case "tsx":
-				language = await loadLanguage("tsx", sourceDirectory)
-				query = new QueryT(language, tsxQuery)
-				break
-			case "py":
-				language = await loadLanguage("python", sourceDirectory)
-				query = new QueryT(language, pythonQuery)
-				break
-			case "rs":
-				language = await loadLanguage("rust", sourceDirectory)
-				query = new QueryT(language, rustQuery)
-				break
-			case "go":
-				language = await loadLanguage("go", sourceDirectory)
-				query = new QueryT(language, goQuery)
-				break
-			case "cpp":
-			case "hpp":
-				language = await loadLanguage("cpp", sourceDirectory)
-				query = new QueryT(language, cppQuery)
-				break
-			case "c":
-			case "h":
-				language = await loadLanguage("c", sourceDirectory)
-				query = new QueryT(language, cQuery)
-				break
-			case "cs":
-				language = await loadLanguage("c_sharp", sourceDirectory)
-				query = new QueryT(language, csharpQuery)
-				break
-			case "rb":
-				language = await loadLanguage("ruby", sourceDirectory)
-				query = new QueryT(language, rubyQuery)
-				break
-			case "java":
-				language = await loadLanguage("java", sourceDirectory)
-				query = new QueryT(language, javaQuery)
-				break
-			case "php":
-				language = await loadLanguage("php", sourceDirectory)
-				query = new QueryT(language, phpQuery)
-				break
-			case "swift":
-				language = await loadLanguage("swift", sourceDirectory)
-				query = new QueryT(language, swiftQuery)
-				break
-			case "kt":
-			case "kts":
-				language = await loadLanguage("kotlin", sourceDirectory)
-				query = new QueryT(language, kotlinQuery)
-				break
-			case "css":
-				language = await loadLanguage("css", sourceDirectory)
-				query = new QueryT(language, cssQuery)
-				break
-			case "html":
-				language = await loadLanguage("html", sourceDirectory)
-				query = new QueryT(language, htmlQuery)
-				break
-			case "ml":
-			case "mli":
-				language = await loadLanguage("ocaml", sourceDirectory)
-				query = new QueryT(language, ocamlQuery)
-				break
-			case "scala":
-				language = await loadLanguage("scala", sourceDirectory)
-				query = new QueryT(language, luaQuery) // Temporarily use Lua query until Scala is implemented
-				break
-			case "sol":
-				language = await loadLanguage("solidity", sourceDirectory)
-				query = new QueryT(language, solidityQuery)
-				break
-			case "toml":
-				language = await loadLanguage("toml", sourceDirectory)
-				query = new QueryT(language, tomlQuery)
-				break
-			case "vue":
-				language = await loadLanguage("vue", sourceDirectory)
-				query = new QueryT(language, vueQuery)
-				break
-			case "lua":
-				language = await loadLanguage("lua", sourceDirectory)
-				query = new QueryT(language, luaQuery)
-				break
-			case "rdl":
-				language = await loadLanguage("systemrdl", sourceDirectory)
-				query = new QueryT(language, systemrdlQuery)
-				break
-			case "tla":
-				language = await loadLanguage("tlaplus", sourceDirectory)
-				query = new QueryT(language, tlaPlusQuery)
-				break
-			case "zig":
-				language = await loadLanguage("zig", sourceDirectory)
-				query = new QueryT(language, zigQuery)
-				break
-			case "ejs":
-			case "erb":
-				parserKey = "embedded_template" // Use same key for both extensions.
-				language = await loadLanguage("embedded_template", sourceDirectory)
-				query = new QueryT(language, embeddedTemplateQuery)
-				break
-			case "el":
-				language = await loadLanguage("elisp", sourceDirectory)
-				query = new QueryT(language, elispQuery)
-				break
-			case "ex":
-			case "exs":
-				language = await loadLanguage("elixir", sourceDirectory)
-				query = new QueryT(language, elixirQuery)
-				break
-			default:
-				throw new Error(`Unsupported language: ${ext}`)
+	const EXTENSION_MAP: Record<string, ExtensionConfig> = {
+		js: { languageName: "javascript", query: javascriptQuery },
+		jsx: { languageName: "javascript", query: javascriptQuery },
+		ts: { languageName: "typescript", query: typescriptQuery },
+		tsx: { languageName: "tsx", query: tsxQuery },
+		py: { languageName: "python", query: pythonQuery },
+		rs: { languageName: "rust", query: rustQuery },
+		go: { languageName: "go", query: goQuery },
+		cpp: { languageName: "cpp", query: cppQuery },
+		hpp: { languageName: "cpp", query: cppQuery },
+		c: { languageName: "c", query: cQuery },
+		h: { languageName: "c", query: cQuery },
+		cs: { languageName: "c_sharp", query: csharpQuery },
+		rb: { languageName: "ruby", query: rubyQuery },
+		java: { languageName: "java", query: javaQuery },
+		php: { languageName: "php", query: phpQuery },
+		swift: { languageName: "swift", query: swiftQuery },
+		kt: { languageName: "kotlin", query: kotlinQuery },
+		kts: { languageName: "kotlin", query: kotlinQuery },
+		css: { languageName: "css", query: cssQuery },
+		html: { languageName: "html", query: htmlQuery },
+		ml: { languageName: "ocaml", query: ocamlQuery },
+		mli: { languageName: "ocaml", query: ocamlQuery },
+		scala: { languageName: "scala", query: luaQuery },
+		sol: { languageName: "solidity", query: solidityQuery },
+		toml: { languageName: "toml", query: tomlQuery },
+		vue: { languageName: "vue", query: vueQuery },
+		lua: { languageName: "lua", query: luaQuery },
+		rdl: { languageName: "systemrdl", query: systemrdlQuery },
+		tla: { languageName: "tlaplus", query: tlaPlusQuery },
+		zig: { languageName: "zig", query: zigQuery },
+		ejs: { languageName: "embedded_template", query: embeddedTemplateQuery, parserKey: "embedded_template" },
+		erb: { languageName: "embedded_template", query: embeddedTemplateQuery, parserKey: "embedded_template" },
+		el: { languageName: "elisp", query: elispQuery },
+		ex: { languageName: "elixir", query: elixirQuery },
+		exs: { languageName: "elixir", query: elixirQuery },
+	}
+
+	for (const ext of extensionsToLoad) {
+		const config = EXTENSION_MAP[ext]
+		if (!config) {
+			throw new Error(`Unsupported language: ${ext}`)
 		}
+
+		const language = await loadLanguage(config.languageName, sourceDirectory)
+		const query = new QueryT(language, config.query)
+		const parserKey = config.parserKey ?? ext
 
 		const parser = new ParserT()
 		parser.setLanguage(language)

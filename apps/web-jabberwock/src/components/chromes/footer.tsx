@@ -6,35 +6,83 @@ import Image from "next/image"
 import { ChevronDown } from "lucide-react"
 import { useTheme } from "next-themes"
 
-import { EXTERNAL_LINKS, INTERNAL_LINKS } from "@/lib/constants"
 import { useLogoSrc } from "@/lib/hooks/use-logo-src"
 import { ScrollButton } from "@/components/ui"
+import { PRODUCT_LINKS, RESOURCES_LINKS, COMPANY_LINKS, CONNECT_LINKS, type FooterLink } from "./footer-link-data"
+
+function FooterLinkItem({ link, onClick }: { link: FooterLink & { external?: boolean }; onClick?: () => void }) {
+	if (link.external || link.href?.startsWith("mailto:")) {
+		return (
+			<a
+				href={link.href}
+				target="_blank"
+				rel="noopener noreferrer"
+				onClick={onClick}
+				className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
+				{link.label}
+			</a>
+		)
+	}
+	if (link.scrollTarget) {
+		return (
+			<ScrollButton
+				targetId={link.scrollTarget}
+				className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
+				{link.label}
+			</ScrollButton>
+		)
+	}
+	return (
+		<Link
+			href={link.href ?? "#"}
+			onClick={onClick}
+			className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
+			{link.label}
+		</Link>
+	)
+}
+
+function FooterDropdown({ label, items }: { label: string; items: FooterLink[] }) {
+	const [isOpen, setIsOpen] = useState(false)
+	const ref = useRef<HTMLDivElement>(null)
+
+	useEffect(() => {
+		function handleClickOutside(event: MouseEvent) {
+			if (ref.current && !ref.current.contains(event.target as Node)) {
+				setIsOpen(false)
+			}
+		}
+		document.addEventListener("mousedown", handleClickOutside)
+		return () => document.removeEventListener("mousedown", handleClickOutside)
+	}, [])
+
+	return (
+		<div className="relative z-10" ref={ref}>
+			<button
+				onClick={() => setIsOpen(!isOpen)}
+				className="flex items-center text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground"
+				aria-expanded={isOpen}
+				aria-haspopup="true">
+				<span>{label}</span>
+				<ChevronDown className={`ml-1 h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+			</button>
+			{isOpen && (
+				<div className="absolute z-50 mt-2 w-44 origin-top-left scale-95 rounded-md border border-border bg-background shadow-lg ring-1 ring-black ring-opacity-5 transition-all duration-100 ease-out data-[state=open]:scale-100 max-xs:right-0 max-xs:origin-top-right xs:left-0">
+					<div className="flex flex-col gap-1 p-2 text-sm text-muted-foreground">
+						{items.map((item) => (
+							<FooterLinkItem key={item.label} link={item} onClick={() => setIsOpen(false)} />
+						))}
+					</div>
+				</div>
+			)}
+		</div>
+	)
+}
 
 export function Footer() {
-	const [privacyDropdownOpen, setPrivacyDropdownOpen] = useState(false)
-	const [cloudDropdownOpen, setCloudDropdownOpen] = useState(false)
-	const dropdownRef = useRef<HTMLDivElement>(null)
-	const cloudDropdownRef = useRef<HTMLDivElement>(null)
 	const logoSrc = useLogoSrc()
 	const { resolvedTheme } = useTheme()
 
-	// Close dropdown when clicking outside
-	useEffect(() => {
-		function handleClickOutside(event: MouseEvent) {
-			const target = event.target as Node
-			if (dropdownRef.current && !dropdownRef.current.contains(target)) {
-				setPrivacyDropdownOpen(false)
-			}
-			if (cloudDropdownRef.current && !cloudDropdownRef.current.contains(target)) {
-				setCloudDropdownOpen(false)
-			}
-		}
-
-		document.addEventListener("mousedown", handleClickOutside)
-		return () => {
-			document.removeEventListener("mousedown", handleClickOutside)
-		}
-	}, [])
 	return (
 		<footer className="border-t border-border bg-background">
 			<div className="mx-auto max-w-7xl px-6 pb-6 pt-12 md:pb-8 md:pt-16 lg:px-8">
@@ -46,8 +94,6 @@ export function Footer() {
 						<p className="max-w-md text-sm leading-6 text-muted-foreground md:pr-16 lg:pr-32">
 							Empowering developers to build better software faster with AI-powered tools and insights.
 						</p>
-
-						{/* Made with Jabberwock */}
 						<a
 							href="https://jabberwock.com"
 							target="_blank"
@@ -72,161 +118,28 @@ export function Footer() {
 							<div>
 								<h3 className="text-sm font-semibold uppercase leading-6 text-foreground">Product</h3>
 								<ul className="mt-6 space-y-4">
-									<li>
-										<ScrollButton
-											targetId="product"
-											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
-											Features
-										</ScrollButton>
-									</li>
-									<li>
-										<div className="relative z-10" ref={cloudDropdownRef}>
-											<button
-												onClick={() => setCloudDropdownOpen(!cloudDropdownOpen)}
-												className="flex items-center text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground"
-												aria-expanded={cloudDropdownOpen}
-												aria-haspopup="true">
-												<span>Cloud Agents</span>
-												<ChevronDown
-													className={`ml-1 h-4 w-4 transition-transform ${cloudDropdownOpen ? "rotate-180" : ""}`}
-												/>
-											</button>
-
-											{cloudDropdownOpen && (
-												<div className="absolute z-50 mt-2 w-44 origin-top-left scale-95 rounded-md border border-border bg-background shadow-lg ring-1 ring-black ring-opacity-5 transition-all duration-100 ease-out data-[state=open]:scale-100 max-xs:right-0 max-xs:origin-top-right xs:left-0">
-													<div className="flex flex-col gap-1 p-2 text-sm text-muted-foreground">
-														<Link
-															href="/cloud"
-															onClick={() => setCloudDropdownOpen(false)}
-															className="rounded-md px-3 py-2 transition-colors hover:bg-accent/50 hover:text-foreground">
-															Cloud
-														</Link>
-														<Link
-															href="/reviewer"
-															onClick={() => setCloudDropdownOpen(false)}
-															className="rounded-md px-3 py-2 transition-colors hover:bg-accent/50 hover:text-foreground">
-															PR Reviewer
-														</Link>
-														<Link
-															href="/pr-fixer"
-															onClick={() => setCloudDropdownOpen(false)}
-															className="rounded-md px-3 py-2 transition-colors hover:bg-accent/50 hover:text-foreground">
-															PR Fixer
-														</Link>
-													</div>
-												</div>
-											)}
-										</div>
-									</li>
-									<li>
-										<a
-											href={EXTERNAL_LINKS.DOCUMENTATION}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
-											Docs
-										</a>
-									</li>
-									<li>
-										<a
-											href={EXTERNAL_LINKS.CHANGELOG}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
-											Changelog
-										</a>
-									</li>
-									<li>
-										<a
-											href={EXTERNAL_LINKS.TESTIMONIALS}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
-											Testimonials
-										</a>
-									</li>
-									<li>
-										<Link
-											href="/enterprise"
-											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
-											Enterprise
-										</Link>
-									</li>
-									<li>
-										<a
-											href={EXTERNAL_LINKS.SECURITY}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
-											Security Center
-										</a>
-									</li>
+									{PRODUCT_LINKS.map((item) => {
+										const key = "key" in item ? item.key : item.label
+										return (
+											<li key={key}>
+												{"type" in item && item.type === "dropdown" ? (
+													<FooterDropdown label={item.label} items={item.items} />
+												) : (
+													<FooterLinkItem link={item} />
+												)}
+											</li>
+										)
+									})}
 								</ul>
 							</div>
 							<div className="mt-10 md:mt-0">
 								<h3 className="text-sm font-semibold uppercase leading-6 text-foreground">Resources</h3>
 								<ul className="mt-6 space-y-4">
-									<li>
-										<Link
-											href="/blog"
-											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
-											Blog
-										</Link>
-									</li>
-									<li>
-										<a
-											href={EXTERNAL_LINKS.EVALS}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
-											Evals
-										</a>
-									</li>
-									<li>
-										<a
-											href={EXTERNAL_LINKS.FAQ}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
-											FAQ
-										</a>
-									</li>
-									<li>
-										<a
-											href={EXTERNAL_LINKS.TUTORIALS}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
-											Tutorials
-										</a>
-									</li>
-									<li>
-										<a
-											href={EXTERNAL_LINKS.ISSUES}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
-											Issues
-										</a>
-									</li>
-									<li>
-										<a
-											href={EXTERNAL_LINKS.FEATURE_REQUESTS}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
-											Feature Requests
-										</a>
-									</li>
-									<li>
-										<a
-											href={EXTERNAL_LINKS.OFFICE_HOURS_PODCAST}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
-											Office Hours Podcast
-										</a>
-									</li>
+									{RESOURCES_LINKS.map((link) => (
+										<li key={link.label}>
+											<FooterLinkItem link={link} />
+										</li>
+									))}
 								</ul>
 							</div>
 						</div>
@@ -234,157 +147,28 @@ export function Footer() {
 							<div>
 								<h3 className="text-sm font-semibold uppercase leading-6 text-foreground">Company</h3>
 								<ul className="mt-6 space-y-4">
-									<li>
-										<a
-											href="mailto:support@jabberwock.com"
-											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
-											Contact
-										</a>
-									</li>
-									<li>
-										<a
-											href={EXTERNAL_LINKS.CAREERS}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
-											Careers
-										</a>
-									</li>
-									<li>
-										<Link
-											href="/terms"
-											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
-											Terms of Service
-										</Link>
-									</li>
-									<li>
-										<div className="relative z-10" ref={dropdownRef}>
-											<button
-												onClick={() => setPrivacyDropdownOpen(!privacyDropdownOpen)}
-												className="flex items-center text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground"
-												aria-expanded={privacyDropdownOpen}
-												aria-haspopup="true">
-												<span>
-													Privacy <span className="max-[320px]:hidden">Policy</span>
-												</span>
-												<ChevronDown
-													className={`ml-1 h-4 w-4 transition-transform ${privacyDropdownOpen ? "rotate-180" : ""}`}
-												/>
-											</button>
-
-											{privacyDropdownOpen && (
-												<div className="absolute z-50 mt-2 w-44 origin-top-left scale-95 rounded-md border border-border bg-background shadow-lg ring-1 ring-black ring-opacity-5 transition-all duration-100 ease-out data-[state=open]:scale-100 max-xs:right-0 max-xs:origin-top-right xs:left-0">
-													<div className="flex flex-col gap-1 p-2 text-sm text-muted-foreground">
-														<a
-															href={EXTERNAL_LINKS.PRIVACY_POLICY_EXTENSION}
-															target="_blank"
-															rel="noopener noreferrer"
-															onClick={() => setPrivacyDropdownOpen(false)}
-															className="rounded-md px-3 py-2 transition-colors hover:bg-accent/50 hover:text-foreground">
-															Extension
-														</a>
-														<Link
-															href={INTERNAL_LINKS.PRIVACY_POLICY_WEBSITE}
-															onClick={() => setPrivacyDropdownOpen(false)}
-															className="rounded-md px-3 py-2 transition-colors hover:bg-accent/50 hover:text-foreground">
-															Jabberwock Cloud
-														</Link>
-													</div>
-												</div>
-											)}
-										</div>
-									</li>
-									<li>
-										<Link
-											href="/legal/cookies"
-											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
-											Cookie Policy
-										</Link>
-									</li>
-									<li>
-										<Link
-											href="/legal/subprocessors"
-											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
-											Subprocessors
-										</Link>
-									</li>
+									{COMPANY_LINKS.map((item) => {
+										const key = "key" in item ? item.key : item.label
+										return (
+											<li key={key}>
+												{"type" in item && item.type === "dropdown" ? (
+													<FooterDropdown label={item.label} items={item.items} />
+												) : (
+													<FooterLinkItem link={item} />
+												)}
+											</li>
+										)
+									})}
 								</ul>
 							</div>
 							<div className="mt-10 md:mt-0">
 								<h3 className="text-sm font-semibold uppercase leading-6 text-foreground">Connect</h3>
 								<ul className="mt-6 space-y-4">
-									<li>
-										<a
-											href={EXTERNAL_LINKS.GITHUB}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
-											GitHub
-										</a>
-									</li>
-									<li>
-										<a
-											href={EXTERNAL_LINKS.DISCORD}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
-											Discord
-										</a>
-									</li>
-									<li>
-										<a
-											href={EXTERNAL_LINKS.REDDIT}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
-											Reddit
-										</a>
-									</li>
-									<li>
-										<a
-											href={EXTERNAL_LINKS.X}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
-											X / Twitter
-										</a>
-									</li>
-									<li>
-										<a
-											href={EXTERNAL_LINKS.LINKEDIN}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
-											LinkedIn
-										</a>
-									</li>
-									<li>
-										<a
-											href={EXTERNAL_LINKS.BLUESKY}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
-											Bluesky
-										</a>
-									</li>
-									<li>
-										<a
-											href={EXTERNAL_LINKS.TIKTOK}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
-											TikTok
-										</a>
-									</li>
-									<li>
-										<a
-											href={EXTERNAL_LINKS.YOUTUBE}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
-											YouTube
-										</a>
-									</li>
+									{CONNECT_LINKS.map((link) => (
+										<li key={link.label}>
+											<FooterLinkItem link={link} />
+										</li>
+									))}
 								</ul>
 							</div>
 						</div>

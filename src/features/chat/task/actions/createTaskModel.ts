@@ -5,10 +5,11 @@ import * as os from "os"
 
 import type { ProviderSettings } from "@jabberwock/types"
 
-import type { ITaskModel } from "../store"
+import type { ITaskModel } from "@features/chat/task/store"
 import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
 import { getBackendRootStore } from "@features/storeSingleton"
-import { getWorkspacePath } from "../../../../utils/path"
+import { getWorkspacePath } from "@utils/io/path"
+import { createAttemptApiRequest } from "@features/api/handlers/helpers/prepare/attemptApiRequest"
 
 export interface CreateTaskModelOptions {
 	provider: ProviderHandle
@@ -24,7 +25,7 @@ export interface CreateTaskModelOptions {
 	task?: string
 	images?: string[]
 	taskId?: string
-	taskNumber?: number
+	taskNumber: number
 	workspacePath?: string
 }
 
@@ -43,7 +44,7 @@ export function createTaskModel(options: CreateTaskModelOptions): ITaskModel {
 		task: text,
 		images,
 		taskId: explicitTaskId,
-		taskNumber = -1,
+		taskNumber,
 		workspacePath: explicitWorkspacePath,
 	} = options
 
@@ -70,20 +71,25 @@ export function createTaskModel(options: CreateTaskModelOptions): ITaskModel {
 	})
 
 	// ── Set up volatile properties (migrated from Task class) ────
-	model.providerRef = new WeakRef(provider)
-	model.globalStoragePath = provider.context.globalStorageUri.fsPath
+	// Use MST action methods to respect tree protection
+	model.setGlobalStoragePath(provider.context.globalStorageUri.fsPath)
 
 	// Initialize mode from history item or default to "code"
 	const taskMode = historyItem?.mode ?? "code"
 	model.setTaskMode(taskMode)
 
 	// Initialize the taskModeReady promise so await task.taskModeReady resolves immediately
-	model.taskModeReady = Promise.resolve()
+	model.setTaskModeReady(Promise.resolve())
 
 	// Initialize mode/api-config promises based on whether we're resuming
 	if (historyItem) {
 		model.askResolve = undefined
 	}
+
+	// Wire up the attemptApiRequest volatile property (migrated from Task class)
+	console.log(`[createTaskModel] Setting attemptApiRequest on task ${model.taskId}`)
+	model.setAttemptApiRequest((retryAttempt, opts) => createAttemptApiRequest(model, retryAttempt, opts))
+	console.log(`[createTaskModel] attemptApiRequest is now: ${typeof model.attemptApiRequest}`)
 
 	return model
 }

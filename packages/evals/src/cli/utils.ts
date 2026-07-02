@@ -2,13 +2,14 @@ import * as fs from "fs"
 import * as fsp from "fs/promises"
 import * as path from "path"
 
-import { execa, type ResultPromise } from "execa"
+import type { ResultPromise } from "execa"
 
 import type { ToolUsage } from "@jabberwock/types"
 
 import type { Run, Task } from "../db/index"
 
 import { SubprocessTimeoutError } from "./types"
+import { Logger } from "./helpers/logging/logger"
 
 export const getTag = (caller: string, { run, task }: { run: Run; task?: Task }) =>
 	task
@@ -20,119 +21,6 @@ export const isDockerContainer = () => {
 		return fs.existsSync("/.dockerenv")
 	} catch (_error) {
 		return false
-	}
-}
-
-export const resetEvalsRepo = async ({ run, cwd }: { run: Run; cwd: string }) => {
-	await execa({ cwd })`git config user.name "Jabberwock"`
-	await execa({ cwd })`git config user.email "support@jabberwock.com"`
-	await execa({ cwd })`git checkout -f`
-	await execa({ cwd })`git clean -fd`
-	await execa({ cwd })`git checkout -b runs/${run.id}-${crypto.randomUUID().slice(0, 8)} main`
-}
-
-export const commitEvalsRepoChanges = async ({ run, cwd }: { run: Run; cwd: string }) => {
-	await execa({ cwd })`git add .`
-	await execa({ cwd })`git commit -m ${`Run #${run.id}`} --no-verify`
-}
-
-enum LogLevel {
-	INFO = "INFO",
-	ERROR = "ERROR",
-	WARN = "WARN",
-	DEBUG = "DEBUG",
-}
-
-interface LoggerOptions {
-	logDir: string
-	filename: string
-	tag: string
-}
-
-export class Logger {
-	private logStream: fs.WriteStream | undefined
-	private logFilePath: string
-	private tag: string
-
-	constructor({ logDir, filename, tag }: LoggerOptions) {
-		this.tag = tag
-		this.logFilePath = path.join(logDir, filename)
-		this.initializeLogger(logDir)
-	}
-
-	private initializeLogger(logDir: string): void {
-		try {
-			fs.mkdirSync(logDir, { recursive: true })
-		} catch (error) {
-			console.error(`Failed to create log directory ${logDir}:`, error)
-		}
-
-		try {
-			this.logStream = fs.createWriteStream(this.logFilePath, { flags: "a" })
-		} catch (error) {
-			console.error(`Failed to create log file ${this.logFilePath}:`, error)
-		}
-	}
-
-	private writeToLog(level: LogLevel, message: string, ...args: unknown[]) {
-		try {
-			const timestamp = new Date().toISOString()
-
-			const logLine = `[${timestamp} | ${level} | ${this.tag}] ${message} ${
-				args.length > 0 ? JSON.stringify(args) : ""
-			}\n`
-
-			console.log(logLine.trim())
-
-			if (this.logStream) {
-				this.logStream.write(logLine)
-			}
-		} catch (error) {
-			console.error(`Failed to write to log file ${this.logFilePath}:`, error)
-		}
-	}
-
-	public info(message: string, ...args: unknown[]): void {
-		this.writeToLog(LogLevel.INFO, message, ...args)
-	}
-
-	public error(message: string, ...args: unknown[]): void {
-		this.writeToLog(LogLevel.ERROR, message, ...args)
-	}
-
-	public warn(message: string, ...args: unknown[]): void {
-		this.writeToLog(LogLevel.WARN, message, ...args)
-	}
-
-	public debug(message: string, ...args: unknown[]): void {
-		this.writeToLog(LogLevel.DEBUG, message, ...args)
-	}
-
-	public log(message: string, ...args: unknown[]): void {
-		this.info(message, ...args)
-	}
-
-	/**
-	 * Write raw output without any prefix (timestamp, level, tag).
-	 * Useful for streaming CLI output where the prefix would be noise.
-	 */
-	public raw(message: string): void {
-		try {
-			console.log(message)
-
-			if (this.logStream) {
-				this.logStream.write(message + "\n")
-			}
-		} catch (error) {
-			console.error(`Failed to write to log file ${this.logFilePath}:`, error)
-		}
-	}
-
-	public close(): void {
-		if (this.logStream) {
-			this.logStream.end()
-			this.logStream = undefined
-		}
 	}
 }
 

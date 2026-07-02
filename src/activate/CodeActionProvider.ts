@@ -1,10 +1,10 @@
 import * as vscode from "vscode"
 
 import { CodeActionName, CodeActionId } from "@jabberwock/types"
-import { Package } from "../shared/package"
+import { Package } from "@shared/package"
 
-import { getCodeActionCommand } from "../utils/commands"
-import { EditorUtils } from "../integrations/editor/EditorUtils"
+import { getCodeActionCommand } from "@utils/mcp/commands"
+import { EditorUtils } from "@integrations/editor/EditorUtils"
 
 export const TITLES: Record<CodeActionName, string> = {
 	EXPLAIN: "Explain with Jabberwock",

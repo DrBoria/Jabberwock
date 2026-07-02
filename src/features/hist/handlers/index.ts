@@ -1,0 +1,1 @@
+export { registerAllHistoryHandlers } from "./register"

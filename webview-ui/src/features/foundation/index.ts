@@ -1,3 +1,5 @@
 export * from "./events"
 export * from "./window-manager"
 export * from "./mst-bridge"
+export { StandardTooltip } from "../../shared/ui/tooltips/standard-tooltip"
+export { IconButton } from "../../shared/ui/buttons/icon-button"

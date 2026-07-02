@@ -1,6 +1,6 @@
 import fs, { createReadStream } from "fs"
 import { createInterface } from "readline"
-import { countTokens } from "../../utils/countTokens"
+import { countTokens } from "@utils/token"
 import { Anthropic } from "@anthropic-ai/sdk"
 
 /**

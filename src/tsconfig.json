@@ -24,7 +24,19 @@
 		"paths": {
 			"@features/*": ["./features/*"],
 			"@utils/*": ["./utils/*"],
-			"@eventConstants": ["../packages/types/src/event-constants"],
+			"@i18n": ["./i18n"],
+			"@i18n/*": ["./i18n/*"],
+			"@shared/*": ["./shared/*"],
+			"@services/*": ["./services/*"],
+			"@api": ["./api/index.ts"],
+			"@api/*": ["./api/*"],
+			"@foundation/*": ["./foundation/*"],
+			"@activate/*": ["./activate/*"],
+			"@integrations/*": ["./integrations/*"],
+			"@workers/types": ["./workers/types.ts"],
+			"@packages/types/src/mcp": ["../packages/types/src/mcp/mcp.ts"],
+			"@eventConstants": ["../packages/types/src/events/constants.ts"],
+			"@packageJson": ["./package.json"],
 			"@intentConstants": ["./features/intents/IntentConstants"]
 		}
 	},

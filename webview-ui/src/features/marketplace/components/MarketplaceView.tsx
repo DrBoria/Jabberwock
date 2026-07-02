@@ -1,14 +1,14 @@
 import { useState, useEffect, useMemo } from "react"
-import { Button } from "@/features/foundation/ui/button"
+import { Button } from "@src/shared/ui/buttons/button"
 import { ArrowLeft } from "lucide-react"
-import { Tab, TabContent, TabHeader } from "@src/features/foundation/components/Tab"
-import { MarketplaceViewStateManager } from "./MarketplaceViewStateManager"
-import { useStateManager } from "./useStateManager"
+import { Tab, TabContent, TabHeader } from "@src/features/foundation/components/ui/layout/Tab"
+import { MarketplaceViewStateManager } from "./state/MarketplaceViewStateManager"
+import { useStateManager } from "./state/useStateManager"
 import { useAppTranslation } from "@/i18n/TranslationContext"
 import { rootStore } from "@src/features/store"
 import { MarketplaceListView } from "./MarketplaceListView"
 import { cn } from "@/lib/utils"
-import { TooltipProvider } from "@/features/foundation/ui/tooltip"
+import { TooltipProvider } from "@src/shared/ui/tooltips/tooltip"
 
 interface MarketplaceViewProps {
 	onDone?: () => void

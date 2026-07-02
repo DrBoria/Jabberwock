@@ -12,7 +12,6 @@
 		"format": "prettier --write 'src/**/*.ts'",
 		"lint": "eslint src --ext .ts --max-warnings=0",
 		"check-types": "tsc --noEmit",
-		"test": "vitest run",
 		"test:integration": "tsx scripts/integration/run.ts",
 		"build": "tsup",
 		"build:extension": "pnpm --filter jabberwock bundle",
@@ -32,10 +31,11 @@
 		"execa": "^9.5.2",
 		"fuzzysort": "^3.1.0",
 		"ink": "^6.6.0",
+		"mobx": "^6.15.0",
+		"mobx-react-lite": "^4.1.1",
 		"p-wait-for": "^5.0.2",
 		"react": "^19.1.0",
-		"superjson": "^2.2.6",
-		"zustand": "^5.0.0"
+		"superjson": "^2.2.6"
 	},
 	"devDependencies": {
 		"@jabberwock/config-eslint": "workspace:^",

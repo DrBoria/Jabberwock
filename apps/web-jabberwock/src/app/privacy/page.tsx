@@ -1,43 +1,8 @@
-import type { Metadata } from "next"
-import { SEO } from "@/lib/seo"
-import { ogImageUrl } from "@/lib/og"
+import { INFO_TABLE_ROWS, DATA_FLOW_ROWS } from "./data"
+import { privacyMetadata } from "./meta"
+import { PrivacyFooterSections } from "./sections"
 
-const TITLE = "Our Privacy Policy"
-const DESCRIPTION =
-	"Privacy policy for Jabberwock Cloud and marketing website. Learn how we handle your data and protect your privacy."
-const OG_DESCRIPTION = ""
-const PATH = "/privacy"
-
-export const metadata: Metadata = {
-	title: TITLE,
-	description: DESCRIPTION,
-	alternates: {
-		canonical: `${SEO.url}${PATH}`,
-	},
-	openGraph: {
-		title: TITLE,
-		description: DESCRIPTION,
-		url: `${SEO.url}${PATH}`,
-		siteName: SEO.name,
-		images: [
-			{
-				url: ogImageUrl(TITLE, OG_DESCRIPTION),
-				width: 1200,
-				height: 630,
-				alt: TITLE,
-			},
-		],
-		locale: SEO.locale,
-		type: "article",
-	},
-	twitter: {
-		card: SEO.twitterCard,
-		title: TITLE,
-		description: DESCRIPTION,
-		images: [ogImageUrl(TITLE, OG_DESCRIPTION)],
-	},
-	keywords: [...SEO.keywords, "privacy", "data protection", "GDPR", "security"],
-}
+export const metadata = privacyMetadata
 
 export default function Privacy() {
 	return (
@@ -50,8 +15,8 @@ export default function Privacy() {
 					<p className="text-muted-foreground">Last Updated: September 19, 2025</p>
 
 					<p className="lead">
-						This Privacy Policy explains how Jabberwock, Inc. (&quot;Jabberwock,&quot; &quot;we,&quot;
-						&quot;our,&quot; or &quot;us&quot;) collects, uses, and shares information when you:
+						This Privacy Policy explains how Jabberwock, Inc. (&ldquo;Jabberwock,&rdquo; &ldquo;we,&rdquo;
+						&ldquo;our,&rdquo; or &ldquo;us&rdquo;) collects, uses, and shares information when you:
 					</p>
 					<ul className="lead">
 						<li>
@@ -65,7 +30,7 @@ export default function Privacy() {
 					</ul>
 
 					<div className="my-8 rounded-lg border border-border bg-muted/50 p-6">
-						<h3 className="mt-0 text-lg font-semibold">Extension‑Only Usage</h3>
+						<h3 className="mt-0 text-lg font-semibold">Extension&#8208;Only Usage</h3>
 						<p className="mb-0">
 							If you run the Jabberwock extension <strong>without</strong> connecting to a Cloud account,
 							your data is governed by the standalone{" "}
@@ -89,12 +54,13 @@ export default function Privacy() {
 							</strong>{" "}
 							When Jabberwock Cloud is your model provider, your code briefly transits Jabberwock servers
 							only to forward it to the upstream model, is not stored, and is deleted immediately after
-							forwarding. Otherwise, your code is sent <strong>directly</strong>—via client‑to‑provider
-							TLS—to the model you select. Jabberwock never stores, inspects, or trains on your code.
+							forwarding. Otherwise, your code is sent <strong>directly</strong>&#8208;via
+							client&#8208;to&#8208;provider TLS&#8208;to the model you select. Jabberwock never stores,
+							inspects, or trains on your code.
 						</li>
 						<li>
 							<strong>Prompts and chat snippets are collected by default</strong> in Jabberwock Cloud so
-							you can search and re‑use past conversations. Organization admins can disable this
+							you can search and re&#8208;use past conversations. Organization admins can disable this
 							collection at any time.
 						</li>
 						<li>
@@ -104,7 +70,6 @@ export default function Privacy() {
 					</ul>
 
 					<h2 className="mt-12 text-2xl font-bold">1. Information We Collect</h2>
-
 					<div className="overflow-x-auto">
 						<table className="min-w-full border-collapse border border-border">
 							<thead>
@@ -115,56 +80,13 @@ export default function Privacy() {
 								</tr>
 							</thead>
 							<tbody>
-								<tr>
-									<td className="border border-border px-4 py-2 font-medium">Account Information</td>
-									<td className="border border-border px-4 py-2">
-										Name, email, organization, auth tokens
-									</td>
-									<td className="border border-border px-4 py-2">You</td>
-								</tr>
-								<tr className="bg-muted/25">
-									<td className="border border-border px-4 py-2 font-medium">
-										Workspace Configuration
-									</td>
-									<td className="border border-border px-4 py-2">
-										Org settings, allow‑lists, rules files, modes, dashboards
-									</td>
-									<td className="border border-border px-4 py-2">You / Extension (when signed in)</td>
-								</tr>
-								<tr>
-									<td className="border border-border px-4 py-2 font-medium">
-										Prompts, Chat Snippets & Token Counts
-									</td>
-									<td className="border border-border px-4 py-2">
-										Text prompts, model outputs, token counts
-									</td>
-									<td className="border border-border px-4 py-2">Extension (when signed in)</td>
-								</tr>
-								<tr className="bg-muted/25">
-									<td className="border border-border px-4 py-2 font-medium">Usage Data</td>
-									<td className="border border-border px-4 py-2">
-										Feature clicks, error logs, performance metrics (captured via PostHog)
-									</td>
-									<td className="border border-border px-4 py-2">Services automatically (PostHog)</td>
-								</tr>
-								<tr>
-									<td className="border border-border px-4 py-2 font-medium">Payment Data</td>
-									<td className="border border-border px-4 py-2">
-										Tokenized card details, billing address, invoices
-									</td>
-									<td className="border border-border px-4 py-2">Payment processor (Stripe)</td>
-								</tr>
-								<tr className="bg-muted/25">
-									<td className="border border-border px-4 py-2 font-medium">Marketing Data</td>
-									<td className="border border-border px-4 py-2">
-										Cookies, IP address, browser type, page views,{" "}
-										<strong>voluntary form submissions</strong> (e.g., newsletter or wait‑list
-										sign‑ups)
-									</td>
-									<td className="border border-border px-4 py-2">
-										Marketing Site automatically / You
-									</td>
-								</tr>
+								{INFO_TABLE_ROWS.map((row, i) => (
+									<tr key={i} className={i % 2 === 1 ? "bg-muted/25" : ""}>
+										<td className="border border-border px-4 py-2 font-medium">{row.category}</td>
+										<td className="border border-border px-4 py-2">{row.examples}</td>
+										<td className="border border-border px-4 py-2">{row.source}</td>
+									</tr>
+								))}
 							</tbody>
 						</table>
 					</div>
@@ -183,19 +105,18 @@ export default function Privacy() {
 							<strong>Process payments & manage subscriptions</strong>
 						</li>
 						<li>
-							<strong>Send product updates and roadmap communications</strong> (opt‑out available)
+							<strong>Send product updates and roadmap communications</strong> (opt&#8208;out available)
 						</li>
 						<li>
 							<strong>Send onboarding, educational, and promotional communications</strong>. We may use
 							your account information (such as your name and email address) to send you onboarding
 							messages, product tutorials, feature announcements, newsletters, and other marketing
-							communications. You can opt out of non‑transactional emails at any time (see “Your Choices”
-							below).
+							communications. You can opt out of non&#8208;transactional emails at any time (see
+							&ldquo;Your Choices&rdquo; below).
 						</li>
 					</ul>
 
 					<h2 className="mt-12 text-2xl font-bold">3. Where Your Data Goes (And Doesn&apos;t)</h2>
-
 					<div className="overflow-x-auto">
 						<table className="min-w-full border-collapse border border-border">
 							<thead>
@@ -208,51 +129,13 @@ export default function Privacy() {
 								</tr>
 							</thead>
 							<tbody>
-								<tr>
-									<td className="border border-border px-4 py-2 font-medium">
-										Code & files you work on
-									</td>
-									<td className="border border-border px-4 py-2">
-										Your chosen model provider (direct client → provider TLS), or Jabberwock (proxy
-										mode; transit‑only) when you select Jabberwock as the provider
-									</td>
-									<td className="border border-border px-4 py-2">
-										Jabberwock servers (except proxy mode; transit‑only, no storage); ad networks;
-										model‑training pipelines
-									</td>
-								</tr>
-								<tr className="bg-muted/25">
-									<td className="border border-border px-4 py-2 font-medium">
-										Prompts, chat snippets & token counts (Cloud)
-									</td>
-									<td className="border border-border px-4 py-2">
-										Jabberwock Cloud (encrypted at rest)
-									</td>
-									<td className="border border-border px-4 py-2">Any third‑party</td>
-								</tr>
-								<tr>
-									<td className="border border-border px-4 py-2 font-medium">
-										Workspace Configuration
-									</td>
-									<td className="border border-border px-4 py-2">
-										Jabberwock Cloud (encrypted at rest)
-									</td>
-									<td className="border border-border px-4 py-2">Any third-party</td>
-								</tr>
-								<tr className="bg-muted/25">
-									<td className="border border-border px-4 py-2 font-medium">Usage & Telemetry</td>
-									<td className="border border-border px-4 py-2">
-										PostHog (self‑hosted analytics platform)
-									</td>
-									<td className="border border-border px-4 py-2">Ad networks or data brokers</td>
-								</tr>
-								<tr>
-									<td className="border border-border px-4 py-2 font-medium">Payment Data</td>
-									<td className="border border-border px-4 py-2">Stripe (PCI‑DSS Level 1)</td>
-									<td className="border border-border px-4 py-2">
-										Jabberwock servers (we store only the Stripe customer ID)
-									</td>
-								</tr>
+								{DATA_FLOW_ROWS.map((row, i) => (
+									<tr key={i} className={i % 2 === 1 ? "bg-muted/25" : ""}>
+										<td className="border border-border px-4 py-2 font-medium">{row.data}</td>
+										<td className="border border-border px-4 py-2">{row.sentTo}</td>
+										<td className="border border-border px-4 py-2">{row.notSentTo}</td>
+									</tr>
+								))}
 							</tbody>
 						</table>
 					</div>
@@ -289,32 +172,12 @@ export default function Privacy() {
 						<li>
 							<strong>Marketing communications:</strong> You can unsubscribe from marketing and
 							promotional emails by clicking the unsubscribe link in those emails. Transactional or
-							service‑related emails (such as password resets, billing notices, or security alerts) will
-							continue even if you opt out.
+							service&#8208;related emails (such as password resets, billing notices, or security alerts)
+							will continue even if you opt out.
 						</li>
 					</ul>
 
-					<h2 className="mt-12 text-2xl font-bold">6. Security Practices</h2>
-					<p>
-						We use TLS for all data in transit, AES‑256 encryption at rest, least‑privilege IAM, continuous
-						monitoring, routine penetration testing, and maintain a SOC 2 program.
-					</p>
-
-					<h2 className="mt-12 text-2xl font-bold">7. Updates to This Policy</h2>
-					<p>
-						If our privacy practices change, we will update this policy and note the new{" "}
-						<strong>Last Updated</strong> date at the top. For material changes that affect Cloud
-						workspaces, we will also email registered workspace owners before the changes take effect.
-					</p>
-
-					<h2 className="mt-12 text-2xl font-bold">8. Contact Us</h2>
-					<p>
-						Questions or concerns? Email{" "}
-						<a href="mailto:privacy@jabberwock.com" className="text-primary hover:underline">
-							privacy@jabberwock.com
-						</a>
-						.
-					</p>
+					<PrivacyFooterSections />
 				</div>
 			</div>
 		</>

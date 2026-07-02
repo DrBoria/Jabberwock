@@ -116,6 +116,7 @@
 	"unlockApiConfigAcrossModes": "このワークスペースのすべてのモードでAPI構成がロックされています（クリックで解除）",
 	"enhancePrompt": "追加コンテキストでプロンプトを強化",
 	"addImages": "メッセージに画像を追加",
+	"addGoal": "目標として追加",
 	"sendMessage": "メッセージを送信",
 	"pressToSend": "{{keyCombination}}を押して送信",
 	"stopTts": "テキスト読み上げを停止",

@@ -1,48 +1,64 @@
 import * as path from "path"
 import * as os from "os"
 import * as vscode from "vscode"
-import { getWorkspacePath } from "../../utils/path"
-import { t } from "../../i18n"
+import { getWorkspacePath } from "@utils/io/path"
+import { t } from "@i18n"
 
-export async function openImage(dataUriOrPath: string, options?: { values?: { action?: string } }) {
-	// Check if it's a file path (absolute or relative)
-	const isFilePath =
+function isFilePath(dataUriOrPath: string): boolean {
+	return (
 		!dataUriOrPath.startsWith("data:") &&
 		!dataUriOrPath.startsWith("http:") &&
 		!dataUriOrPath.startsWith("https:") &&
 		!dataUriOrPath.startsWith("vscode-resource:") &&
 		!dataUriOrPath.startsWith("file+.vscode-resource")
+	)
+}
 
-	if (isFilePath) {
-		// Handle file path - open directly in VSCode
-		try {
-			// Resolve the path relative to workspace if needed
-			let filePath = dataUriOrPath
-			if (!path.isAbsolute(filePath)) {
-				const workspacePath = getWorkspacePath()
-				if (workspacePath) {
-					filePath = path.join(workspacePath, filePath)
-				}
-			}
-
-			const fileUri = vscode.Uri.file(filePath)
-
-			// Check if this is a copy action
-			if (options?.values?.action === "copy") {
-				await vscode.env.clipboard.writeText(filePath)
-				vscode.window.showInformationMessage(t("common:info.path_copied_to_clipboard"))
-				return
-			}
-
-			// Open the image file directly
-			await vscode.commands.executeCommand("vscode.open", fileUri)
-		} catch (error) {
-			vscode.window.showErrorMessage(t("common:errors.error_opening_image", { error }))
-		}
-		return
+function resolveImagePath(dataUriOrPath: string): string {
+	if (path.isAbsolute(dataUriOrPath)) {
+		return dataUriOrPath
 	}
+	const workspacePath = getWorkspacePath()
+	if (workspacePath) {
+		return path.join(workspacePath, dataUriOrPath)
+	}
+	return dataUriOrPath
+}
 
-	// Handle data URI (existing logic)
+async function handleFilePathImage(dataUriOrPath: string, options?: { values?: { action?: string } }): Promise<void> {
+	try {
+		const filePath = resolveImagePath(dataUriOrPath)
+		if (options?.values?.action === "copy") {
+			await vscode.env.clipboard.writeText(filePath)
+			vscode.window.showInformationMessage(t("common:info.path_copied_to_clipboard"))
+			return
+		}
+		await vscode.commands.executeCommand("vscode.open", vscode.Uri.file(filePath))
+	} catch (error) {
+		vscode.window.showErrorMessage(t("common:errors.error_opening_image", { error }))
+	}
+}
+
+async function copyDataUriToClipboard(tempFilePath: string, format: string): Promise<void> {
+	try {
+		const imageData = await vscode.workspace.fs.readFile(vscode.Uri.file(tempFilePath))
+		const base64Image = Buffer.from(imageData).toString("base64")
+		const dataUri = `data:image/${format};base64,${base64Image}`
+		await vscode.env.clipboard.writeText(dataUri)
+		vscode.window.showInformationMessage(t("common:info.image_copied_to_clipboard"))
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : String(error)
+		vscode.window.showErrorMessage(t("common:errors.error_copying_image", { errorMessage }))
+	} finally {
+		try {
+			await vscode.workspace.fs.delete(vscode.Uri.file(tempFilePath))
+		} catch {
+			// Ignore cleanup errors
+		}
+	}
+}
+
+async function handleDataUriImage(dataUriOrPath: string, options?: { values?: { action?: string } }): Promise<void> {
 	const matches = dataUriOrPath.match(/^data:image\/([a-zA-Z]+);base64,(.+)$/)
 	if (!matches) {
 		vscode.window.showErrorMessage(t("common:errors.invalid_data_uri"))
@@ -51,43 +67,25 @@ export async function openImage(dataUriOrPath: string, options?: { values?: { ac
 	const [, format, base64Data] = matches
 	const imageBuffer = Buffer.from(base64Data, "base64")
 
-	// Default behavior: open the image
 	const tempFilePath = path.join(os.tmpdir(), `temp_image_${Date.now()}.${format}`)
 	try {
 		await vscode.workspace.fs.writeFile(vscode.Uri.file(tempFilePath), imageBuffer)
-		// Check if this is a copy action
 		if (options?.values?.action === "copy") {
-			try {
-				// Read the image file
-				const imageData = await vscode.workspace.fs.readFile(vscode.Uri.file(tempFilePath))
-
-				// Convert to base64 for clipboard
-				const base64Image = Buffer.from(imageData).toString("base64")
-				const dataUri = `data:image/${format};base64,${base64Image}`
-
-				// Use vscode.env.clipboard to copy the data URI
-				// Note: VSCode doesn't support copying binary image data directly to clipboard
-				// So we copy the data URI which can be pasted in many applications
-				await vscode.env.clipboard.writeText(dataUri)
-
-				vscode.window.showInformationMessage(t("common:info.image_copied_to_clipboard"))
-			} catch (error) {
-				const errorMessage = error instanceof Error ? error.message : String(error)
-				vscode.window.showErrorMessage(t("common:errors.error_copying_image", { errorMessage }))
-			} finally {
-				// Clean up temp file
-				try {
-					await vscode.workspace.fs.delete(vscode.Uri.file(tempFilePath))
-				} catch {
-					// Ignore cleanup errors
-				}
-			}
+			await copyDataUriToClipboard(tempFilePath, format)
 			return
 		}
 		await vscode.commands.executeCommand("vscode.open", vscode.Uri.file(tempFilePath))
 	} catch (error) {
 		vscode.window.showErrorMessage(t("common:errors.error_opening_image", { error }))
 	}
+}
+
+export async function openImage(dataUriOrPath: string, options?: { values?: { action?: string } }) {
+	if (isFilePath(dataUriOrPath)) {
+		await handleFilePathImage(dataUriOrPath, options)
+		return
+	}
+	await handleDataUriImage(dataUriOrPath, options)
 }
 
 export async function saveImage(dataUri: string, defaultUri: vscode.Uri): Promise<vscode.Uri | undefined> {

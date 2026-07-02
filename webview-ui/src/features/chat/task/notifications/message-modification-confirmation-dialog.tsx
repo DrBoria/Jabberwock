@@ -9,7 +9,7 @@ import {
 	AlertDialogFooter,
 	AlertDialogHeader,
 	AlertDialogTitle,
-} from "@src/features/foundation/ui/alert-dialog"
+} from "@src/shared/ui/overlays/alert-dialog"
 
 interface MessageModificationConfirmationDialogProps {
 	open: boolean

@@ -112,42 +112,41 @@ export function seekSequence(lines: string[], pattern: string[], start: number, 
 		return start
 	}
 
-	// When the pattern is longer than available input, there's no possible match
 	if (pattern.length > lines.length) {
 		return null
 	}
 
 	const searchStart = eof && lines.length >= pattern.length ? lines.length - pattern.length : start
-
 	const maxStart = lines.length - pattern.length
 
-	// Pass 1: Exact match
-	for (let i = searchStart; i <= maxStart; i++) {
-		if (exactMatch(lines, pattern, i)) {
-			return i
+	const strategies: Array<(lines: string[], pattern: string[], i: number) => boolean> = [
+		exactMatch,
+		trimEndMatch,
+		trimMatch,
+		normalizedMatch,
+	]
+
+	for (const strategy of strategies) {
+		const result = tryMatchStrategy(lines, pattern, searchStart, maxStart, strategy)
+		if (result !== null) {
+			return result
 		}
 	}
 
-	// Pass 2: Trim-end match
+	return null
+}
+
+function tryMatchStrategy(
+	lines: string[],
+	pattern: string[],
+	searchStart: number,
+	maxStart: number,
+	matchFn: (lines: string[], pattern: string[], i: number) => boolean,
+): number | null {
 	for (let i = searchStart; i <= maxStart; i++) {
-		if (trimEndMatch(lines, pattern, i)) {
+		if (matchFn(lines, pattern, i)) {
 			return i
 		}
 	}
-
-	// Pass 3: Trim both sides match
-	for (let i = searchStart; i <= maxStart; i++) {
-		if (trimMatch(lines, pattern, i)) {
-			return i
-		}
-	}
-
-	// Pass 4: Unicode-normalized match
-	for (let i = searchStart; i <= maxStart; i++) {
-		if (normalizedMatch(lines, pattern, i)) {
-			return i
-		}
-	}
-
 	return null
 }

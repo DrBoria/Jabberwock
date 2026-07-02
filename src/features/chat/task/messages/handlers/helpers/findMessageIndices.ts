@@ -1,4 +1,4 @@
-import type { ITaskModel } from "../../../../task/store"
+import type { ITaskModel } from "@features/chat/task/store"
 
 /**
  * Shared utility to find message indices based on timestamp.

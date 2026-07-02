@@ -13,7 +13,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 	SelectSeparator,
-} from "@/features/foundation/ui/select"
+} from "@src/shared/ui/selects/select"
 
 type OrganizationSwitcherProps = {
 	userInfo: CloudUserInfo

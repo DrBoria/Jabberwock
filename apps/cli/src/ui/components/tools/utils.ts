@@ -1,4 +1,4 @@
-import type { IconName } from "../Icon.js"
+import type { IconName } from "../display/Icon.js"
 
 /**
  * Truncate text and return truncation info
@@ -29,7 +29,9 @@ export function truncateText(
  * - Strips carriage returns
  */
 export function sanitizeContent(text: string): string {
-	return text.replace(/\t/g, "    ").replace(/\r/g, "")
+	let result = text.replace(/\t/g, "    ")
+	result = result.replace(/\r/g, "")
+	return result
 }
 
 /**
@@ -180,27 +182,42 @@ export interface DiffHunk {
 	}>
 }
 
+function classifyLine(line: string): { type: "added" | "removed" | "context"; content: string } | null {
+	if (line.startsWith("@@")) {
+		return null
+	}
+	if (line.startsWith("+") && !line.startsWith("+++")) {
+		return { type: "added", content: line.substring(1) }
+	}
+	if (line.startsWith("-") && !line.startsWith("---")) {
+		return { type: "removed", content: line.substring(1) }
+	}
+	if (line.startsWith(" ") || line === "") {
+		return { type: "context", content: line.substring(1) || "" }
+	}
+	return null
+}
+
 export function parseDiff(diffContent: string): DiffHunk[] {
 	const hunks: DiffHunk[] = []
-	const lines = diffContent.split("\n")
-
 	let currentHunk: DiffHunk | null = null
 
-	for (const line of lines) {
+	for (const line of diffContent.split("\n")) {
 		if (line.startsWith("@@")) {
-			// New hunk header
 			if (currentHunk) {
 				hunks.push(currentHunk)
 			}
 			currentHunk = { header: line, lines: [] }
-		} else if (currentHunk) {
-			if (line.startsWith("+") && !line.startsWith("+++")) {
-				currentHunk.lines.push({ type: "added", content: line.substring(1) })
-			} else if (line.startsWith("-") && !line.startsWith("---")) {
-				currentHunk.lines.push({ type: "removed", content: line.substring(1) })
-			} else if (line.startsWith(" ") || line === "") {
-				currentHunk.lines.push({ type: "context", content: line.substring(1) || "" })
-			}
+			continue
+		}
+
+		if (!currentHunk) {
+			continue
+		}
+
+		const classified = classifyLine(line)
+		if (classified) {
+			currentHunk.lines.push(classified)
 		}
 	}
 

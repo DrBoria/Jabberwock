@@ -4,7 +4,8 @@ import type { McpTool } from "@jabberwock/types"
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { rootStore } from "@src/features/store"
-import { StandardTooltip, ToggleSwitch } from "@/features/foundation/ui"
+import { ToggleSwitch } from "@src/shared/ui/buttons/toggle-switch"
+import { StandardTooltip } from "@src/shared/ui/tooltips/standard-tooltip"
 
 type McpToolRowProps = {
 	tool: McpTool
@@ -14,24 +15,85 @@ type McpToolRowProps = {
 	isInChatContext?: boolean
 }
 
+function getIconClass(isToolEnabled: boolean): string {
+	const base = "codicon codicon-symbol-method mr-2 flex-shrink-0"
+	if (!isToolEnabled) {
+		return base + " text-vscode-descriptionForeground opacity-60"
+	}
+	return base + " text-vscode-symbolIcon-methodForeground"
+}
+
+function getNameClass(isToolEnabled: boolean): string {
+	const base = "font-medium truncate"
+	if (!isToolEnabled) {
+		return base + " text-vscode-descriptionForeground opacity-60"
+	}
+	return base + " text-vscode-foreground"
+}
+
+function getDescClass(isToolEnabled: boolean): string {
+	const base = "mt-1 text-xs text-vscode-descriptionForeground"
+	if (!isToolEnabled) {
+		return base + " opacity-40"
+	}
+	return base + " opacity-80"
+}
+
+function isParamRequired(inputSchema: McpTool["inputSchema"], paramName: string): boolean {
+	if (!inputSchema) return false
+	if (!("required" in inputSchema)) return false
+	if (!Array.isArray(inputSchema.required)) return false
+	return inputSchema.required.includes(paramName)
+}
+
+function McpToolParameters({ tool, t }: { tool: McpTool; t: (key: string) => string }) {
+	if (!tool.inputSchema) return null
+	if (!("properties" in tool.inputSchema)) return null
+	const properties = tool.inputSchema.properties as Record<string, { description?: string }> | undefined
+	if (!properties) return null
+	const keys = Object.keys(properties)
+	if (keys.length === 0) return null
+
+	return (
+		<div className="mt-2 text-xs border border-vscode-panel-border rounded p-2">
+			<div className="mb-1 text-[11px] uppercase opacity-80 text-vscode-descriptionForeground">
+				{t("mcp:tool.parameters")}
+			</div>
+			{keys.map((paramName) => {
+				const schema = properties[paramName]
+				const required = isParamRequired(tool.inputSchema, paramName)
+				return (
+					<div key={paramName} className="flex items-baseline mt-1">
+						<code className="text-vscode-textPreformat-foreground mr-2">
+							{paramName}
+							{required && <span className="text-vscode-errorForeground">*</span>}
+						</code>
+						<span className="opacity-80 break-words text-vscode-descriptionForeground">
+							{schema?.description || t("mcp:tool.noDescription")}
+						</span>
+					</div>
+				)
+			})}
+		</div>
+	)
+}
+
+function handleAlwaysAllowChange(tool: McpTool, serverName: string, serverSource: "global" | "project"): void {
+	rootStore.settings.toggleToolAlwaysAllow(serverName, serverSource, tool.name, !tool.alwaysAllow)
+}
+
+function handleEnabledForPromptChange(tool: McpTool, serverName: string, serverSource: "global" | "project"): void {
+	rootStore.settings.toggleToolEnabledForPrompt(serverName, serverSource, tool.name, !tool.enabledForPrompt)
+}
+
 const McpToolRow = ({ tool, serverName, serverSource, alwaysAllowMcp, isInChatContext = false }: McpToolRowProps) => {
 	const { t } = useAppTranslation()
-	const isToolEnabled = tool.enabledForPrompt ?? true
-
-	const handleAlwaysAllowChange = () => {
-		if (!serverName) return
-		rootStore.settings.toggleToolAlwaysAllow(serverName, serverSource || "global", tool.name, !tool.alwaysAllow)
-	}
-
-	const handleEnabledForPromptChange = () => {
-		if (!serverName) return
-		rootStore.settings.toggleToolEnabledForPrompt(
-			serverName,
-			serverSource || "global",
-			tool.name,
-			!tool.enabledForPrompt,
-		)
-	}
+	const isToolEnabled = tool.enabledForPrompt !== false
+	const showAlwaysAllow = alwaysAllowMcp && isToolEnabled
+	const showToggle = !isInChatContext
+	const showDescription = tool.description !== null && tool.description !== undefined
+	const sn = serverName ?? ""
+	const src = serverSource ?? "global"
 
 	return (
 		<div key={tool.name} className="py-2 border-b border-vscode-panel-border last:border-b-0">
@@ -41,21 +103,9 @@ const McpToolRow = ({ tool, serverName, serverSource, alwaysAllowMcp, isInChatCo
 				onClick={(e) => e.stopPropagation()}>
 				{/* Tool name section */}
 				<div className="flex items-center min-w-0 flex-1">
-					<span
-						className={`codicon codicon-symbol-method mr-2 flex-shrink-0 ${
-							isToolEnabled
-								? "text-vscode-symbolIcon-methodForeground"
-								: "text-vscode-descriptionForeground opacity-60"
-						}`}></span>
+					<span className={getIconClass(isToolEnabled)}></span>
 					<StandardTooltip content={tool.name}>
-						<span
-							className={`font-medium truncate ${
-								isToolEnabled
-									? "text-vscode-foreground"
-									: "text-vscode-descriptionForeground opacity-60"
-							}`}>
-							{tool.name}
-						</span>
+						<span className={getNameClass(isToolEnabled)}>{tool.name}</span>
 					</StandardTooltip>
 				</div>
 
@@ -63,10 +113,10 @@ const McpToolRow = ({ tool, serverName, serverSource, alwaysAllowMcp, isInChatCo
 				{serverName && (
 					<div className="flex items-center gap-4 flex-shrink-0">
 						{/* Always Allow checkbox - only show when tool is enabled */}
-						{alwaysAllowMcp && isToolEnabled && (
+						{showAlwaysAllow && (
 							<VSCodeCheckbox
 								checked={tool.alwaysAllow}
-								onChange={handleAlwaysAllowChange}
+								onChange={() => handleAlwaysAllowChange(tool, sn, src)}
 								data-tool={tool.name}
 								className="text-xs">
 								<span className="text-vscode-descriptionForeground whitespace-nowrap">
@@ -76,11 +126,11 @@ const McpToolRow = ({ tool, serverName, serverSource, alwaysAllowMcp, isInChatCo
 						)}
 
 						{/* Enabled toggle switch - only show in settings context */}
-						{!isInChatContext && (
+						{showToggle && (
 							<StandardTooltip content={t("mcp:tool.togglePromptInclusion")}>
 								<ToggleSwitch
 									checked={isToolEnabled}
-									onChange={handleEnabledForPromptChange}
+									onChange={() => handleEnabledForPromptChange(tool, sn, src)}
 									size="medium"
 									aria-label={t("mcp:tool.togglePromptInclusion")}
 									data-testid={`tool-prompt-toggle-${tool.name}`}
@@ -90,45 +140,8 @@ const McpToolRow = ({ tool, serverName, serverSource, alwaysAllowMcp, isInChatCo
 					</div>
 				)}
 			</div>
-			{tool.description && (
-				<div
-					className={`mt-1 text-xs text-vscode-descriptionForeground ${
-						isToolEnabled ? "opacity-80" : "opacity-40"
-					}`}>
-					{tool.description}
-				</div>
-			)}
-			{isToolEnabled &&
-				tool.inputSchema &&
-				"properties" in tool.inputSchema &&
-				Object.keys(tool.inputSchema.properties as Record<string, any>).length > 0 && (
-					<div className="mt-2 text-xs border border-vscode-panel-border rounded p-2">
-						<div className="mb-1 text-[11px] uppercase opacity-80 text-vscode-descriptionForeground">
-							{t("mcp:tool.parameters")}
-						</div>
-						{Object.entries(tool.inputSchema.properties as Record<string, any>).map(
-							([paramName, schema]) => {
-								const isRequired =
-									tool.inputSchema &&
-									"required" in tool.inputSchema &&
-									Array.isArray(tool.inputSchema.required) &&
-									tool.inputSchema.required.includes(paramName)
-
-								return (
-									<div key={paramName} className="flex items-baseline mt-1">
-										<code className="text-vscode-textPreformat-foreground mr-2">
-											{paramName}
-											{isRequired && <span className="text-vscode-errorForeground">*</span>}
-										</code>
-										<span className="opacity-80 break-words text-vscode-descriptionForeground">
-											{schema.description || t("mcp:tool.noDescription")}
-										</span>
-									</div>
-								)
-							},
-						)}
-					</div>
-				)}
+			{showDescription && <div className={getDescClass(isToolEnabled)}>{tool.description}</div>}
+			<McpToolParameters tool={tool} t={t} />
 		</div>
 	)
 }

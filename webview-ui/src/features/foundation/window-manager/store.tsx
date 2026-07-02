@@ -172,7 +172,7 @@ export const WindowManagerStore = types
 	}))
 
 export type IWindowManagerStore = Instance<typeof WindowManagerStore>
-import { useRootStore } from "../../store"
+import { useRootStore } from "../../useRootStore"
 
 /**
  * Backward-compatible hook for consuming components.

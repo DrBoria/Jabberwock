@@ -1,13 +1,12 @@
 import { createElement } from "react"
+import { render } from "ink"
 
 import { type OnboardingResult, OnboardingProviderChoice } from "@/types/index.js"
 import { login } from "@/commands/index.js"
 import { saveSettings } from "@/lib/storage/index.js"
+import { OnboardingScreen } from "../../ui/components/onboarding/index.js"
 
 export async function runOnboarding(): Promise<OnboardingResult> {
-	const { render } = await import("ink")
-	const { OnboardingScreen } = await import("../../ui/components/onboarding/index.js")
-
 	return new Promise<OnboardingResult>((resolve) => {
 		const onSelect = async (choice: OnboardingProviderChoice) => {
 			await saveSettings({ onboardingProviderChoice: choice })

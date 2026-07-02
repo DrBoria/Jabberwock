@@ -8,10 +8,58 @@ import type { IntentBus } from "@features/intents/bus"
  */
 import { getTask } from "@features/chat/task/actions/taskRegistry"
 import { getBackendRootStore } from "@features/storeSingleton"
-import { prepareApiRequest } from "@features/api/handlers/helpers/prepareApiRequest"
-import { handleStream } from "@features/api/handlers/helpers/handleStream"
+import { prepareApiRequest } from "@features/api/handlers/helpers/prepare/prepareApiRequest"
+import { handleStream } from "@features/api/handlers/helpers/process/handleStream"
 import { finalizeToolCalls } from "@features/chat/tools/actions/finalizeToolCalls"
 import { executeTools } from "@features/chat/tools/actions/executeTools"
+
+function buildUserContent(
+	content: Anthropic.Messages.ContentBlockParam[] | undefined,
+	text: string | undefined,
+	images: string[] | undefined,
+): Anthropic.Messages.ContentBlockParam[] | undefined {
+	if (content && content.length > 0) {
+		return content
+	}
+
+	if (!text && !(images && images.length > 0)) {
+		return undefined
+	}
+
+	const result: Anthropic.Messages.ContentBlockParam[] = []
+
+	if (text) {
+		result.push({ type: "text" as const, text })
+	}
+
+	if (images && images.length > 0) {
+		for (const image of images) {
+			result.push({
+				type: "image" as const,
+				source: { type: "base64" as const, media_type: "image/png" as const, data: image },
+			})
+		}
+	}
+
+	return result
+}
+
+import type { IIntentStore } from "@features/intents/store"
+
+function handleProcessingError(ctx: { intentStore: IIntentStore }, taskId: string, err: unknown): void {
+	console.error(`[UserMessageReceived] Error processing task:`, err)
+	ctx.intentStore.createIntent({
+		id: crypto.randomUUID(),
+		type: IntentType.SystemFailure,
+		payload: { taskId, error: String(err) },
+		status: IntentStatus.Queued,
+		createdAt: Date.now(),
+	})
+	const taskModel = getBackendRootStore().chat.tasks.get(taskId)
+	if (taskModel) {
+		taskModel.setIsProcessing(false)
+	}
+}
 
 export function registerOnUserMessageReceived(bus: IntentBus): void {
 	bus.register(IntentType.UserMessageReceived, async (intent, ctx) => {
@@ -38,24 +86,9 @@ export function registerOnUserMessageReceived(bus: IntentBus): void {
 
 			taskModel.setIsProcessing(true)
 
-			let userContent: Anthropic.Messages.ContentBlockParam[]
+			const userContent = buildUserContent(content, text, images)
 
-			if (content && content.length > 0) {
-				userContent = content
-			} else if (text || (images && images.length > 0)) {
-				userContent = []
-				if (text) {
-					userContent.push({ type: "text" as const, text })
-				}
-				if (images && images.length > 0) {
-					for (const image of images) {
-						userContent.push({
-							type: "image" as const,
-							source: { type: "base64" as const, media_type: "image/png" as const, data: image },
-						})
-					}
-				}
-			} else {
+			if (!userContent) {
 				taskModel.setIsProcessing(false)
 				return
 			}
@@ -73,18 +106,7 @@ export function registerOnUserMessageReceived(bus: IntentBus): void {
 
 			taskModel.setIsProcessing(false)
 		} catch (err) {
-			console.error(`[UserMessageReceived] Error processing task:`, err)
-			ctx.intentStore.createIntent({
-				id: crypto.randomUUID(),
-				type: IntentType.SystemFailure,
-				payload: { taskId, error: String(err) },
-				status: IntentStatus.Queued,
-				createdAt: Date.now(),
-			})
-			const taskModel = ctx.rootStore.chat.tasks.get(taskId)
-			if (taskModel) {
-				taskModel.setIsProcessing(false)
-			}
+			handleProcessingError(ctx, taskId, err)
 		}
 	})
 }

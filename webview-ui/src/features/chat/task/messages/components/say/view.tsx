@@ -1,23 +1,20 @@
 import React from "react"
 import type { Notification, SuggestionItem } from "@jabberwock/types"
-import { Markdown } from "../markdown"
-import { ReasoningBlock } from "../reasoning-block"
-import { ErrorRow } from "../row/error-row"
-import { CommandExecutionError } from "../command/command-execution-error"
-import { Container } from "@src/features/foundation/ui"
+import { Markdown } from "../message-parts/markdown"
+import { ReasoningBlock } from "../message-parts/reasoning-block"
+import { ErrorRow } from "../row/error-rows/error-row"
+import { CommandExecutionError } from "../command/execution-error"
+import { Container } from "@src/shared/ui/layouts/Container"
 import { McpIframeRenderer } from "@src/features/settings/mcp/McpIframeRenderer"
 import { observer } from "mobx-react-lite"
 import { rootStore } from "@src/features/store"
 import { getAllModes } from "@shared/modes"
+import { TextSay } from "./text-say"
+import { SayTool } from "./tool"
+import { ApiReqStartedSay, ApiReqRetryDelayedSay, ApiReqRateLimitWaitSay } from "./api-req/api"
+import { ErrorSay } from "./error-say"
+import { UserFeedbackSay, UserFeedbackDiffSay } from "./feedback-say"
 import {
-	TextSay,
-	SayTool,
-	ApiReqStartedSay,
-	ApiReqRetryDelayedSay,
-	ApiReqRateLimitWaitSay,
-	ErrorSay,
-	UserFeedbackSay,
-	UserFeedbackDiffSay,
 	SubtaskResultSay,
 	CompletionResultSay,
 	ImageSay,
@@ -28,7 +25,7 @@ import {
 	CondenseContextSay,
 	SlidingWindowTruncationSay,
 	CondensationErrorSay,
-} from "./index"
+} from "./misc-say"
 
 interface SayRendererProps {
 	message: Notification

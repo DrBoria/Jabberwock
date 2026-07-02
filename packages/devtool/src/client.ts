@@ -1,198 +1,12 @@
-/**
- * DevtoolClient — WebSocket MCP client for Jabberwock E2E testing.
- *
- * This is the "Playwright" layer: it handles:
- * - Reading the WebSocket URL from mcp_settings.json
- * - WebSocket connection management (connect, disconnect, reconnect)
- * - JSON-RPC message passing (initialize, tools/call)
- * - Exposing raw primitives (findElement, clickElement, runCommand, etc.)
- *
- * Tests should NOT use this directly. Instead, use ExtensionModel (Page Model)
- * which composes these primitives into declarative, domain-specific methods.
- *
- * Usage:
- *   const client = new DevtoolClient()
- *   await client.connect()
- *   const dom = await client.findElement("*")
- *   await client.clickElement("#some-id")
- *   await client.disconnect()
- */
-
-import { readFileSync, existsSync } from "fs"
-import { homedir } from "os"
-import { join } from "path"
-
-// ── JSON-RPC response types ────────────────────────────────────────────────────
-
-interface JsonRpcError {
-	code: number
-	message: string
-	data?: unknown
-}
-
-interface JsonRpcResponse {
-	id: number
-	result?: unknown
-	error?: JsonRpcError
-}
-
-// ── Constants ──────────────────────────────────────────────────────────────
-
-const DEFAULT_PORT = 60060
-const MCP_SETTINGS_PATH = join(
-	homedir(),
-	"Library/Application Support/Code/User/globalStorage/rooveterinaryinc.roo-cline/settings/mcp_settings.json",
-)
-
-// ── JSON-RPC helpers ───────────────────────────────────────────────────────
-
-let _requestId = 0
-function nextId(): number {
-	return ++_requestId
-}
-
-function createInitializeRequest() {
-	return JSON.stringify({
-		jsonrpc: "2.0",
-		id: nextId(),
-		method: "initialize",
-		params: {
-			protocolVersion: "2024-11-05",
-			capabilities: {},
-			clientInfo: { name: "jabberwock-e2e", version: "1.0.0" },
-		},
-	})
-}
-
-const INITIALIZED_NOTIFICATION = JSON.stringify({
-	jsonrpc: "2.0",
-	method: "notifications/initialized",
-})
-
-function createToolCallRequest(name: string, args: Record<string, unknown> = {}) {
-	return JSON.stringify({
-		jsonrpc: "2.0",
-		id: nextId(),
-		method: "tools/call",
-		params: { name, arguments: args },
-	})
-}
-
-// ── Transport ──────────────────────────────────────────────────────────────
-
-/**
- * Raw WebSocket transport for JSON-RPC communication.
- * Uses native WebSocket (available in Node.js 22+ and modern runtimes).
- */
-class RawWsTransport {
-	private ws: WebSocket | null = null
-	private url: string
-	private messageQueue: string[] = []
-	private isConnected = false
-	private pendingResolve: ((value: void) => void) | null = null
-	private pendingReject: ((err: Error) => void) | null = null
-
-	onmessage?: (message: { content: unknown }) => void
-	onerror?: (error: Error) => void
-	onclose?: () => void
-
-	constructor(url: URL) {
-		this.url = url.toString()
-	}
-
-	async start(): Promise<void> {
-		return new Promise((resolve, reject) => {
-			try {
-				this.ws = new WebSocket(this.url)
-			} catch (err) {
-				reject(err)
-				return
-			}
-			this.pendingResolve = resolve
-			this.pendingReject = reject
-
-			this.ws.onopen = () => {
-				this.isConnected = true
-				for (const msg of this.messageQueue) {
-					this.ws?.send(msg)
-				}
-				this.messageQueue = []
-				if (this.pendingResolve) {
-					this.pendingResolve()
-					this.pendingResolve = null
-				}
-			}
-
-			this.ws.onerror = () => {
-				const err = new Error("WebSocket connection error")
-				this.onerror?.(err)
-				if (this.pendingReject) {
-					this.pendingReject(err)
-					this.pendingResolve = null
-					this.pendingReject = null
-				}
-			}
-
-			this.ws.onmessage = (event: MessageEvent) => {
-				try {
-					const data = JSON.parse(event.data as string)
-					this.onmessage?.({ content: data })
-				} catch {
-					this.onmessage?.({ content: event.data })
-				}
-			}
-
-			this.ws.onclose = () => {
-				this.isConnected = false
-				if (this.pendingReject) {
-					this.pendingReject(new Error("WebSocket closed before connection established"))
-					this.pendingResolve = null
-					this.pendingReject = null
-				}
-				this.onclose?.()
-			}
-		})
-	}
-
-	async send(message: unknown): Promise<void> {
-		const json = JSON.stringify(message)
-		if (this.ws && this.isConnected) {
-			this.ws.send(json)
-		} else {
-			this.messageQueue.push(json)
-		}
-	}
-
-	async close(): Promise<void> {
-		this.isConnected = false
-		this.ws?.close()
-		this.ws = null
-	}
-}
-
-// ── Client ─────────────────────────────────────────────────────────────────
+import { RawWsTransport } from "./transport.js"
+import { JsonRpcResponse, INITIALIZED_NOTIFICATION, resolveUrl, nextId } from "./client-rpc.js"
 
 export interface DevtoolClientOptions {
-	/** WebSocket port (default: 60060) */
 	port?: number
-	/** Auto-reconnect on disconnect (default: true) */
 	autoReconnect?: boolean
-	/** Timeout for JSON-RPC requests in ms (default: 30000) */
 	requestTimeout?: number
 }
 
-/**
- * DevtoolClient is the "Playwright" layer for Jabberwock E2E testing.
- *
- * Responsibilities:
- * - Read WebSocket URL from mcp_settings.json (or use default port)
- * - Connect/disconnect/reconnect to the devtool WebSocket server
- * - Send JSON-RPC tool calls and receive responses
- * - Expose raw primitives matching the MCP tools
- *
- * This class contains NO test logic, NO page model methods.
- * It is purely transport + primitives.
- */
 export class DevtoolClient {
 	private transport: RawWsTransport | null = null
 	private connected = false
@@ -201,39 +15,16 @@ export class DevtoolClient {
 
 	constructor(options: DevtoolClientOptions = {}) {
 		this.options = {
-			port: options.port ?? DEFAULT_PORT,
+			port: options.port ?? 60060,
 			autoReconnect: options.autoReconnect ?? true,
 			requestTimeout: options.requestTimeout ?? 30000,
 		}
 	}
 
-	// ── Connection Management ────────────────────────────────────────────
-
-	/**
-	 * Read the WebSocket URL from mcp_settings.json.
-	 * Falls back to the default port if the file doesn't exist or parsing fails.
-	 */
 	static resolveUrl(options?: { port?: number }): string {
-		try {
-			if (existsSync(MCP_SETTINGS_PATH)) {
-				const raw = readFileSync(MCP_SETTINGS_PATH, "utf-8")
-				const settings = JSON.parse(raw)
-				const jabberwockServer = settings?.mcpServers?.["jabberwock-devtools"]
-				if (jabberwockServer?.url) {
-					return jabberwockServer.url
-				}
-			}
-		} catch {
-			// Fall through to default
-		}
-		const port = options?.port ?? DEFAULT_PORT
-		return `ws://127.0.0.1:${port}/ws`
+		return resolveUrl(options)
 	}
 
-	/**
-	 * Connect to the devtool WebSocket server.
-	 * Performs MCP initialize handshake automatically.
-	 */
 	async connect(): Promise<void> {
 		if (this.connected) return
 
@@ -277,8 +68,16 @@ export class DevtoolClient {
 
 		await this.transport.start()
 
-		// MCP initialize handshake
-		const initResponse = await this.rawRequest(createInitializeRequest())
+		const initResponse = await this.rawRequest({
+			jsonrpc: "2.0",
+			id: nextId(),
+			method: "initialize",
+			params: {
+				protocolVersion: "2024-11-05",
+				capabilities: {},
+				clientInfo: { name: "jabberwock-e2e", version: "1.0.0" },
+			},
+		})
 		const initResult = initResponse as { protocolVersion?: string }
 		if (initResult?.protocolVersion) {
 			console.log(`[DevtoolClient] MCP initialized (protocol: ${initResult.protocolVersion})`)
@@ -290,9 +89,6 @@ export class DevtoolClient {
 		console.log(`[DevtoolClient] Connected to devtool at ${url}`)
 	}
 
-	/**
-	 * Disconnect from the devtool WebSocket server.
-	 */
 	async disconnect(): Promise<void> {
 		if (!this.connected) return
 		if (this.transport) {
@@ -301,39 +97,23 @@ export class DevtoolClient {
 		this.connected = false
 	}
 
-	/**
-	 * Reconnect (disconnect + connect).
-	 */
 	async reconnect(): Promise<void> {
 		await this.disconnect()
 		await this.connect()
 	}
 
-	/**
-	 * Hard reconnect with a delay.
-	 */
 	async hardReconnect(): Promise<void> {
 		await this.disconnect()
 		await new Promise((r) => setTimeout(r, 500))
 		await this.connect()
 	}
 
-	/**
-	 * Check if the client is currently connected.
-	 */
 	get isConnected(): boolean {
 		return this.connected
 	}
 
-	// ── Low-level JSON-RPC ───────────────────────────────────────────────
-
-	/**
-	 * Send a raw JSON-RPC request and wait for the response.
-	 * @internal
-	 */
-	private async rawRequest(requestJson: string): Promise<unknown> {
-		const request = JSON.parse(requestJson)
-		const id = request.id
+	private async rawRequest(request: Record<string, unknown>): Promise<unknown> {
+		const id = request.id as number
 		return new Promise((resolve, reject) => {
 			const timeout = setTimeout(() => {
 				this.pendingRequests.delete(id)
@@ -359,16 +139,17 @@ export class DevtoolClient {
 		})
 	}
 
-	/**
-	 * Call an MCP tool and return the parsed result.
-	 * @internal
-	 */
 	async callTool(name: string, args: Record<string, unknown> = {}): Promise<unknown> {
 		if (!this.connected) {
 			await this.connect()
 		}
 		try {
-			const result = await this.rawRequest(createToolCallRequest(name, args))
+			const result = await this.rawRequest({
+				jsonrpc: "2.0",
+				id: nextId(),
+				method: "tools/call",
+				params: { name, arguments: args },
+			})
 			const resultRecord = result as { content?: Array<{ type: string; text: string }> }
 			const content = resultRecord?.content || []
 			const textContent = content
@@ -384,255 +165,5 @@ export class DevtoolClient {
 			console.error(`[devtool] [DevtoolClient] Tool call failed: ${name}`, error)
 			throw error
 		}
-	}
-
-	// ══════════════════════════════════════════════════════════════════════
-	//  CORE PRIMITIVES — Playwright-style DOM interaction
-	// ══════════════════════════════════════════════════════════════════════
-
-	/**
-	 * Execute a JavaScript command in the webview browser console.
-	 * Wraps the `run_command` MCP tool.
-	 */
-	async runCommand(command: string): Promise<string> {
-		return this.callTool("run_command", { command }) as Promise<string>
-	}
-
-	/**
-	 * Execute a VS Code command in the extension host (not in the webview).
-	 * Calls the execute_vscode_command MCP tool.
-	 */
-	async executeVscodeCommand(command: string, args?: unknown): Promise<string> {
-		return this.callTool("execute_vscode_command", { command, args }) as Promise<string>
-	}
-
-	/**
-	 * Find a DOM element by selector (text, CSS, or data-testid).
-	 * Optionally accepts depth/maxChildren for DOM tree depth control,
-	 * and a command to execute on the found element (use $0 as the element reference).
-	 */
-	async findElement(selector: string, depth?: number, maxChildren?: number, command?: string): Promise<string> {
-		return this.callTool("find_element", { selector, depth, maxChildren, command }) as Promise<string>
-	}
-
-	/**
-	 * Click a DOM element by its id or CSS selector.
-	 * @param id - The DOM element ID to click (alternative to selector)
-	 * @param selector - CSS selector of the element to click (preferred over id)
-	 */
-	async clickElement(id?: string, selector?: string): Promise<string> {
-		return this.callTool("click_element", { id, selector }) as Promise<string>
-	}
-
-	/**
-	 * Type text into an input/textarea element by its id or CSS selector.
-	 * @param id - The DOM element ID to type into (alternative to selector)
-	 * @param selector - CSS selector of the element to type into (preferred over id)
-	 * @param text - The text to type
-	 * @param submit - If true, dispatch Enter keydown/keyup after typing
-	 */
-	async typeText(id?: string, selector?: string, text?: string, submit?: boolean): Promise<string> {
-		return this.callTool("type_text", { id, selector, text, submit }) as Promise<string>
-	}
-
-	/**
-	 * Scroll a DOM element in a direction.
-	 */
-	async scrollElement(id: string, direction: "up" | "down" | "left" | "right"): Promise<string> {
-		return this.callTool("scroll_element", { id, direction }) as Promise<string>
-	}
-
-	/**
-	 * Select an option in a select element.
-	 */
-	async selectOption(id: string, value: string): Promise<string> {
-		return this.callTool("select_option", { id, value }) as Promise<string>
-	}
-
-	// ══════════════════════════════════════════════════════════════════════
-	//  CONSOLE & DIAGNOSTICS
-	// ══════════════════════════════════════════════════════════════════════
-
-	/**
-	 * Get console logs from backend (extension host) or frontend (webview).
-	 * Supports filtering by environment and log level with cursor-based pagination.
-	 */
-	async getConsole(env: "backend" | "frontend", level?: string, limit?: number, cursor?: number): Promise<string> {
-		return this.callTool("get_console", { env, level, limit, cursor }) as Promise<string>
-	}
-
-	/**
-	 * Search console logs by text content across backend or frontend.
-	 */
-	async searchConsole(query: string, env?: string, level?: string, limit?: number, cursor?: number): Promise<string> {
-		return this.callTool("search_console", { query, env, level, limit, cursor }) as Promise<string>
-	}
-
-	/**
-	 * Get diagnostic logs.
-	 */
-	async getLogs(lines?: number): Promise<string> {
-		return this.callTool("get_logs", { lines }) as Promise<string>
-	}
-
-	/**
-	 * Get a diagnostics snapshot.
-	 */
-	async getDiagnosticsSnapshot(params?: {
-		limit?: number
-		offset?: number
-		level?: string
-		search?: string
-		includeLogs?: boolean
-		includeMetrics?: boolean
-		includePatches?: boolean
-		includeTraces?: boolean
-		includeResources?: boolean
-	}): Promise<string> {
-		return this.callTool("get_diagnostics_snapshot", params ?? {}) as Promise<string>
-	}
-
-	/**
-	 * Clear diagnostics.
-	 */
-	async clearDiagnostics(): Promise<string> {
-		return this.callTool("clear_diagnostics", {}) as Promise<string>
-	}
-
-	/**
-	 * Get state from the frontend (webview) or backend store via get_store_state MCP tool.
-	 * Frontend store paths use dot notation, e.g. "chat.tree.activeNodeId".
-	 * Returns a paginated response: { items: [{ path, value } | { key, value }], total, cursor, ... }
-	 */
-	async getStoreState(params: {
-		store?: string
-		path?: string
-		limit?: number
-		cursor?: number
-		fields?: string
-	}): Promise<unknown> {
-		return this.callTool("get_store_state", params as Record<string, unknown>)
-	}
-
-	/**
-	 * Search state by content, ID, or partial text match.
-	 * @param params.store - "backend" or "frontend"
-	 * @param params.query - Search query (matched against all values as strings)
-	 * @param params.limit - Max results (default: 10)
-	 * @param params.cursor - Pagination offset (default: 0)
-	 */
-	async searchState(params: {
-		env: "backend" | "frontend"
-		query: string
-		store?: string
-		limit?: number
-		cursor?: number
-	}): Promise<unknown> {
-		return this.callTool("search_state", params as Record<string, unknown>)
-	}
-
-	/**
-	 * Get extension info.
-	 */
-	async getExtensionInfo(): Promise<unknown> {
-		return this.callTool("get_extension_info", {})
-	}
-
-	/**
-	 * Get current state.
-	 */
-	async getCurrentState(): Promise<unknown> {
-		return this.callTool("get_current_state", {})
-	}
-
-	// ══════════════════════════════════════════════════════════════════════
-	//  SCREENSHOT & DRAG
-	// ══════════════════════════════════════════════════════════════════════
-
-	/**
-	 * Capture a screenshot of the webview as a base64-encoded PNG.
-	 */
-	async getScreenshot(): Promise<string> {
-		return this.callTool("get_screenshot", {}) as Promise<string>
-	}
-
-	/**
-	 * Drag a DOM element in a direction by a number of pixels.
-	 * @param selector - CSS selector of the element to drag
-	 * @param direction - Direction: "l" (left), "r" (right), "t" (top/up), "b" (bottom/down)
-	 * @param pixels - Number of pixels to drag
-	 */
-	async dragElement(selector: string, direction: "l" | "r" | "t" | "b", pixels: number): Promise<string> {
-		return this.callTool("drag_element", { selector, direction, pixels }) as Promise<string>
-	}
-
-	/**
-	 * Drag from one coordinate to another.
-	 * Coordinates use l (left), t (top), r (right from viewport edge), b (bottom from viewport edge).
-	 * @param from - Starting position
-	 * @param to - Ending position
-	 */
-	async dragFromTo(
-		from: { l?: number; t?: number; r?: number; b?: number },
-		to: { l?: number; t?: number; r?: number; b?: number },
-	): Promise<string> {
-		return this.callTool("drag_from_to", { from, to }) as Promise<string>
-	}
-
-	// ══════════════════════════════════════════════════════════════════════
-	//  EVENT BUS — message interception, tracing, and sending
-	// ══════════════════════════════════════════════════════════════════════
-
-	/**
-	 * Send a message to the webview.
-	 * Wraps the `send_message_to_webview` MCP tool.
-	 */
-	async sendMessageToWebview(type: string, action: string, payload?: unknown): Promise<unknown> {
-		return this.callTool("send_message_to_webview", { type, action, ...(payload ? { payload } : {}) })
-	}
-
-	/**
-	 * Set a message interceptor to mock responses.
-	 * Wraps the `set_message_interceptor` MCP tool.
-	 */
-	async setMessageInterceptor(
-		direction: string,
-		type: string,
-		action: string | undefined,
-		response: unknown,
-	): Promise<unknown> {
-		return this.callTool("set_message_interceptor", { direction, type, action, response })
-	}
-
-	/**
-	 * Remove a message interceptor.
-	 * Wraps the `remove_message_interceptor` MCP tool.
-	 */
-	async removeMessageInterceptor(direction: string, type: string, action?: string): Promise<unknown> {
-		return this.callTool("remove_message_interceptor", { direction, type, action })
-	}
-
-	/**
-	 * Get all active interceptors.
-	 * Wraps the `get_active_interceptors` MCP tool.
-	 */
-	async getActiveInterceptors(): Promise<unknown> {
-		return this.callTool("get_active_interceptors", {})
-	}
-
-	/**
-	 * Get the message trace log.
-	 * Wraps the `get_message_trace` MCP tool.
-	 */
-	async getMessageTrace(direction?: string, type?: string, action?: string): Promise<unknown> {
-		return this.callTool("get_message_trace", { direction, type, action })
-	}
-
-	/**
-	 * Clear the message trace log.
-	 * Wraps the `clear_message_trace` MCP tool.
-	 */
-	async clearMessageTrace(): Promise<unknown> {
-		return this.callTool("clear_message_trace", {})
 	}
 }

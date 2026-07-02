@@ -1,0 +1,8 @@
+export { CodeIndexManager } from "./manager"
+export { getCodeIndexManager, getAllCodeIndexManagers } from "./manager.factory"
+export { shouldSkipInitialization, shouldStartOrRestartIndexing, getOrCreateConfigManager } from "./manager.init"
+export { recoverManagerFromError, disposeManager } from "./manager.recovery"
+export type { RecreatedServices } from "./manager.services"
+export { recreateManagerServices } from "./manager.services"
+export { handleSettingsChange } from "./manager.settings"
+export { WorkspaceSettings } from "./manager.workspace"

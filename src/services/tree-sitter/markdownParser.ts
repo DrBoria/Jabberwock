@@ -35,121 +35,80 @@ interface MockCapture {
  * @param content - The content of the markdown file
  * @returns An array of mock captures compatible with tree-sitter captures
  */
-export function parseMarkdown(content: string): QueryCapture[] {
-	if (!content || content.trim() === "") {
+/**
+ * Create captures for an ATX header (# Header)
+ */
+function _createAtxCaptures(line: string, row: number, atxHeaderRegex: RegExp): MockCapture[] {
+	const atxMatch = line.match(atxHeaderRegex)
+	if (!atxMatch) return []
+
+	const level = atxMatch[1].length
+	const text = atxMatch[2].trim()
+
+	const node: MockNode = {
+		startPosition: { row },
+		endPosition: { row },
+		text,
+	}
+
+	return [
+		{ node, name: `name.definition.header.h${level}`, patternIndex: 0 },
+		{ node, name: `definition.header.h${level}`, patternIndex: 0 },
+	]
+}
+
+/**
+ * Create captures for setext headers (underlined headers)
+ */
+function _createSetextCaptures(
+	line: string,
+	lines: string[],
+	row: number,
+	setextH1Regex: RegExp,
+	setextH2Regex: RegExp,
+	validSetextTextRegex: RegExp,
+): MockCapture[] {
+	if (row <= 0) return []
+
+	if (setextH1Regex.test(line) && validSetextTextRegex.test(lines[row - 1])) {
+		const text = lines[row - 1].trim()
+		const node: MockNode = {
+			startPosition: { row: row - 1 },
+			endPosition: { row },
+			text,
+		}
+		return [
+			{ node, name: "name.definition.header.h1", patternIndex: 0 },
+			{ node, name: "definition.header.h1", patternIndex: 0 },
+		]
+	}
+
+	if (setextH2Regex.test(line) && validSetextTextRegex.test(lines[row - 1])) {
+		const text = lines[row - 1].trim()
+		const node: MockNode = {
+			startPosition: { row: row - 1 },
+			endPosition: { row },
+			text,
+		}
+		return [
+			{ node, name: "name.definition.header.h2", patternIndex: 0 },
+			{ node, name: "definition.header.h2", patternIndex: 0 },
+		]
+	}
+
+	return []
+}
+
+/**
+ * Calculate section ranges by updating end positions
+ */
+function _calculateSectionRanges(captures: MockCapture[], lines: string[]): QueryCapture[] {
+	if (captures.length === 0) {
 		return []
 	}
 
-	const lines = content.split("\n")
-	const captures: MockCapture[] = []
-
-	// Regular expressions for different header types
-	const atxHeaderRegex = /^(#{1,6})\s+(.+)$/
-	// Setext headers must have at least 3 = or - characters
-	const setextH1Regex = /^={3,}\s*$/
-	const setextH2Regex = /^-{3,}\s*$/
-	// Valid setext header text line should be plain text (not empty, not indented, not a special element)
-	const validSetextTextRegex = /^\s*[^#<>!\[\]`\t]+[^\n]$/
-
-	// Find all headers in the document
-	for (let i = 0; i < lines.length; i++) {
-		const line = lines[i]
-
-		// Check for ATX headers (# Header)
-		const atxMatch = line.match(atxHeaderRegex)
-		if (atxMatch) {
-			const level = atxMatch[1].length
-			const text = atxMatch[2].trim()
-
-			// Create a mock node for this header
-			const node: MockNode = {
-				startPosition: { row: i },
-				endPosition: { row: i },
-				text: text,
-			}
-
-			// Create a mock capture for this header
-			captures.push({
-				node,
-				name: `name.definition.header.h${level}`,
-				patternIndex: 0,
-			})
-
-			// Also create a definition capture
-			captures.push({
-				node,
-				name: `definition.header.h${level}`,
-				patternIndex: 0,
-			})
-
-			continue
-		}
-
-		// Check for setext headers (underlined headers)
-		if (i > 0) {
-			// Check for H1 (======)
-			if (setextH1Regex.test(line) && validSetextTextRegex.test(lines[i - 1])) {
-				const text = lines[i - 1].trim()
-
-				// Create a mock node for this header
-				const node: MockNode = {
-					startPosition: { row: i - 1 },
-					endPosition: { row: i },
-					text: text,
-				}
-
-				// Create a mock capture for this header
-				captures.push({
-					node,
-					name: "name.definition.header.h1",
-					patternIndex: 0,
-				})
-
-				// Also create a definition capture
-				captures.push({
-					node,
-					name: "definition.header.h1",
-					patternIndex: 0,
-				})
-
-				continue
-			}
-
-			// Check for H2 (------)
-			if (setextH2Regex.test(line) && validSetextTextRegex.test(lines[i - 1])) {
-				const text = lines[i - 1].trim()
-
-				// Create a mock node for this header
-				const node: MockNode = {
-					startPosition: { row: i - 1 },
-					endPosition: { row: i },
-					text: text,
-				}
-
-				// Create a mock capture for this header
-				captures.push({
-					node,
-					name: "name.definition.header.h2",
-					patternIndex: 0,
-				})
-
-				// Also create a definition capture
-				captures.push({
-					node,
-					name: "definition.header.h2",
-					patternIndex: 0,
-				})
-
-				continue
-			}
-		}
-	}
-
-	// Calculate section ranges
-	// Sort captures by their start position
 	captures.sort((a, b) => a.node.startPosition.row - b.node.startPosition.row)
 
-	// Group captures by header (name and definition pairs)
 	const headerCaptures: MockCapture[][] = []
 	for (let i = 0; i < captures.length; i += 2) {
 		if (i + 1 < captures.length) {
@@ -159,28 +118,53 @@ export function parseMarkdown(content: string): QueryCapture[] {
 		}
 	}
 
-	// Update end positions for section ranges
 	for (let i = 0; i < headerCaptures.length; i++) {
 		const headerPair = headerCaptures[i]
 
 		if (i < headerCaptures.length - 1) {
-			// End position is the start of the next header minus 1
 			const nextHeaderStartRow = headerCaptures[i + 1][0].node.startPosition.row
 			headerPair.forEach((capture) => {
 				capture.node.endPosition.row = nextHeaderStartRow - 1
 			})
 		} else {
-			// Last header extends to the end of the file
 			headerPair.forEach((capture) => {
 				capture.node.endPosition.row = lines.length - 1
 			})
 		}
 	}
 
-	// Flatten the grouped captures back to a single array
-	// Cast to QueryCapture[] since our MockCapture objects provide all the properties
-	// that are actually used by the consuming code (node.startPosition, node.endPosition, node.text, node.parent, name)
 	return headerCaptures.flat() as QueryCapture[]
+}
+
+export function parseMarkdown(content: string): QueryCapture[] {
+	if (!content || content.trim() === "") {
+		return []
+	}
+
+	const lines = content.split("\n")
+	const captures: MockCapture[] = []
+
+	const atxHeaderRegex = /^(#{1,6})\s+(.+)$/
+	const setextH1Regex = /^={3,}\s*$/
+	const setextH2Regex = /^-{3,}\s*$/
+	const validSetextTextRegex = /^\s*[^#<>!\[\]`\t]+[^\n]$/
+
+	for (let i = 0; i < lines.length; i++) {
+		const line = lines[i]
+
+		const atxCaptures = _createAtxCaptures(line, i, atxHeaderRegex)
+		if (atxCaptures.length > 0) {
+			captures.push(...atxCaptures)
+			continue
+		}
+
+		const setextCaptures = _createSetextCaptures(line, lines, i, setextH1Regex, setextH2Regex, validSetextTextRegex)
+		if (setextCaptures.length > 0) {
+			captures.push(...setextCaptures)
+		}
+	}
+
+	return _calculateSectionRanges(captures, lines)
 }
 
 /**

@@ -1,0 +1,1 @@
+export { OpenAICompatibleEmbedder } from "./embedder"

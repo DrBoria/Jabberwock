@@ -1,4 +1,4 @@
-import type { SkillContent } from "../../shared/skills"
+import type { SkillContent } from "@shared/skills"
 
 export interface SkillLookup {
 	getSkillContent(name: string, currentMode?: string): Promise<SkillContent | null>
@@ -18,37 +18,39 @@ export async function resolveSkillContentForMode(
 
 type SkillContentForFormatting = Pick<SkillContent, "source" | "description" | "instructions">
 
+/**
+ * Builds an approval message string for a skill execution request.
+ */
 export function buildSkillApprovalMessage(
 	skillName: string,
 	args: string | undefined,
-	skillContent: Pick<SkillContent, "source" | "description">,
+	skillContent: SkillContentForFormatting,
 ): string {
-	return JSON.stringify({
-		tool: "skill",
-		skill: skillName,
-		args,
-		source: skillContent.source,
-		description: skillContent.description,
-	})
+	let msg = `**Skill:** ${skillName}`
+	if (args) {
+		msg += `\n**Args:** ${args}`
+	}
+	if (skillContent.source) {
+		msg += `\n**Source:** ${skillContent.source}`
+	}
+	if (skillContent.description) {
+		msg += `\n**Description:** ${skillContent.description}`
+	}
+	return msg
 }
 
+/**
+ * Builds a result message string after a skill has been approved and executed.
+ */
 export function buildSkillResult(
 	skillName: string,
 	args: string | undefined,
 	skillContent: SkillContentForFormatting,
 ): string {
-	let result = `Skill: ${skillName}`
-
-	if (skillContent.description) {
-		result += `\nDescription: ${skillContent.description}`
-	}
-
+	let msg = `Skill: ${skillName}`
 	if (args) {
-		result += `\nProvided arguments: ${args}`
+		msg += `\nArgs: ${args}`
 	}
-
-	result += `\nSource: ${skillContent.source}`
-	result += `\n\n--- Skill Instructions ---\n\n${skillContent.instructions}`
-
-	return result
+	msg += `\n\n--- Skill Instructions ---\n\n${skillContent.instructions}`
+	return msg
 }

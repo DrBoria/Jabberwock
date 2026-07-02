@@ -116,6 +116,7 @@
 	"unlockApiConfigAcrossModes": "此工作区所有模式的 API 配置已锁定（点击解锁）",
 	"enhancePrompt": "增强提示词",
 	"addImages": "添加图片到消息",
+	"addGoal": "添加为目标",
 	"sendMessage": "发送消息",
 	"pressToSend": "按 {{keyCombination}} 发送",
 	"stopTts": "停止文本转语音",

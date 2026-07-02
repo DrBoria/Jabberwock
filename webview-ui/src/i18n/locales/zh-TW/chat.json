@@ -152,6 +152,7 @@
 	},
 	"enhancePromptDescription": "「強化提示詞」按鈕可透過提供額外內容、說明或改寫來協助改善提示詞。試著在這裡輸入提示詞，再點選一次按鈕以了解其運作方式。",
 	"addImages": "新增圖片到訊息中",
+	"addGoal": "新增為目標",
 	"sendMessage": "傳送訊息",
 	"pressToSend": "按 {{keyCombination}} 傳送",
 	"stopTts": "停止文字轉語音",

@@ -6,7 +6,8 @@ import type { CliSettings } from "@/types/index.js"
 import { getConfigDir } from "./index.js"
 
 export function getSettingsPath(): string {
-	return path.join(getConfigDir(), "cli-settings.json")
+	const settingsPath = path.join(getConfigDir(), "cli-settings.json")
+	return settingsPath
 }
 
 export async function loadSettings(): Promise<CliSettings> {

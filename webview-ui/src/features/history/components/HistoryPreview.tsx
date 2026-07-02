@@ -3,9 +3,9 @@ import { memo } from "react"
 import { rootStore } from "@src/features/store"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 
-import { useTaskSearch } from "./useTaskSearch"
-import { useGroupedTasks } from "./useGroupedTasks"
-import TaskGroupItem from "./TaskGroupItem"
+import { useTaskSearch } from "./hooks/useTaskSearch"
+import { useGroupedTasks } from "./hooks/useGroupedTasks"
+import TaskGroupItem from "./task-rows/TaskGroupItem"
 
 const HistoryPreview = () => {
 	const { tasks, searchQuery } = useTaskSearch()

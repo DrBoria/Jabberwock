@@ -1,14 +1,14 @@
 import { Anthropic } from "@anthropic-ai/sdk"
 
-import type { ITaskModel } from "../../task/store"
-import { ask } from "../../task/notifications/actions/ask"
-import { systemBroadcast } from "../../task/messages/actions/say"
+import type { ITaskModel } from "@features/chat/task/store"
+import { ask } from "@features/chat/task/notifications/actions/ask"
+import { systemBroadcast } from "@features/chat/task/messages/actions/say"
 import { getBackendRootStore } from "@features/storeSingleton"
-import { addToApiConversationHistory } from "../../task/messages/actions/apiHistoryPersistence"
-import { getTask as getRegisteredTask } from "../../task/actions/taskRegistry"
-import { type TaskDelegate } from "../../task/condense/actions/types"
-import type { AssistantMessageContent } from "../../task/messages/actions/types"
-import { waitForToolExecutionAndPrepareNextContent } from "./toolCallExecutor"
+import { addToApiConversationHistory } from "@features/chat/task/messages/actions/save/saveApiConversationHistory"
+import { getTask as getRegisteredTask } from "@features/chat/task/actions/taskRegistry"
+import { type TaskDelegate } from "@features/chat/task/condense/actions/types"
+import type { AssistantMessageContent } from "@features/chat/task/messages/actions/types"
+import { waitForToolExecutionAndPrepareNextContent } from "./tool-executor"
 
 // ── E.5: executeTools ──────────────────────────────────────────────────────────
 

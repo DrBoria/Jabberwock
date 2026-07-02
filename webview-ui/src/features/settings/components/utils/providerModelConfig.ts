@@ -18,7 +18,7 @@ import {
 	basetenDefaultModelId,
 } from "@jabberwock/types"
 
-import { MODELS_BY_PROVIDER } from "../constants"
+import { MODELS_BY_PROVIDER } from "../shared/constants"
 
 export interface ProviderServiceConfig {
 	serviceName: string

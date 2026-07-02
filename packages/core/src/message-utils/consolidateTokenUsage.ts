@@ -17,7 +17,8 @@ export type ParsedApiReqStartedTextType = {
  * It extracts and sums up the tokensIn, tokensOut, cacheWrites, cacheReads, and cost from these messages.
  *
  * @param messages - An array of Notification objects to process.
- * @returns A TokenUsage object containing totalTokensIn, totalTokensOut, totalCacheWrites, totalCacheReads, totalCost, and contextTokens.
+ * @returns A TokenUsage object containing totalTokensIn, totalTokensOut,
+ * totalCacheWrites, totalCacheReads, totalCost, and contextTokens.
  *
  * @example
  * const messages = [
@@ -36,70 +37,81 @@ export function consolidateTokenUsage(messages: Notification[]): TokenUsage {
 		contextTokens: 0,
 	}
 
-	// Calculate running totals.
-	messages.forEach((message) => {
-		if (message.type === "say" && message.say === "api_req_started" && message.text) {
-			try {
-				const parsedText: ParsedApiReqStartedTextType = JSON.parse(message.text)
-				const { tokensIn, tokensOut, cacheWrites, cacheReads, cost } = parsedText
+	messages.forEach((message) => processApiRequestMessage(message, result))
 
-				if (typeof tokensIn === "number") {
-					result.totalTokensIn += tokensIn
-				}
-
-				if (typeof tokensOut === "number") {
-					result.totalTokensOut += tokensOut
-				}
-
-				if (typeof cacheWrites === "number") {
-					result.totalCacheWrites = (result.totalCacheWrites ?? 0) + cacheWrites
-				}
-
-				if (typeof cacheReads === "number") {
-					result.totalCacheReads = (result.totalCacheReads ?? 0) + cacheReads
-				}
-
-				if (typeof cost === "number") {
-					result.totalCost += cost
-				}
-			} catch (error) {
-				console.error("Error parsing JSON:", error)
-			}
-		} else if (message.type === "say" && message.say === "condense_context") {
-			result.totalCost += message.contextCondense?.cost ?? 0
-		}
-	})
-
-	// Calculate context tokens, from the last API request started or condense
-	// context message.
-	result.contextTokens = 0
-
-	for (let i = messages.length - 1; i >= 0; i--) {
-		const message = messages[i]
-		if (!message) continue
-
-		if (message.type === "say" && message.say === "api_req_started" && message.text) {
-			try {
-				const parsedText: ParsedApiReqStartedTextType = JSON.parse(message.text)
-				const { tokensIn, tokensOut } = parsedText
-
-				// Since tokensIn now stores TOTAL input tokens (including cache tokens),
-				// we no longer need to add cacheWrites and cacheReads separately.
-				// This applies to both Anthropic and OpenAI protocols.
-				result.contextTokens = (tokensIn || 0) + (tokensOut || 0)
-			} catch {
-				// Ignore JSON parse errors
-				continue
-			}
-		} else if (message.type === "say" && message.say === "condense_context") {
-			result.contextTokens = message.contextCondense?.newContextTokens ?? 0
-		}
-		if (result.contextTokens) {
-			break
-		}
-	}
+	result.contextTokens = findContextTokens(messages)
 
 	return result
+}
+
+function processApiRequestMessage(message: Notification, result: TokenUsage): void {
+	if (message.type === "say" && message.say === "api_req_started" && message.text) {
+		try {
+			const parsedText: ParsedApiReqStartedTextType = JSON.parse(message.text)
+			accumulateTokenUsage(parsedText, result)
+		} catch (error) {
+			console.error("Error parsing JSON:", error)
+		}
+	} else if (message.type === "say" && message.say === "condense_context") {
+		result.totalCost += message.contextCondense?.cost ?? 0
+	}
+}
+
+function accumulateTokenUsage(parsedText: ParsedApiReqStartedTextType, result: TokenUsage): void {
+	const { tokensIn, tokensOut, cacheWrites, cacheReads, cost } = parsedText
+
+	if (typeof tokensIn === "number") {
+		result.totalTokensIn += tokensIn
+	}
+
+	if (typeof tokensOut === "number") {
+		result.totalTokensOut += tokensOut
+	}
+
+	if (typeof cacheWrites === "number") {
+		result.totalCacheWrites = (result.totalCacheWrites ?? 0) + cacheWrites
+	}
+
+	if (typeof cacheReads === "number") {
+		result.totalCacheReads = (result.totalCacheReads ?? 0) + cacheReads
+	}
+
+	if (typeof cost === "number") {
+		result.totalCost += cost
+	}
+}
+
+function tryParseApiRequest(text: string): number | undefined {
+	try {
+		const parsedText: ParsedApiReqStartedTextType = JSON.parse(text)
+		const { tokensIn, tokensOut } = parsedText
+
+		return (tokensIn || 0) + (tokensOut || 0)
+	} catch {
+		return undefined
+	}
+}
+
+function findContextTokens(messages: Notification[]): number {
+	for (let i = messages.length - 1; i >= 0; i--) {
+		const tokens = tryFindContextToken(messages[i])
+		if (tokens !== undefined) return tokens
+	}
+	return 0
+}
+
+function tryFindContextToken(message: Notification | undefined): number | undefined {
+	if (!message) return undefined
+
+	if (message.type === "say" && message.say === "api_req_started" && message.text) {
+		return tryParseApiRequest(message.text)
+	}
+
+	if (message.type === "say" && message.say === "condense_context") {
+		return message.contextCondense?.newContextTokens ?? 0
+	}
+
+	return undefined
 }
 
 /**

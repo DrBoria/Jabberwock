@@ -9,5 +9,6 @@
 export * from "./types.ts"
 
 // Services
-export { WorktreeService, worktreeService } from "./worktree-service.ts"
-export { WorktreeIncludeService, worktreeIncludeService, type CopyProgressCallback } from "./worktree-include.ts"
+export { WorktreeService, worktreeService } from "./service.ts"
+export { WorktreeIncludeService, worktreeIncludeService } from "./include.ts"
+export type { CopyProgress, CopyProgressCallback } from "./include-helpers.ts"

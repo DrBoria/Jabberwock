@@ -5,7 +5,6 @@ export default [
 	...config,
 	{
 		rules: {
-			// TODO: These should be fixed and the rules re-enabled.
 			"no-regex-spaces": "off",
 			"no-useless-escape": "off",
 			"no-empty": "off",
@@ -21,7 +20,19 @@ export default [
 				"error",
 				{ allowInterfaces: "never", allowObjectTypes: "never" },
 			],
-			"no-restricted-syntax": [
+			"no-restricted-imports": [
+			"error",
+			{
+				patterns: [
+					{
+						group: ["../**", ".."],
+						message:
+							"Use absolute imports (@features/, @utils/, @i18n, etc.) instead of relative parent imports. Only ./ (same-directory) imports are allowed.",
+					},
+				],
+			},
+		],
+		"no-restricted-syntax": [
 				"error",
 				{
 					selector: "TSTypeReference[typeName.name='object']",
@@ -58,6 +69,6 @@ export default [
 		},
 	},
 	{
-		ignores: ["webview-ui", "out"],
+		ignores: ["out", "dist", "webview-ui/build"],
 	},
 ]

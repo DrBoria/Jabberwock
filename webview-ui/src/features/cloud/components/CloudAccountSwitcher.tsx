@@ -1,9 +1,129 @@
 import { useState, useEffect } from "react"
 import { Building2, Plus } from "lucide-react"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectSeparator } from "@/features/foundation/ui/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectSeparator } from "@src/shared/ui/selects/select"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { rootStore } from "@src/features/store"
 import { cn } from "@src/lib/utils"
+
+const getInitial = (name?: string, email?: string): string => {
+	if (name) return name.charAt(0)
+	if (email) return email.charAt(0)
+	return "?"
+}
+
+const getDisplayName = (name?: string, email?: string): string => {
+	if (name) return name
+	return email ?? ""
+}
+
+const nonNullValue = (value: string | null, fallback: string): string => {
+	if (value) return value
+	return fallback
+}
+
+const handleOrgChange = (
+	value: string,
+	selectedOrgId: string | null,
+	cloudApiUrl: string | undefined,
+	onSwitchOrg: (orgId: string | null) => void,
+	onLoadingChange: (loading: boolean) => void,
+) => {
+	if (value === "create-team") {
+		if (cloudApiUrl) {
+			rootStore.settings.openExternal(`${cloudApiUrl}/billing`)
+		}
+		return
+	}
+
+	const newOrgId = value === "personal" ? null : value
+
+	if (newOrgId === selectedOrgId) {
+		return
+	}
+
+	onLoadingChange(true)
+	rootStore.cloud.switchOrganization(newOrgId)
+	onSwitchOrg(newOrgId)
+	setTimeout(() => {
+		onLoadingChange(false)
+	}, 1000)
+}
+
+interface AccountIconProps {
+	selectedOrgId: string | null
+	currentOrg?: { organization: { image_url?: string; name: string } } | null
+	cloudUserInfo: { picture?: string; name?: string; email?: string }
+}
+
+const AccountIcon = ({ selectedOrgId, currentOrg, cloudUserInfo }: AccountIconProps) => {
+	if (selectedOrgId && currentOrg?.organization.image_url) {
+		return (
+			<img
+				src={currentOrg.organization.image_url}
+				alt={currentOrg.organization.name}
+				className="w-5 h-5 rounded object-cover"
+			/>
+		)
+	}
+	if (selectedOrgId) {
+		return <Building2 className="w-4.5 h-4.5" />
+	}
+	if (cloudUserInfo.picture) {
+		return (
+			<img
+				src={cloudUserInfo.picture}
+				alt={getDisplayName(cloudUserInfo.name, cloudUserInfo.email)}
+				className="w-5 h-5 rounded-full object-cover"
+			/>
+		)
+	}
+	return (
+		<div className="w-5 h-5 rounded-full flex items-center justify-center bg-vscode-button-background text-vscode-button-foreground text-xs">
+			{getInitial(cloudUserInfo.name, cloudUserInfo.email)}
+		</div>
+	)
+}
+
+interface AvatarProps {
+	picture?: string
+	name?: string
+	email?: string
+}
+
+const Avatar = ({ picture, name, email }: AvatarProps) => {
+	if (picture) {
+		return (
+			<img
+				src={picture}
+				alt={getDisplayName(name, email)}
+				className="w-4.5 h-4.5 rounded-full object-cover overflow-clip"
+			/>
+		)
+	}
+	return (
+		<div className="w-4.5 h-4.5 rounded-full flex items-center justify-center bg-vscode-button-background text-vscode-button-foreground text-xs">
+			{getInitial(name, email)}
+		</div>
+	)
+}
+
+const OrganizationLogo = ({ imageUrl }: { imageUrl?: string }) => {
+	if (imageUrl) {
+		return <img src={imageUrl} alt="" className="w-4.5 h-4.5 rounded-full object-cover overflow-clip" />
+	}
+	return <Building2 className="w-4.5 h-4.5" />
+}
+
+const getTriggerClasses = (isLoading: boolean) =>
+	cn(
+		"h-4.5 w-4.5 p-0 gap-0",
+		"bg-transparent opacity-90 hover:opacity-50",
+		"flex items-center justify-center",
+		"rounded-lg overflow-clip",
+		"border border-vscode-dropdown-border",
+		"[&>svg]:hidden",
+		isLoading && "opacity-50",
+	)
 
 export const CloudAccountSwitcher = () => {
 	const { t } = useAppTranslation()
@@ -14,141 +134,53 @@ export const CloudAccountSwitcher = () => {
 	const [selectedOrgId, setSelectedOrgId] = useState<string | null>(cloudUserInfo?.organizationId || null)
 	const [isLoading, setIsLoading] = useState(false)
 
-	// Update selected org when userInfo changes
 	useEffect(() => {
 		setSelectedOrgId(cloudUserInfo?.organizationId || null)
 	}, [cloudUserInfo?.organizationId])
 
-	// Show the switcher whenever user is authenticated
 	if (!cloudUserInfo) {
 		return null
 	}
 
-	const handleOrganizationChange = async (value: string) => {
-		// Handle "Create Team Account" option
-		if (value === "create-team") {
-			if (cloudApiUrl) {
-				const billingUrl = `${cloudApiUrl}/billing`
-				rootStore.settings.openExternal(billingUrl)
-			}
-			return
-		}
-
-		const newOrgId = value === "personal" ? null : value
-
-		// Don't do anything if selecting the same organization
-		if (newOrgId === selectedOrgId) {
-			return
-		}
-
-		setIsLoading(true)
-
-		// Send message to switch organization
-		rootStore.cloud.switchOrganization(newOrgId)
-
-		// Update local state optimistically
-		setSelectedOrgId(newOrgId)
-
-		// Reset loading state after a delay
-		setTimeout(() => {
-			setIsLoading(false)
-		}, 1000)
-	}
-
-	const currentValue = selectedOrgId || "personal"
 	const currentOrg = cloudOrganizations.find((org) => org.organization.id === selectedOrgId)
-
-	// Render the account icon based on current context
-	const renderAccountIcon = () => {
-		if (selectedOrgId && currentOrg?.organization.image_url) {
-			// Organization with logo
-			return (
-				<img
-					src={currentOrg.organization.image_url}
-					alt={currentOrg.organization.name}
-					className="w-5 h-5 rounded object-cover"
-				/>
-			)
-		} else if (selectedOrgId) {
-			// Organization without logo
-			return <Building2 className="w-4.5 h-4.5" />
-		} else if (cloudUserInfo.picture) {
-			// Personal account with avatar
-			return (
-				<img
-					src={cloudUserInfo.picture}
-					alt={cloudUserInfo.name || cloudUserInfo.email}
-					className="w-5 h-5 rounded-full object-cover"
-				/>
-			)
-		} else {
-			// Personal account without avatar - show initials
-			const initial = cloudUserInfo.name?.charAt(0) || cloudUserInfo.email?.charAt(0) || "?"
-			return (
-				<div className="w-5 h-5 rounded-full flex items-center justify-center bg-vscode-button-background text-vscode-button-foreground text-xs">
-					{initial}
-				</div>
-			)
-		}
-	}
 
 	return (
 		<div className="inline-block ml-1">
-			<Select value={currentValue} onValueChange={handleOrganizationChange} disabled={isLoading}>
+			<Select
+				value={nonNullValue(selectedOrgId, "personal")}
+				onValueChange={(value) =>
+					handleOrgChange(value, selectedOrgId, cloudApiUrl, setSelectedOrgId, setIsLoading)
+				}
+				disabled={isLoading}>
 				<SelectTrigger
-					className={cn(
-						"h-4.5 w-4.5 p-0 gap-0",
-						"bg-transparent opacity-90 hover:opacity-50",
-						"flex items-center justify-center",
-						"rounded-lg overflow-clip",
-						"border border-vscode-dropdown-border",
-						"[&>svg]:hidden", // Hide the default chevron/caret
-						isLoading && "opacity-50",
-					)}
+					className={getTriggerClasses(isLoading)}
 					aria-label={selectedOrgId ? currentOrg?.organization.name : t("cloud:personalAccount")}>
-					{renderAccountIcon()}
+					<AccountIcon selectedOrgId={selectedOrgId} currentOrg={currentOrg} cloudUserInfo={cloudUserInfo} />
 				</SelectTrigger>
 
 				<SelectContent>
-					{/* Personal Account Option */}
 					<SelectItem value="personal">
 						<div className="flex items-center gap-2">
-							{cloudUserInfo.picture ? (
-								<img
-									src={cloudUserInfo.picture}
-									alt={cloudUserInfo.name || cloudUserInfo.email}
-									className="w-4.5 h-4.5 rounded-full object-cover overflow-clip"
-								/>
-							) : (
-								<div className="w-4.5 h-4.5 rounded-full flex items-center justify-center bg-vscode-button-background text-vscode-button-foreground text-xs">
-									{cloudUserInfo.name?.charAt(0) || cloudUserInfo.email?.charAt(0) || "?"}
-								</div>
-							)}
+							<Avatar
+								picture={cloudUserInfo.picture}
+								name={cloudUserInfo.name}
+								email={cloudUserInfo.email}
+							/>
 							<span>{t("cloud:personalAccount")}</span>
 						</div>
 					</SelectItem>
 
 					{cloudOrganizations.length > 0 && <SelectSeparator />}
 
-					{/* Organization Options */}
 					{cloudOrganizations.map((org) => (
 						<SelectItem key={org.organization.id} value={org.organization.id}>
 							<div className="flex items-center gap-2">
-								{org.organization.image_url ? (
-									<img
-										src={org.organization.image_url}
-										alt=""
-										className="w-4.5 h-4.5 rounded-full object-cover overflow-clip"
-									/>
-								) : (
-									<Building2 className="w-4.5 h-4.5" />
-								)}
+								<OrganizationLogo imageUrl={org.organization.image_url} />
 								<span className="truncate">{org.organization.name}</span>
 							</div>
 						</SelectItem>
 					))}
 
-					{/* Only show Create Team Account if user has no organizations */}
 					{cloudOrganizations.length === 0 && (
 						<>
 							<SelectSeparator />

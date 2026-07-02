@@ -1,8 +1,8 @@
 import { ProviderSettings, Notification, GlobalState, TelemetryEventName } from "@jabberwock/types"
 import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
-import { supportPrompt } from "../../../../shared/support-prompt"
-import { singleCompletionHandler } from "../../../../utils/single-completion-handler"
-import { ProviderSettingsManager } from "@features/settings/models/ProviderSettingsManager"
+import { supportPrompt } from "@shared/support-prompt"
+import { singleCompletionHandler } from "@utils/single-completion-handler"
+import { ProviderSettingsManager } from "@features/settings/models/provider-settings-manager/ProviderSettingsManager"
 
 export interface MessageEnhancerOptions {
 	text: string

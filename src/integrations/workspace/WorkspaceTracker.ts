@@ -1,10 +1,10 @@
 import * as vscode from "vscode"
-import { VirtualWorkspace } from "../../features/foundation/time-machine/VirtualWorkspace"
+import { VirtualWorkspace } from "@features/foundation/time-machine/VirtualWorkspace"
 import * as path from "path"
 
-import { listFiles } from "../../services/glob/list-files"
+import { listFiles } from "@services/glob/list-files"
 import { EventBridge, type ProviderHandle } from "@features/foundation/webview/EventBridge"
-import { toRelativePath, getWorkspacePath } from "../../utils/path"
+import { toRelativePath, getWorkspacePath } from "@utils/io/path"
 import { getBackendRootStore } from "@features/storeSingleton"
 
 const MAX_INITIAL_FILES = 1_000

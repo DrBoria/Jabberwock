@@ -1,51 +1,117 @@
-export * from "./api.ts"
-export * from "./cli.ts"
-export * from "./cloud.ts"
-export * from "./codebase-index.ts"
-export * from "./context-management.ts"
-export * from "./cookie-consent.ts"
-export * from "./custom-tool.ts"
-export * from "./embedding.ts"
-export * from "./events.ts"
-export * from "./experiment.ts"
-export * from "./followup.ts"
-export * from "./git.ts"
-export * from "./global-settings.ts"
-export * from "./history.ts"
-export * from "./image-generation.ts"
-export * from "./ipc.ts"
-export * from "./marketplace.ts"
-export * from "./mcp.ts"
-export * from "./message.ts"
-export * from "./notification.ts"
-export * from "./mode.ts"
-export * from "./model.ts"
-export * from "./provider-settings.ts"
-export * from "./task.ts"
+export * from "./api/api.ts"
+export * from "./features/cli.ts"
+export * from "./cloud/index.ts"
+export * from "./execution/codebase-index.ts"
+export * from "./utils/context-management.ts"
+export * from "./utils/cookie-consent.ts"
+export * from "./mcp/custom-tool.ts"
+export * from "./execution/embedding.ts"
+export * from "./events/types.ts"
+export { taskEventSchema, type TaskEvent } from "./events/task.ts"
+export * from "./features/experiment.ts"
+export * from "./task/followup.ts"
+export * from "./task/git.ts"
+export * from "./settings/global/index.ts"
+export * from "./task/history.ts"
+export * from "./utils/image-generation.ts"
+export * from "./api/ipc.ts"
+export * from "./features/marketplace.ts"
+export * from "./mcp/mcp.ts"
+export * from "./messages/types.ts"
+export * from "./messages/notification.ts"
+export * from "./messages/notification-ask.ts"
+export * from "./messages/notification-say.ts"
+export * from "./models/mode.ts"
+export * from "./models/model.ts"
+export * from "./settings/provider/index.ts"
+export * from "./models/by-provider.ts"
+export * from "./models/model-id-keys.ts"
+export * from "./task/task.ts"
+export * from "./features/skills.ts"
 export * from "./todo.ts"
-export * from "./skills.ts"
-export * from "./telemetry.ts"
-export * from "./terminal.ts"
-export * from "./tool.ts"
-export * from "./tool-params.ts"
-export * from "./type-fu.ts"
-export * from "./vscode-extension-host.ts"
-export * from "./vscode.ts"
-export * from "./worktree.ts"
-export * from "./intent-types.ts"
-
-export * from "./messageBus.ts"
+export * from "./payload-schemas.ts"
+export * from "./telemetry/properties.ts"
+export * from "./telemetry/interfaces.ts"
+export * from "./telemetry/event-names.ts"
+export * from "./telemetry/event-schema.ts"
+export * from "./telemetry/error-utils.ts"
+export {
+	ApiProviderError,
+	ConsecutiveMistakeError,
+	extractApiProviderErrorProperties,
+	extractConsecutiveMistakeErrorProperties,
+	isApiProviderError,
+	isConsecutiveMistakeError,
+} from "./telemetry/errors.ts"
+export type { ConsecutiveMistakeReason } from "./telemetry/errors.ts"
+export * from "./execution/terminal.ts"
+export * from "./tool/tool.ts"
+export * from "./tool/params.ts"
+export * from "./utils/type-fu.ts"
+export * from "./extension/message-types.ts"
+export * from "./extension/message.ts"
+export * from "./extension/state.ts"
+export * from "./webview/message-types.ts"
+export * from "./webview/message.ts"
+export * from "./tool/say-tool-data.ts"
+export * from "./utils/misc-types.ts"
+export * from "./utils/worktree.ts"
+export * from "./vscode/types.ts"
+export * from "./intents/types.ts"
+export * from "./messages/messageBus.ts"
 export * from "./providers/index.ts"
-export * from "./diagnostics.ts"
-export * from "./event-constants.ts"
+export * from "./utils/diagnostics.ts"
+export * from "./events/constants.ts"
+
+// Re-exports from cloud sub-modules
 export type {
-	AskResponseValue,
-	BackendToWebview,
-	WebviewToBackend,
-	BackendInternalEvents,
-	// Chat
-	ChatBackendToWebview,
-	ChatWebviewToBackend,
+	JWTPayload,
+	CloudUserInfo,
+	CloudOrganization,
+	CloudOrganizationMembership,
+	OrganizationAllowList,
+	OrganizationDefaultSettings,
+	OrganizationCloudSettings,
+	OrganizationSettings,
+	OrganizationFeatures,
+	UserFeatures,
+	UserSettingsConfig,
+	UserSettingsData,
+	WorkspaceTaskVisibility,
+} from "./cloud/organization.ts"
+export {
+	organizationAllowListSchema,
+	organizationDefaultSettingsSchema,
+	organizationCloudSettingsSchema,
+	organizationSettingsSchema,
+	organizationFeaturesSchema,
+	userFeaturesSchema,
+	userSettingsConfigSchema,
+	userSettingsDataSchema,
+	ORGANIZATION_ALLOW_ALL,
+	ORGANIZATION_DEFAULT,
+} from "./cloud/organization.ts"
+export type {
+	AuthState,
+	AuthService,
+	AuthServiceEvents,
+	SettingsService,
+	SettingsServiceEvents,
+	CloudServiceEvents,
+} from "./cloud/service.ts"
+export {
+	TaskBridgeEventName,
+	TaskBridgeCommandName,
+	ExtensionSocketEvents,
+	TaskSocketEvents,
+	taskBridgeEventSchema,
+	taskBridgeCommandSchema,
+} from "./cloud/socket.ts"
+export type { TaskBridgeEvent, TaskBridgeCommand } from "./cloud/socket.ts"
+
+// Re-exports from event-registry sub-modules
+export type { AskResponseValue } from "./events/chat/registry.ts"
+export type {
 	ChatMessagesListBackendToWebview,
 	ChatMessagesListWebviewToBackend,
 	ChatNotificationsBackendToWebview,
@@ -56,219 +122,37 @@ export type {
 	ChatTextAreaWebviewToBackend,
 	ChatTopicBackendToWebview,
 	ChatTopicWebviewToBackend,
-	// Cloud
+	ChatBackendToWebview,
+	ChatWebviewToBackend,
+} from "./events/chat/registry.ts"
+export type {
 	CloudBackendToWebview,
 	CloudWebviewToBackend,
-	// Diagnostics
 	DiagnosticsBackendToWebview,
 	DiagnosticsWebviewToBackend,
-	// Foundation
-	FoundationBackendToWebview,
-	FoundationWebviewToBackend,
+} from "./events/cloud/registry.ts"
+export type {
 	FoundationAgentStateBackendToWebview,
 	FoundationAgentStateWebviewToBackend,
-	FoundationMstBackendToWebview,
-	FoundationMstWebviewToBackend,
 	FoundationWindowManagerBackendToWebview,
 	FoundationWindowManagerWebviewToBackend,
-	// History
+	FoundationMstBackendToWebview,
+	FoundationMstWebviewToBackend,
+	FoundationBackendToWebview,
+	FoundationWebviewToBackend,
+} from "./events/foundation/registry.ts"
+export type {
 	HistoryBackendToWebview,
 	HistoryWebviewToBackend,
-	// Marketplace
 	MarketplaceBackendToWebview,
 	MarketplaceWebviewToBackend,
-	// Settings
-	SettingsBackendToWebview,
-	SettingsWebviewToBackend,
-} from "./event-registry.ts"
+} from "./events/history-marketplace/registry.ts"
+export type { SettingsBackendToWebview, SettingsWebviewToBackend } from "./events/settings/registry.ts"
+export type { BackendInternalEvents } from "./events/internal/registry.ts"
 
-import { eventConstants } from "./event-constants.ts"
+// Event registry root types
+export type { BackendToWebview, WebviewToBackend } from "./events/registry.ts"
 
-// ── Flat event constant re-exports for backward compatibility ────────────────
-export const CHAT_MESSAGES_LIST_ASK_RESPONSE = eventConstants.CHAT.MESSAGES_LIST.ASK_RESPONSE
-export const CHAT_MESSAGES_LIST_DELETE_MESSAGE = eventConstants.CHAT.MESSAGES_LIST.DELETE_MESSAGE
-export const CHAT_MESSAGES_LIST_CHAT_TREE_SNAPSHOT = eventConstants.CHAT.MESSAGES_LIST.CHAT_TREE_SNAPSHOT
-export const CHAT_MESSAGES_LIST_CHAT_TREE_PATCH = eventConstants.CHAT.MESSAGES_LIST.CHAT_TREE_PATCH
-export const CHAT_MESSAGES_LIST_MESSAGE_UPDATED = eventConstants.CHAT.MESSAGES_LIST.MESSAGE_UPDATED
-export const CHAT_NOTIFICATIONS_CHECKPOINT_DIFF = eventConstants.CHAT.NOTIFICATIONS.CHECKPOINT_DIFF
-export const CHAT_NOTIFICATIONS_CHECKPOINT_RESTORE = eventConstants.CHAT.NOTIFICATIONS.CHECKPOINT_RESTORE
-export const CHAT_NOTIFICATIONS_PLAY_SOUND = eventConstants.CHAT.NOTIFICATIONS.PLAY_SOUND
-export const CHAT_NOTIFICATIONS_PLAY_TTS = eventConstants.CHAT.NOTIFICATIONS.PLAY_TTS
-export const CHAT_NOTIFICATIONS_STOP_TTS = eventConstants.CHAT.NOTIFICATIONS.STOP_TTS
-export const CHAT_NOTIFICATIONS_TTS_ENABLED = eventConstants.CHAT.NOTIFICATIONS.TTS_ENABLED
-export const CHAT_NOTIFICATIONS_TTS_SPEED = eventConstants.CHAT.NOTIFICATIONS.TTS_SPEED
-export const CHAT_NOTIFICATIONS_QUEUE_MESSAGE = eventConstants.CHAT.NOTIFICATIONS.QUEUE_MESSAGE
-export const CHAT_NOTIFICATIONS_REMOVE_QUEUED_MESSAGE = eventConstants.CHAT.NOTIFICATIONS.REMOVE_QUEUED_MESSAGE
-export const CHAT_NOTIFICATIONS_LAST_MESSAGE_SEEN = eventConstants.CHAT.NOTIFICATIONS.LAST_MESSAGE_SEEN
-export const CHAT_NOTIFICATIONS_CURRENT_CHECKPOINT_UPDATED =
-	eventConstants.CHAT.NOTIFICATIONS.CURRENT_CHECKPOINT_UPDATED
-export const CHAT_TASK_NEW_TASK = eventConstants.CHAT.TASK.NEW_TASK
-export const CHAT_TASK_CANCEL_TASK = eventConstants.CHAT.TASK.CANCEL_TASK
-export const CHAT_TASK_CLEAR_TASK = eventConstants.CHAT.TASK.CLEAR_TASK
-export const CHAT_TASK_TASK_SYNC_ENABLED = eventConstants.CHAT.TASK.TASK_SYNC_ENABLED
-export const CHAT_TASK_CONDENSE_TASK_CONTEXT_REQUEST = eventConstants.CHAT.TASK.CONDENSE_TASK_CONTEXT_REQUEST
-export const CHAT_TASK_WEBVIEW_DID_LAUNCH = eventConstants.CHAT.TASK.WEBVIEW_DID_LAUNCH
-export const CHAT_TASK_SET_CHAT_BOX_MESSAGE = eventConstants.CHAT.TASK.SET_CHAT_BOX_MESSAGE
-export const CHAT_TASK_ACTION = eventConstants.CHAT.TASK.ACTION
-export const CHAT_TASK_STATE = eventConstants.CHAT.TASK.STATE
-export const CHAT_TASK_CONDENSE_TASK_CONTEXT_STARTED = eventConstants.CHAT.TASK.CONDENSE_TASK_CONTEXT_STARTED
-export const CHAT_TASK_CONDENSE_TASK_CONTEXT_RESPONSE = eventConstants.CHAT.TASK.CONDENSE_TASK_CONTEXT_RESPONSE
-export const CHAT_TASK_ACCEPT_INPUT = eventConstants.CHAT.TASK.ACCEPT_INPUT
-export const CHAT_TEXT_AREA_ENHANCE_PROMPT = eventConstants.CHAT.TEXT_AREA.ENHANCE_PROMPT
-export const CHAT_TEXT_AREA_DRAGGED_IMAGES = eventConstants.CHAT.TEXT_AREA.DRAGGED_IMAGES
-export const CHAT_TEXT_AREA_SELECT_IMAGES = eventConstants.CHAT.TEXT_AREA.SELECT_IMAGES
-export const CHAT_TEXT_AREA_SEARCH_FILES = eventConstants.CHAT.TEXT_AREA.SEARCH_FILES
-export const CHAT_TEXT_AREA_ENHANCED_PROMPT = eventConstants.CHAT.TEXT_AREA.ENHANCED_PROMPT
-export const CHAT_TEXT_AREA_FILE_SEARCH_RESULTS = eventConstants.CHAT.TEXT_AREA.FILE_SEARCH_RESULTS
-export const CHAT_TEXT_AREA_INSERT_TEXT_INTO_TEXTAREA = eventConstants.CHAT.TEXT_AREA.INSERT_TEXT_INTO_TEXTAREA
-export const CHAT_TOPIC_MODE = eventConstants.CHAT.TOPIC.MODE
-export const CHAT_TOPIC_REQUEST_COMMANDS = eventConstants.CHAT.TOPIC.REQUEST_COMMANDS
-export const CHAT_TOPIC_SWITCH_MODE = eventConstants.CHAT.TOPIC.SWITCH_MODE
-export const CHAT_TOPIC_UPDATE_TODO_LIST = eventConstants.CHAT.TOPIC.UPDATE_TODO_LIST
-export const CHAT_TOPIC_TASK_HISTORY_UPDATED = eventConstants.CHAT.TOPIC.TASK_HISTORY_UPDATED
-export const CHAT_TOPIC_TASK_HISTORY_ITEM_UPDATED = eventConstants.CHAT.TOPIC.TASK_HISTORY_ITEM_UPDATED
-export const CHAT_TOPIC_COMMANDS = eventConstants.CHAT.TOPIC.COMMANDS
-export const CHAT_TOPIC_MODES = eventConstants.CHAT.TOPIC.MODES
-export const CLOUD_CLOUD_BUTTON_CLICKED = eventConstants.CLOUD.CLOUD_BUTTON_CLICKED
-export const CLOUD_JABBERWOCK_CLOUD_SIGN_IN = eventConstants.CLOUD.JABBERWOCK_CLOUD_SIGN_IN
-export const CLOUD_CLOUD_LANDING_PAGE_SIGN_IN = eventConstants.CLOUD.CLOUD_LANDING_PAGE_SIGN_IN
-export const CLOUD_JABBERWOCK_CLOUD_SIGN_OUT = eventConstants.CLOUD.JABBERWOCK_CLOUD_SIGN_OUT
-export const CLOUD_JABBERWOCK_CLOUD_MANUAL_URL = eventConstants.CLOUD.JABBERWOCK_CLOUD_MANUAL_URL
-export const CLOUD_OPEN_AI_CODEX_SIGN_IN = eventConstants.CLOUD.OPEN_AI_CODEX_SIGN_IN
-export const CLOUD_OPEN_AI_CODEX_SIGN_OUT = eventConstants.CLOUD.OPEN_AI_CODEX_SIGN_OUT
-export const CLOUD_SWITCH_ORGANIZATION = eventConstants.CLOUD.SWITCH_ORGANIZATION
-export const CLOUD_CLEAR_CLOUD_AUTH_SKIP_MODEL = eventConstants.CLOUD.CLEAR_CLOUD_AUTH_SKIP_MODEL
-export const CLOUD_AUTHENTICATED_USER = eventConstants.CLOUD.AUTHENTICATED_USER
-export const CLOUD_ORGANIZATION_SWITCH_RESULT = eventConstants.CLOUD.ORGANIZATION_SWITCH_RESULT
-export const CLOUD_SHARE_TASK_SUCCESS = eventConstants.CLOUD.SHARE_TASK_SUCCESS
-export const CLOUD_ROO_CREDIT_BALANCE = eventConstants.CLOUD.ROO_CREDIT_BALANCE
-export const DIAGNOSTICS_CLEAR_DIAGNOSTICS = eventConstants.DIAGNOSTICS.CLEAR_DIAGNOSTICS
-export const DIAGNOSTICS_DOWNLOAD_ERROR_DIAGNOSTICS = eventConstants.DIAGNOSTICS.DOWNLOAD_ERROR_DIAGNOSTICS
-export const AGENT_STATE_CURRENT_API_CONFIG_NAME = eventConstants.AGENT_STATE.CURRENT_API_CONFIG_NAME
-export const AGENT_STATE_SAVE_API_CONFIGURATION = eventConstants.AGENT_STATE.SAVE_API_CONFIGURATION
-export const AGENT_STATE_UPSERT_API_CONFIGURATION = eventConstants.AGENT_STATE.UPSERT_API_CONFIGURATION
-export const AGENT_STATE_DELETE_API_CONFIGURATION = eventConstants.AGENT_STATE.DELETE_API_CONFIGURATION
-export const AGENT_STATE_LOAD_API_CONFIGURATION = eventConstants.AGENT_STATE.LOAD_API_CONFIGURATION
-export const AGENT_STATE_LOAD_API_CONFIGURATION_BY_ID = eventConstants.AGENT_STATE.LOAD_API_CONFIGURATION_BY_ID
-export const AGENT_STATE_RENAME_API_CONFIGURATION = eventConstants.AGENT_STATE.RENAME_API_CONFIGURATION
-export const AGENT_STATE_GET_LIST_API_CONFIGURATION = eventConstants.AGENT_STATE.GET_LIST_API_CONFIGURATION
-export const AGENT_STATE_CUSTOM_INSTRUCTIONS = eventConstants.AGENT_STATE.CUSTOM_INSTRUCTIONS
-export const AGENT_STATE_FLUSH_ROUTER_MODELS = eventConstants.AGENT_STATE.FLUSH_ROUTER_MODELS
-export const AGENT_STATE_REQUEST_ROUTER_MODELS = eventConstants.AGENT_STATE.REQUEST_ROUTER_MODELS
-export const AGENT_STATE_REQUEST_OPEN_AI_MODELS = eventConstants.AGENT_STATE.REQUEST_OPEN_AI_MODELS
-export const AGENT_STATE_REQUEST_OLLAMA_MODELS = eventConstants.AGENT_STATE.REQUEST_OLLAMA_MODELS
-export const AGENT_STATE_REQUEST_LM_STUDIO_MODELS = eventConstants.AGENT_STATE.REQUEST_LM_STUDIO_MODELS
-export const AGENT_STATE_REQUEST_ROO_MODELS = eventConstants.AGENT_STATE.REQUEST_ROO_MODELS
-export const AGENT_STATE_REQUEST_ROO_CREDIT_BALANCE = eventConstants.AGENT_STATE.REQUEST_ROO_CREDIT_BALANCE
-export const AGENT_STATE_REQUEST_VS_CODE_LM_MODELS = eventConstants.AGENT_STATE.REQUEST_VS_CODE_LM_MODELS
-export const AGENT_STATE_UPDATE_VS_CODE_SETTING = eventConstants.AGENT_STATE.UPDATE_VS_CODE_SETTING
-export const AGENT_STATE_GET_VS_CODE_SETTING = eventConstants.AGENT_STATE.GET_VS_CODE_SETTING
-export const AGENT_STATE_VS_CODE_SETTING = eventConstants.AGENT_STATE.VS_CODE_SETTING
-export const AGENT_STATE_UPDATE_PROMPT = eventConstants.AGENT_STATE.UPDATE_PROMPT
-export const AGENT_STATE_GET_SYSTEM_PROMPT = eventConstants.AGENT_STATE.GET_SYSTEM_PROMPT
-export const AGENT_STATE_COPY_SYSTEM_PROMPT = eventConstants.AGENT_STATE.COPY_SYSTEM_PROMPT
-export const AGENT_STATE_SYSTEM_PROMPT = eventConstants.AGENT_STATE.SYSTEM_PROMPT
-export const AGENT_STATE_AUTO_APPROVAL_ENABLED = eventConstants.AGENT_STATE.AUTO_APPROVAL_ENABLED
-export const AGENT_STATE_UPDATE_CUSTOM_MODE = eventConstants.AGENT_STATE.UPDATE_CUSTOM_MODE
-export const AGENT_STATE_DELETE_CUSTOM_MODE = eventConstants.AGENT_STATE.DELETE_CUSTOM_MODE
-export const AGENT_STATE_EXPORT_MODE = eventConstants.AGENT_STATE.EXPORT_MODE
-export const AGENT_STATE_IMPORT_MODE = eventConstants.AGENT_STATE.IMPORT_MODE
-export const AGENT_STATE_CHECK_RULES_DIRECTORY = eventConstants.AGENT_STATE.CHECK_RULES_DIRECTORY
-export const AGENT_STATE_OPEN_CUSTOM_MODES_SETTINGS = eventConstants.AGENT_STATE.OPEN_CUSTOM_MODES_SETTINGS
-export const AGENT_STATE_CODEBASE_INDEX_ENABLED = eventConstants.AGENT_STATE.CODEBASE_INDEX_ENABLED
-export const AGENT_STATE_REQUEST_INDEXING_STATUS = eventConstants.AGENT_STATE.REQUEST_INDEXING_STATUS
-export const AGENT_STATE_START_INDEXING = eventConstants.AGENT_STATE.START_INDEXING
-export const AGENT_STATE_STOP_INDEXING = eventConstants.AGENT_STATE.STOP_INDEXING
-export const AGENT_STATE_CLEAR_INDEX_DATA = eventConstants.AGENT_STATE.CLEAR_INDEX_DATA
-export const AGENT_STATE_INDEXING_STATUS_UPDATE = eventConstants.AGENT_STATE.INDEXING_STATUS_UPDATE
-export const AGENT_STATE_INDEX_CLEARED = eventConstants.AGENT_STATE.INDEX_CLEARED
-export const AGENT_STATE_TOGGLE_WORKSPACE_INDEXING = eventConstants.AGENT_STATE.TOGGLE_WORKSPACE_INDEXING
-export const AGENT_STATE_SET_AUTO_ENABLE_DEFAULT = eventConstants.AGENT_STATE.SET_AUTO_ENABLE_DEFAULT
-export const AGENT_STATE_SAVE_CODE_INDEX_SETTINGS_ATOMIC = eventConstants.AGENT_STATE.SAVE_CODE_INDEX_SETTINGS_ATOMIC
-export const AGENT_STATE_REQUEST_CODE_INDEX_SECRET_STATUS = eventConstants.AGENT_STATE.REQUEST_CODE_INDEX_SECRET_STATUS
-export const AGENT_STATE_HAS_OPENED_MODE_SELECTOR = eventConstants.AGENT_STATE.HAS_OPENED_MODE_SELECTOR
-export const AGENT_STATE_LOCK_API_CONFIG_ACROSS_MODES = eventConstants.AGENT_STATE.LOCK_API_CONFIG_ACROSS_MODES
-export const AGENT_STATE_UPDATE_SYSTEM_PROMPT_TEMPLATE = eventConstants.AGENT_STATE.UPDATE_SYSTEM_PROMPT_TEMPLATE
-export const AGENT_STATE_ENHANCEMENT_API_CONFIG_ID = eventConstants.AGENT_STATE.ENHANCEMENT_API_CONFIG_ID
-export const AGENT_STATE_DEBUG_SETTING = eventConstants.AGENT_STATE.DEBUG_SETTING
-export const AGENT_STATE_LIST_API_CONFIG = eventConstants.AGENT_STATE.LIST_API_CONFIG
-export const AGENT_STATE_ROUTER_MODELS = eventConstants.AGENT_STATE.ROUTER_MODELS
-export const AGENT_STATE_OPEN_AI_MODELS = eventConstants.AGENT_STATE.OPEN_AI_MODELS
-export const AGENT_STATE_OLLAMA_MODELS = eventConstants.AGENT_STATE.OLLAMA_MODELS
-export const AGENT_STATE_LM_STUDIO_MODELS = eventConstants.AGENT_STATE.LM_STUDIO_MODELS
-export const AGENT_STATE_VS_CODE_LM_MODELS = eventConstants.AGENT_STATE.VS_CODE_LM_MODELS
-export const AGENT_STATE_DELETE_CUSTOM_MODE_CHECK = eventConstants.AGENT_STATE.DELETE_CUSTOM_MODE_CHECK
-export const AGENT_STATE_EXPORT_MODE_RESULT = eventConstants.AGENT_STATE.EXPORT_MODE_RESULT
-export const WINDOW_MANAGER_FOCUS_PANEL_REQUEST = eventConstants.WINDOW_MANAGER.FOCUS_PANEL_REQUEST
-export const WINDOW_MANAGER_SWITCH_TAB = eventConstants.WINDOW_MANAGER.SWITCH_TAB
-export const WINDOW_MANAGER_SHOW_INTERACTIVE_APP = eventConstants.WINDOW_MANAGER.SHOW_INTERACTIVE_APP
-export const WINDOW_MANAGER_REQUEST_STATE = eventConstants.WINDOW_MANAGER.REQUEST_STATE
-export const HISTORY_IMPORT_SETTINGS = eventConstants.HISTORY.IMPORT_SETTINGS
-export const HISTORY_EXPORT_SETTINGS = eventConstants.HISTORY.EXPORT_SETTINGS
-export const HISTORY_RESET_STATE = eventConstants.HISTORY.RESET_STATE
-export const HISTORY_WORKSPACE_UPDATED = eventConstants.HISTORY.WORKSPACE_UPDATED
-export const MARKETPLACE_MARKETPLACE_BUTTON_CLICKED = eventConstants.MARKETPLACE.MARKETPLACE_BUTTON_CLICKED
-export const MARKETPLACE_REQUEST_SKILLS = eventConstants.MARKETPLACE.REQUEST_SKILLS
-export const MARKETPLACE_CREATE_SKILL = eventConstants.MARKETPLACE.CREATE_SKILL
-export const MARKETPLACE_DELETE_SKILL = eventConstants.MARKETPLACE.DELETE_SKILL
-export const MARKETPLACE_OPEN_SKILL_FILE = eventConstants.MARKETPLACE.OPEN_SKILL_FILE
-export const MARKETPLACE_UPDATE_SKILL_MODES = eventConstants.MARKETPLACE.UPDATE_SKILL_MODES
-export const MARKETPLACE_SKILLS = eventConstants.MARKETPLACE.SKILLS
-export const SETTINGS_UPDATE_SETTINGS = eventConstants.SETTINGS.UPDATE_SETTINGS
-export const SETTINGS_DID_SHOW_ANNOUNCEMENT = eventConstants.SETTINGS.DID_SHOW_ANNOUNCEMENT
-export const SETTINGS_OPEN_IMAGE = eventConstants.SETTINGS.OPEN_IMAGE
-export const SETTINGS_SAVE_IMAGE = eventConstants.SETTINGS.SAVE_IMAGE
-export const SETTINGS_OPEN_FILE = eventConstants.SETTINGS.OPEN_FILE
-export const SETTINGS_READ_FILE_CONTENT = eventConstants.SETTINGS.READ_FILE_CONTENT
-export const SETTINGS_OPEN_MENTION = eventConstants.SETTINGS.OPEN_MENTION
-export const SETTINGS_OPEN_EXTERNAL = eventConstants.SETTINGS.OPEN_EXTERNAL
-export const SETTINGS_OPEN_KEYBOARD_SHORTCUTS = eventConstants.SETTINGS.OPEN_KEYBOARD_SHORTCUTS
-export const SETTINGS_OPEN_MCP_SETTINGS = eventConstants.SETTINGS.OPEN_MCP_SETTINGS
-export const SETTINGS_OPEN_PROJECT_MCP_SETTINGS = eventConstants.SETTINGS.OPEN_PROJECT_MCP_SETTINGS
-export const SETTINGS_RESTART_MCP_SERVER = eventConstants.SETTINGS.RESTART_MCP_SERVER
-export const SETTINGS_REFRESH_ALL_MCP_SERVERS = eventConstants.SETTINGS.REFRESH_ALL_MCP_SERVERS
-export const SETTINGS_TOGGLE_TOOL_ALWAYS_ALLOW = eventConstants.SETTINGS.TOGGLE_TOOL_ALWAYS_ALLOW
-export const SETTINGS_TOGGLE_TOOL_ENABLED_FOR_PROMPT = eventConstants.SETTINGS.TOGGLE_TOOL_ENABLED_FOR_PROMPT
-export const SETTINGS_TOGGLE_MCP_SERVER = eventConstants.SETTINGS.TOGGLE_MCP_SERVER
-export const SETTINGS_UPDATE_MCP_TIMEOUT = eventConstants.SETTINGS.UPDATE_MCP_TIMEOUT
-export const SETTINGS_DELETE_MCP_SERVER = eventConstants.SETTINGS.DELETE_MCP_SERVER
-export const SETTINGS_SET_API_CONFIG_PASSWORD = eventConstants.SETTINGS.SET_API_CONFIG_PASSWORD
-export const SETTINGS_TELEMETRY_SETTING = eventConstants.SETTINGS.TELEMETRY_SETTING
-export const SETTINGS_TOGGLE_API_CONFIG_PIN = eventConstants.SETTINGS.TOGGLE_API_CONFIG_PIN
-export const SETTINGS_LIST_WORKTREES = eventConstants.SETTINGS.LIST_WORKTREES
-export const SETTINGS_CREATE_WORKTREE = eventConstants.SETTINGS.CREATE_WORKTREE
-export const SETTINGS_DELETE_WORKTREE = eventConstants.SETTINGS.DELETE_WORKTREE
-export const SETTINGS_SWITCH_WORKTREE = eventConstants.SETTINGS.SWITCH_WORKTREE
-export const SETTINGS_GET_AVAILABLE_BRANCHES = eventConstants.SETTINGS.GET_AVAILABLE_BRANCHES
-export const SETTINGS_GET_WORKTREE_DEFAULTS = eventConstants.SETTINGS.GET_WORKTREE_DEFAULTS
-export const SETTINGS_GET_WORKTREE_INCLUDE_STATUS = eventConstants.SETTINGS.GET_WORKTREE_INCLUDE_STATUS
-export const SETTINGS_CHECK_BRANCH_WORKTREE_INCLUDE = eventConstants.SETTINGS.CHECK_BRANCH_WORKTREE_INCLUDE
-export const SETTINGS_CREATE_WORKTREE_INCLUDE = eventConstants.SETTINGS.CREATE_WORKTREE_INCLUDE
-export const SETTINGS_CHECKOUT_BRANCH = eventConstants.SETTINGS.CHECKOUT_BRANCH
-export const SETTINGS_BROWSE_FOR_WORKTREE_PATH = eventConstants.SETTINGS.BROWSE_FOR_WORKTREE_PATH
-export const SETTINGS_WEBVIEW_LOG = eventConstants.SETTINGS.WEBVIEW_LOG
-export const SETTINGS_DEVTOOL_STATUS = eventConstants.SETTINGS.DEVTOOL_STATUS
-export const SETTINGS_LOCATOR_TARGET = eventConstants.SETTINGS.LOCATOR_TARGET
-export const SETTINGS_DOM_RESPONSE = eventConstants.SETTINGS.DOM_RESPONSE
-export const SETTINGS_WEBVIEW_ERROR = eventConstants.SETTINGS.WEBVIEW_ERROR
-export const SETTINGS_FETCH_URL = eventConstants.SETTINGS.FETCH_URL
-export const SETTINGS_ALLOWED_COMMANDS = eventConstants.SETTINGS.ALLOWED_COMMANDS
-export const SETTINGS_DENIED_COMMANDS = eventConstants.SETTINGS.DENIED_COMMANDS
-export const SETTINGS_OPEN_DEBUG_API_HISTORY = eventConstants.SETTINGS.OPEN_DEBUG_API_HISTORY
-export const SETTINGS_OPEN_DEBUG_UI_HISTORY = eventConstants.SETTINGS.OPEN_DEBUG_UI_HISTORY
-export const SETTINGS_REQUEST_OPEN_AI_CODEX_RATE_LIMITS = eventConstants.SETTINGS.REQUEST_OPEN_AI_CODEX_RATE_LIMITS
-export const SETTINGS_REQUEST_MODES = eventConstants.SETTINGS.REQUEST_MODES
-export const SETTINGS_OPEN_MARKDOWN_PREVIEW = eventConstants.SETTINGS.OPEN_MARKDOWN_PREVIEW
-export const SETTINGS_OPEN_COMMAND_FILE = eventConstants.SETTINGS.OPEN_COMMAND_FILE
-export const SETTINGS_DELETE_COMMAND = eventConstants.SETTINGS.DELETE_COMMAND
-export const SETTINGS_CREATE_COMMAND = eventConstants.SETTINGS.CREATE_COMMAND
-export const SETTINGS_INSERT_TEXT_INTO_TEXTAREA = eventConstants.SETTINGS.INSERT_TEXT_INTO_TEXTAREA
-export const SETTINGS_SHOW_MDM_AUTH_REQUIRED_NOTIFICATION = eventConstants.SETTINGS.SHOW_MDM_AUTH_REQUIRED_NOTIFICATION
-export const SETTINGS_TERMINAL_OPERATION = eventConstants.SETTINGS.TERMINAL_OPERATION
-export const SETTINGS_LOCATOR_OPEN_FILE = eventConstants.SETTINGS.LOCATOR_OPEN_FILE
-export const SETTINGS_MCP_SERVERS = eventConstants.SETTINGS.MCP_SERVERS
-export const SETTINGS_THEME = eventConstants.SETTINGS.THEME
-export const SETTINGS_SELECTED_IMAGES = eventConstants.SETTINGS.SELECTED_IMAGES
+export * from "./events/flat/constants.ts"
 
-/** @deprecated Re-exported from ExtensionState for backward compatibility. Use Record<string, number> directly. */
-export type ProfileThresholds = Record<string, number>
+export type { WebviewProvider, IntentContext, RootStore } from "./extension/types.ts"

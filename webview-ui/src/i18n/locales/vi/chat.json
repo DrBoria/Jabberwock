@@ -116,6 +116,7 @@
 	"unlockApiConfigAcrossModes": "Cấu hình API đã bị khóa cho tất cả chế độ trong workspace này (nhấn để mở khóa)",
 	"enhancePrompt": "Nâng cao yêu cầu với ngữ cảnh bổ sung",
 	"addImages": "Thêm hình ảnh vào tin nhắn",
+	"addGoal": "Thêm làm mục tiêu",
 	"sendMessage": "Gửi tin nhắn",
 	"pressToSend": "Nhấn {{keyCombination}} để gửi",
 	"stopTts": "Dừng chuyển văn bản thành giọng nói",

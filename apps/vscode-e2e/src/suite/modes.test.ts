@@ -2,8 +2,8 @@ import * as assert from "assert"
 
 import { JabberwockEventName } from "@jabberwock/types"
 
-import { waitUntilCompleted } from "./utils"
-import { setDefaultSuiteTimeout } from "./test-utils"
+import { waitUntilCompleted } from "./helpers/utils"
+import { setDefaultSuiteTimeout } from "./helpers/test-utils"
 
 suite("Jabberwock Modes", function () {
 	setDefaultSuiteTimeout(this)

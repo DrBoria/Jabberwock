@@ -152,3 +152,39 @@ export interface AutocompletePickerActions<T extends AutocompleteItem> {
 	/** Force refresh the current search results (for async data that arrived after initial search) */
 	forceRefresh: () => void
 }
+
+/**
+ * Props for the AutocompleteInput component.
+ */
+export interface AutocompleteInputProps<T extends AutocompleteItem = AutocompleteItem> {
+	/** Placeholder text when input is empty */
+	placeholder?: string
+	/** Called when user submits text (Enter without picker open) */
+	onSubmit: (value: string) => void
+	/** Whether the input is active/focused */
+	isActive?: boolean
+	/** Array of autocomplete triggers to enable */
+	triggers: AutocompleteTrigger<T>[]
+	/** Called when an item is selected from the picker */
+	onSelect?: (item: T) => void
+	/** Called when picker state changes - use this to render PickerSelect externally */
+	onPickerStateChange?: (state: AutocompletePickerState<T>) => void
+	/** Prompt character for the first line (default: "> ") */
+	prompt?: string
+}
+
+/**
+ * Ref handle for AutocompleteInput - allows parent to access picker state and actions
+ */
+export interface AutocompleteInputHandle<T extends AutocompleteItem = AutocompleteItem> {
+	/** Current picker state */
+	pickerState: AutocompletePickerState<T>
+	/** Handle item selection from external picker */
+	handleItemSelect: (item: T) => void
+	/** Handle index change from external picker */
+	handleIndexChange: (index: number) => void
+	/** Close the picker */
+	closePicker: () => void
+	/** Force refresh search results (used when async data arrives after initial search) */
+	refreshSearch: () => void
+}

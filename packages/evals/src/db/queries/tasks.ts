@@ -1,4 +1,4 @@
-import { and, asc, eq, sql } from "drizzle-orm"
+import { asc, eq, sql } from "drizzle-orm"
 
 import type { ExerciseLanguage } from "../../exercises/index"
 
@@ -46,23 +46,15 @@ export const updateTask = async (id: number, values: UpdateTask) => {
 	return record
 }
 
-type GetTask = {
-	runId: number
-	language: ExerciseLanguage
-	exercise: string
-}
+export const getTasks = async (runId: number) => {
+	const where = eq(tasks.runId, runId)
 
-export const getTask = async ({ runId, language, exercise }: GetTask) =>
-	db.query.tasks.findFirst({
-		where: and(eq(tasks.runId, runId), eq(tasks.language, language), eq(tasks.exercise, exercise)),
-	})
-
-export const getTasks = async (runId: number) =>
-	db.query.tasks.findMany({
-		where: eq(tasks.runId, runId),
+	return db.query.tasks.findMany({
+		where,
 		with: { taskMetrics: true },
 		orderBy: asc(tasks.id),
 	})
+}
 
 export const getLanguageScores = async () => {
 	const records = await db

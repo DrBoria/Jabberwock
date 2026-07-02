@@ -27,16 +27,7 @@ export function consolidateApiRequests(messages: Notification[]): Notification[]
 		return messages
 	}
 
-	let isMergeNecessary = false
-
-	for (const msg of messages) {
-		if (msg.type === "say" && (msg.say === "api_req_started" || msg.say === "api_req_finished")) {
-			isMergeNecessary = true
-			break
-		}
-	}
-
-	if (!isMergeNecessary) {
+	if (!needsMerge(messages)) {
 		return messages
 	}
 
@@ -50,41 +41,52 @@ export function consolidateApiRequests(messages: Notification[]): Notification[]
 		}
 
 		if (message.say === "api_req_started") {
-			// Add to result and track the index.
 			result.push(message)
 			startedIndices.push(result.length - 1)
 			continue
 		}
 
-		// Find the most recent api_req_started that hasn't been consolidated.
-		const startIndex = startedIndices.length > 0 ? startedIndices.pop() : undefined
-
-		if (startIndex !== undefined) {
-			const startMessage = result[startIndex]
-			if (!startMessage) continue
-
-			let startData = {}
-			let finishData = {}
-
-			try {
-				if (startMessage.text) {
-					startData = JSON.parse(startMessage.text)
-				}
-			} catch {
-				// Ignore JSON parse errors
-			}
-
-			try {
-				if (message.text) {
-					finishData = JSON.parse(message.text)
-				}
-			} catch {
-				// Ignore JSON parse errors
-			}
-
-			result[startIndex] = { ...startMessage, text: JSON.stringify({ ...startData, ...finishData }) }
-		}
+		mergeApiReqFinished(result, startedIndices, message)
 	}
 
 	return result
+}
+
+function needsMerge(messages: Notification[]): boolean {
+	for (const msg of messages) {
+		if (msg.type === "say" && (msg.say === "api_req_started" || msg.say === "api_req_finished")) {
+			return true
+		}
+	}
+	return false
+}
+
+function mergeApiReqFinished(result: Notification[], startedIndices: number[], message: Notification): void {
+	const startIndex = startedIndices.length > 0 ? startedIndices.pop() : undefined
+
+	if (startIndex === undefined) return
+
+	const startMessage = result[startIndex]
+	if (!startMessage) return
+
+	let startData: Record<string, unknown> = {}
+	let finishData: Record<string, unknown> = {}
+
+	try {
+		if (startMessage.text) {
+			startData = JSON.parse(startMessage.text) as Record<string, unknown>
+		}
+	} catch {
+		// Ignore JSON parse errors
+	}
+
+	try {
+		if (message.text) {
+			finishData = JSON.parse(message.text) as Record<string, unknown>
+		}
+	} catch {
+		// Ignore JSON parse errors
+	}
+
+	result[startIndex] = { ...startMessage, text: JSON.stringify({ ...startData, ...finishData }) }
 }

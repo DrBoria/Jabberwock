@@ -1,12 +1,13 @@
 "use client"
 
 import { useMemo } from "react"
-import { ScatterChart, Scatter, XAxis, YAxis, Customized, Cross, LabelList } from "recharts"
+import { ScatterChart, Scatter, XAxis, YAxis, Customized, LabelList } from "recharts"
 
 import { formatCurrency } from "@/lib"
 import { ChartContainer, ChartTooltip, ChartConfig } from "@/components/ui"
 
 import type { EvalRun } from "./types"
+import { renderQuadrant, renderCustomLabel, generateSpectrumColor } from "./plot-helpers"
 
 type PlotProps = {
 	tableData: (EvalRun & { label: string; cost: number })[]
@@ -22,120 +23,85 @@ export const Plot = ({ tableData }: PlotProps) => {
 		[chartData],
 	)
 
-	// Calculate label positions to avoid overlaps.
 	const labelPositions = useMemo(() => {
 		const positions: Record<string, LabelPosition> = {}
+		const placedLabels: Array<{ cost: number; score: number; label: string; position: LabelPosition }> = []
 
-		// Track placed labels with their approximate bounds.
-		const placedLabels: Array<{
-			cost: number
-			score: number
-			label: string
-			position: LabelPosition
-		}> = []
+		const isCloseEnough = (p1: { cost: number; score: number }, p2: { cost: number; score: number }) => {
+			const costDiff = Math.abs(p1.cost - p2.cost)
+			const scoreDiff = Math.abs(p1.score - p2.score)
+			return costDiff < 8 || scoreDiff < 10
+		}
 
-		// Helper function to check if two labels would overlap.
+		const sameSideOverlap = (
+			p1: { cost: number; score: number; position: LabelPosition },
+			p2: { cost: number; score: number; position: LabelPosition },
+		) => {
+			const costDiff = Math.abs(p1.cost - p2.cost)
+			const scoreDiff = Math.abs(p1.score - p2.score)
+			if (costDiff >= 4 || scoreDiff >= 2.5) return false
+			const sameTop = p1.position === "top" && p2.position === "top"
+			const sameBottom = p1.position === "bottom" && p2.position === "bottom"
+			return sameTop || sameBottom
+		}
+
 		const wouldLabelsOverlap = (
 			p1: { cost: number; score: number; position: LabelPosition },
 			p2: { cost: number; score: number; position: LabelPosition },
 		): boolean => {
-			// Approximate thresholds for overlap detection.
-			const horizontalThreshold = 4 // Cost units.
-			const verticalThreshold = 5 // Score units.
-
+			if (!isCloseEnough(p1, p2)) return false
 			const costDiff = Math.abs(p1.cost - p2.cost)
 			const scoreDiff = Math.abs(p1.score - p2.score)
-
-			// If points are far apart, no overlap.
-			if (costDiff > horizontalThreshold * 2 || scoreDiff > verticalThreshold * 2) {
-				return false
-			}
-
-			// Check specific position combinations for overlap.
-			// Same position for nearby points definitely overlaps.
-			if (p1.position === p2.position && costDiff < horizontalThreshold && scoreDiff < verticalThreshold) {
-				return true
-			}
-
-			// Check adjacent position overlaps.
-			const p1IsTop = p1.position === "top"
-			const p1IsBottom = p1.position === "bottom"
-			const p2IsTop = p2.position === "top"
-			const p2IsBottom = p2.position === "bottom"
-
-			// If both labels are on the same vertical side and points are close
-			// horizontally.
-			if ((p1IsTop && p2IsTop) || (p1IsBottom && p2IsBottom)) {
-				if (costDiff < horizontalThreshold && scoreDiff < verticalThreshold / 2) {
-					return true
-				}
-			}
-
-			return false
+			if (p1.position === p2.position && costDiff < 4 && scoreDiff < 5) return true
+			return sameSideOverlap(p1, p2)
 		}
 
-		// Helper function to check if position would overlap with a data point.
+		const checkTopOverlap = (point: (typeof chartData)[0], other: (typeof chartData)[0]) => {
+			const costDiff = Math.abs(point.cost - other.cost)
+			return costDiff < 3 && other.score > point.score && other.score - point.score < 6
+		}
+
+		const checkBottomOverlap = (point: (typeof chartData)[0], other: (typeof chartData)[0]) => {
+			const costDiff = Math.abs(point.cost - other.cost)
+			return costDiff < 3 && other.score < point.score && point.score - other.score < 6
+		}
+
+		const checkLeftOverlap = (point: (typeof chartData)[0], other: (typeof chartData)[0]) => {
+			const scoreDiff = Math.abs(point.score - other.score)
+			return scoreDiff < 3 && other.cost < point.cost && point.cost - other.cost < 4
+		}
+
+		const checkRightOverlap = (point: (typeof chartData)[0], other: (typeof chartData)[0]) => {
+			const scoreDiff = Math.abs(point.score - other.score)
+			return scoreDiff < 3 && other.cost > point.cost && other.cost - point.cost < 4
+		}
+
 		const wouldOverlapPoint = (point: (typeof chartData)[0], position: LabelPosition): boolean => {
+			const checkFn = {
+				top: checkTopOverlap,
+				bottom: checkBottomOverlap,
+				left: checkLeftOverlap,
+				right: checkRightOverlap,
+			}[position]
 			for (const other of chartData) {
-				if (other.label === point.label) {
-					continue
-				}
-
-				const costDiff = Math.abs(point.cost - other.cost)
-				const scoreDiff = Math.abs(point.score - other.score)
-
-				// Check if label would be placed on top of another point.
-				switch (position) {
-					case "top":
-						// Label is above, check if there's a point above.
-						if (costDiff < 3 && other.score > point.score && other.score - point.score < 6) {
-							return true
-						}
-						break
-					case "bottom":
-						// Label is below, check if there's a point below.
-						if (costDiff < 3 && other.score < point.score && point.score - other.score < 6) {
-							return true
-						}
-						break
-					case "left":
-						// Label is to the left, check if there's a point to the left.
-						if (scoreDiff < 3 && other.cost < point.cost && point.cost - other.cost < 4) {
-							return true
-						}
-						break
-					case "right":
-						// Label is to the right, check if there's a point to the right.
-						if (scoreDiff < 3 && other.cost > point.cost && other.cost - point.cost < 4) {
-							return true
-						}
-						break
-				}
+				if (other.label === point.label) continue
+				if (checkFn(point, other)) return true
 			}
 			return false
 		}
 
-		// Sort points to process them in a consistent order.
-		// Process from top-left to bottom-right.
 		const sortedData = [...chartData].sort((a, b) => {
-			// First by score (higher first).
 			const scoreDiff = b.score - a.score
 			if (Math.abs(scoreDiff) > 1) return scoreDiff
-			// Then by cost (lower first).
 			return a.cost - b.cost
 		})
 
-		// Process each point and find the best position.
 		sortedData.forEach((point) => {
-			// Try positions in order of preference.
 			const positionPreferences: LabelPosition[] = ["top", "bottom", "right", "left"]
-
 			let bestPosition: LabelPosition = "top"
 
 			for (const position of positionPreferences) {
-				// Check if this position would overlap with any placed labels.
 				let hasLabelOverlap = false
-
 				for (const placed of placedLabels) {
 					if (
 						wouldLabelsOverlap(
@@ -147,25 +113,15 @@ export const Plot = ({ tableData }: PlotProps) => {
 						break
 					}
 				}
-
-				// Check if this position would overlap with any data points.
 				const hasPointOverlap = wouldOverlapPoint(point, position)
-
-				// If no overlaps, use this position.
 				if (!hasLabelOverlap && !hasPointOverlap) {
 					bestPosition = position
 					break
 				}
 			}
 
-			// Use the best position found
 			positions[point.label] = bestPosition
-			placedLabels.push({
-				cost: point.cost,
-				score: point.score,
-				label: point.label,
-				position: bestPosition,
-			})
+			placedLabels.push({ cost: point.cost, score: point.score, label: point.label, position: bestPosition })
 		})
 
 		return positions
@@ -198,12 +154,8 @@ export const Plot = ({ tableData }: PlotProps) => {
 					/>
 					<ChartTooltip
 						content={({ active, payload }) => {
-							if (!active || !payload || !payload.length || !payload[0]) {
-								return null
-							}
-
+							if (!active || !payload || !payload.length || !payload[0]) return null
 							const { label, cost, score } = payload[0].payload
-
 							return (
 								<div className="bg-background border rounded-sm p-2 shadow-sm text-left">
 									<div className="border-b pb-1">{label}</div>
@@ -239,105 +191,4 @@ export const Plot = ({ tableData }: PlotProps) => {
 			</div>
 		</>
 	)
-}
-
-const renderQuadrant = (props: { width?: number; height?: number }) => {
-	const w = props.width ?? 0
-	const h = props.height ?? 0
-	return (
-		<Cross
-			width={w}
-			height={h}
-			x={w / 2 + 35}
-			y={h / 2 - 15}
-			top={0}
-			left={0}
-			stroke="currentColor"
-			opacity={0.1}
-		/>
-	)
-}
-
-const renderCustomLabel = (
-	props: { x?: string | number; y?: string | number; value?: string | number },
-	position: LabelPosition,
-) => {
-	const { value } = props
-	const x = Number(props.x ?? 0)
-	const y = Number(props.y ?? 0)
-	const maxWidth = 80 // Maximum width in pixels - adjust as needed.
-
-	const truncateText = (text: string, maxChars: number = 20) => {
-		if (text.length <= maxChars) {
-			return text
-		}
-
-		return text.substring(0, maxChars - 1) + "…"
-	}
-
-	// Calculate position offsets based on label position.
-	let xOffset = 0
-	let yOffset = 0
-	let textAnchor: "middle" | "start" | "end" = "middle"
-	let dominantBaseline: "auto" | "hanging" | "middle" = "auto"
-
-	switch (position) {
-		case "top":
-			yOffset = -8
-			textAnchor = "middle"
-			dominantBaseline = "auto"
-			break
-		case "bottom":
-			yOffset = 15
-			textAnchor = "middle"
-			dominantBaseline = "hanging"
-			break
-		case "left":
-			xOffset = -8
-			yOffset = 5
-			textAnchor = "end"
-			dominantBaseline = "middle"
-			break
-		case "right":
-			xOffset = 15
-			yOffset = 5
-			textAnchor = "start"
-			dominantBaseline = "middle"
-			break
-	}
-
-	return (
-		<text
-			x={x + xOffset}
-			y={y + yOffset}
-			fontSize="11"
-			fontWeight="500"
-			fill="currentColor"
-			opacity="0.8"
-			textAnchor={textAnchor}
-			dominantBaseline={dominantBaseline}
-			style={{
-				pointerEvents: "none",
-				maxWidth: `${maxWidth}px`,
-				overflow: "hidden",
-				textOverflow: "ellipsis",
-				whiteSpace: "nowrap",
-			}}>
-			{truncateText(String(value ?? ""))}
-		</text>
-	)
-}
-
-const generateSpectrumColor = (index: number, total: number): string => {
-	// Distribute hues evenly across the color wheel (0-360 degrees).
-	// Start at 0 (red) and distribute evenly.
-	const hue = (index * 360) / total
-
-	// Use high saturation for vibrant colors.
-	const saturation = 70
-
-	// Use medium lightness for good visibility on both light and dark backgrounds.
-	const lightness = 50
-
-	return `hsl(${Math.round(hue)}, ${saturation}%, ${lightness}%)`
 }

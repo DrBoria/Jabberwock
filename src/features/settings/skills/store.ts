@@ -1,6 +1,6 @@
 import { types, Instance } from "mobx-state-tree"
 import type { EventBridge } from "@features/foundation/webview/EventBridge"
-import type { SkillsManager } from "../../../services/skills/SkillsManager"
+import type { SkillsManager } from "@services/skills/SkillsManager"
 import { getState } from "@features/storeSingleton"
 
 /**
@@ -36,7 +36,7 @@ export interface SkillsState {
 
 export function initSkillsState(_provider: EventBridge): void {}
 
-import type { IBackendRootStore } from "../../store"
+import type { IBackendRootStore } from "@features/store"
 
 export function getSkillsState(rootStore: IBackendRootStore): SkillsState {
 	return rootStore.settings.skills as SkillsState
@@ -45,3 +45,5 @@ export function getSkillsState(rootStore: IBackendRootStore): SkillsState {
 export function getSkillsManager(rootStore: IBackendRootStore): SkillsManager | undefined {
 	return rootStore.settings.skills.skillsManager ?? undefined
 }
+
+export type { SkillsManager }

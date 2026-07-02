@@ -99,6 +99,25 @@ export function isStreamTeardownLikeError(error: unknown): boolean {
 	return STREAM_TEARDOWN_PATTERNS.some((pattern) => details.normalizedMessage.includes(pattern))
 }
 
+function isTeardownWithShutdown(error: unknown, context: ExpectedControlFlowErrorContext): boolean {
+	return (context.shuttingDown ?? false) && isStreamTeardownLikeError(error)
+}
+
+function isCancellationOrNoActiveWithShutdown(error: unknown, context: ExpectedControlFlowErrorContext): boolean {
+	return (
+		((context.shuttingDown ?? false) || (context.cancelRequested ?? false)) &&
+		(isCancellationLikeError(error) || isNoActiveTaskLikeError(error))
+	)
+}
+
+function isRuntimeCancellation(error: unknown, context: ExpectedControlFlowErrorContext): boolean {
+	return context.operation === "runtime" && isCancellationLikeError(error)
+}
+
+function isCancelShutdownNoActive(error: unknown, context: ExpectedControlFlowErrorContext): boolean {
+	return (context.operation === "cancel" || context.operation === "shutdown") && isNoActiveTaskLikeError(error)
+}
+
 /**
  * Classify errors that should be treated as expected control flow rather than
  * fatal failures while handling stdin stream tasks.
@@ -108,22 +127,19 @@ export function isExpectedControlFlowError(error: unknown, context: ExpectedCont
 		return false
 	}
 
-	if (context.shuttingDown && isStreamTeardownLikeError(error)) {
+	if (isTeardownWithShutdown(error, context)) {
 		return true
 	}
 
-	const isCancelLike = isCancellationLikeError(error)
-	if (isCancelLike && (context.cancelRequested || context.shuttingDown || context.operation === "runtime")) {
+	if (isCancellationOrNoActiveWithShutdown(error, context)) {
 		return true
 	}
 
-	if (
-		isNoActiveTaskLikeError(error) &&
-		(context.cancelRequested ||
-			context.shuttingDown ||
-			context.operation === "cancel" ||
-			context.operation === "shutdown")
-	) {
+	if (isRuntimeCancellation(error, context)) {
+		return true
+	}
+
+	if (isCancelShutdownNoActive(error, context)) {
 		return true
 	}
 

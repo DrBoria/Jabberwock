@@ -80,6 +80,71 @@ const variantConfig = {
 	},
 }
 
+function CTAButton({
+	href,
+	text,
+	variant: btnVariant = "default",
+}: {
+	href: string
+	text: string
+	variant?: "default" | "outline"
+}) {
+	const isExternal = href.startsWith("http")
+	const content = (
+		<>
+			{text}
+			{btnVariant === "default" && <ArrowRight className="ml-1 h-4 w-4" />}
+		</>
+	)
+
+	if (isExternal) {
+		return (
+			<Button variant={btnVariant} asChild>
+				<a href={href} target="_blank" rel="noopener noreferrer">
+					{content}
+				</a>
+			</Button>
+		)
+	}
+
+	return (
+		<Button variant={btnVariant} asChild>
+			<Link href={href}>{content}</Link>
+		</Button>
+	)
+}
+
+interface CTALinkItemProps {
+	link: CTALink
+	index: number
+}
+
+function CTALinkItem({ link, index }: CTALinkItemProps) {
+	return (
+		<li className="flex items-start gap-3">
+			<span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
+				{index + 1}
+			</span>
+			<div>
+				{link.external ? (
+					<a
+						href={link.href}
+						target="_blank"
+						rel="noopener noreferrer"
+						className="font-medium text-primary hover:underline">
+						{link.label}
+					</a>
+				) : (
+					<Link href={link.href} className="font-medium text-primary hover:underline">
+						{link.label}
+					</Link>
+				)}
+				{link.description && <span className="text-muted-foreground"> — {link.description}</span>}
+			</div>
+		</li>
+	)
+}
+
 /**
  * A contextual CTA module for blog posts
  * Inspired by Vercel's "Get started" modules at the end of blog posts
@@ -99,87 +164,35 @@ export function BlogPostCTA({
 
 	const finalHeadline = headline ?? config.headline
 	const finalDescription = description ?? config.description
-	const finalPrimaryText = primaryButtonText ?? config.primaryText
 	const finalPrimaryHref = primaryButtonHref ?? config.primaryHref
-	const finalSecondaryText = secondaryButtonText ?? config.secondaryText
 	const finalSecondaryHref = secondaryButtonHref ?? config.secondaryHref
-
-	const isExternalPrimary = finalPrimaryHref.startsWith("http")
-	const isExternalSecondary = finalSecondaryHref.startsWith("http")
 
 	return (
 		<div className="not-prose mt-12 rounded-xl border border-border bg-muted/30 p-6 sm:p-8">
 			<div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:gap-8">
-				{/* Icon */}
 				<div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10">
 					<Icon className="h-6 w-6 text-primary" />
 				</div>
 
-				{/* Content */}
 				<div className="flex-1">
 					<h3 className="text-xl font-semibold text-foreground">{finalHeadline}</h3>
 					<p className="mt-2 text-muted-foreground">{finalDescription}</p>
 
-					{/* Links list (optional, Vercel-style numbered list) */}
 					{links && links.length > 0 && (
 						<ol className="mt-4 space-y-2">
 							{links.map((link, index) => (
-								<li key={link.href} className="flex items-start gap-3">
-									<span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
-										{index + 1}
-									</span>
-									<div>
-										{link.external ? (
-											<a
-												href={link.href}
-												target="_blank"
-												rel="noopener noreferrer"
-												className="font-medium text-primary hover:underline">
-												{link.label}
-											</a>
-										) : (
-											<Link href={link.href} className="font-medium text-primary hover:underline">
-												{link.label}
-											</Link>
-										)}
-										{link.description && (
-											<span className="text-muted-foreground"> — {link.description}</span>
-										)}
-									</div>
-								</li>
+								<CTALinkItem key={link.href} link={link} index={index} />
 							))}
 						</ol>
 					)}
 
-					{/* Action buttons */}
 					<div className="mt-6 flex flex-col gap-3 sm:flex-row">
-						{isExternalPrimary ? (
-							<Button asChild>
-								<a href={finalPrimaryHref} target="_blank" rel="noopener noreferrer">
-									{finalPrimaryText}
-									<ArrowRight className="ml-1 h-4 w-4" />
-								</a>
-							</Button>
-						) : (
-							<Button asChild>
-								<Link href={finalPrimaryHref}>
-									{finalPrimaryText}
-									<ArrowRight className="ml-1 h-4 w-4" />
-								</Link>
-							</Button>
-						)}
-
-						{isExternalSecondary ? (
-							<Button variant="outline" asChild>
-								<a href={finalSecondaryHref} target="_blank" rel="noopener noreferrer">
-									{finalSecondaryText}
-								</a>
-							</Button>
-						) : (
-							<Button variant="outline" asChild>
-								<Link href={finalSecondaryHref}>{finalSecondaryText}</Link>
-							</Button>
-						)}
+						<CTAButton href={finalPrimaryHref} text={primaryButtonText ?? config.primaryText} />
+						<CTAButton
+							href={finalSecondaryHref}
+							text={secondaryButtonText ?? config.secondaryText}
+							variant="outline"
+						/>
 					</div>
 				</div>
 			</div>

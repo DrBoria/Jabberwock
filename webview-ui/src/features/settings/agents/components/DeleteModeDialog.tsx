@@ -9,7 +9,7 @@ import {
 	AlertDialogFooter,
 	AlertDialogHeader,
 	AlertDialogTitle,
-} from "@src/features/foundation/ui"
+} from "@src/shared/ui/overlays/alert-dialog"
 
 interface DeleteModeDialogProps {
 	open: boolean

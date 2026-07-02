@@ -17,4 +17,10 @@ export default [
 			"@typescript-eslint/no-require-imports": "off",
 		},
 	},
+	{
+		files: ["src/importVscode.ts"],
+		rules: {
+			"local/no-dynamic-imports": "off",
+		},
+	},
 ]

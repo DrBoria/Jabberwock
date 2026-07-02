@@ -1,6 +1,6 @@
 import React from "react"
 import type { Notification } from "@jabberwock/types"
-import { ErrorRow } from "../row/error-row"
+import { ErrorRow } from "../row/error-rows/error-row"
 
 interface ErrorSayProps {
 	message: Notification

@@ -1,6 +1,6 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "../../../../intents/bus"
-import { checkContextWindowExceededError } from "../context-error-handling"
+import type { IntentBus } from "@features/intents/bus"
+import { checkContextWindowExceededError } from "@features/foundation/time-machine/file-context/context-error-handling"
 
 /**
  * Handles context.window.exceeded intent — checks whether an API error

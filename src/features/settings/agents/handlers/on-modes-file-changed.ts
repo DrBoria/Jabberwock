@@ -1,7 +1,7 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "../../../intents/bus"
+import type { IntentBus } from "@features/intents/bus"
 import { postStateToWebview } from "@features/foundation/window-manager/store"
-import { loadAndMergeModes, requireContext } from "../modesFileService"
+import { loadAndMergeModes, requireContext } from "@features/settings/agents"
 
 /**
  * Handler for SettingsModeFileChanged intent.

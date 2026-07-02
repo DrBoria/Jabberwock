@@ -1,0 +1,1 @@
+export { CodeIndexOllamaEmbedder } from "./embedder"

@@ -3,14 +3,13 @@ import posthog from "posthog-js"
 import type { TelemetrySetting } from "@jabberwock/types"
 
 class TelemetryClient {
-	private static instance: TelemetryClient
-	private static telemetryEnabled: boolean = false
+	private telemetryEnabled: boolean = false
 
 	public updateTelemetryState(telemetrySetting: TelemetrySetting, apiKey?: string, distinctId?: string) {
 		posthog.reset()
 
 		if (telemetrySetting !== "disabled" && apiKey && distinctId) {
-			TelemetryClient.telemetryEnabled = true
+			this.telemetryEnabled = true
 
 			posthog.init(apiKey, {
 				api_host: "https://ph.jabberwock.com",
@@ -22,20 +21,12 @@ class TelemetryClient {
 				autocapture: false,
 			})
 		} else {
-			TelemetryClient.telemetryEnabled = false
+			this.telemetryEnabled = false
 		}
 	}
 
-	public static getInstance(): TelemetryClient {
-		if (!TelemetryClient.instance) {
-			TelemetryClient.instance = new TelemetryClient()
-		}
-
-		return TelemetryClient.instance
-	}
-
-	public capture(eventName: string, properties?: Record<string, any>) {
-		if (TelemetryClient.telemetryEnabled) {
+	public capture(eventName: string, properties?: Record<string, unknown>) {
+		if (this.telemetryEnabled) {
 			try {
 				posthog.capture(eventName, properties)
 			} catch (_error) {
@@ -45,4 +36,4 @@ class TelemetryClient {
 	}
 }
 
-export const telemetryClient = TelemetryClient.getInstance()
+export const telemetryClient = new TelemetryClient()

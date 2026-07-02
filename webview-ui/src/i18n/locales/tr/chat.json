@@ -116,6 +116,7 @@
 	"unlockApiConfigAcrossModes": "Bu çalışma alanındaki tüm modlarda API yapılandırması kilitli (kilidi açmak için tıkla)",
 	"enhancePrompt": "Ek bağlamla istemi geliştir",
 	"addImages": "Mesaja resim ekle",
+	"addGoal": "Hedef olarak ekle",
 	"sendMessage": "Mesaj gönder",
 	"pressToSend": "Göndermek için {{keyCombination}} tuşuna bas",
 	"stopTts": "Metin okumayı durdur",

@@ -2,7 +2,7 @@ import { VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 import { useTranslation } from "react-i18next"
 import { Trans } from "react-i18next"
 
-import { buildDocLink } from "@/utils/docLinks"
+import { buildDocLink } from "@/utils/misc/docLinks"
 import { ReplaceAll, Users } from "lucide-react"
 
 const tips = [

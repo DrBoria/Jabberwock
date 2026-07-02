@@ -74,45 +74,96 @@ function paginateSearchResults(results: SearchResult[] | undefined, limit = 10, 
 	return JSON.stringify({ results: paginated, totalResults })
 }
 
+function isTraversalComplete(results: SearchResult[], maxResults: number): boolean {
+	return results.length >= maxResults
+}
+
+function addKeyMatch(key: string, value: unknown, currentPath: string, query: string, results: SearchResult[]): void {
+	const newPath = currentPath ? `${currentPath}.${key}` : key
+	if (!key.toLowerCase().includes(query)) {
+		return
+	}
+	const rawVal = typeof value === "string" ? value : JSON.stringify(value)
+	const val = rawVal ?? "null"
+	results.push({ path: newPath, value: val.length > 200 ? val.slice(0, 200) + "..." : val })
+}
+
+function handleStringMatch(value: string, currentPath: string, query: string, results: SearchResult[]): void {
+	if (!value.toLowerCase().includes(query)) {
+		return
+	}
+	results.push({ path: currentPath, value: value.length > 200 ? value.slice(0, 200) + "..." : value })
+}
+
+function traverseObject(
+	obj: Record<string, unknown>,
+	currentPath: string,
+	query: string,
+	maxDepth: number,
+	maxResults: number,
+	results: SearchResult[],
+	depth: number,
+): void {
+	for (const [key, value] of Object.entries(obj)) {
+		if (isTraversalComplete(results, maxResults)) {
+			return
+		}
+		addKeyMatch(key, value, currentPath, query, results)
+		traverse(value, currentPath ? `${currentPath}.${key}` : key, query, maxDepth, maxResults, results, depth + 1)
+	}
+}
+
+function traverseArray(
+	arr: unknown[],
+	currentPath: string,
+	query: string,
+	maxDepth: number,
+	maxResults: number,
+	results: SearchResult[],
+	depth: number,
+): void {
+	arr.forEach((item, index) => {
+		if (isTraversalComplete(results, maxResults)) {
+			return
+		}
+		const newPath = `${currentPath}[${index}]`
+		traverse(item, newPath, query, maxDepth, maxResults, results, depth + 1)
+	})
+}
+
+function traverse(
+	obj: unknown,
+	currentPath: string,
+	query: string,
+	maxDepth: number,
+	maxResults: number,
+	results: SearchResult[],
+	depth: number,
+): void {
+	if (obj === null || obj === undefined) {
+		return
+	}
+	if (depth > maxDepth) {
+		return
+	}
+	if (isTraversalComplete(results, maxResults)) {
+		return
+	}
+	if (typeof obj === "object" && !Array.isArray(obj)) {
+		traverseObject(obj as Record<string, unknown>, currentPath, query, maxDepth, maxResults, results, depth)
+		return
+	}
+	if (Array.isArray(obj)) {
+		traverseArray(obj, currentPath, query, maxDepth, maxResults, results, depth)
+		return
+	}
+	if (typeof obj === "string") {
+		handleStringMatch(obj, currentPath, query, results)
+	}
+}
+
 function searchSnapshot(obj: Record<string, unknown>, query: string, maxDepth = 10, maxResults = 1000): SearchResult[] {
 	const results: SearchResult[] = []
-
-	function traverse(obj: unknown, currentPath: string, depth: number): void {
-		if (obj === null || obj === undefined) {
-			return
-		}
-		if (depth > maxDepth) {
-			return
-		}
-		if (results.length >= maxResults) {
-			return
-		}
-		if (typeof obj === "object" && !Array.isArray(obj)) {
-			for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
-				if (results.length >= maxResults) {
-					return
-				}
-				const newPath = currentPath ? `${currentPath}.${key}` : key
-				if (key.toLowerCase().includes(query)) {
-					const rawVal = typeof value === "string" ? value : JSON.stringify(value)
-					const val = rawVal ?? "null"
-					results.push({ path: newPath, value: val.length > 200 ? val.slice(0, 200) + "..." : val })
-				}
-				traverse(value, newPath, depth + 1)
-			}
-		} else if (Array.isArray(obj)) {
-			obj.forEach((item, index) => {
-				if (results.length >= maxResults) {
-					return
-				}
-				const newPath = `${currentPath}[${index}]`
-				traverse(item, newPath, depth + 1)
-			})
-		} else if (typeof obj === "string" && obj.toLowerCase().includes(query)) {
-			results.push({ path: currentPath, value: obj.length > 200 ? obj.slice(0, 200) + "..." : obj })
-		}
-	}
-
-	traverse(obj, "", 0)
+	traverse(obj, "", query, maxDepth, maxResults, results, 0)
 	return results
 }

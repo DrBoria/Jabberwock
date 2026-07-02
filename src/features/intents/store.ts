@@ -51,7 +51,7 @@ export interface IntentSnapshot extends SnapshotOut<typeof IntentModel> {}
  * handler.
  */
 export const IntentStoreModel = types
-	.model("IntentStore", {
+	.model("Intents", {
 		intents: types.array(IntentModel),
 	})
 	.actions((self) => ({

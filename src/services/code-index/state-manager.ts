@@ -31,28 +31,33 @@ export class CodeIndexStateManager {
 	// --- State Management ---
 
 	public setSystemState(newState: IndexingState, message?: string): void {
-		const stateChanged =
-			newState !== this._systemStatus || (message !== undefined && message !== this._statusMessage)
-
-		if (stateChanged) {
-			this._systemStatus = newState
-			if (message !== undefined) {
-				this._statusMessage = message
-			}
-
-			// Reset progress counters if moving to a non-indexing state or starting fresh
-			if (newState !== "Indexing") {
-				this._processedItems = 0
-				this._totalItems = 0
-				this._currentItemUnit = "blocks" // Reset to default unit
-				// Optionally clear the message or set a default for non-indexing states
-				if (newState === "Standby" && message === undefined) this._statusMessage = "Ready."
-				if (newState === "Indexed" && message === undefined) this._statusMessage = "Index up-to-date."
-				if (newState === "Error" && message === undefined) this._statusMessage = "An error occurred."
-			}
-
-			this._progressEmitter.fire(this.getCurrentStatus())
+		if (!this._isStateChanged(newState, message)) {
+			return
 		}
+
+		this._systemStatus = newState
+		if (message !== undefined) {
+			this._statusMessage = message
+		}
+
+		if (newState !== "Indexing") {
+			this._processedItems = 0
+			this._totalItems = 0
+			this._currentItemUnit = "blocks"
+			this._setDefaultMessageForState(newState, message)
+		}
+
+		this._progressEmitter.fire(this.getCurrentStatus())
+	}
+
+	private _isStateChanged(newState: IndexingState, message: string | undefined): boolean {
+		return newState !== this._systemStatus || (message !== undefined && message !== this._statusMessage)
+	}
+
+	private _setDefaultMessageForState(newState: IndexingState, message: string | undefined): void {
+		if (newState === "Standby" && message === undefined) this._statusMessage = "Ready."
+		if (newState === "Indexed" && message === undefined) this._statusMessage = "Index up-to-date."
+		if (newState === "Error" && message === undefined) this._statusMessage = "An error occurred."
 	}
 
 	public reportBlockIndexingProgress(processedItems: number, totalItems: number): void {
@@ -83,7 +88,6 @@ export class CodeIndexStateManager {
 	public reportFileQueueProgress(processedFiles: number, totalFiles: number, currentFileBasename?: string): void {
 		const progressChanged = processedFiles !== this._processedItems || totalFiles !== this._totalItems
 
-		// Don't override Stopping state with progress updates
 		if (this._systemStatus === "Stopping") return
 		if (progressChanged || this._systemStatus !== "Indexing") {
 			this._processedItems = processedFiles
@@ -91,26 +95,27 @@ export class CodeIndexStateManager {
 			this._currentItemUnit = "files"
 			this._systemStatus = "Indexing"
 
-			let message: string
-			if (totalFiles > 0 && processedFiles < totalFiles) {
-				message = `Processing ${processedFiles} / ${totalFiles} ${this._currentItemUnit}. Current: ${
-					currentFileBasename || "..."
-				}`
-			} else if (totalFiles > 0 && processedFiles === totalFiles) {
-				message = `Finished processing ${totalFiles} ${this._currentItemUnit} from queue.`
-			} else {
-				message = `File queue processed.`
-			}
-
-			const oldStatus = this._systemStatus
 			const oldMessage = this._statusMessage
+			this._statusMessage = this._buildFileQueueMessage(processedFiles, totalFiles, currentFileBasename)
 
-			this._statusMessage = message
-
-			if (oldStatus !== this._systemStatus || oldMessage !== this._statusMessage || progressChanged) {
+			if (this._shouldEmitProgressUpdate(oldMessage, progressChanged)) {
 				this._progressEmitter.fire(this.getCurrentStatus())
 			}
 		}
+	}
+
+	private _buildFileQueueMessage(processedFiles: number, totalFiles: number, currentFileBasename?: string): string {
+		if (totalFiles > 0 && processedFiles < totalFiles) {
+			return `Processing ${processedFiles} / ${totalFiles} files. Current: ${currentFileBasename || "..."}`
+		}
+		if (totalFiles > 0 && processedFiles === totalFiles) {
+			return `Finished processing ${totalFiles} files from queue.`
+		}
+		return "File queue processed."
+	}
+
+	private _shouldEmitProgressUpdate(oldMessage: string, progressChanged: boolean): boolean {
+		return oldMessage !== this._statusMessage || progressChanged
 	}
 
 	public dispose(): void {

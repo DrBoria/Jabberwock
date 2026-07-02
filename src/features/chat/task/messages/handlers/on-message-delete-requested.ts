@@ -1,5 +1,5 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "../../../../intents/bus"
+import type { IntentBus } from "@features/intents/bus"
 import { handleDeleteOperation } from "./helpers/deleteOperations"
 
 /**

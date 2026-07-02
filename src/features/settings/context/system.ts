@@ -2,14 +2,15 @@ import * as vscode from "vscode"
 
 import { type ModeConfig, type PromptComponent, type CustomModePrompts, type TodoItem } from "@jabberwock/types"
 
-import { Mode, modes, defaultModeSlug, getModeBySlug, getGroupName, getModeSelection } from "../../../shared/modes"
-import { DiffStrategy } from "../../../shared/tools"
-import { formatLanguage } from "../../../shared/language"
-import { isEmpty } from "../../../utils/object"
+import { Mode, modes, defaultModeSlug, getModeBySlug, getGroupName, getModeSelection } from "@shared/modes"
+import { DiffStrategy } from "@shared/tools"
+import { formatLanguage } from "@shared/language"
+import { isEmpty } from "@utils/object"
 
-import { McpHub } from "../../../services/mcp/McpHub"
-import { CodeIndexManager, getCodeIndexManager } from "../../../services/code-index/manager"
-import { SkillsManager } from "../../../services/skills/SkillsManager"
+import { McpHub } from "@services/mcp/core/McpHub"
+import { CodeIndexManager } from "@services/code-index/manager/manager"
+import { getCodeIndexManager } from "@services/code-index/manager/manager.factory"
+import { SkillsManager } from "@services/skills/SkillsManager"
 
 import type { SystemPromptSettings } from "./types"
 import {
@@ -38,7 +39,7 @@ export function getPromptComponent(
 	return component
 }
 
-import { agentStore } from "../agents/store"
+import { agentStore } from "@features/settings/agents/store/index"
 
 async function generatePrompt(
 	context: vscode.ExtensionContext,
@@ -63,75 +64,107 @@ async function generatePrompt(
 		throw new Error("Extension context is required for generating system prompt")
 	}
 
-	// 1. Try to get role from static mode configurations first (.jabberwockmodes or built-in)
 	const modeSelection = getModeSelection(mode, promptComponent, customModeConfigs)
 	let roleDefinition = modeSelection.roleDefinition
 	let baseInstructions = modeSelection.baseInstructions
 
-	// 2. If AgentStore has a more specific profile (Phase 2), let it override OR provide additional info
 	const agentProfile = agentStore.agents.get(mode)
 	if (agentProfile && !roleDefinition) {
-		// Only take role from AgentStore if we don't have a static definition from the mode selection
 		roleDefinition = agentProfile.systemPrompt
 		baseInstructions = ""
 	}
 
-	// Get the full mode config to ensure we have the role definition (used for groups, etc.)
-	const modeConfig = getModeBySlug(mode, customModeConfigs) || modes.find((m) => m.slug === mode) || modes[0]
-
-	const hasMcpGroup = modeConfig.groups.some((groupEntry) => getGroupName(groupEntry) === "mcp")
-	const hasMcpServers = mcpHub && mcpHub.getServers().length > 0
-	const shouldIncludeMcp = hasMcpGroup && hasMcpServers
+	const modeConfig = resolveModeConfig(mode, customModeConfigs)
+	const shouldIncludeMcp = shouldIncludeMcpSection(modeConfig, mcpHub)
 
 	const codeIndexManager = getCodeIndexManager(context, cwd)
-
-	const effectiveProtocol = "native"
 
 	const [modesSection, skillsSection] = await Promise.all([
 		getModesSection(context),
 		getSkillsSection(skillsManager, mode as string),
 	])
 
-	const toolsCatalog = ""
-
-	// Process templates if provided
 	const tpl = systemPromptTemplates || {}
 
-	const formatTemplate = (template: string, defaultContent: string) => {
-		if (!template) return defaultContent
-		// In the future, we can add variable replacement here like:
-		// return template.replace(/\{\{cwd\}\}/g, cwd)
-		return template
+	const basePrompt = buildBasePrompt(
+		roleDefinition,
+		tpl,
+		cwd,
+		shouldIncludeMcp ? mcpHub : undefined,
+		mode,
+		customModeConfigs,
+		modesSection,
+		skillsSection,
+		settings,
+		baseInstructions,
+		globalCustomInstructions ?? "",
+		language ? language : formatLanguage(vscode.env.language),
+		jabberwockIgnoreInstructions,
+	)
+
+	return basePrompt
+}
+
+function resolveModeConfig(mode: Mode, customModeConfigs?: ModeConfig[]): ModeConfig {
+	return getModeBySlug(mode, customModeConfigs) || modes.find((m) => m.slug === mode) || modes[0]
+}
+
+function shouldIncludeMcpSection(modeConfig: ModeConfig, mcpHub?: McpHub): boolean {
+	const hasMcpGroup = modeConfig.groups.some((groupEntry) => getGroupName(groupEntry) === "mcp")
+	const hasMcpServers = !!(mcpHub && mcpHub.getServers().length > 0)
+	return hasMcpGroup && hasMcpServers
+}
+
+function formatTemplate(template: string, defaultContent: string): string {
+	if (!template) {
+		return defaultContent
 	}
+	return template
+}
 
-	const basePrompt = `${roleDefinition}
+async function buildBasePrompt(
+	roleDefinition: string,
+	tpl: Record<string, string>,
+	cwd: string,
+	mcpHub: McpHub | undefined,
+	mode: Mode,
+	customModeConfigs: ModeConfig[] | undefined,
+	modesSection: string,
+	skillsSection: string,
+	settings: SystemPromptSettings | undefined,
+	baseInstructions: string,
+	globalCustomInstructions: string,
+	language: string,
+	jabberwockIgnoreInstructions: string | undefined,
+): Promise<string> {
+	const toolsCatalog = ""
 
-${formatTemplate(tpl.markdownRules, markdownFormattingSection())}
+	return `${roleDefinition}
+
+${formatTemplate(tpl.markdownRules ?? "", markdownFormattingSection())}
 
 ${formatTemplate(
-	tpl.toolUse,
+	tpl.toolUse ?? "",
 	`${getSharedToolUseSection()}${toolsCatalog}
 
 	${getToolUseGuidelinesSection()}`,
 )}
 
-${formatTemplate(tpl.capabilities, getCapabilitiesSection(cwd, shouldIncludeMcp ? mcpHub : undefined, mode, customModeConfigs))}
+${formatTemplate(tpl.capabilities ?? "", getCapabilitiesSection(cwd, mcpHub, mode, customModeConfigs))}
 
-${formatTemplate(tpl.modes, modesSection)}
+${formatTemplate(tpl.modes ?? "", modesSection)}
 ${skillsSection ? `\n${skillsSection}` : ""}
-${formatTemplate(tpl.rules, getRulesSection(cwd, settings))}
+${formatTemplate(tpl.rules ?? "", getRulesSection(cwd, settings))}
 
-${formatTemplate(tpl.systemInfo, getSystemInfoSection(cwd))}
+${formatTemplate(tpl.systemInfo ?? "", getSystemInfoSection(cwd))}
 
-${formatTemplate(tpl.objective, getObjectiveSection())}
+${formatTemplate(tpl.objective ?? "", getObjectiveSection())}
 
-${await addCustomInstructions(baseInstructions, globalCustomInstructions || "", cwd, mode, {
-	language: language ?? formatLanguage(vscode.env.language),
+${await addCustomInstructions(baseInstructions, globalCustomInstructions, cwd, mode, {
+	language,
 	jabberwockIgnoreInstructions,
 	settings,
 })}`
-
-	return basePrompt
 }
 
 export const SYSTEM_PROMPT = async (

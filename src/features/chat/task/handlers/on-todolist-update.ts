@@ -1,7 +1,7 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "../../../intents/bus"
+import type { IntentBus } from "@features/intents/bus"
 import type { TodoItem } from "@jabberwock/types"
-import { setPendingTodoList } from "../../tools/UpdateTodoListTool"
+import { setPendingTodoList } from "@features/chat/tools"
 
 /**
  * Handles topic.todolist.update intent — updates the pending todo list.

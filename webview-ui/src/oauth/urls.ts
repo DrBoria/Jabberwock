@@ -1,7 +1,8 @@
 import { Package } from "@shared/package"
 
 export function getCallbackUrl(provider: string, uriScheme?: string) {
-	return encodeURIComponent(`${uriScheme || "vscode"}://${Package.publisher}.${Package.name}/${provider}`)
+	const url = `${uriScheme || "vscode"}://${Package.publisher}.${Package.name}/${provider}`
+	return encodeURIComponent(url)
 }
 
 export function getOpenRouterAuthUrl(uriScheme?: string) {

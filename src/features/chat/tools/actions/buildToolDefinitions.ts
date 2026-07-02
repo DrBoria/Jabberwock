@@ -5,16 +5,13 @@ import type OpenAI from "openai"
 import type { ProviderSettings, ModeConfig, ModelInfo } from "@jabberwock/types"
 import { customToolRegistry, formatNative } from "@jabberwock/core"
 
-import { getMcpServerManager } from "../../../../services/mcp/McpServerManager"
-import { getVscodeContext } from "../../../../features/foundation/vscode/context"
-import { getRooDirectoriesForCwd } from "../../../../services/jabberwock-config/index.js"
+import { getMcpServerManager } from "@services/mcp/core/McpServerManager"
+import { getVscodeContext } from "@features/foundation/vscode/context"
+import { getRooDirectoriesForCwd } from "@services/jabberwock-config/index.js"
 
-import { getNativeTools, getMcpServerTools } from "../../../settings/context/tools/native-tools"
-import {
-	filterNativeToolsForMode,
-	filterMcpToolsForMode,
-	resolveToolAlias,
-} from "../../../settings/context/tools/filter-tools-for-mode"
+import { getNativeTools, getMcpServerTools } from "@features/settings/context/tools/native-tools"
+import { filterNativeToolsForMode, filterMcpToolsForMode } from "@features/settings/context/tools/filter-tools-for-mode"
+import { resolveToolAlias } from "@features/settings/context/tools/tool-alias-config"
 
 interface BuildToolsOptions {
 	cwd: string
@@ -79,7 +76,8 @@ export async function buildNativeToolsArray(options: BuildToolsOptions): Promise
  * @param options - Configuration options for building the tools
  * @returns BuildToolsResult with tools array and optional allowedFunctionNames
  */
-import { CodeIndexManager, getCodeIndexManager } from "../../../../services/code-index/manager"
+import { CodeIndexManager } from "@services/code-index/manager/manager"
+import { getCodeIndexManager } from "@services/code-index/manager/manager.factory"
 
 export async function buildNativeToolsArrayWithRestrictions(options: BuildToolsOptions): Promise<BuildToolsResult> {
 	const {

@@ -6,7 +6,7 @@ import { VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 import { Package } from "@shared/package"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { rootStore } from "@src/features/store"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@src/features/foundation/ui"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@src/shared/ui/overlays/dialog"
 
 interface AnnouncementProps {
 	hideAnnouncement: () => void

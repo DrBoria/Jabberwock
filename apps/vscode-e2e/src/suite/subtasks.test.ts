@@ -2,7 +2,7 @@ import * as assert from "assert"
 
 import { JabberwockEventName, type Notification } from "@jabberwock/types"
 
-import { sleep, waitFor, waitUntilCompleted } from "./utils"
+import { sleep, waitFor, waitUntilCompleted } from "./helpers/utils"
 
 suite.skip("Jabberwock Subtasks", () => {
 	test("Should handle subtask cancellation and resumption correctly", async () => {

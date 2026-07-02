@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react"
 import { ClipboardCopy, Timer } from "lucide-react"
 
-import { Button } from "@src/features/foundation/ui/button"
-import { StandardTooltip } from "@src/features/foundation/ui/standard-tooltip"
+import { Button } from "@src/shared/ui/buttons/button"
+import { StandardTooltip } from "@src/shared/ui/tooltips/standard-tooltip"
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { observer } from "mobx-react-lite"
@@ -121,6 +121,7 @@ export const FollowUpSuggest = observer(
 						<div key={`${suggestion.answer}-${ts}`} className="w-full relative group">
 							<Button
 								variant="outline"
+								data-testid={`follow-up-suggestion-${index}`}
 								className={cn(
 									"text-left whitespace-normal break-words w-full h-auto px-3 py-2 justify-start pr-8 rounded-xl",
 									isFirstSuggestion &&
@@ -147,6 +148,7 @@ export const FollowUpSuggest = observer(
 							)}
 							<StandardTooltip content={t("chat:followUpSuggest.copyToInput")}>
 								<div
+									data-testid={`follow-up-copy-button-${index}`}
 									className="absolute cursor-pointer top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity bg-vscode-input-background px-0.5 rounded"
 									onClick={(e) => {
 										e.stopPropagation()

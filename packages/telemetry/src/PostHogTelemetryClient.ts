@@ -2,7 +2,6 @@ import { PostHog } from "posthog-node"
 import * as vscode from "vscode"
 
 import {
-	type TelemetryProperties,
 	type TelemetryEvent,
 	TelemetryEventName,
 	getErrorStatusCode,
@@ -76,6 +75,41 @@ export class PostHogTelemetryClient extends BaseTelemetryClient {
 		})
 	}
 
+	private extractMergedProperties(
+		error: Error,
+		additionalProperties?: Record<string, unknown>,
+		errorMessage?: string,
+	): Record<string, unknown> | undefined {
+		let mergedProperties = additionalProperties
+
+		if (isApiProviderError(error)) {
+			const extractedProperties = extractApiProviderErrorProperties(error)
+			mergedProperties = { ...extractedProperties, ...additionalProperties }
+		} else if (isConsecutiveMistakeError(error)) {
+			const extractedProperties = extractConsecutiveMistakeErrorProperties(error)
+			mergedProperties = { ...extractedProperties, ...additionalProperties }
+		}
+
+		if (errorMessage !== undefined) {
+			error.message = errorMessage
+		}
+
+		return mergedProperties
+	}
+
+	private async getTelemetryAppVersion(): Promise<string | undefined> {
+		const provider = this.providerRef?.deref()
+		if (provider) {
+			try {
+				const telemetryProperties = await provider.getTelemetryProperties()
+				return telemetryProperties?.appVersion
+			} catch {
+				return undefined
+			}
+		}
+		return undefined
+	}
+
 	public override async captureException(
 		error: Error,
 		additionalProperties?: Record<string, unknown>,
@@ -106,35 +140,12 @@ export class PostHogTelemetryClient extends BaseTelemetryClient {
 			console.info(`[PostHogTelemetryClient#captureException] ${error.message}`)
 		}
 
-		// Auto-extract properties from known error types and merge with additionalProperties.
-		// Explicit additionalProperties take precedence over auto-extracted properties.
-		let mergedProperties = additionalProperties
-
-		if (isApiProviderError(error)) {
-			const extractedProperties = extractApiProviderErrorProperties(error)
-			mergedProperties = { ...extractedProperties, ...additionalProperties }
-		} else if (isConsecutiveMistakeError(error)) {
-			const extractedProperties = extractConsecutiveMistakeErrorProperties(error)
-			mergedProperties = { ...extractedProperties, ...additionalProperties }
-		}
-
-		// Override the error message with the extracted error message.
-		error.message = errorMessage
-
-		const provider = this.providerRef?.deref()
-		let telemetryProperties: TelemetryProperties | undefined = undefined
-
-		if (provider) {
-			try {
-				telemetryProperties = await provider.getTelemetryProperties()
-			} catch (_error) {
-				// Ignore.
-			}
-		}
+		const mergedProperties = this.extractMergedProperties(error, additionalProperties, errorMessage)
+		const appVersion = await this.getTelemetryAppVersion()
 
 		const exceptionProperties = {
 			...mergedProperties,
-			$app_version: telemetryProperties?.appVersion,
+			$app_version: appVersion,
 		}
 
 		this.client.captureException(error, this.distinctId, exceptionProperties)

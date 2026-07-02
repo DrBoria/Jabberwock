@@ -1,6 +1,6 @@
 import nock from "nock"
 
-import "./utils/path" // Import to enable String.prototype.toPosix().
+import "./utils/io/path" // Import to enable String.prototype.toPosix().
 
 // Disable network requests by default for all tests.
 nock.disableNetConnect()

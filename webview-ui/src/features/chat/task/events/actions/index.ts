@@ -1,6 +1,1 @@
-/**
- * Frontend Chat Task event action creators.
- */
-
-// Placeholder for future action creators
-export {}
+export { sendGoalAdd, sendGoalRemove, sendGoalUpdate, sendGoalReorder, sendNavigateToTask } from "./register"

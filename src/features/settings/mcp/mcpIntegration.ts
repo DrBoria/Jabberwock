@@ -1,11 +1,13 @@
-import type { ITaskModel } from "../../chat/task/store"
-import { McpHub } from "../../../services/mcp/McpHub"
-import { getMcpServerManager } from "../../../services/mcp/McpServerManager"
+import type { ITaskModel } from "@features/chat/task/store"
+import { McpHub } from "@services/mcp/core/McpHub"
+import { getMcpServerManager } from "@services/mcp/core/McpServerManager"
 import { countEnabledMcpTools } from "@jabberwock/types"
-import { getSettingsAccess } from "@utils/settings-access"
+import { getSettingsAccess } from "@utils/settings"
+import { sendShowInteractiveApp } from "@features/settings/events/actions/sendSettingsEvent"
 
 /** Typed helper to access Task-only `pendingElicitationResolve` on an ITaskModel. */
 import * as vscode from "vscode"
+import { getProvider } from "@features/foundation/webview/providerRegistry"
 
 function getTaskForElicitation(
 	task: ITaskModel,
@@ -20,10 +22,7 @@ export async function getEnabledMcpToolsCount(
 	task: ITaskModel,
 ): Promise<{ enabledToolCount: number; enabledServerCount: number }> {
 	try {
-		const provider = task.providerRef!.deref()
-		if (!provider) {
-			return { enabledToolCount: 0, enabledServerCount: 0 }
-		}
+		const provider = getProvider()
 
 		const { mcpEnabled } = getSettingsAccess().getValues()
 		if (!(mcpEnabled ?? true)) {
@@ -63,10 +62,7 @@ export function setupMcpHubListeners(task: ITaskModel, mcpHub: McpHub) {
 				getTaskForElicitation(task).pendingElicitationResolve = resolve
 
 				// Send message to Webview to render the Iframe
-				await task.providerRef!.deref()?.postMessageToWebview({
-					type: "showInteractiveApp",
-					uri: uri,
-				})
+				sendShowInteractiveApp(uri)
 			},
 		)
 	}

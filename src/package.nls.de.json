@@ -1,7 +1,7 @@
 {
 	"extension.displayName": "Jabberwock",
 	"extension.description": "Ein komplettes KI-Agenten-Entwicklungsteam in deinem Editor.",
-	"command.newTask.title": "Neue Aufgabe",
+	"command.newChat.title": "Neuer Chat",
 	"command.explainCode.title": "Code Erklären",
 	"command.fixCode.title": "Code Reparieren",
 	"command.improveCode.title": "Code Verbessern",

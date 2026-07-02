@@ -11,7 +11,7 @@ export type McpState = object
 
 export function initMcpState(_provider: EventBridge): void {}
 
-import type { IBackendRootStore } from "../../store"
+import type { IBackendRootStore } from "@features/store"
 
 export function getMcpState(rootStore: IBackendRootStore): McpState {
 	return rootStore.settings.mcp as McpState

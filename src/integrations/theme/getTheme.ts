@@ -3,7 +3,7 @@ import * as path from "path"
 import * as fs from "fs/promises"
 import { convertTheme, IVSCodeTheme } from "monaco-vscode-textmate-theme-converter/lib/cjs"
 
-import { Package } from "../../shared/package"
+import { Package } from "@shared/package"
 
 const defaultThemes: Record<string, string> = {
 	"Default Dark Modern": "dark_modern",
@@ -32,63 +32,92 @@ function parseThemeString(themeString: string | undefined): Record<string, unkno
 	return JSON.parse(themeString ?? "{}")
 }
 
-export async function getTheme() {
-	let currentTheme = undefined
-	const colorTheme = vscode.workspace.getConfiguration("workbench").get<string>("colorTheme") || "Default Dark Modern"
-
-	try {
-		for (let i = vscode.extensions.all.length - 1; i >= 0; i--) {
-			if (currentTheme) {
-				break
-			}
-			const extension = vscode.extensions.all[i]
-			if (extension.packageJSON?.contributes?.themes?.length > 0) {
-				for (const theme of extension.packageJSON.contributes.themes) {
-					if (theme.label === colorTheme) {
-						const themePath = path.join(extension.extensionPath, theme.path)
-						currentTheme = await fs.readFile(themePath, "utf-8")
-						break
-					}
+async function findThemeInExtensions(colorTheme: string): Promise<string | undefined> {
+	for (let i = vscode.extensions.all.length - 1; i >= 0; i--) {
+		const extension = vscode.extensions.all[i]
+		if (extension.packageJSON?.contributes?.themes?.length > 0) {
+			for (const theme of extension.packageJSON.contributes.themes) {
+				if (theme.label === colorTheme) {
+					const themePath = path.join(extension.extensionPath, theme.path)
+					return fs.readFile(themePath, "utf-8")
 				}
 			}
 		}
+	}
+	return undefined
+}
 
-		if (currentTheme === undefined && defaultThemes[colorTheme]) {
-			const filename = `${defaultThemes[colorTheme]}.json`
-			currentTheme = await fs.readFile(
-				path.join(getExtensionUri().fsPath, "integrations", "theme", "default-themes", filename),
-				"utf-8",
-			)
+function loadDefaultThemeFile(colorTheme: string): Promise<string> | undefined {
+	const themeKey = defaultThemes[colorTheme]
+	if (!themeKey) {
+		return undefined
+	}
+	const filename = `${themeKey}.json`
+	return fs.readFile(
+		path.join(getExtensionUri().fsPath, "integrations", "theme", "default-themes", filename),
+		"utf-8",
+	)
+}
+
+async function resolveIncludedTheme(parsed: Record<string, unknown>): Promise<Record<string, unknown>> {
+	const includePath = parsed.include
+	if (!includePath) {
+		return parsed
+	}
+	const includeThemeString = await fs.readFile(
+		path.join(getExtensionUri().fsPath, "integrations", "theme", "default-themes", includePath as string),
+		"utf-8",
+	)
+	const includeTheme = parseThemeString(includeThemeString)
+	return mergeJson(parsed, includeTheme)
+}
+
+function determineBaseTheme(
+	converted: IVSCodeTheme & Record<string, unknown>,
+	colorTheme: string,
+): vscode.ColorThemeKind {
+	if (["vs", "hc-black"].includes(converted.base as string)) {
+		return converted.base as vscode.ColorThemeKind
+	}
+	return colorTheme.includes("Light") ? vscode.ColorThemeKind.Light : vscode.ColorThemeKind.Dark
+}
+
+export async function getTheme() {
+	const colorTheme = vscode.workspace.getConfiguration("workbench").get<string>("colorTheme") || "Default Dark Modern"
+
+	try {
+		let currentTheme = await findThemeInExtensions(colorTheme)
+
+		if (currentTheme === undefined) {
+			currentTheme = await loadDefaultThemeFile(colorTheme)
 		}
 
-		// Strip comments from theme
 		let parsed = parseThemeString(currentTheme)
-
-		const includePath = parsed.include
-		if (includePath) {
-			const includeThemeString = await fs.readFile(
-				path.join(getExtensionUri().fsPath, "integrations", "theme", "default-themes", includePath as string),
-				"utf-8",
-			)
-			const includeTheme = parseThemeString(includeThemeString)
-			parsed = mergeJson(parsed, includeTheme)
-		}
+		parsed = await resolveIncludedTheme(parsed)
 
 		const converted = convertTheme(parsed as IVSCodeTheme & Record<string, unknown>)
-
-		converted.base = (
-			["vs", "hc-black"].includes(converted.base)
-				? converted.base
-				: colorTheme.includes("Light")
-					? "vs"
-					: "vs-dark"
-		) as vscode.ColorThemeKind
+		converted.base = determineBaseTheme(converted, colorTheme)
 
 		return converted
 	} catch (e) {
 		console.log("Error loading color theme: ", e)
 	}
 	return undefined
+}
+
+function mergeArrays(
+	firstValue: unknown[],
+	secondValue: unknown[],
+	key: string,
+	mergeKeys?: { [key: string]: (a: unknown, b: unknown) => boolean },
+): unknown[] {
+	if (!mergeKeys?.[key]) {
+		return [...firstValue, ...secondValue]
+	}
+	const keptFromFirst = firstValue.filter(
+		(item) => !secondValue.some((item2: unknown) => mergeKeys[key](item, item2)),
+	)
+	return [...keptFromFirst, ...secondValue]
 }
 
 type JsonObject = { [key: string]: unknown }
@@ -105,31 +134,16 @@ export function mergeJson(
 			const secondValue = second[key]
 
 			if (!(key in copyOfFirst) || mergeBehavior === "overwrite") {
-				// New value
 				copyOfFirst[key] = secondValue
 				continue
 			}
 
 			const firstValue = copyOfFirst[key]
 			if (Array.isArray(secondValue) && Array.isArray(firstValue)) {
-				// Array
-				if (mergeKeys?.[key]) {
-					// Merge keys are used to determine whether an item form the second object should override one from the first
-					const keptFromFirst: unknown[] = []
-					firstValue.forEach((item: unknown) => {
-						if (!secondValue.some((item2: unknown) => mergeKeys[key](item, item2))) {
-							keptFromFirst.push(item)
-						}
-					})
-					copyOfFirst[key] = [...keptFromFirst, ...secondValue]
-				} else {
-					copyOfFirst[key] = [...firstValue, ...secondValue]
-				}
+				copyOfFirst[key] = mergeArrays(firstValue, secondValue, key, mergeKeys)
 			} else if (typeof secondValue === "object" && typeof firstValue === "object") {
-				// Object
 				copyOfFirst[key] = mergeJson(firstValue as JsonObject, secondValue as JsonObject, mergeBehavior)
 			} else {
-				// Other (boolean, number, string)
 				copyOfFirst[key] = secondValue
 			}
 		}

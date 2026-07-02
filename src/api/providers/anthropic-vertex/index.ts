@@ -1,0 +1,1 @@
+export { AnthropicVertexHandler } from "./handler"

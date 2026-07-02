@@ -116,6 +116,7 @@
 	"unlockApiConfigAcrossModes": "La configurazione API è bloccata per tutte le modalità in questo workspace (clicca per sbloccare)",
 	"enhancePrompt": "Migliora prompt con contesto aggiuntivo",
 	"addImages": "Aggiungi immagini al messaggio",
+	"addGoal": "Aggiungi come obiettivo",
 	"sendMessage": "Invia messaggio",
 	"pressToSend": "Premi {{keyCombination}} per inviare",
 	"stopTts": "Interrompi sintesi vocale",

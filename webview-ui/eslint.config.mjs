@@ -15,13 +15,16 @@ export default [
 					caughtErrorsIgnorePattern: "^_",
 				},
 			],
-			"@typescript-eslint/no-explicit-any": "off",
 			"react/prop-types": "off",
 			"react/display-name": "off",
 		},
 	},
 	{
-		files: ["src/components/chat/ChatRow.tsx", "src/components/settings/ModelInfoView.tsx", "src/features/chat/messages/components/row/view.tsx"],
+		files: [
+			"src/components/chat/ChatRow.tsx",
+			"src/components/settings/ModelInfoView.tsx",
+			"src/features/chat/messages/components/row/view.tsx",
+		],
 		rules: {
 			"react/jsx-key": "off",
 		},

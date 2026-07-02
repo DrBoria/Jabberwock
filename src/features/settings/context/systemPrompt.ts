@@ -1,18 +1,19 @@
 import * as vscode from "vscode"
 import pWaitFor from "p-wait-for"
-import { McpHub } from "../../../services/mcp/McpHub"
-import { getMcpServerManager } from "../../../services/mcp/McpServerManager"
+import { McpHub } from "@services/mcp/core/McpHub"
+import { getMcpServerManager } from "@services/mcp/core/McpServerManager"
 import { SYSTEM_PROMPT } from "./system"
-import { defaultModeSlug } from "../../../shared/modes"
+import { defaultModeSlug } from "@shared/modes"
 import { type ModeConfig } from "@jabberwock/types"
-import { Package } from "../../../shared/package"
-import type { ITaskModel } from "../../chat/task/store"
-import { setupMcpHubListeners } from "../mcp/mcpIntegration"
-import { getSkillsManager } from "../skills/store"
+import { Package } from "@shared/package"
+import type { ITaskModel } from "@features/chat/task/store"
+import { setupMcpHubListeners } from "@features/settings/mcp/mcpIntegration"
+import { getSkillsManager } from "@features/settings/skills/store"
 import { getBackendRootStore } from "@features/storeSingleton"
-import { getSettingsAccess } from "@utils/settings-access"
+import { getSettingsAccess } from "@utils/settings"
 
 import { getIgnoreInstructions } from "@features/settings/constants"
+import { getProvider } from "@features/foundation/webview/providerRegistry"
 
 /**
  * Get the system prompt for this task, including MCP server configuration,
@@ -22,8 +23,8 @@ import { getIgnoreInstructions } from "@features/settings/constants"
  * @returns The system prompt string
  */
 /** Typed helper to access `diffStrategy` on an ITaskModel without as-unknown. */
-function getTaskDiffStrategy(task: ITaskModel): import("../../../shared/tools").DiffStrategy | undefined {
-	return (task as ITaskModel & { diffStrategy?: import("../../../shared/tools").DiffStrategy }).diffStrategy
+function getTaskDiffStrategy(task: ITaskModel): import("@shared/tools").DiffStrategy | undefined {
+	return (task as ITaskModel & { diffStrategy?: import("@shared/tools").DiffStrategy }).diffStrategy
 }
 
 export async function getSystemPrompt(task: ITaskModel): Promise<string> {
@@ -54,11 +55,7 @@ export async function getSystemPrompt(task: ITaskModel): Promise<string> {
 
 	let mcpHub: McpHub | undefined
 	if (mcpEnabled ?? true) {
-		const provider = task.providerRef!.deref()
-
-		if (!provider) {
-			throw new Error("Provider reference lost during view transition")
-		}
+		const provider = getProvider()
 
 		// Wait for MCP hub initialization through McpServerManager
 		mcpHub = await getMcpServerManager().getInstance(provider.context as vscode.ExtensionContext, provider)
@@ -82,11 +79,7 @@ export async function getSystemPrompt(task: ITaskModel): Promise<string> {
 	const resolvedModeConfig = customModes?.find((m) => m.slug === (task._state._taskMode || defaultModeSlug))
 
 	return await (async () => {
-		const provider = task.providerRef!.deref()
-
-		if (!provider) {
-			throw new Error("Provider not available")
-		}
+		const provider = getProvider()
 
 		const modelInfo = task.api!.getModel().info
 

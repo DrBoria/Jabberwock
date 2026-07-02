@@ -1,7 +1,7 @@
 {
 	"extension.displayName": "Jabberwock",
 	"extension.description": "Un equip complet de desenvolupament d'agents d'IA al teu editor.",
-	"command.newTask.title": "Nova Tasca",
+	"command.newChat.title": "Nou Xat",
 	"command.explainCode.title": "Explicar Codi",
 	"command.fixCode.title": "Corregir Codi",
 	"command.improveCode.title": "Millorar Codi",

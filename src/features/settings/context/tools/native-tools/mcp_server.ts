@@ -1,9 +1,9 @@
 import type OpenAI from "openai"
-import { McpHub } from "../../../../../services/mcp/McpHub"
-import { buildMcpToolName } from "../../../../../utils/mcp-name"
-import { normalizeToolSchema, type JsonSchema } from "../../../../../utils/json-schema"
-import { defaultModeSlug, getModeBySlug } from "../../../../../shared/modes"
-import { isServerVisibleToAgent } from "../../../../../services/mcp/McpMigration"
+import { McpHub } from "@services/mcp/core/McpHub"
+import { buildMcpToolName } from "@utils/mcp"
+import { normalizeToolSchema, type JsonSchema } from "@utils/json-schema"
+import { defaultModeSlug, getModeBySlug } from "@shared/modes"
+import { isServerVisibleToAgent } from "@services/mcp/core"
 import { ModeConfig } from "@jabberwock/types"
 
 /**
@@ -34,14 +34,7 @@ export function getMcpServerTools(
 	const seenToolNames = new Set<string>()
 
 	for (const server of servers) {
-		let serverConfig: { [key: string]: unknown } = {}
-		try {
-			serverConfig = JSON.parse(server.config)
-		} catch (e) {
-			console.warn(`[jabberwock] [getMcpServerTools] ⚠ Failed to parse config for "${server.name}"`)
-		}
-
-		const visible = isServerVisibleToAgent(server.name, serverConfig, mcpList)
+		const visible = isServerVisible(getServerConfig(server), server, mcpList)
 		if (!visible) {
 			continue
 		}
@@ -56,33 +49,54 @@ export function getMcpServerTools(
 			}
 
 			const toolName = buildMcpToolName(server.name, tool.name)
-
 			if (seenToolNames.has(toolName)) {
 				continue
 			}
 			seenToolNames.add(toolName)
 
-			const originalSchema = tool.inputSchema as { [key: string]: unknown } | undefined
-
-			let parameters: JsonSchema
-			if (originalSchema) {
-				parameters = normalizeToolSchema(originalSchema) as JsonSchema
-			} else {
-				parameters = { type: "object", additionalProperties: false } as JsonSchema
-			}
-
-			const toolDefinition: OpenAI.Chat.ChatCompletionTool = {
-				type: "function",
-				function: {
-					name: toolName,
-					description: tool.description,
-					parameters: parameters as OpenAI.FunctionParameters,
-				},
-			}
-
-			tools.push(toolDefinition)
+			tools.push(buildToolDefinition(tool, toolName))
 		}
 	}
 
 	return tools
+}
+
+function getServerConfig(server: { name: string; config: string }): { [key: string]: unknown } {
+	try {
+		return JSON.parse(server.config) as { [key: string]: unknown }
+	} catch {
+		console.warn(`[jabberwock] [getMcpServerTools] ⚠ Failed to parse config for "${server.name}"`)
+		return {}
+	}
+}
+
+function isServerVisible(
+	serverConfig: { [key: string]: unknown },
+	server: { name: string },
+	mcpList: string[] | undefined,
+): boolean {
+	return isServerVisibleToAgent(server.name, serverConfig, mcpList)
+}
+
+function buildToolDefinition(
+	tool: { name: string; description?: string; inputSchema?: unknown },
+	toolName: string,
+): OpenAI.Chat.ChatCompletionTool {
+	const originalSchema = tool.inputSchema as { [key: string]: unknown } | undefined
+
+	let parameters: JsonSchema
+	if (originalSchema) {
+		parameters = normalizeToolSchema(originalSchema) as JsonSchema
+	} else {
+		parameters = { type: "object", additionalProperties: false } as JsonSchema
+	}
+
+	return {
+		type: "function",
+		function: {
+			name: toolName,
+			description: tool.description,
+			parameters: parameters as OpenAI.FunctionParameters,
+		},
+	}
 }

@@ -14,7 +14,7 @@ import type { NotificationSay, ToolProgressStatus, ContextCondense, ContextTrunc
  * by `on-message-broadcast.ts` to add the notification to the MST store and push
  * the snapshot to the webview.
  */
-export async function systemBroadcast(
+export function systemBroadcast(
 	taskId: string,
 	type: NotificationSay,
 	text?: string,
@@ -22,15 +22,14 @@ export async function systemBroadcast(
 	partial?: boolean,
 	checkpoint?: CheckpointData,
 	progressStatus?: ToolProgressStatus,
-	options: {
-		isNonInteractive?: boolean
-	} = {},
+	options?: { isNonInteractive?: boolean },
 	contextCondense?: ContextCondense,
 	contextTruncation?: ContextTruncation,
 ): Promise<undefined> {
+	const intent = IntentConstants.messages.SYSTEM_BROADCAST
 	return emitBroadcast(
 		taskId,
-		IntentConstants.messages.SYSTEM_BROADCAST,
+		intent,
 		type,
 		text,
 		images,

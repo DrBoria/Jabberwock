@@ -11,7 +11,7 @@ export type CloudState = object
 
 export function initCloudState(_provider: EventBridge): void {}
 
-import type { IBackendRootStore } from "../store"
+import type { IBackendRootStore } from "@features/store"
 
 export function getCloudState(rootStore: IBackendRootStore): CloudState {
 	return rootStore.cloud as CloudState

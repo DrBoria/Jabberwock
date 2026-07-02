@@ -1,0 +1,132 @@
+/* Custom smooth bounce animation for Roo hero */
+@keyframes smooth-bounce {
+	0% {
+		transform: translateY(0);
+	}
+	25% {
+		transform: translateY(-25%);
+	}
+	50% {
+		transform: translateY(0);
+	}
+	75% {
+		transform: translateY(-12.5%);
+	}
+	100% {
+		transform: translateY(0);
+	}
+}
+
+.animate-smooth-bounce {
+	animation: smooth-bounce 1s ease-in-out infinite;
+}
+
+/**
+ * Custom animations for UI elements
+ */
+
+@keyframes slide-in-right {
+	from {
+		transform: translateX(100%);
+	}
+	to {
+		transform: translateX(0);
+	}
+}
+
+.animate-slide-in-right {
+	animation: slide-in-right 0.3s ease-out;
+}
+
+@keyframes fade-in {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+.animate-fade-in {
+	animation: fade-in 0.2s ease-out;
+}
+
+@keyframes pulse {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.7;
+	}
+}
+
+.animate-pulse {
+	animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes ground-slide {
+	0% {
+		transform: translateX(0);
+	}
+	100% {
+		transform: translateX(-30px);
+	}
+}
+
+.animate-ground-slide {
+	animation: ground-slide 1s linear infinite;
+}
+
+@keyframes sun {
+	0% {
+		transform: translateX(200px);
+	}
+	100% {
+		transform: translateX(-200px);
+	}
+}
+
+.animate-sun {
+	animation: sun 30s linear infinite;
+}
+
+/* Settings search highlight animation */
+@keyframes settings-highlight-fade {
+	0% {
+		background-color: color-mix(in srgb, var(--vscode-focusBorder) 40%, transparent);
+	}
+	100% {
+		background-color: transparent;
+	}
+}
+
+.settings-highlight {
+	animation: settings-highlight-fade 1.5s ease-out forwards;
+	border-radius: 4px;
+	padding: 8px;
+	margin: -8px;
+}
+
+/* Layered Task Stack Animations */
+@keyframes task-stack-in {
+	from {
+		opacity: 0;
+		transform: translateY(20px) scale(0.98);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
+}
+
+.animate-task-stack-in {
+	animation: task-stack-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.depth-layer {
+	transition:
+		transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+		box-shadow 0.3s ease;
+	box-shadow: 0 var(--stack-offset) var(--depth-shadow-size) rgba(0, 0, 0, 0.2);
+}

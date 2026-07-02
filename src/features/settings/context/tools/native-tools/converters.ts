@@ -45,65 +45,44 @@ export function convertOpenAIToolToAnthropic(tool: OpenAI.Chat.ChatCompletionToo
  * @returns Array of Anthropic Tool definitions
  */
 export function convertOpenAIToolsToAnthropic(tools: OpenAI.Chat.ChatCompletionTool[]): Anthropic.Tool[] {
-	return tools.map(convertOpenAIToolToAnthropic)
+	const converted = tools.map(convertOpenAIToolToAnthropic)
+	return converted
 }
 
 /**
- * Converts OpenAI tool_choice to Anthropic ToolChoice format.
+ * Converts an OpenAI tool_choice to Anthropic's tool_choice format.
  *
- * Maps OpenAI's tool_choice parameter to Anthropic's equivalent format:
- * - "none" → undefined (Anthropic doesn't have "none", just omit tools)
- * - "auto" → { type: "auto" }
- * - "required" → { type: "any" }
- * - { type: "function", function: { name } } → { type: "tool", name }
- *
- * @param toolChoice - OpenAI tool_choice parameter
- * @param parallelToolCalls - When true (default), allows parallel tool calls. When false, disables parallel tool calls.
- * @returns Anthropic ToolChoice or undefined if tools should be omitted
- *
- * @example
- * ```typescript
- * convertOpenAIToolChoiceToAnthropic("auto", false)
- * // Returns: { type: "auto", disable_parallel_tool_use: true }
- *
- * convertOpenAIToolChoiceToAnthropic({ type: "function", function: { name: "get_weather" } })
- * // Returns: { type: "tool", name: "get_weather", disable_parallel_tool_use: false }
- * ```
+ * @param toolChoice - OpenAI tool_choice value
+ * @param parallelToolCalls - Whether parallel tool calls are enabled
+ * @returns Anthropic tool_choice or undefined
  */
 export function convertOpenAIToolChoiceToAnthropic(
 	toolChoice: OpenAI.Chat.ChatCompletionCreateParams["tool_choice"],
-	parallelToolCalls?: boolean,
+	_parallelToolCalls?: boolean,
 ): Anthropic.Messages.MessageCreateParams["tool_choice"] | undefined {
-	// Parallel tool calls are enabled by default. When parallelToolCalls is explicitly false,
-	// we disable parallel tool use to ensure one tool call at a time.
-	const disableParallelToolUse = parallelToolCalls === false
-
 	if (!toolChoice) {
-		// Default to auto with parallel tool use control
-		return { type: "auto", disable_parallel_tool_use: disableParallelToolUse }
+		return undefined
 	}
 
 	if (typeof toolChoice === "string") {
 		switch (toolChoice) {
 			case "none":
-				return undefined // Anthropic doesn't have "none", just omit tools
+				return undefined
 			case "auto":
-				return { type: "auto", disable_parallel_tool_use: disableParallelToolUse }
+				return { type: "auto" }
 			case "required":
-				return { type: "any", disable_parallel_tool_use: disableParallelToolUse }
+				return { type: "any" }
 			default:
-				return { type: "auto", disable_parallel_tool_use: disableParallelToolUse }
+				return { type: "auto" }
 		}
 	}
 
-	// Handle object form { type: "function", function: { name: string } }
 	if (typeof toolChoice === "object" && "function" in toolChoice) {
 		return {
 			type: "tool",
 			name: toolChoice.function.name,
-			disable_parallel_tool_use: disableParallelToolUse,
 		}
 	}
 
-	return { type: "auto", disable_parallel_tool_use: disableParallelToolUse }
+	return { type: "auto" }
 }

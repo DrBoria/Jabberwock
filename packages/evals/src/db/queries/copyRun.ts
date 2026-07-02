@@ -1,10 +1,11 @@
 import { eq } from "drizzle-orm"
 import type { NodePgDatabase } from "drizzle-orm/node-postgres"
 
-import type { InsertRun, InsertTask, InsertTaskMetrics, InsertToolError } from "../schema"
+import type { InsertRun, InsertTask } from "../schema"
 import { schema } from "../schema"
 
 import { RecordNotFoundError, RecordNotCreatedError } from "./errors"
+import { copyTaskMetrics, copyTaskToolErrors, copyRunToolErrors } from "./helpers/copyRunHelpers"
 
 export const copyRun = async ({
 	sourceDb,
@@ -24,39 +25,10 @@ export const copyRun = async ({
 		throw new RecordNotFoundError(`Run with ID ${runId} not found`)
 	}
 
-	let newRunTaskMetricsId: number | null = null
-
-	if (sourceRun.taskMetrics) {
-		const runTaskMetricsData: InsertTaskMetrics = {
-			tokensIn: sourceRun.taskMetrics.tokensIn,
-			tokensOut: sourceRun.taskMetrics.tokensOut,
-			tokensContext: sourceRun.taskMetrics.tokensContext,
-			cacheWrites: sourceRun.taskMetrics.cacheWrites,
-			cacheReads: sourceRun.taskMetrics.cacheReads,
-			cost: sourceRun.taskMetrics.cost,
-			duration: sourceRun.taskMetrics.duration,
-			toolUsage: sourceRun.taskMetrics.toolUsage,
-		}
-
-		const newRunTaskMetrics = await targetDb
-			.insert(schema.taskMetrics)
-			.values({
-				...runTaskMetricsData,
-				createdAt: new Date(),
-			})
-			.returning()
-
-		const createdRunTaskMetrics = newRunTaskMetrics[0]
-
-		if (!createdRunTaskMetrics) {
-			throw new RecordNotCreatedError("Failed to create run taskMetrics")
-		}
-
-		newRunTaskMetricsId = createdRunTaskMetrics.id
-	}
+	const newTaskMetricsId = await copyTaskMetrics(sourceDb, targetDb, sourceRun.taskMetrics)
 
 	const runData: InsertRun = {
-		taskMetricsId: newRunTaskMetricsId,
+		taskMetricsId: newTaskMetricsId,
 		model: sourceRun.model,
 		description: sourceRun.description,
 		settings: sourceRun.settings,
@@ -88,33 +60,7 @@ export const copyRun = async ({
 	const taskIdMapping = new Map<number, number>()
 
 	for (const sourceTask of sourceTasks) {
-		let newTaskMetricsId: number | null = null
-
-		if (sourceTask.taskMetrics) {
-			const taskMetricsData: InsertTaskMetrics = {
-				tokensIn: sourceTask.taskMetrics.tokensIn,
-				tokensOut: sourceTask.taskMetrics.tokensOut,
-				tokensContext: sourceTask.taskMetrics.tokensContext,
-				cacheWrites: sourceTask.taskMetrics.cacheWrites,
-				cacheReads: sourceTask.taskMetrics.cacheReads,
-				cost: sourceTask.taskMetrics.cost,
-				duration: sourceTask.taskMetrics.duration,
-				toolUsage: sourceTask.taskMetrics.toolUsage,
-			}
-
-			const newTaskMetrics = await targetDb
-				.insert(schema.taskMetrics)
-				.values({ ...taskMetricsData, createdAt: new Date() })
-				.returning()
-
-			const createdTaskMetrics = newTaskMetrics[0]
-
-			if (!createdTaskMetrics) {
-				throw new RecordNotCreatedError("Failed to create task taskMetrics")
-			}
-
-			newTaskMetricsId = createdTaskMetrics.id
-		}
+		const newTaskMetricsId = await copyTaskMetrics(sourceDb, targetDb, sourceTask.taskMetrics)
 
 		const taskData: InsertTask = {
 			runId: newRunId,
@@ -140,44 +86,8 @@ export const copyRun = async ({
 		taskIdMapping.set(sourceTask.id, newTask.id)
 	}
 
-	for (const [oldTaskId, newTaskId] of taskIdMapping) {
-		const sourceTaskToolErrors = await sourceDb.query.toolErrors.findMany({
-			where: eq(schema.toolErrors.taskId, oldTaskId),
-		})
-
-		for (const sourceToolError of sourceTaskToolErrors) {
-			const toolErrorData: InsertToolError = {
-				runId: newRunId,
-				taskId: newTaskId,
-				toolName: sourceToolError.toolName,
-				error: sourceToolError.error,
-			}
-
-			await targetDb.insert(schema.toolErrors).values({
-				...toolErrorData,
-				createdAt: new Date(),
-			})
-		}
-	}
-
-	const sourceRunToolErrors = await sourceDb.query.toolErrors.findMany({
-		where: eq(schema.toolErrors.runId, runId),
-	})
-
-	for (const sourceToolError of sourceRunToolErrors) {
-		if (sourceToolError.taskId && taskIdMapping.has(sourceToolError.taskId)) {
-			continue
-		}
-
-		const toolErrorData: InsertToolError = {
-			runId: newRunId,
-			taskId: sourceToolError.taskId ? taskIdMapping.get(sourceToolError.taskId) || null : null,
-			toolName: sourceToolError.toolName,
-			error: sourceToolError.error,
-		}
-
-		await targetDb.insert(schema.toolErrors).values({ ...toolErrorData, createdAt: new Date() })
-	}
+	await copyTaskToolErrors({ sourceDb, targetDb, newRunId, taskIdMapping })
+	await copyRunToolErrors({ sourceDb, targetDb, oldRunId: runId, newRunId, taskIdMapping })
 
 	return newRunId
 }

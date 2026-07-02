@@ -2,7 +2,7 @@
  * Workspace-related interfaces for VSCode API
  */
 
-import type { Uri } from "../classes/Uri.ts"
+import type { Uri } from "../classes/types/Uri.ts"
 import type { Thenable, ConfigurationTarget, ConfigurationInspect } from "../types.ts"
 
 /**
@@ -65,19 +65,19 @@ export interface Disposable {
  */
 export interface DiagnosticCollection extends Disposable {
 	name: string
-	set(uri: Uri, diagnostics: import("../classes/Additional.ts").Diagnostic[] | undefined): void
-	set(entries: [Uri, import("../classes/Additional.ts").Diagnostic[] | undefined][]): void
+	set(uri: Uri, diagnostics: import("../classes/types/Additional.ts").Diagnostic[] | undefined): void
+	set(entries: [Uri, import("../classes/types/Additional.ts").Diagnostic[] | undefined][]): void
 	delete(uri: Uri): void
 	clear(): void
 	forEach(
 		callback: (
 			uri: Uri,
-			diagnostics: import("../classes/Additional.ts").Diagnostic[],
+			diagnostics: import("../classes/types/Additional.ts").Diagnostic[],
 			collection: DiagnosticCollection,
 		) => void,
 		thisArg?: unknown,
 	): void
-	get(uri: Uri): import("../classes/Additional.ts").Diagnostic[] | undefined
+	get(uri: Uri): import("../classes/types/Additional.ts").Diagnostic[] | undefined
 	has(uri: Uri): boolean
 }
 

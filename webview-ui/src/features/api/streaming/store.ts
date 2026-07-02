@@ -30,7 +30,11 @@ export class StreamingStore {
 
 	private listeners = new Set<Listener>()
 
-	/** Append a text chunk to the current stream buffer. */
+	/**
+	 * Append the incoming delta to the current stream buffer.
+	 * The backend now sends per-chunk deltas (not full accumulated text)
+	 * to minimise postMessage payload size.
+	 */
 	appendChunk(chunk: string): void {
 		this.state.text += chunk
 		this.notify()

@@ -1,3 +1,5 @@
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
+
 export interface FrontendBridge {
 	readonly getRootSnapshot: () => Promise<Record<string, unknown>>
 	readonly getActionBuffer: () => Promise<unknown[]>
@@ -36,7 +38,3 @@ export interface DevtoolModel {
 	}[]
 	registerTools?: (mcpServer: McpServer) => void
 }
-
-// Forward-declare McpServer to avoid a hard import dependency
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type McpServer = any

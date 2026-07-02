@@ -28,42 +28,69 @@ function secondsToMs(value: number | undefined): number | undefined {
 }
 
 export function parseOpenAiCodexUsagePayload(payload: unknown, fetchedAt: number): OpenAiCodexRateLimitInfo {
-	const data = (payload && typeof payload === "object" ? payload : {}) as WhamUsageResponse
+	const data = toWhamUsageResponse(payload)
 	const primaryRaw = data.rate_limit?.primary_window
 	const secondaryRaw = data.rate_limit?.secondary_window
 
-	const primary: OpenAiCodexRateLimitInfo["primary"] | undefined =
-		primaryRaw && typeof primaryRaw.used_percent === "number"
-			? {
-					usedPercent: clampPercent(primaryRaw.used_percent),
-					...(typeof primaryRaw.limit_window_seconds === "number"
-						? { windowMinutes: Math.round(primaryRaw.limit_window_seconds / 60) }
-						: {}),
-					...(secondsToMs(primaryRaw.reset_at) !== undefined
-						? { resetsAt: secondsToMs(primaryRaw.reset_at) }
-						: {}),
-				}
-			: undefined
+	const primary = buildWindowInfo(primaryRaw)
+	const secondary = buildWindowInfo(secondaryRaw)
 
-	const secondary: OpenAiCodexRateLimitInfo["secondary"] | undefined =
-		secondaryRaw && typeof secondaryRaw.used_percent === "number"
-			? {
-					usedPercent: clampPercent(secondaryRaw.used_percent),
-					...(typeof secondaryRaw.limit_window_seconds === "number"
-						? { windowMinutes: Math.round(secondaryRaw.limit_window_seconds / 60) }
-						: {}),
-					...(secondsToMs(secondaryRaw.reset_at) !== undefined
-						? { resetsAt: secondsToMs(secondaryRaw.reset_at) }
-						: {}),
-				}
-			: undefined
+	return buildRateLimitInfo(primary, secondary, data.plan_type, fetchedAt)
+}
 
-	return {
-		...(primary ? { primary } : {}),
-		...(secondary ? { secondary } : {}),
-		...(typeof data.plan_type === "string" ? { planType: data.plan_type } : {}),
-		fetchedAt,
+function toWhamUsageResponse(payload: unknown): WhamUsageResponse {
+	if (payload && typeof payload === "object") {
+		return payload as WhamUsageResponse
 	}
+	return {}
+}
+
+function buildWindowInfo(
+	raw: WhamUsageResponse["rate_limit"] extends undefined
+		? undefined
+		: NonNullable<WhamUsageResponse["rate_limit"]>["primary_window"] | undefined,
+): OpenAiCodexRateLimitInfo["primary"] | undefined {
+	if (!raw || typeof raw.used_percent !== "number") {
+		return undefined
+	}
+
+	const info: OpenAiCodexRateLimitInfo["primary"] = {
+		usedPercent: clampPercent(raw.used_percent),
+	}
+
+	if (typeof raw.limit_window_seconds === "number") {
+		info.windowMinutes = Math.round(raw.limit_window_seconds / 60)
+	}
+
+	const resetsAt = secondsToMs(raw.reset_at)
+	if (resetsAt !== undefined) {
+		info.resetsAt = resetsAt
+	}
+
+	return info
+}
+
+function buildRateLimitInfo(
+	primary: OpenAiCodexRateLimitInfo["primary"] | undefined,
+	secondary: OpenAiCodexRateLimitInfo["secondary"] | undefined,
+	planType: string | undefined,
+	fetchedAt: number,
+): OpenAiCodexRateLimitInfo {
+	const result: OpenAiCodexRateLimitInfo = { fetchedAt }
+
+	if (primary) {
+		result.primary = primary
+	}
+
+	if (secondary) {
+		result.secondary = secondary
+	}
+
+	if (typeof planType === "string") {
+		result.planType = planType
+	}
+
+	return result
 }
 
 export async function fetchOpenAiCodexRateLimitInfo(

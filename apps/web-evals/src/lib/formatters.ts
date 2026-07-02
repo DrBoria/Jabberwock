@@ -3,7 +3,10 @@ const formatter = new Intl.NumberFormat("en-US", {
 	currency: "USD",
 })
 
-export const formatCurrency = (amount: number) => formatter.format(amount)
+export const formatCurrency = (amount: number) => {
+	const formatted = formatter.format(amount)
+	return formatted
+}
 
 export const formatDuration = (durationMs: number) => {
 	const seconds = Math.floor(durationMs / 1000)
@@ -49,11 +52,12 @@ export const formatToolUsageSuccessRate = (usage: { attempts: number; failures: 
 	usage.attempts === 0 ? "0%" : `${Math.round(((usage.attempts - usage.failures) / usage.attempts) * 100)}%`
 
 export const formatDateTime = (date: Date) => {
-	return new Intl.DateTimeFormat("en-US", {
+	const formatted = new Intl.DateTimeFormat("en-US", {
 		month: "short",
 		day: "numeric",
 		hour: "numeric",
 		minute: "2-digit",
 		hour12: true,
 	}).format(date)
+	return formatted
 }

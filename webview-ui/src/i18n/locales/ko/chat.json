@@ -116,6 +116,7 @@
 	"unlockApiConfigAcrossModes": "이 워크스페이스의 모든 모드에서 API 구성이 잠겨 있습니다 (클릭하여 해제)",
 	"enhancePrompt": "추가 컨텍스트로 프롬프트 향상",
 	"addImages": "메시지에 이미지 추가",
+	"addGoal": "목표로 추가",
 	"sendMessage": "메시지 보내기",
 	"pressToSend": "{{keyCombination}}를 눌러 전송",
 	"stopTts": "텍스트 음성 변환 중지",

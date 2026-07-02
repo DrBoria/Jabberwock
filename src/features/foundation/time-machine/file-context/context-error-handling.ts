@@ -37,12 +37,10 @@ function checkIsOpenRouterContextWindowError(error: unknown): boolean {
 			return false
 		}
 
-		// Use type assertion for error property access
 		const err = error as ErrorResponseShape
-		const status = err.status ?? err.code ?? err.error?.status ?? err.response?.status
-		const message: string = String(err.message || err.error?.message || "")
+		const status = resolveErrorStatus(err)
+		const message = resolveErrorMessage(err)
 
-		// Known OpenAI/OpenRouter-style signal (code 400 and message includes "context length")
 		const CONTEXT_ERROR_PATTERNS = [
 			/\bcontext\s*(?:length|window)\b/i,
 			/\bmaximum\s*context\b/i,
@@ -54,6 +52,14 @@ function checkIsOpenRouterContextWindowError(error: unknown): boolean {
 	} catch {
 		return false
 	}
+}
+
+function resolveErrorStatus(err: ErrorResponseShape): number | undefined {
+	return (err.status ?? err.code ?? err.error?.status ?? err.response?.status) as number | undefined
+}
+
+function resolveErrorMessage(err: ErrorResponseShape): string {
+	return String(err.message || err.error?.message || "")
 }
 
 // Docs: https://platform.openai.com/docs/guides/error-codes/api-errors
@@ -79,40 +85,34 @@ function checkIsOpenAIContextWindowError(error: unknown): boolean {
 
 function checkIsAnthropicContextWindowError(response: unknown): boolean {
 	try {
-		// Type guard to safely access properties
 		if (!response || typeof response !== "object") {
 			return false
 		}
 
-		// Use type assertions with proper checks
 		const res = response as ErrorResponseShape
 
-		// Check for Anthropic-specific error structure with more specific validation
-		if (res.error?.error?.type === "invalid_request_error") {
-			const message: string = String(res.error?.error?.message || "")
-
-			// More specific patterns for context window errors
-			const contextWindowPatterns = [
-				/prompt is too long/i,
-				/maximum.*tokens/i,
-				/context.*too.*long/i,
-				/exceeds.*context/i,
-				/token.*limit/i,
-				/context_length_exceeded/i,
-				/max_tokens_to_sample/i,
-			]
-
-			// Additional check for Anthropic-specific error codes
-			const errorCode = res.error?.error?.code
-			if (errorCode === "context_length_exceeded" || errorCode === "invalid_request_error") {
-				return contextWindowPatterns.some((pattern) => pattern.test(message))
-			}
-
-			return contextWindowPatterns.some((pattern) => pattern.test(message))
+		if (res.error?.error?.type !== "invalid_request_error") {
+			return false
 		}
 
-		return false
+		return isAnthropicContextWindowMessage(res)
 	} catch {
 		return false
 	}
+}
+
+function isAnthropicContextWindowMessage(res: ErrorResponseShape): boolean {
+	const message: string = String(res.error?.error?.message || "")
+
+	const contextWindowPatterns = [
+		/prompt is too long/i,
+		/maximum.*tokens/i,
+		/context.*too.*long/i,
+		/exceeds.*context/i,
+		/token.*limit/i,
+		/context_length_exceeded/i,
+		/max_tokens_to_sample/i,
+	]
+
+	return contextWindowPatterns.some((pattern) => pattern.test(message))
 }

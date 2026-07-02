@@ -5,7 +5,7 @@
 	"views.terminalMenu.label": "Jabberwock",
 	"views.activitybar.title": "Jabberwock",
 	"views.sidebar.name": "Jabberwock",
-	"command.newTask.title": "Новая задача",
+	"command.newChat.title": "Новый чат",
 	"command.history.title": "История задач",
 	"command.marketplace.title": "Маркетплейс",
 	"command.openInEditor.title": "Открыть в редакторе",

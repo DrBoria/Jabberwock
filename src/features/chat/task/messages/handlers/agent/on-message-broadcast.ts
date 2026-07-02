@@ -2,7 +2,7 @@ import { IntentConstants } from "@intentConstants"
 import type { IntentBus } from "@features/intents/bus"
 import type { IntentHandlerContext } from "@features/intents/context"
 import type { Notification } from "@jabberwock/types"
-import { saveMessages } from "@features/chat/task/messages/actions/persistMessages"
+import { saveMessages } from "@features/chat/task/messages/actions/saveMessages"
 
 /**
  * Register a handler for all 4 message broadcast intent types
@@ -16,7 +16,8 @@ import { saveMessages } from "@features/chat/task/messages/actions/persistMessag
  * - "create" → calls `addNotification(taskId, notification)`
  * - "update" → mutates the existing notification in-place + saves
  */
-import { addNotification } from "@features/chat/task/notifications/actions/addNotification"
+import { addNotification } from "@features/chat/task/notifications/actions"
+import { sendMessageUpdated } from "@features/chat/task/messages/events/actions/sendMessageEvent"
 
 export function registerOnMessageBroadcast(bus: IntentBus): void {
 	const broadcastTypes = [
@@ -41,13 +42,21 @@ export function registerOnMessageBroadcast(bus: IntentBus): void {
 			}
 
 			if (payload.action === "update") {
-				const existing = store.notifications.items.find((n: Notification) => n.ts === payload.notification.ts)
-				if (existing) {
-					Object.assign(existing, payload.notification)
+				const index = store.notifications.items.findIndex((n: Notification) => n.ts === payload.notification.ts)
+				if (index !== -1) {
+					store.notifications.updateNotification(index, payload.notification)
 				} else {
 					store.notifications.addNotification(payload.notification)
 				}
-				await saveMessages(payload.taskId)
+				// ── Streaming performance optimisation ─────────────────────
+				// For partial (streaming) message updates, skip disk I/O and
+				// redundant webview notification.  The sendStreamChunk() fast
+				// path already provides real-time UI updates; disk persistence
+				// is deferred until the stream ends (non-partial flush).
+				if (!payload.notification.partial) {
+					await saveMessages(payload.taskId)
+					sendMessageUpdated(payload.notification)
+				}
 			} else {
 				await addNotification(payload.taskId, payload.notification)
 			}

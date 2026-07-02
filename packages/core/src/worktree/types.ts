@@ -1,8 +1,18 @@
 /**
  * Worktree Types
  *
- * Re-exports platform-agnostic type definitions from @jabberwock/types.
+ * Platform-agnostic type definitions from @jabberwock/types.
  */
+
+import type {
+	Worktree,
+	WorktreeResult,
+	BranchInfo,
+	CreateWorktreeOptions,
+	WorktreeIncludeStatus,
+	WorktreeListResponse,
+	WorktreeDefaultsResponse,
+} from "@jabberwock/types"
 
 export type {
 	Worktree,
@@ -12,4 +22,4 @@ export type {
 	WorktreeIncludeStatus,
 	WorktreeListResponse,
 	WorktreeDefaultsResponse,
-} from "@jabberwock/types"
+}

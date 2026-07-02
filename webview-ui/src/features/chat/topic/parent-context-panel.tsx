@@ -1,6 +1,6 @@
 import React from "react"
 import { Activity } from "lucide-react"
-import { Container } from "@src/features/foundation/ui/Container"
+import { Container } from "@src/shared/ui/layouts/Container"
 
 export interface ParentContextPanelProps {
 	parentNode: { messages: Array<{ ts: number; role?: string; text?: string; content?: unknown }> } | undefined

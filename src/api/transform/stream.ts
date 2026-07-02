@@ -1,4 +1,4 @@
-export type ApiStream = AsyncGenerator<ApiStreamChunk>
+export type ApiStream<T = ApiStreamChunk> = AsyncGenerator<T>
 
 export type ApiStreamChunk =
 	| ApiStreamTextChunk

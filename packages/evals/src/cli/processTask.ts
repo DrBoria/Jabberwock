@@ -1,14 +1,15 @@
-import { execa } from "execa"
-
 import { type TaskEvent, JabberwockEventName } from "@jabberwock/types"
 
 import { findRun, findTask, updateTask } from "../db/index"
 
-import { Logger, getTag, isDockerContainer } from "./utils"
+import { Logger } from "./helpers/logging/logger"
+import { getTag, isDockerContainer } from "./utils"
 import { redisClient, getPubSubKey, registerRunner, deregisterRunner } from "./redis"
-import { runUnitTest } from "./runUnitTest"
-import { runTaskWithCli } from "./runTaskInCli"
-import { runTaskInVscode } from "./runTaskInVscode"
+import { runUnitTest } from "./runners/runUnitTest"
+import { runTaskWithCli } from "./runners/runTaskInCli"
+import { runTaskInVscode } from "./runners/runTaskInVscode"
+
+import { buildContainerDockerArgs, runContainerAttempt } from "./helpers/processTaskHelpers"
 
 export const processTask = async ({
 	taskId,
@@ -75,76 +76,29 @@ export const processTaskInContainer = async ({
 	logger: Logger
 	maxRetries?: number
 }) => {
-	const baseArgs = [
-		"--rm",
-		"--network evals_default",
-		"-v /var/run/docker.sock:/var/run/docker.sock",
-		"-v /tmp/evals:/var/log/evals",
-		"-e HOST_EXECUTION_METHOD=docker",
-	]
-
-	if (jobToken) {
-		baseArgs.push(`-e JABBERWOCK_CODE_CLOUD_TOKEN=${jobToken}`)
-	}
-
-	// Pass API keys to the container so the CLI can authenticate
-	const apiKeyEnvVars = [
-		"OPENROUTER_API_KEY",
-		"ANTHROPIC_API_KEY",
-		"OPENAI_API_KEY",
-		"GOOGLE_API_KEY",
-		"DEEPSEEK_API_KEY",
-		"MISTRAL_API_KEY",
-	]
-
-	for (const envVar of apiKeyEnvVars) {
-		if (process.env[envVar]) {
-			baseArgs.push(`-e ${envVar}=${process.env[envVar]}`)
-		}
-	}
+	const baseArgs = buildContainerDockerArgs(taskId, jobToken)
 
 	const command = `pnpm --filter @jabberwock/evals cli --taskId ${taskId}`
 	logger.info(command)
 
 	for (let attempt = 0; attempt <= maxRetries; attempt++) {
 		const containerName = `evals-task-${taskId}.${attempt}`
-		const args = [`--name ${containerName}`, `-e EVALS_ATTEMPT=${attempt}`, ...baseArgs]
-		const isRetry = attempt > 0
+		const args = [`--name ${containerName}`, ...baseArgs]
 
-		if (isRetry) {
+		if (attempt > 0) {
 			const delayMs = Math.pow(2, attempt - 1) * 1000 * (0.5 + Math.random())
 			logger.info(`retrying in ${delayMs}ms (attempt ${attempt + 1}/${maxRetries + 1})`)
 			await new Promise((resolve) => setTimeout(resolve, delayMs))
 		}
 
-		logger.info(
-			`${isRetry ? "retrying" : "executing"} container command (attempt ${attempt + 1}/${maxRetries + 1})`,
-		)
+		logger.info(`executing container command (attempt ${attempt + 1}/${maxRetries + 1})`)
 
-		const subprocess = execa(`docker run ${args.join(" ")} evals-runner sh -c "${command}"`, { shell: true })
-		// subprocess.stdout?.on("data", (data) => console.log(data.toString()))
-		// subprocess.stderr?.on("data", (data) => console.error(data.toString()))
+		const success = await runContainerAttempt({ args, command, logger })
 
-		try {
-			const result = await subprocess
-			logger.info(`container process completed with exit code: ${result.exitCode}`)
+		if (success) {
 			return
-		} catch (error) {
-			if (error && typeof error === "object" && "exitCode" in error) {
-				logger.error(
-					`container process failed with exit code: ${error.exitCode} (attempt ${attempt + 1}/${maxRetries + 1})`,
-				)
-			} else {
-				logger.error(`container process failed with error: ${error} (attempt ${attempt + 1}/${maxRetries + 1})`)
-			}
-
-			if (attempt === maxRetries) {
-				break
-			}
 		}
 	}
 
 	logger.error(`all ${maxRetries + 1} attempts failed, giving up`)
-
-	// TODO: Mark task as failed.
 }

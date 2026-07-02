@@ -5,7 +5,7 @@
 	"views.terminalMenu.label": "Jabberwock",
 	"views.activitybar.title": "Jabberwock",
 	"views.sidebar.name": "Jabberwock",
-	"command.newTask.title": "新しいタスク",
+	"command.newChat.title": "新しいチャット",
 	"command.history.title": "タスク履歴",
 	"command.marketplace.title": "マーケットプレイス",
 	"command.openInEditor.title": "エディタで開く",

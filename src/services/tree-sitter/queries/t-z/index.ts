@@ -1,0 +1,6 @@
+export { default as tlaPlusQuery } from "./tlaplus"
+export { tomlQuery } from "./toml"
+export { default as tsxQuery } from "./tsx"
+export { default as typescriptQuery } from "./typescript"
+export { vueQuery } from "./vue"
+export { zigQuery } from "./zig"

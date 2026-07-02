@@ -1,5 +1,5 @@
 import { BackendIntentType } from "@intentConstants"
-import type { IntentBus } from "../../../../../intents/bus"
+import type { IntentBus } from "@features/intents/bus"
 
 /**
  * Handles MCP tool result — processes tool execution result and

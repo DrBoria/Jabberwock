@@ -1,6 +1,6 @@
 import * as path from "path"
 import * as fs from "fs"
-import { Uri } from "../classes/Uri.ts"
+import { Uri } from "../classes/types/Uri.ts"
 import { FileMemento } from "../storage/Memento.ts"
 import { FileSecretStorage } from "../storage/SecretStorage.ts"
 import { hashWorkspacePath, ensureDirectoryExists } from "../utils/paths.ts"

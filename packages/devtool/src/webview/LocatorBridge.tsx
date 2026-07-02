@@ -12,6 +12,36 @@
 import { useEffect } from "react"
 import { vscode } from "./vscode.js"
 
+function sanitizeNum(value: number, fallback: number): number {
+	return isNaN(value) ? fallback : value
+}
+
+function parsePathMode(locatorId: string): { filePath: string; line: number; column: number } {
+	const parts = locatorId.split(":")
+	if (parts.length >= 3) {
+		const col = parseInt(parts.pop() || "1", 10)
+		const ln = parseInt(parts.pop() || "1", 10)
+		return { filePath: parts.join(":"), line: sanitizeNum(ln, 1), column: sanitizeNum(col, 1) }
+	}
+	if (parts.length === 2) {
+		const ln = parseInt(parts.pop() || "1", 10)
+		return { filePath: parts[0] || "", line: sanitizeNum(ln, 1), column: 1 }
+	}
+	return { filePath: "", line: 1, column: 1 }
+}
+
+function parseIdMode(locatorId: string): { filePath: string; line: number; column: number } {
+	const parts = locatorId.split("::")
+	const filePath = parts[0] || ""
+	const line = parseInt(parts[1] || "1", 10)
+	const column = parts[2] ? parseInt(parts[2], 10) : 1
+	return { filePath, line: sanitizeNum(line, 1), column: sanitizeNum(column, 1) }
+}
+
+function parseLocatorId(locatorId: string, isPathMode: boolean): { filePath: string; line: number; column: number } {
+	return isPathMode ? parsePathMode(locatorId) : parseIdMode(locatorId)
+}
+
 /**
  * LocatorBridge component — renders nothing, but sets up Alt+Click listeners.
  */
@@ -44,27 +74,7 @@ export function LocatorBridge() {
 					console.log("[LocatorBridge] Raw locatorId:", locatorId)
 
 					const isPathMode = locatorNode.hasAttribute("data-locatorjs")
-
-					let filePath = ""
-					let line = 1
-					let column = 1
-
-					if (isPathMode) {
-						const parts = locatorId.split(":")
-						if (parts.length >= 3) {
-							column = parseInt(parts.pop() || "1", 10)
-							line = parseInt(parts.pop() || "1", 10)
-							filePath = parts.join(":")
-						} else if (parts.length === 2) {
-							line = parseInt(parts.pop() || "1", 10)
-							filePath = parts[0] || ""
-						}
-					} else {
-						const parts = locatorId.split("::")
-						filePath = parts[0] || ""
-						line = parseInt(parts[1] || "1", 10)
-						column = parts[2] ? parseInt(parts[2], 10) : 1
-					}
+					const { filePath, line, column } = parseLocatorId(locatorId, isPathMode)
 
 					console.log(
 						`[LocatorBridge] Parsed (${isPathMode ? "path" : "id"} mode): ${filePath} at ${line}:${column}`,
@@ -72,11 +82,7 @@ export function LocatorBridge() {
 
 					vscode.postMessage({
 						type: "LOCATOR_OPEN_FILE",
-						locatorPayload: {
-							filePath,
-							line: isNaN(line) ? 1 : line,
-							column: isNaN(column) ? 1 : column,
-						},
+						locatorPayload: { filePath, line, column },
 					} as never)
 				}
 			}

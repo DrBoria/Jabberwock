@@ -1,3 +1,4 @@
+import * as nodePath from "path"
 import { Volume, createFsFromVolume } from "memfs"
 import * as fs from "fs"
 
@@ -133,9 +134,8 @@ export class VirtualWorkspace {
 		const files = this.vol.toJSON()
 		const writePromises = Object.entries(files).map(async ([filePath, content]) => {
 			if (content !== null) {
-				const path = await import("path")
-				const targetPath = path.isAbsolute(filePath) ? filePath : path.join(basePath, filePath)
-				await fs.promises.mkdir(path.dirname(targetPath), { recursive: true })
+				const targetPath = nodePath.isAbsolute(filePath) ? filePath : nodePath.join(basePath, filePath)
+				await fs.promises.mkdir(nodePath.dirname(targetPath), { recursive: true })
 				return fs.promises.writeFile(targetPath, content as string)
 			}
 			return Promise.resolve()

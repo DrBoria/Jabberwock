@@ -4,8 +4,8 @@ import * as fs from "fs"
 import * as childProcess from "child_process"
 import * as readline from "readline"
 import { byLengthAsc, Fzf } from "fzf"
-import { getBinPath } from "../ripgrep"
-import { Package } from "../../shared/package"
+import { getBinPath } from "@services/ripgrep"
+import { Package } from "@shared/package"
 
 export type FileResult = { path: string; type: "file" | "folder"; label?: string }
 

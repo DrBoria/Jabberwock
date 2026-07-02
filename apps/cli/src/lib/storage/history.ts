@@ -18,7 +18,8 @@ interface HistoryData {
  * Get the path to the history file
  */
 export function getHistoryFilePath(): string {
-	return path.join(getConfigDir(), "cli-history.json")
+	const filePath = path.join(getConfigDir(), "cli-history.json")
+	return filePath
 }
 
 /**

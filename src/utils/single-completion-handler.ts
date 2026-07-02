@@ -1,6 +1,6 @@
 import type { ProviderSettings } from "@jabberwock/types"
 
-import { buildApiHandler, SingleCompletionHandler } from "../api"
+import { buildApiHandler, SingleCompletionHandler } from "@api"
 
 /**
  * Enhances a prompt using the configured API without creating a full Cline instance or task history.

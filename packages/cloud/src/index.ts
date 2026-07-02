@@ -1,13 +1,14 @@
 export * from "./config.ts"
 
+export { CloudService } from "./service/index.ts"
+
 export {
-	CloudService,
 	createCloudService,
 	getCloudService,
 	hasCloudService,
-	resetCloudService,
 	isCloudEnabled,
-} from "./CloudService.ts"
+	resetCloudService,
+} from "./cloud-service-accessors.ts"
 
 export { RetryQueue } from "./retry-queue/index.ts"
 export type { QueuedRequest, QueueStats, RetryQueueConfig, RetryQueueEvents } from "./retry-queue/index.ts"

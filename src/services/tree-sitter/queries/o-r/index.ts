@@ -1,0 +1,5 @@
+export { ocamlQuery } from "./ocaml"
+export { default as phpQuery } from "./php"
+export { default as pythonQuery } from "./python"
+export { default as rubyQuery } from "./ruby"
+export { default as rustQuery } from "./rust"

@@ -2,10 +2,10 @@ import { when } from "mobx"
 
 import { Anthropic } from "@anthropic-ai/sdk"
 
-import type { ApiMessage } from "../../task/messages/actions/saveApiConversation"
-import { getEffectiveApiHistory } from "../../task/condense/handlers/on-context-condense"
+import type { ApiMessage } from "@features/chat/task/messages/actions/save/saveApiMessages.types"
+import { getEffectiveApiHistory } from "@features/chat/task/condense/handlers/on-context-condense-history"
 import { validateAndFixToolResultIds } from "./validateToolResultIds"
-import type { ITaskModel } from "../../task/store"
+import type { ITaskModel } from "@features/chat/task/store"
 
 /**
  * Flushes pending tool results (user message content) to the API conversation history.

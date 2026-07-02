@@ -24,6 +24,11 @@ export const ChatTaskEventKeys = {
 	TEXTAREA_IMAGES_SELECT_REQUESTED: "textarea.images.select.requested",
 	TOPIC_COMMANDS_REQUESTED: "topic.commands.requested",
 	TOPIC_TODOLIST_UPDATE: "topic.todolist.update",
+
+	GOAL_ADD_REQUESTED: "task.goal.add.requested",
+	GOAL_REMOVE_REQUESTED: "task.goal.remove.requested",
+	GOAL_UPDATE_REQUESTED: "task.goal.update.requested",
+	GOAL_REORDER_REQUESTED: "task.goal.reorder.requested",
 } as const
 
 /**
@@ -37,5 +42,10 @@ export const CHAT_TASK_CLEAR_TASK = eventConstants.CHAT.TASK.CLEAR_TASK
 export const CHAT_TASK_TASK_SYNC_ENABLED = eventConstants.CHAT.TASK.TASK_SYNC_ENABLED
 export const CHAT_TASK_CONDENSE_TASK_CONTEXT_REQUEST = eventConstants.CHAT.TASK.CONDENSE_TASK_CONTEXT_REQUEST
 export const CHAT_TASK_WEBVIEW_DID_LAUNCH = eventConstants.CHAT.TASK.WEBVIEW_DID_LAUNCH
+
+export const CHAT_TASK_GOAL_ADD = eventConstants.CHAT.TASK.GOAL_ADD
+export const CHAT_TASK_GOAL_REMOVE = eventConstants.CHAT.TASK.GOAL_REMOVE
+export const CHAT_TASK_GOAL_UPDATE = eventConstants.CHAT.TASK.GOAL_UPDATE
+export const CHAT_TASK_GOAL_REORDER = eventConstants.CHAT.TASK.GOAL_REORDER
 
 export type ChatTaskEventKeys = (typeof ChatTaskEventKeys)[keyof typeof ChatTaskEventKeys]

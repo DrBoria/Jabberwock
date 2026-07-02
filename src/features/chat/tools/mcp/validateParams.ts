@@ -1,12 +1,12 @@
 import type { McpServerRequestData } from "@jabberwock/types"
 
-import type { ITaskModel } from "../../task/store"
-import { formatResponse } from "../../../settings/context/responses"
-import { getMcpServerManager } from "../../../../services/mcp/McpServerManager"
-import { t } from "../../../../i18n"
-import { toolNamesMatch } from "../../../../utils/mcp-name"
-import { systemBroadcast } from "../../task/messages/actions/say"
-import { sayAndCreateMissingParamError } from "../../task/messages/actions/missingParamError"
+import type { ITaskModel } from "@features/chat/task/store"
+import { formatResponse } from "@features/settings/context/responses"
+import { getMcpServerManager } from "@services/mcp/core/McpServerManager"
+import { t } from "@i18n"
+import { toolNamesMatch } from "@utils/mcp"
+import { systemBroadcast } from "@features/chat/task/messages/actions/say"
+import { sayAndCreateMissingParamError } from "@features/chat/task/messages/actions/command/sayAndCreateMissingParamError"
 
 export interface UseMcpToolParams {
 	server_name: string
@@ -198,24 +198,19 @@ export async function validateToolExists(
 /**
  * Builds the complete message for the use_mcp_server ask.
  */
-export function buildUseMcpServerMessage(serverName: string, toolName: string, argumentsStr?: string): string {
-	return JSON.stringify({
-		type: "use_mcp_tool",
-		serverName,
-		toolName,
-		arguments: argumentsStr,
-	} satisfies McpServerRequestData)
+
+/**
+ * Builds the complete message for the use_mcp_server ask.
+ */
+export function buildUseMcpServerMessage(serverName: string, toolName: string, args?: string): string {
+	const argsStr = args ? `\n\nArguments:\n${args}` : ""
+	return `Use MCP Server: ${serverName}\n\nTool: ${toolName}${argsStr}`
 }
 
 /**
- * Checks if an MCP server is configured as an interactiveApp type.
- * InteractiveApp servers have their own approval UI via _meta.ui and auto-approve the use_mcp_server ask.
+ * Checks if the MCP server config indicates it's an interactive app server.
  */
-export function isInteractiveAppServer(serverConfig: string): boolean {
-	try {
-		const c = JSON.parse(serverConfig || "{}")
-		return c.type === "interactiveApp"
-	} catch {
-		return false
-	}
+export function isInteractiveAppServer(config: Record<string, unknown> | string): boolean {
+	const parsed: Record<string, unknown> = typeof config === "string" ? {} : config
+	return parsed.isInteractiveApp === true
 }

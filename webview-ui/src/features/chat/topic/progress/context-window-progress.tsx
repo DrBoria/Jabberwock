@@ -1,9 +1,9 @@
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 
-import { formatLargeNumber } from "@/utils/formatNumber"
-import { calculateTokenDistribution } from "@/utils/model-utils"
-import { StandardTooltip } from "@src/features/foundation/ui/standard-tooltip"
+import { formatLargeNumber } from "@/utils/format/formatNumber"
+import { calculateTokenDistribution } from "@/utils/misc/model-utils"
+import { StandardTooltip } from "@src/shared/ui/tooltips/standard-tooltip"
 
 interface ContextWindowProgressProps {
 	contextWindow: number

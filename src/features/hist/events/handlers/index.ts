@@ -1,0 +1,1 @@
+export { registerOnHistoryIntents } from "./register"

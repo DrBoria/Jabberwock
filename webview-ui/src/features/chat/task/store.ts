@@ -1,31 +1,49 @@
 import { vscode } from "@jabberwock/devtool/webview"
-import type { WebviewMessage } from "@jabberwock/types"
+import type { WebviewMessage, Goal, Notification } from "@jabberwock/types"
 import { eventConstants } from "@jabberwock/types"
 
 /**
  * Factory for ChatStore task-related actions.
  * Spread into the ChatStore's .actions() block.
  */
-export function createTaskActions(self: {
-	clearInput(): void
-	setSendingDisabled(val: boolean): void
+import { sendNavigateToTask } from "@src/features/chat/task/events/actions"
+
+export interface TaskActionsParams {
+	textArea: {
+		clearInput(): void
+		setSendingDisabled(val: boolean): void
+		sendingDisabled: boolean
+	}
 	isCondensing: boolean
-	sendingDisabled: boolean
 	tree: {
 		navigateToNode(id: string): void
 	}
-}) {
+}
+
+export function createTaskActions(self: TaskActionsParams) {
+	const _self = self as TaskActionsParams & {
+		respondToAsk(response: string, text?: string, images?: string[]): void
+		clearTask(): void
+	}
+	const hasInput = (trimmedInput: string | undefined, images: string[] | undefined): boolean =>
+		!!trimmedInput || (!!images && images.length > 0)
+	const isClearTaskSecondary = (currentAsk: string | undefined): boolean =>
+		currentAsk === "api_req_failed" || currentAsk === "mistake_limit_reached" || currentAsk === "resume_task"
+	const isRespondNoSecondary = (currentAsk: string | undefined): boolean =>
+		currentAsk === "command" || currentAsk === "tool" || currentAsk === "use_mcp_server"
+
 	return {
 		// ── Send message ───────────────────────────────────────────
-		sendMessage(text: string, images: string[]) {
+		sendMessage(text: string, images: string[], goals?: Goal[]) {
 			const trimmed = text.trim()
 			if (!trimmed && images.length === 0) return
 			vscode.postMessage({
 				type: eventConstants.CHAT.TASK.NEW_TASK,
 				text: trimmed,
 				images,
+				...(goals && goals.length > 0 ? { goals } : {}),
 			} satisfies WebviewMessage)
-			self.clearInput()
+			self.textArea.clearInput()
 		},
 
 		// ── Clear / cancel task ────────────────────────────────────
@@ -33,8 +51,8 @@ export function createTaskActions(self: {
 			vscode.postMessage({
 				type: eventConstants.CHAT.TASK.CLEAR_TASK,
 			} satisfies WebviewMessage)
-			self.clearInput()
-			self.setSendingDisabled(false)
+			self.textArea.clearInput()
+			self.textArea.setSendingDisabled(false)
 		},
 
 		cancelTask() {
@@ -46,17 +64,14 @@ export function createTaskActions(self: {
 		// ── Navigate to task ───────────────────────────────────────
 		navigateToTask(taskId: string) {
 			self.tree.navigateToNode(taskId)
-			vscode.postMessage({
-				type: eventConstants.WINDOW_MANAGER.SHOW_TASK_WITH_ID,
-				text: taskId,
-			} satisfies WebviewMessage)
+			sendNavigateToTask(taskId)
 		},
 
 		// ── Condense context ───────────────────────────────────────
 		condenseContext(taskId: string) {
-			if (self.isCondensing || self.sendingDisabled) return
+			if (self.isCondensing || self.textArea.sendingDisabled) return
 			self.isCondensing = true
-			self.setSendingDisabled(true)
+			self.textArea.setSendingDisabled(true)
 			vscode.postMessage({
 				type: eventConstants.CHAT.TASK.CONDENSE_TASK_CONTEXT_REQUEST,
 				text: taskId,
@@ -79,5 +94,50 @@ export function createTaskActions(self: {
 				text: taskId,
 			} satisfies WebviewMessage)
 		},
+
+		// ── Button click handlers ──────────────────────────────────
+		handlePrimaryButtonClick(
+			currentAsk: string | undefined,
+			currentTaskItem: { parentTaskId?: string } | undefined,
+			messages: Notification[],
+			text?: string,
+			images?: string[],
+		) {
+			const trimmedInput = text?.trim()
+			if (currentAsk === "completion_result" || currentAsk === "resume_completed_task") _self.clearTask()
+			else if (currentAsk === "resume_task") {
+				const hasParentResult =
+					currentTaskItem?.parentTaskId &&
+					messages.some((msg) => msg.ask === "completion_result" || msg.say === "completion_result")
+				if (hasParentResult) _self.clearTask()
+				else respondYes(hasInput, trimmedInput, images, _self)
+			} else respondYes(hasInput, trimmedInput, images, _self)
+			self.textArea.setSendingDisabled(true)
+		},
+
+		handleSecondaryButtonClick(
+			currentAsk: string | undefined,
+			_isStreaming: boolean,
+			text?: string,
+			images?: string[],
+		) {
+			const trimmedInput = text?.trim()
+			if (isClearTaskSecondary(currentAsk)) _self.clearTask()
+			else if (isRespondNoSecondary(currentAsk)) {
+				if (hasInput(trimmedInput, images)) _self.respondToAsk("noButtonClicked", trimmedInput, images)
+				else _self.respondToAsk("noButtonClicked")
+			} else _self.respondToAsk("noButtonClicked", trimmedInput, images)
+			self.textArea.setSendingDisabled(true)
+		},
 	}
+}
+
+function respondYes(
+	hasInput: (text: string | undefined, images: string[] | undefined) => boolean,
+	trimmedInput: string | undefined,
+	images: string[] | undefined,
+	self: { respondToAsk(response: string, text?: string, images?: string[]): void },
+) {
+	if (hasInput(trimmedInput, images)) self.respondToAsk("yesButtonClicked", trimmedInput, images)
+	else self.respondToAsk("yesButtonClicked")
 }

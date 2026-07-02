@@ -1,10 +1,7 @@
-import {
-	type SerializedCustomToolDefinition,
-	type CustomToolParametersSchema,
-	parametersSchema,
-} from "@jabberwock/types"
+import { z } from "zod/v4"
+import type { OpenAI } from "openai"
 
-import type { StoredCustomTool } from "./types.ts"
+import { type SerializedCustomToolDefinition, type CustomToolParametersSchema } from "@jabberwock/types"
 
 interface SerializeableTool {
 	name: string
@@ -22,11 +19,24 @@ export function serializeCustomTool({
 	return {
 		name,
 		description,
-		parameters: parameters ? parametersSchema.toJSONSchema(parameters) : undefined,
+		parameters: parameters ? z.toJSONSchema(parameters) : undefined,
 		source,
 	}
 }
 
-export function serializeCustomTools(tools: StoredCustomTool[]): SerializedCustomToolDefinition[] {
-	return tools.map(serializeCustomTool)
+export function formatNative(tool: SerializedCustomToolDefinition): OpenAI.Chat.ChatCompletionFunctionTool {
+	let params = tool.parameters
+
+	if (params) {
+		params = { ...params }
+		delete params["$schema"]
+
+		if (!params.required) {
+			params.required = []
+		}
+	} else {
+		params = { type: "object", properties: {}, required: [], additionalProperties: false }
+	}
+
+	return { type: "function", function: { ...tool, strict: true, parameters: params } }
 }

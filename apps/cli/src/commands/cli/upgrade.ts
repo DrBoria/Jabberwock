@@ -1,7 +1,7 @@
 import { spawn } from "child_process"
 
-import { VERSION } from "@/lib/utils/version.js"
-import { isRecord } from "@/lib/utils/guards.js"
+import { VERSION } from "@/lib/utils/env/version.js"
+import { isRecord } from "@/lib/utils/validation/guards.js"
 
 const RELEASES_URL = "https://api.github.com/repos/JabberwockInc/Jabberwock/releases?per_page=100"
 export const INSTALL_SCRIPT_COMMAND =
@@ -65,6 +65,32 @@ export function compareVersions(a: string, b: string): number {
 	return 0
 }
 
+function findLatestCliRelease(releases: unknown[]): string | undefined {
+	let latestVersion: string | undefined
+
+	for (const release of releases) {
+		if (!isRecord(release)) {
+			continue
+		}
+
+		const tagName = release.tag_name
+		if (typeof tagName !== "string" || !tagName.startsWith("cli-v")) {
+			continue
+		}
+
+		const candidate = tagName.slice("cli-v".length)
+		try {
+			if (!latestVersion || compareVersions(candidate, latestVersion) > 0) {
+				latestVersion = candidate
+			}
+		} catch {
+			// Ignore malformed CLI tags and keep scanning other releases.
+		}
+	}
+
+	return latestVersion
+}
+
 export async function getLatestCliVersion(fetchImpl: typeof fetch = fetch): Promise<string> {
 	const response = await fetchImpl(RELEASES_URL, {
 		headers: {
@@ -82,25 +108,7 @@ export async function getLatestCliVersion(fetchImpl: typeof fetch = fetch): Prom
 		throw new Error("Invalid release response from GitHub.")
 	}
 
-	let latestVersion: string | undefined
-
-	for (const release of releases) {
-		if (!isRecord(release)) {
-			continue
-		}
-
-		const tagName = release.tag_name
-		if (typeof tagName === "string" && tagName.startsWith("cli-v")) {
-			const candidate = tagName.slice("cli-v".length)
-			try {
-				if (!latestVersion || compareVersions(candidate, latestVersion) > 0) {
-					latestVersion = candidate
-				}
-			} catch {
-				// Ignore malformed CLI tags and keep scanning other releases.
-			}
-		}
-	}
+	const latestVersion = findLatestCliRelease(releases)
 
 	if (latestVersion) {
 		return latestVersion

@@ -5,7 +5,7 @@ import { z } from "zod"
 
 import { getCloudService, hasCloudService, getClerkBaseUrl, PRODUCTION_CLERK_BASE_URL } from "@jabberwock/cloud"
 
-import { t } from "../../i18n"
+import { t } from "@i18n"
 
 // MDM Configuration Schema
 const mdmConfigSchema = z.object({

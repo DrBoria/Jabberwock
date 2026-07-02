@@ -19,6 +19,23 @@ export const findRun = async (id: number) => {
 	return run
 }
 
+export const getRuns = async () => {
+	const records = await db.query.runs.findMany({ orderBy: desc(schema.runs.id), with: { taskMetrics: true } })
+	// Filter out runs that failed to load their task metrics
+	return records.filter((run) => run.taskMetrics !== null)
+}
+
+/**
+ * Get all runs without a taskMetricsId (incomplete runs)
+ */
+export const getIncompleteRuns = async () => {
+	const records = await db.query.runs.findMany({
+		where: sql`${schema.runs.taskMetricsId} IS NULL`,
+		columns: { id: true },
+	})
+	return records
+}
+
 export const createRun = async (args: InsertRun) => {
 	const records = await db
 		.insert(schema.runs)
@@ -47,9 +64,6 @@ export const updateRun = async (id: number, values: UpdateRun) => {
 
 	return record
 }
-
-export const getRuns = async () =>
-	db.query.runs.findMany({ orderBy: desc(schema.runs.id), with: { taskMetrics: true } })
 
 export const finishRun = async (runId: number) => {
 	const [values] = await db
@@ -133,16 +147,6 @@ export const deleteRun = async (runId: number) => {
 	taskMetricsIds.push(run.taskMetricsId ?? -1)
 
 	await db.delete(schema.taskMetrics).where(inArray(schema.taskMetrics.id, taskMetricsIds))
-}
-
-/**
- * Get all runs without a taskMetricsId (incomplete runs)
- */
-export const getIncompleteRuns = async () => {
-	return db.query.runs.findMany({
-		where: sql`${schema.runs.taskMetricsId} IS NULL`,
-		columns: { id: true },
-	})
 }
 
 /**

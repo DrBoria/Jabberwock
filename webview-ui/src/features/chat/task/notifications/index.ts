@@ -1,2 +1,2 @@
-export { NotificationsStore, createNotificationsActions } from "./store"
+export { NotificationsStore, createNotificationsActions } from "../../notifications/store"
 export * from "./events"

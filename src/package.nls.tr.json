@@ -1,7 +1,7 @@
 {
 	"extension.displayName": "Jabberwock",
 	"extension.description": "Düzenleyicinde tam bir AI ajanları geliştirme ekibi.",
-	"command.newTask.title": "Yeni Görev",
+	"command.newChat.title": "Yeni Sohbet",
 	"command.explainCode.title": "Kodu Açıkla",
 	"command.fixCode.title": "Kodu Düzelt",
 	"command.improveCode.title": "Kodu İyileştir",

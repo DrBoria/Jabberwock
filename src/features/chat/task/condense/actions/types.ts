@@ -1,9 +1,9 @@
 import type { Anthropic } from "@anthropic-ai/sdk"
 import type { ProviderSettings } from "@jabberwock/types"
-import type { ApiMessage } from "../../messages/actions/saveApiConversation"
-import type { ITaskModel } from "../../store"
+import type { ApiMessage } from "@features/chat/task/messages/actions/save/saveApiMessages.types"
+import type { ITaskModel } from "@features/chat/task/store"
 import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
-import type { AssistantMessageContent } from "../../messages/actions"
+import type { AssistantMessageContent } from "@features/chat/task/messages/actions"
 
 /**
  * A handle to a task model for streaming operations.
@@ -34,9 +34,9 @@ export interface AttemptApiRequestCallbacks {
  */
 export interface TaskDelegate {
 	attemptApiRequest(retryAttempt: number, opts: { [key: string]: unknown }): AsyncIterable<unknown>
-	streamingToolCallIndices: Map<string, number>
+	streamingToolCallIndices: Record<string, number>
 	assistantMessageContent: AssistantMessageContent[]
 	backoffAndAnnounce(retryAttempt: number, error: Error): Promise<void>
-	providerRef: WeakRef<ProviderHandle>
 	apiConfiguration: ProviderSettings
+	cachedStreamingModel?: { id: string; info: { [key: string]: unknown } } | undefined
 }

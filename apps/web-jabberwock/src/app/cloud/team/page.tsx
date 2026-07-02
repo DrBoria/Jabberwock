@@ -1,18 +1,4 @@
-import {
-	ArrowRight,
-	Users,
-	Settings,
-	BarChart3,
-	Lock,
-	Puzzle,
-	ShieldCheck,
-	DollarSign,
-	Share2,
-	LucideIcon,
-	Server,
-	ServerIcon,
-	RefreshCcw,
-} from "lucide-react"
+import { ArrowRight } from "lucide-react"
 import type { Metadata } from "next"
 
 import { Button } from "@/components/ui"
@@ -20,6 +6,7 @@ import { AnimatedBackground } from "@/components/homepage"
 import { SEO } from "@/lib/seo"
 import { ogImageUrl } from "@/lib/og"
 import { EXTERNAL_LINKS } from "@/lib/constants"
+import { keyBenefits, features } from "./data"
 
 const TITLE = "Jabberwock Cloud Team Plan"
 const DESCRIPTION =
@@ -30,22 +17,13 @@ const PATH = "/cloud/team"
 export const metadata: Metadata = {
 	title: TITLE,
 	description: DESCRIPTION,
-	alternates: {
-		canonical: `${SEO.url}${PATH}`,
-	},
+	alternates: { canonical: `${SEO.url}${PATH}` },
 	openGraph: {
 		title: TITLE,
 		description: DESCRIPTION,
 		url: `${SEO.url}${PATH}`,
 		siteName: SEO.name,
-		images: [
-			{
-				url: ogImageUrl(TITLE, OG_DESCRIPTION),
-				width: 1200,
-				height: 630,
-				alt: TITLE,
-			},
-		],
+		images: [{ url: ogImageUrl(TITLE, OG_DESCRIPTION), width: 1200, height: 630, alt: TITLE }],
 		locale: SEO.locale,
 		type: "website",
 	},
@@ -66,91 +44,9 @@ export const metadata: Metadata = {
 	],
 }
 
-const keyBenefits = [
-	{
-		title: "No Per-Seat Costs",
-		description: "Add unlimited team members without worrying about escalating per-seat charges.",
-		icon: Users,
-	},
-	{
-		title: "Centralized Billing",
-		description:
-			"Single billing point for all team members using Cloud Agents and the Jabberwock Router. No more API key management.",
-		icon: DollarSign,
-	},
-	{
-		title: "Unified Integrations",
-		description:
-			"Connect GitHub, Slack, and Linear once for the entire team. No need for each member to set up individual integrations.",
-		icon: Settings,
-	},
-	{
-		title: "Team-Wide Visibility",
-		description: "Access task history and usage analytics across your entire team with granular per-user filters.",
-		icon: BarChart3,
-	},
-	{
-		title: "Configuration Enforcement",
-		description:
-			"Set policies for providers, models, and MCP servers to ensure your team follows organizational standards.",
-		icon: ShieldCheck,
-	},
-	{
-		title: "Secure Environment Variables",
-		description:
-			"Centrally manage secrets, API keys, and environment variables for Cloud Agents in our encrypted secret store.",
-		icon: Lock,
-	},
-]
-
-interface Feature {
-	icon: LucideIcon
-	title: string
-	description: string
-}
-
-const features: Feature[] = [
-	{
-		icon: ShieldCheck,
-		title: "Configuration Enforcement",
-		description:
-			"Require team members to log in to the VS Code Extension so policies can be enforced via MDM distribution.",
-	},
-	{
-		icon: Server,
-		title: "Provider Management",
-		description:
-			"Configure and manage the model providers your team can access for both the Extension and Cloud Agents, with API-key-free management.",
-	},
-	{
-		icon: Puzzle,
-		title: "Centralized Integration",
-		description:
-			"Centralized GitHub, Slack, and Linear connection for the entire team. Agents can review PRs, collaborate on your repositories, respond on your team Slack channels, and work on issues in Linear.",
-	},
-	{
-		icon: RefreshCcw,
-		title: "Extension Task Sync Config",
-		description:
-			"Require task syncing from VS Code Extension and control visibility settings for who can view each other's tasks.",
-	},
-	{
-		icon: Share2,
-		title: "Task Sharing Controls",
-		description: "Enable per-task sharing with customizable audience controls and link expiration times.",
-	},
-	{
-		icon: ServerIcon,
-		title: "MCP Server Controls",
-		description:
-			"Control access to the Jabberwock MCP Marketplace and what custom MCPs to make available to your team.",
-	},
-]
-
 export default function CloudTeamPage() {
 	return (
 		<>
-			{/* Hero Section */}
 			<section className="relative flex pt-32 pb-20 items-center overflow-hidden">
 				<AnimatedBackground />
 				<div className="container relative flex flex-col items-center h-full z-10 mx-auto px-4 sm:px-6 lg:px-8">
@@ -173,8 +69,7 @@ export default function CloudTeamPage() {
 									target="_blank"
 									rel="noopener noreferrer"
 									className="flex items-center justify-center">
-									Start 14-Day Free Trial
-									<ArrowRight className="ml-2 size-5" />
+									Start 14-Day Free Trial <ArrowRight className="ml-2 size-5" />
 								</a>
 							</Button>
 							<Button variant="outline" size="xl" className="backdrop-blur-sm" asChild>
@@ -187,13 +82,11 @@ export default function CloudTeamPage() {
 				</div>
 			</section>
 
-			{/* Key Benefits Section */}
 			<section className="relative overflow-hidden border-t border-border py-32">
 				<div className="container relative z-10 mx-auto px-4 sm:px-6 lg:px-8">
 					<div className="absolute inset-y-0 left-1/2 h-full w-full max-w-[1200px] -translate-x-1/2 z-1">
 						<div className="absolute left-1/2 top-1/2 h-[400px] w-full -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-500/10 dark:bg-blue-700/20 blur-[140px]" />
 					</div>
-
 					<div className="mx-auto mb-12 md:mb-24 max-w-5xl text-center">
 						<div>
 							<h2 className="text-4xl font-bold tracking-tight mb-4">Why Teams Choose Jabberwock</h2>
@@ -202,7 +95,6 @@ export default function CloudTeamPage() {
 							</p>
 						</div>
 					</div>
-
 					<div className="relative mx-auto md:max-w-[1200px]">
 						<ul className="grid grid-cols-1 place-items-center gap-6 md:grid-cols-2 lg:grid-cols-3 lg:gap-6">
 							{keyBenefits.map((benefit, index) => {
@@ -228,7 +120,6 @@ export default function CloudTeamPage() {
 				</div>
 			</section>
 
-			{/* Features Grid */}
 			<section className="py-24 bg-muted/30">
 				<div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
 					<div className="absolute inset-y-0 left-1/2 h-full w-full max-w-[1200px] -translate-x-1/2 z-1">
@@ -260,7 +151,6 @@ export default function CloudTeamPage() {
 				</div>
 			</section>
 
-			{/* CTA Section */}
 			<section className="py-24">
 				<div className="container mx-auto px-4 sm:px-6 lg:px-8">
 					<div className="mx-auto max-w-4xl rounded-3xl border border-border/50 bg-gradient-to-br from-violet-500/10 via-purple-500/5 to-blue-500/5 p-8 text-center shadow-2xl backdrop-blur-xl dark:border-white/10 sm:p-16">
@@ -280,8 +170,7 @@ export default function CloudTeamPage() {
 									target="_blank"
 									rel="noopener noreferrer"
 									className="flex items-center justify-center">
-									Start Free Trial
-									<ArrowRight className="ml-2 h-4 w-4" />
+									Start Free Trial <ArrowRight className="ml-2 h-4 w-4" />
 								</a>
 							</Button>
 							<Button variant="outline" size="lg" className="backdrop-blur-sm" asChild>

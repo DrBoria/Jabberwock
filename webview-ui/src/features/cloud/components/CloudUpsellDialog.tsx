@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next"
-import { Dialog, DialogContent, DialogHeader, Button } from "@/features/foundation/ui"
+import { Button } from "@src/shared/ui/buttons/button"
+import { Dialog, DialogContent, DialogHeader } from "@src/shared/ui/overlays/dialog"
 import JabberwockHero from "@src/features/chat/extension-state/components/JabberwockHero"
 import { ArrowRight, Brain, Cable, CircleDollarSign, FileStack, Router, Users2 } from "lucide-react"
 import { DialogTitle } from "@radix-ui/react-dialog"

@@ -1,4 +1,4 @@
-import type { ITaskModel } from "../store"
+import type { ITaskModel } from "@features/chat/task/store"
 import { getBackendRootStore } from "@features/storeSingleton"
 
 /**

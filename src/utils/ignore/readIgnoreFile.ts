@@ -6,7 +6,7 @@
  */
 import path from "path"
 import fs from "fs/promises"
-import { fileExistsAtPath } from "../fs"
+import { fileExistsAtPath } from "@utils/io"
 
 /**
  * Read .jabberwockignore from the given directory.

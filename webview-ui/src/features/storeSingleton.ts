@@ -10,8 +10,8 @@ import { onAction } from "mobx-state-tree"
 import { defaultModeSlug, defaultPrompts } from "@shared/modes"
 import { experimentDefault } from "@shared/experiments"
 
-import { RootStore } from "./store"
-import type { IRootStore } from "./store"
+import { RootStore } from "./root-store"
+import type { IRootStore } from "./root-store"
 
 // ─── Action log entry type ──────────────────────────────────────────
 export interface FrontendActionLogEntry {
@@ -199,9 +199,3 @@ export function getFrontendActionBuffer(): FrontendActionLogEntry[] {
 
 // Backward-compatible singleton reference (initialized lazily)
 export const rootStore = createRootStore()
-
-// Re-export IRootStore type for consumers that import from storeSingleton
-export type { IRootStore } from "./store"
-
-// Re-export React utilities for backward compatibility
-export { useRootStore, RootStoreContext } from "./useRootStore"

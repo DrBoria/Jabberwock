@@ -11,7 +11,7 @@ export type MarketplaceState = object
 
 export function initMarketplaceState(_provider: EventBridge): void {}
 
-import type { IBackendRootStore } from "../store"
+import type { IBackendRootStore } from "@features/store"
 
 export function getMarketplaceState(rootStore: IBackendRootStore): MarketplaceState {
 	return rootStore.marketplace as MarketplaceState

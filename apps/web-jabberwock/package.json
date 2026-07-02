@@ -9,9 +9,7 @@
 		"build": "next build",
 		"postbuild": "next-sitemap --config next-sitemap.config.cjs",
 		"start": "next start",
-		"clean": "rimraf .next .turbo",
-		"test": "vitest run",
-		"test:watch": "vitest"
+		"clean": "rimraf .next .turbo"
 	},
 	"dependencies": {
 		"@radix-ui/react-dialog": "^1.1.15",

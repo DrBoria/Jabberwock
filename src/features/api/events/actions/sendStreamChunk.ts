@@ -13,7 +13,7 @@
  * See plans/architectural-restructure-v2.md §Streaming Architecture
  */
 
-import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
+import { getProvider } from "@features/foundation/webview/providerRegistry"
 import { postMessageToWebview } from "@features/foundation/window-manager/store"
 
 /**
@@ -22,10 +22,10 @@ import { postMessageToWebview } from "@features/foundation/window-manager/store"
  * Uses EventBridge's postMessageToWebview internally via the window-manager store,
  * because EventBridge stores the webview view reference.
  *
- * @param provider - EventBridge instance (accessible via task.delegate.providerRef)
  * @param payload - Streaming payload with taskId and accumulated text
  */
-export function sendStreamChunk(provider: ProviderHandle, payload: { taskId: string; text: string }): void {
+export function sendStreamChunk(payload: { taskId: string; text: string }): void {
+	const provider = getProvider()
 	postMessageToWebview(provider, {
 		type: "streamChunk", // NOT an EventConstant — hardcoded literal (intentional)
 		taskId: payload.taskId,

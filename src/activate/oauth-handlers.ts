@@ -1,4 +1,4 @@
-import { getSettingsAccess } from "@utils/settings-access"
+import { getSettingsAccess } from "@utils/settings"
 
 /**
  * Exchanges an OpenRouter OAuth authorization code for an API key

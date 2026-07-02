@@ -1,4 +1,4 @@
-import type { ITaskModel } from "../../task/store"
+import type { ITaskModel } from "@features/chat/task/store"
 import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
 
 import { getBackendRootStore } from "@features/storeSingleton"
@@ -44,14 +44,11 @@ export async function resumeAfterDelegation(taskId: string, completionResult?: s
  * Reopens parent from delegation.
  * Called when a child task completes and wants to return control to its parent.
  */
-export async function reopenParentFromDelegation(
-	provider: ProviderHandle,
-	params: {
-		parentTaskId: string
-		childTaskId: string
-		completionResultSummary: string
-	},
-): Promise<void> {
+export async function reopenParentFromDelegation(params: {
+	parentTaskId: string
+	childTaskId: string
+	completionResultSummary: string
+}): Promise<void> {
 	const { parentTaskId, childTaskId, completionResultSummary } = params
 	const parentTask = getBackendRootStore().chat.getTask(parentTaskId)
 	if (!parentTask) {
@@ -66,15 +63,12 @@ export async function reopenParentFromDelegation(
  * Delegates from a parent task and opens a new child task.
  * Used when a tool call needs to be delegated to a different mode/agent.
  */
-export async function delegateParentAndOpenChild(
-	provider: ProviderHandle,
-	params: {
-		parentTaskId: string
-		message: string
-		initialTodos?: unknown[]
-		mode?: string
-	},
-): Promise<ITaskModel> {
+export async function delegateParentAndOpenChild(params: {
+	parentTaskId: string
+	message: string
+	initialTodos?: unknown[]
+	mode?: string
+}): Promise<ITaskModel> {
 	const { parentTaskId, message, initialTodos, mode } = params
 
 	// startSubtask was removed from TaskModel — use standalone function instead

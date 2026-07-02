@@ -8,51 +8,54 @@
  * @packageDocumentation
  */
 
-// Export the complete VSCode API implementation
+// ============================================================================
+// Classes
+// ============================================================================
+export { Position } from "./classes/types/Position.ts"
+export { Range } from "./classes/types/Range.ts"
+export { Selection } from "./classes/types/Selection.ts"
+export { Uri } from "./classes/types/Uri.ts"
+export { EventEmitter } from "./classes/events/EventEmitter.ts"
+export { TextEdit, WorkspaceEdit } from "./classes/text/TextEdit.ts"
 export {
-	// Main factory function
-	createVSCodeAPIMock,
-
-	// Classes
-	Uri,
-	Position,
-	Range,
-	Selection,
-	EventEmitter,
 	Location,
 	Diagnostic,
 	DiagnosticRelatedInformation,
-	TextEdit,
-	WorkspaceEdit,
 	ThemeColor,
 	ThemeIcon,
 	CodeActionKind,
-	CancellationTokenSource,
 	CodeLens,
 	LanguageModelTextPart,
 	LanguageModelToolCallPart,
 	LanguageModelToolResultPart,
 	FileSystemError,
-	OutputChannel,
-	StatusBarItem,
-	TextEditorDecorationType,
-	ExtensionContext,
+} from "./classes/types/Additional.ts"
+export { CancellationTokenSource, type CancellationToken } from "./classes/events/CancellationToken.ts"
+export { OutputChannel } from "./classes/window/OutputChannel.ts"
+export { StatusBarItem } from "./classes/window/StatusBarItem.ts"
+export { TextEditorDecorationType } from "./classes/window/TextEditorDecorationType.ts"
+export { ExtensionContextImpl as ExtensionContext } from "./context/ExtensionContext.ts"
 
-	// API classes
-	WorkspaceAPI,
-	WindowAPI,
-	CommandsAPI,
-	TabGroupsAPI,
-	FileSystemAPI,
+// ============================================================================
+// API Classes
+// ============================================================================
+export { FileSystemAPI } from "./api/classes/FileSystemAPI.ts"
+export {
 	MockWorkspaceConfiguration,
-
-	// Runtime configuration utilities
 	setRuntimeConfig,
 	setRuntimeConfigValues,
 	clearRuntimeConfig,
-	getRuntimeConfig,
+} from "./api/classes/WorkspaceConfiguration.ts"
+export { WorkspaceAPI } from "./api/classes/WorkspaceAPI.ts"
+export { TabGroupsAPI } from "./api/classes/TabGroupsAPI.ts"
+export { WindowAPI } from "./api/classes/WindowAPI.ts"
+export { CommandsAPI } from "./api/classes/CommandsAPI.ts"
+export { createVSCodeAPIMock } from "./api/helpers/create-vscode-api-mock.ts"
 
-	// Enums
+// ============================================================================
+// Enums
+// ============================================================================
+export {
 	ConfigurationTarget,
 	ViewColumn,
 	TextEditorRevealType,
@@ -66,50 +69,26 @@ export {
 	FileType,
 	DecorationRangeBehavior,
 	OverviewRulerLane,
+} from "./types/enums.ts"
 
-	// Types
-	type IdentityInfo,
-	type Thenable,
-	type Disposable,
-	type TextDocument,
-	type TextLine,
-	type WorkspaceFolder,
-	type WorkspaceConfiguration,
-	type Memento,
-	type SecretStorage,
-	type FileStat,
-	type Terminal,
-	type CancellationToken,
-	type IExtensionHost,
-	type ExtensionHostEventMap,
-	type ExtensionHostEventName,
-} from "./vscode.ts"
+// ============================================================================
+// Types
+// ============================================================================
+export type { IdentityInfo, WorkspaceConfiguration, Disposable } from "./interfaces/workspace.ts"
+export type { Thenable, Memento, FileStat, TextEditorOptions, ConfigurationInspect } from "./types/interfaces.ts"
+export type { TextDocument, TextLine, WorkspaceFolder } from "./interfaces/document.ts"
+export type { Terminal } from "./interfaces/terminal.ts"
+export type { IExtensionHost, ExtensionHostEventMap, ExtensionHostEventName } from "./interfaces/extension-host.ts"
+export type { SecretStorage } from "./vscode.ts"
 
-// Export utilities
+// ============================================================================
+// Utilities
+// ============================================================================
 export { logs, setLogger, type Logger } from "./utils/logger.ts"
 export { VSCodeMockPaths } from "./utils/paths.ts"
 export { machineIdSync } from "./utils/machine-id.ts"
 
+// ============================================================================
 // Re-export as createVSCodeAPI for simpler API
-export { createVSCodeAPIMock as createVSCodeAPI } from "./vscode.ts"
-
-/**
- * Quick start function to create a complete VSCode API mock
- *
- * @example
- * ```typescript
- * import { createVSCodeAPI } from '@jabberwock/vscode-shim'
- *
- * const vscode = createVSCodeAPI({
- *   extensionPath: '/path/to/extension',
- *   workspacePath: '/path/to/workspace'
- * })
- *
- * // Set global vscode for extension to use
- * global.vscode = vscode
- *
- * // Load and activate extension
- * const extension = require('/path/to/extension.js')
- * const api = await extension.activate(vscode.context)
- * ```
- */
+// ============================================================================
+export { createVSCodeAPIMock as createVSCodeAPI } from "./api/helpers/create-vscode-api-mock.ts"

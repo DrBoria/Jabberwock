@@ -116,6 +116,7 @@
 	"unlockApiConfigAcrossModes": "La configuration API est verrouillée pour tous les modes dans cet espace de travail (cliquer pour déverrouiller)",
 	"enhancePrompt": "Améliorer la requête avec un contexte supplémentaire",
 	"addImages": "Ajouter des images au message",
+	"addGoal": "Ajouter comme objectif",
 	"sendMessage": "Envoyer le message",
 	"pressToSend": "Appuie sur {{keyCombination}} pour envoyer",
 	"stopTts": "Arrêter la synthèse vocale",

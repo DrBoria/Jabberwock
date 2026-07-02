@@ -31,7 +31,8 @@ export const OUTPUT_FORMATS = rooCliOutputFormats
 export type OutputFormat = RooCliOutputFormat
 
 export function isValidOutputFormat(format: string): format is OutputFormat {
-	return (OUTPUT_FORMATS as readonly string[]).includes(format)
+	const isValid = (OUTPUT_FORMATS as readonly string[]).includes(format)
+	return isValid
 }
 
 /**

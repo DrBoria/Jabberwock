@@ -1,18 +1,4 @@
-import {
-	ArrowRight,
-	Bot,
-	Brain,
-	ChartLine,
-	Github,
-	History,
-	ListChecks,
-	LucideIcon,
-	Pencil,
-	Share2,
-	Slack,
-	Users,
-	Users2,
-} from "lucide-react"
+import { ArrowRight } from "lucide-react"
 import type { Metadata } from "next"
 import Image from "next/image"
 
@@ -23,6 +9,7 @@ import { ogImageUrl } from "@/lib/og"
 import { EXTERNAL_LINKS } from "@/lib/constants"
 // Workaround for next/image choking on these for some reason
 import screenshotDark from "../../../public/heroes/cloud-screen.png"
+import { howItWorks, features } from "./data"
 
 const TITLE = "Jabberwock Cloud"
 const DESCRIPTION =
@@ -33,22 +20,13 @@ const PATH = "/cloud"
 export const metadata: Metadata = {
 	title: TITLE,
 	description: DESCRIPTION,
-	alternates: {
-		canonical: `${SEO.url}${PATH}`,
-	},
+	alternates: { canonical: `${SEO.url}${PATH}` },
 	openGraph: {
 		title: TITLE,
 		description: DESCRIPTION,
 		url: `${SEO.url}${PATH}`,
 		siteName: SEO.name,
-		images: [
-			{
-				url: ogImageUrl(TITLE, OG_DESCRIPTION),
-				width: 1200,
-				height: 630,
-				alt: TITLE,
-			},
-		],
+		images: [{ url: ogImageUrl(TITLE, OG_DESCRIPTION), width: 1200, height: 630, alt: TITLE }],
 		locale: SEO.locale,
 		type: "website",
 	},
@@ -61,88 +39,9 @@ export const metadata: Metadata = {
 	keywords: [...SEO.keywords, "cloud", "subscription", "cloud agents", "AI cloud development", "autonomous agents"],
 }
 
-const howItWorks = [
-	{
-		title: "1. Connect your GitHub account",
-		description:
-			"Pick which repos the agents can work with in their isolated containers and choose what model you want to power each of them. You're in control.",
-		icon: Github,
-	},
-	{
-		title: "2. Set up your agent team",
-		description:
-			"Choose the roles you want filled, like Explainer, Planner, Coder, PR Reviewer and PR Fixer. They know how to act in each situation and stay on-task with no deviations.",
-		icon: Users2,
-	},
-	{
-		title: "3. Start giving them tasks",
-		description:
-			"Describe what you want them to do from the web UI, get the Reviewer automatically reviewing PRs, and much more. They're now part of your team.",
-		icon: Pencil,
-	},
-]
-
-interface Feature {
-	icon: LucideIcon
-	title: string
-	description: string
-}
-
-const features: Feature[] = [
-	{
-		icon: Bot,
-		title: "Autonomous Cloud Agents",
-		description:
-			"Delegate work to specialized agents like the Planner, Coder, Explainer, Reviewer, and Fixer that run 24/7.",
-	},
-	{
-		icon: Brain,
-		title: "Model Agnostic",
-		description: "Bring your own keys or use the Jabberwock Router with access to all top models with no markup.",
-	},
-	{
-		icon: Github,
-		title: "GitHub PR Reviews",
-		description:
-			"Agents can automatically review Pull Requests, provide feedback, and even push fixes directly to your repository.",
-	},
-	{
-		icon: Slack,
-		title: "Slack Integration",
-		description: "Start tasks, get updates, and collaborate with agents directly from your team's Slack channels.",
-	},
-	{
-		icon: ListChecks,
-		title: "Linear Integration",
-		description: "Assign issues to Jabberwock directly from Linear. Get PRs back without switching tools.",
-	},
-	{
-		icon: Users,
-		title: "Team Collaboration",
-		description:
-			"Manage your team and their access to tasks and resources, with centralized billing and configuration.",
-	},
-	{
-		icon: ChartLine,
-		title: "Usage Analytics",
-		description: "Detailed token analytics to help you optimize your costs and usage across your team.",
-	},
-	{
-		icon: History,
-		title: "Task History",
-		description: "Access from anywhere all of your tasks, from the cloud and the extension",
-	},
-	{
-		icon: Share2,
-		title: "Task Sharing",
-		description: "Share tasks with friends and co-workers and let them follow your work in real-time.",
-	},
-]
-
 export default function CloudPage() {
 	return (
 		<>
-			{/* Hero Section */}
 			<section className="relative flex pt-32 pb-20 items-center overflow-hidden">
 				<AnimatedBackground />
 				<div className="container relative flex flex-col items-center h-full z-10 mx-auto px-4 sm:px-6 lg:px-8">
@@ -164,8 +63,7 @@ export default function CloudPage() {
 									target="_blank"
 									rel="noopener noreferrer"
 									className="flex items-center justify-center">
-									Try Cloud for Free
-									<ArrowRight className="ml-2 size-5" />
+									Try Cloud for Free <ArrowRight className="ml-2 size-5" />
 								</a>
 							</Button>
 							<Button variant="outline" size="xl" className="backdrop-blur-sm" asChild>
@@ -175,8 +73,6 @@ export default function CloudPage() {
 							</Button>
 						</div>
 					</div>
-
-					{/* Screenshot */}
 					<div className="relative mx-auto mt-4 md:max-w-[1000px]">
 						<Image
 							src={screenshotDark}
@@ -190,13 +86,11 @@ export default function CloudPage() {
 				</div>
 			</section>
 
-			{/* How It Works Section */}
 			<section className="relative overflow-hidden border-t border-border py-32">
 				<div className="container relative z-10 mx-auto px-4 sm:px-6 lg:px-8">
 					<div className="absolute inset-y-0 left-1/2 h-full w-full max-w-[1200px] -translate-x-1/2 z-1">
 						<div className="absolute left-1/2 top-1/2 h-[400px] w-full -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-500/10 dark:bg-blue-700/20 blur-[140px]" />
 					</div>
-
 					<div className="mx-auto mb-12 md:mb-24 max-w-5xl text-center">
 						<div>
 							<h2 className="text-3xl font-bold tracking-tight sm:text-5xl mb-4">How it works</h2>
@@ -205,7 +99,6 @@ export default function CloudPage() {
 							</p>
 						</div>
 					</div>
-
 					<div className="relative mx-auto md:max-w-[1200px]">
 						<ul className="grid grid-cols-1 place-items-center gap-6 md:grid-cols-3 lg:gap-8">
 							{howItWorks.map((step, index) => {
@@ -229,10 +122,8 @@ export default function CloudPage() {
 				</div>
 			</section>
 
-			{/* Use Cases Section */}
 			<UseExamplesSection />
 
-			{/* Features Grid */}
 			<section className="py-24 bg-muted/30">
 				<div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
 					<div className="absolute inset-y-0 left-1/2 h-full w-full max-w-[1200px] -translate-x-1/2 z-1">
@@ -265,7 +156,6 @@ export default function CloudPage() {
 				</div>
 			</section>
 
-			{/* CTA Section */}
 			<section className="py-24">
 				<div className="container mx-auto px-4 sm:px-6 lg:px-8">
 					<div className="mx-auto max-w-4xl rounded-3xl border border-border/50 bg-gradient-to-br from-violet-500/10 via-purple-500/5 to-blue-500/5 p-8 text-center shadow-2xl backdrop-blur-xl dark:border-white/10 sm:p-16">
@@ -283,8 +173,7 @@ export default function CloudPage() {
 									target="_blank"
 									rel="noopener noreferrer"
 									className="flex items-center justify-center">
-									Sign up now
-									<ArrowRight className="ml-2 h-4 w-4" />
+									Sign up now <ArrowRight className="ml-2 h-4 w-4" />
 								</a>
 							</Button>
 						</div>

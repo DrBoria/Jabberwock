@@ -9,7 +9,7 @@
  * - Enables telemetry and debugging with complete error context
  */
 
-import i18n from "../../../i18n/setup"
+import i18n from "@i18n/setup"
 
 /**
  * Handles API provider errors and transforms them into user-friendly messages
@@ -50,6 +50,76 @@ interface ErrorMetadata {
 	}
 }
 
+function getErrorMessage(error: unknown): string {
+	const anyErr = error as ErrorMetadata
+	return anyErr?.error?.metadata?.raw || (error instanceof Error ? error.message : "") || ""
+}
+
+function buildErrorMessage(
+	msg: string,
+	providerName: string,
+	messagePrefix: string,
+	options?: { messageTransformer?: (msg: string) => string },
+): string {
+	if (msg.includes("Cannot convert argument to a ByteString")) {
+		return i18n.t("common:errors.api.invalidKeyInvalidChars")
+	}
+	if (options?.messageTransformer) {
+		return options.messageTransformer(msg)
+	}
+	return `${providerName} ${messagePrefix} error: ${msg}`
+}
+
+function copyMetadata(error: Error): void {
+	const anyErr = error as ErrorMetadata
+	Object.assign(error, {
+		...(anyErr.status !== undefined && { status: anyErr.status }),
+		...(anyErr.errorDetails !== undefined && { errorDetails: anyErr.errorDetails }),
+		...(anyErr.code !== undefined && { code: anyErr.code }),
+		...(anyErr.$metadata !== undefined && { $metadata: anyErr.$metadata }),
+	})
+}
+
+function logApiError(providerName: string, msg: string, error: Error): void {
+	const anyErr = error as ErrorMetadata
+	console.error(`[jabberwock] [${providerName}] API error:`, {
+		message: msg,
+		name: error.name,
+		stack: error.stack,
+		status: anyErr.status,
+	})
+}
+
+function handleErrorInstance(
+	error: Error,
+	providerName: string,
+	messagePrefix: string,
+	options?: { messageTransformer?: (msg: string) => string },
+): Error {
+	const msg = getErrorMessage(error)
+
+	logApiError(providerName, msg, error)
+
+	const finalMessage = buildErrorMessage(msg, providerName, messagePrefix, options)
+	const wrapped = new Error(finalMessage)
+
+	copyMetadata(wrapped)
+
+	return wrapped
+}
+
+function handleNonError(error: unknown, providerName: string, messagePrefix: string): Error {
+	console.error(`[jabberwock] [${providerName}] Non-Error exception:`, error)
+	const wrapped = new Error(`${providerName} ${messagePrefix} error: ${String(error)}`)
+
+	const anyErr = error as ErrorMetadata
+	if (typeof anyErr?.status === "number") {
+		Object.assign(wrapped, { status: anyErr.status })
+	}
+
+	return wrapped
+}
+
 export function handleProviderError(
 	error: unknown,
 	providerName: string,
@@ -63,62 +133,13 @@ export function handleProviderError(
 	const messagePrefix = options?.messagePrefix || "completion"
 
 	if (error instanceof Error) {
-		const anyErr = error as ErrorMetadata
-		const rawMetadata = anyErr?.error
-		const msg = rawMetadata?.metadata?.raw || error.message || ""
-
-		// Log the original error details for debugging
-		console.error(`[jabberwock] [${providerName}] API error:`, {
-			message: msg,
-			name: error.name,
-			stack: error.stack,
-			status: anyErr.status,
-		})
-
-		let wrapped: Error
-
-		// Special case: Invalid character/ByteString conversion error in API key
-		// This is specific to OpenAI-compatible SDKs
-		if (msg.includes("Cannot convert argument to a ByteString")) {
-			wrapped = new Error(i18n.t("common:errors.api.invalidKeyInvalidChars"))
-		} else {
-			// Apply custom transformer if provided, otherwise use default format
-			const finalMessage = options?.messageTransformer
-				? options.messageTransformer(msg)
-				: `${providerName} ${messagePrefix} error: ${msg}`
-			wrapped = new Error(finalMessage)
-		}
-
-		// Preserve HTTP status and structured details for retry/backoff + UI
-		// These fields are used by Task.backoffAndAnnounce() and ChatRow/ErrorRow
-		// to provide status-aware error messages and handling
-		Object.assign(wrapped, {
-			...(anyErr.status !== undefined && { status: anyErr.status }),
-			...(anyErr.errorDetails !== undefined && { errorDetails: anyErr.errorDetails }),
-			...(anyErr.code !== undefined && { code: anyErr.code }),
-			...(anyErr.$metadata !== undefined && { $metadata: anyErr.$metadata }),
-		})
-
-		return wrapped
+		return handleErrorInstance(error, providerName, messagePrefix, options)
 	}
 
-	// Non-Error: wrap with provider-specific prefix
-	console.error(`[jabberwock] [${providerName}] Non-Error exception:`, error)
-	const wrapped = new Error(`${providerName} ${messagePrefix} error: ${String(error)}`)
-
-	// Also try to preserve status for non-Error exceptions (e.g., plain objects with status)
-	const anyErr = error as ErrorMetadata
-	if (typeof anyErr?.status === "number") {
-		Object.assign(wrapped, { status: anyErr.status })
-	}
-
-	return wrapped
+	return handleNonError(error, providerName, messagePrefix)
 }
 
 /**
  * Specialized handler for OpenAI-compatible providers
  * Re-exports with OpenAI-specific defaults for backward compatibility
  */
-export function handleOpenAIError(error: unknown, providerName: string): Error {
-	return handleProviderError(error, providerName, { messagePrefix: "completion" })
-}

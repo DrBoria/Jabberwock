@@ -3,49 +3,12 @@
 import { useEffect, useMemo, useState } from "react"
 import { ModelCard } from "./pricing/components/model-card"
 import { Model, ModelWithTotalPrice, ModelsResponse, SortOption } from "@/lib/types/models"
-import Link from "next/link"
 import { ChevronDown, CircleX, Cloud, Loader, LoaderCircle, Puzzle, Search } from "lucide-react"
+import { PROVIDER_FAQS } from "./pricing-data"
+import Link from "next/link"
+import { FAQSection } from "@/components/homepage"
 
 const API_URL = "https://api.jabberwock.com/proxy/v1/models?include_paid=true"
-
-const faqs = [
-	{
-		question: "What are AI model providers?",
-		answer: "AI model providers offer various language models with different capabilities and pricing.",
-	},
-	{
-		question: "What is the Jabberwock Router?",
-		answer: (
-			<>
-				<p>This is our very own model router, optimized to work seamlessly with Jabberwock Cloud.</p>
-				<p>You don&apos;t have to use it to use Jabberwock, but it&apos;s the easiest way to do it.</p>
-			</>
-		),
-	},
-	{
-		question: "Do I have to use the Jabberwock Router to use the Jabberwock products?",
-		answer: "Not at all! You can bring your own provider key, no problem. This is just meant to make it easier.",
-	},
-	{
-		question: "How is pricing calculated?",
-		answer: "Pricing is based on token usage for input and output, measured per million tokens, like pretty much any other provider out there.",
-	},
-	{
-		question: "How is my data treated?",
-		answer: "The Jabberwock Router doesn't keep any of your data, the service only aims to make it easier to use Jabberwock. Each model vendor has their own privacy policy though, and usually free models use your data for training, so keep that in mind.",
-	},
-	{
-		question: "How much does the Jabberwock Cloud service cost?",
-		answer: (
-			<>
-				Our{" "}
-				<Link href="/pricing" className="underline hover:no-underline">
-					service pricing is here.
-				</Link>
-			</>
-		),
-	},
-]
 
 function calculateTotalPrice(model: Model): number {
 	return parseFloat(model.pricing.input) + parseFloat(model.pricing.output)
@@ -88,10 +51,8 @@ export default function ProviderPage() {
 	}, [])
 
 	const filteredAndSortedModels = useMemo(() => {
-		// Filter out deprecated models
 		let filtered = models.filter((model) => !model.deprecated)
 
-		// Filter by search query
 		if (searchQuery.trim()) {
 			const query = searchQuery.toLowerCase()
 			filtered = filtered.filter((model) => {
@@ -103,7 +64,6 @@ export default function ProviderPage() {
 			})
 		}
 
-		// Sort filtered results
 		const sorted = [...filtered]
 		switch (sortOption) {
 			case "alphabetical":
@@ -126,7 +86,6 @@ export default function ProviderPage() {
 		return sorted
 	}, [models, searchQuery, sortOption])
 
-	// Count non-deprecated models for the display
 	const nonDeprecatedCount = useMemo(() => models.filter((model) => !model.deprecated).length, [models])
 
 	return (
@@ -241,20 +200,11 @@ export default function ProviderPage() {
 				</div>
 			</section>
 
-			{/* FAQ Section */}
-			<section className="bg-background my-16 relative z-50">
-				<a id="faq" />
+			<section id="faq" className="border-t border-border py-16">
 				<div className="container mx-auto px-4 sm:px-6 lg:px-8">
-					<div className="mx-auto max-w-3xl text-center">
-						<h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Frequently Asked Questions</h2>
-					</div>
-					<div className="mx-auto mt-12 grid max-w-5xl gap-8 md:grid-cols-2">
-						{faqs.map((faq, index) => (
-							<div key={index} className="rounded-2xl border border-border bg-card p-6">
-								<h3 className="font-semibold">{faq.question}</h3>
-								<div className="mt-2 text-sm text-muted-foreground">{faq.answer}</div>
-							</div>
-						))}
+					<div className="mx-auto max-w-3xl">
+						<h2 className="mb-12 text-center text-3xl font-bold">FAQ</h2>
+						<FAQSection faqs={PROVIDER_FAQS} />
 					</div>
 				</div>
 			</section>

@@ -1,11 +1,8 @@
 export { executeTools } from "./executeTools"
 export { finalizeToolCalls } from "./finalizeToolCalls"
 export { flushPendingToolResultsToHistory } from "./flushPendingToolResults"
-export { parseFinalToolCall } from "./tool-parser"
-export {
-	buildAssistantContentForApi,
-	enforceNewTaskIsolation,
-	saveAssistantMessageToHistory,
-	waitForToolExecutionAndPrepareNextContent,
-} from "./toolCallExecutor"
+export { parseFinalToolCall } from "./parse-tool-call"
+export { buildAssistantContentForApi } from "./tool-executor"
+export { enforceNewTaskIsolation, saveAssistantMessageToHistory } from "./tool-executor"
+export { waitForToolExecutionAndPrepareNextContent } from "./tool-executor"
 export { buildNativeToolsArray, buildNativeToolsArrayWithRestrictions } from "./buildToolDefinitions"

@@ -1,0 +1,5 @@
+export { elispQuery } from "./elisp"
+export { default as elixirQuery } from "./elixir"
+export { default as embeddedTemplateQuery } from "./embedded_template"
+export { default as goQuery } from "./go"
+export { default as htmlQuery } from "./html"

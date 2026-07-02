@@ -1,7 +1,7 @@
 import { OpenAICompatibleEmbedder } from "./openai-compatible"
-import { IEmbedder, EmbeddingResponse, EmbedderInfo } from "../interfaces/embedder"
-import { MAX_ITEM_TOKENS } from "../constants"
-import { t } from "../../../i18n"
+import { IEmbedder, EmbeddingResponse, EmbedderInfo } from "@services/code-index/interfaces/embedder"
+import { MAX_ITEM_TOKENS } from "@services/code-index/constants"
+import { t } from "@i18n"
 import { TelemetryEventName } from "@jabberwock/types"
 import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 

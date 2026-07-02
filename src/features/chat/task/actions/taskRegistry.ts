@@ -1,6 +1,6 @@
 import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
-import type { ITaskModel } from "../store"
-import { getTaskWithId as getTaskWithIdFromHistory } from "../../../history/actions"
+import type { ITaskModel } from "@features/chat/task/store"
+import { getTaskWithId as getTaskWithIdFromHistory } from "@features/hist/actions"
 import { getBackendRootStore } from "@features/storeSingleton"
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -32,7 +32,7 @@ export function getTask(taskId: string): ITaskModel {
  */
 export async function isTaskInHistory(provider: ProviderHandle, taskId: string): Promise<boolean> {
 	try {
-		await getTaskWithIdFromHistory(provider, taskId)
+		await getTaskWithIdFromHistory(taskId)
 		return true
 	} catch {
 		return false

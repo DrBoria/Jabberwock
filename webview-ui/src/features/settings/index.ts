@@ -1,2 +1,1 @@
-export { SettingsStore } from "./store"
-export * from "./events"
+export { SettingsStore } from "./settings-store"

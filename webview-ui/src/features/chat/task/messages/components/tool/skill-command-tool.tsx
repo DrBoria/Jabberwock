@@ -1,8 +1,9 @@
 import React from "react"
 import { VSCodeBadge } from "@vscode/webview-ui-toolkit/react"
 import type { SayToolData } from "@jabberwock/types"
-import { toolIcon, Container } from "@src/features/foundation/ui"
-import { ToolUseBlockHeader } from "@src/features/foundation/components/ToolUseBlock"
+import { toolIcon } from "@src/shared/ui/icons/toolIcon"
+import { Container } from "@src/shared/ui/layouts/Container"
+import { ToolUseBlockHeader } from "@src/features/foundation/components/code/ToolUseBlock"
 
 interface ToolRendererProps {
 	tool: SayToolData

@@ -5,7 +5,7 @@
 	"views.terminalMenu.label": "Jabberwock",
 	"views.activitybar.title": "Jabberwock",
 	"views.sidebar.name": "Jabberwock",
-	"command.newTask.title": "New Task",
+	"command.newChat.title": "New Chat",
 	"command.history.title": "Task History",
 	"command.marketplace.title": "Marketplace",
 	"command.openInEditor.title": "Open in Editor",

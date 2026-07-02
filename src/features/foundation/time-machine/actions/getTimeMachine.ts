@@ -1,6 +1,6 @@
-import type { DiffViewProvider } from "../../../../integrations/editor/DiffViewProvider"
-import type { VirtualWorkspace } from "../VirtualWorkspace"
-import type { FileContextTracker } from "../../../foundation/time-machine/file-context/FileContextTracker"
+import type { DiffViewProvider } from "@integrations/editor/DiffViewProvider"
+import type { VirtualWorkspace } from "@features/foundation/time-machine/VirtualWorkspace"
+import type { FileContextTracker } from "@features/foundation/time-machine/file-context/FileContextTracker"
 
 /**
  * Time-machine state: holds references to instances that were previously

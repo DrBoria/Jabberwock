@@ -2,8 +2,9 @@ import React from "react"
 import { FolderTree, ListTree } from "lucide-react"
 import { Trans } from "react-i18next"
 import type { Notification, SayToolData } from "@jabberwock/types"
-import { toolIcon, Container } from "@src/features/foundation/ui"
-import CodeAccordion from "@src/features/foundation/components/CodeAccordion"
+import { toolIcon } from "@src/shared/ui/icons/toolIcon"
+import { Container } from "@src/shared/ui/layouts/Container"
+import CodeAccordion from "@src/features/foundation/components/code/CodeAccordion"
 
 interface ToolRendererProps {
 	message: Notification

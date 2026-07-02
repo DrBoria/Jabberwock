@@ -1,4 +1,4 @@
-import type { IBackendRootStore } from "../store"
+import type { IBackendRootStore } from "@features/store"
 import type { IIntentStore } from "./store"
 
 /**

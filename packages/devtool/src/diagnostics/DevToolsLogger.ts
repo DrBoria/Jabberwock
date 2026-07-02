@@ -1,4 +1,4 @@
-import { diagnosticsManager } from "./DiagnosticsManager.js"
+import { diagnosticsManager } from "./managers/DiagnosticsManager.js"
 
 /**
  * Utility class to track and log tool execution performance and results.

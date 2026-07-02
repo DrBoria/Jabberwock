@@ -1,12 +1,4 @@
-/**
- * Root re-export aggregator for all feature events.
- *
- * Each feature's events/ folder exports:
- *   - Event key constants (e.g., cloudEventConstants)
- *   - Handler registration function (e.g., registerOnCloudIntents)
- *   - Shared event types from @jabberwock/types
- */
-export type {
+import type {
 	BackendToWebview,
 	WebviewToBackend,
 	BackendInternalEvents,
@@ -14,29 +6,46 @@ export type {
 	WebviewMessage,
 } from "@jabberwock/types"
 
-export { ChatEventKeys } from "./chat/events"
+export type { BackendToWebview, WebviewToBackend, BackendInternalEvents, ExtensionMessage, WebviewMessage }
 
-export { ChatTaskEventKeys } from "./chat/task/events"
+import { ChatEventKeys } from "./chat/events"
+export { ChatEventKeys }
 
-export { ChatMessagesEventKeys } from "./chat/task/messages/events"
+import { ChatTaskEventKeys } from "./chat/task/events"
+export { ChatTaskEventKeys }
 
-export { ChatNotificationsEventKeys } from "./chat/task/notifications/events"
+import { ChatMessagesEventKeys } from "./chat/task/messages/events"
+export { ChatMessagesEventKeys }
 
-export { cloudEventConstants, registerOnCloudIntents } from "./cloud/events"
-export type { CloudEventKey } from "./cloud/events"
+import { ChatNotificationsEventKeys } from "./chat/task/notifications/events"
+export { ChatNotificationsEventKeys }
 
-export { historyEventConstants, registerOnHistoryIntents } from "./history/events"
-export type { HistoryEventKey } from "./history/events"
+import { cloudEventConstants, registerOnCloudIntents } from "./cloud/events"
+export { cloudEventConstants, registerOnCloudIntents }
+import type { CloudEventKey } from "./cloud/events"
+export type { CloudEventKey }
 
-export { marketplaceEventConstants, registerOnMarketplaceIntents } from "./marketplace/events"
-export type { MarketplaceEventKey } from "./marketplace/events"
+import { historyEventConstants, registerOnHistoryIntents } from "./hist/events"
+export { historyEventConstants, registerOnHistoryIntents }
+import type { HistoryEventKey } from "./hist/events"
+export type { HistoryEventKey }
 
-export { foundationEventConstants } from "./foundation/events"
-export type { FoundationEventKey } from "./foundation/events"
+import { marketplaceEventConstants, registerOnMarketplaceIntents } from "./marketplace/events"
+export { marketplaceEventConstants, registerOnMarketplaceIntents }
+import type { MarketplaceEventKey } from "./marketplace/events"
+export type { MarketplaceEventKey }
 
-export { windowManagerEventConstants, registerOnWindowManagerIntents } from "./foundation/window-manager/events"
-export type { WindowManagerEventKey } from "./foundation/window-manager/events"
+import { foundationEventConstants } from "./foundation/events"
+export { foundationEventConstants }
+import type { FoundationEventKey } from "./foundation/events"
+export type { FoundationEventKey }
 
-export { SettingsEventKeys, registerOnSettingsIntents } from "./settings/events"
+import { windowManagerEventConstants, registerOnWindowManagerIntents } from "./foundation/window-manager/events"
+export { windowManagerEventConstants, registerOnWindowManagerIntents }
+import type { WindowManagerEventKey } from "./foundation/window-manager/events"
+export type { WindowManagerEventKey }
+
+import { SettingsEventKeys, registerOnSettingsIntents } from "./settings/events"
+export { SettingsEventKeys, registerOnSettingsIntents }
 
 // export { CoreEventKeys } from "./core/events" — no such module exists; CoreEventKeys was likely inlined or not migrated

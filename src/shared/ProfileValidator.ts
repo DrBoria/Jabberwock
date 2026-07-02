@@ -50,38 +50,30 @@ export class ProfileValidator {
 	}
 
 	private static getModelIdFromProfile(profile: ProviderSettings): string | undefined {
-		switch (profile.apiProvider) {
-			case "openai":
-				return profile.openAiModelId
-			case "anthropic":
-			case "openai-native":
-			case "bedrock":
-			case "vertex":
-			case "gemini":
-			case "mistral":
-			case "deepseek":
-			case "xai":
-			case "sambanova":
-			case "fireworks":
-				return profile.apiModelId
-			case "litellm":
-				return profile.litellmModelId
-			case "lmstudio":
-				return profile.lmStudioModelId
-			case "vscode-lm":
-				// We probably need something more flexible for this one, if we need to really support it here.
-				return profile.vsCodeLmModelSelector?.id
-			case "openrouter":
-				return profile.openRouterModelId
-			case "ollama":
-				return profile.ollamaModelId
-			case "requesty":
-				return profile.requestyModelId
-			case "unbound":
-				return profile.unboundModelId
-			case "fake-ai":
-			default:
-				return undefined
+		const modelIdMap: Record<string, string | undefined> = {
+			openai: profile.openAiModelId,
+			anthropic: profile.apiModelId,
+			"openai-native": profile.apiModelId,
+			bedrock: profile.apiModelId,
+			vertex: profile.apiModelId,
+			gemini: profile.apiModelId,
+			mistral: profile.apiModelId,
+			deepseek: profile.apiModelId,
+			xai: profile.apiModelId,
+			sambanova: profile.apiModelId,
+			fireworks: profile.apiModelId,
+			litellm: profile.litellmModelId,
+			lmstudio: profile.lmStudioModelId,
+			openrouter: profile.openRouterModelId,
+			ollama: profile.ollamaModelId,
+			requesty: profile.requestyModelId,
+			unbound: profile.unboundModelId,
 		}
+
+		if (profile.apiProvider === "vscode-lm") {
+			return profile.vsCodeLmModelSelector?.id
+		}
+
+		return profile.apiProvider ? modelIdMap[profile.apiProvider] : undefined
 	}
 }

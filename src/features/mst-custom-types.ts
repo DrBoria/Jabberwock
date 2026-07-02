@@ -1,6 +1,6 @@
 import { types } from "mobx-state-tree"
 import * as vscode from "vscode"
-import type WorkspaceTracker from "../integrations/workspace/WorkspaceTracker"
+import type WorkspaceTracker from "@integrations/workspace/WorkspaceTracker"
 
 // ─── Non-serializable type aliases ──────────────────────────────────────────
 

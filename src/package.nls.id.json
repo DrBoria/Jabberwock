@@ -5,7 +5,7 @@
 	"views.terminalMenu.label": "Jabberwock",
 	"views.activitybar.title": "Jabberwock",
 	"views.sidebar.name": "Jabberwock",
-	"command.newTask.title": "Tugas Baru",
+	"command.newChat.title": "Chat Baru",
 	"command.history.title": "Riwayat Tugas",
 	"command.marketplace.title": "Marketplace",
 	"command.openInEditor.title": "Buka di Editor",

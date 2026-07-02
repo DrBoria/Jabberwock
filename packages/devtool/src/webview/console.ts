@@ -30,19 +30,51 @@ interface LogEntry {
 const MAX_BUFFER_SIZE = 5000
 const logBuffer: LogEntry[] = []
 
+const serializeObjectArg = (arg: object): string => {
+	if ("displayName" in arg && typeof arg.displayName === "string") return `<${arg.displayName}>`
+	if ("name" in arg && typeof arg.name === "string") return `<${arg.name}>`
+	if ("$$typeof" in arg) return "[React Element]"
+	try {
+		return JSON.stringify(arg)
+	} catch {
+		return String(arg)
+	}
+}
+
 const serializeArg = (arg: unknown) => {
 	if (arg instanceof Error) return arg.stack || arg.message
-	if (typeof arg === "object" && arg !== null) {
-		if ("displayName" in arg && typeof arg.displayName === "string") return `<${arg.displayName}>`
-		if ("name" in arg && typeof arg.name === "string") return `<${arg.name}>`
-		if ("$$typeof" in arg) return "[React Element]"
-		try {
-			return JSON.stringify(arg)
-		} catch {
-			return String(arg)
-		}
-	}
+	if (typeof arg === "object" && arg !== null) return serializeObjectArg(arg)
 	return String(arg)
+}
+
+function formatConsoleArgs(args: unknown[]): string {
+	if (typeof args[0] === "string" && args[0].includes("%s")) {
+		let formatStr = args[0]
+		const formatArgs = args.slice(1)
+		formatArgs.forEach((arg) => {
+			formatStr = formatStr.replace("%s", serializeArg(arg))
+		})
+		return formatStr
+	}
+	return args.map(serializeArg).join(" ")
+}
+
+function captureConsoleLog(method: (typeof LOG_METHODS)[number], args: unknown[]): void {
+	try {
+		const messageStr = formatConsoleArgs(args)
+
+		logBuffer.push({ level: method, text: messageStr, timestamp: Date.now() })
+		if (logBuffer.length > MAX_BUFFER_SIZE) {
+			logBuffer.splice(0, logBuffer.length - MAX_BUFFER_SIZE)
+		}
+
+		vscode.postMessage({
+			type: "webviewLog",
+			text: `[WEBVIEW][${method.toUpperCase()}] ${messageStr}`,
+		} as never)
+	} catch {
+		// Serialization safety — never break the caller
+	}
 }
 
 /**
@@ -55,34 +87,7 @@ export function initWebviewConsoleBridge() {
 		Object.defineProperty(console, method, {
 			value: (...args: unknown[]) => {
 				original(...args)
-
-				try {
-					let messageStr = ""
-					if (typeof args[0] === "string" && args[0].includes("%s")) {
-						let formatStr = args[0]
-						const formatArgs = args.slice(1)
-						formatArgs.forEach((arg) => {
-							formatStr = formatStr.replace("%s", serializeArg(arg))
-						})
-						messageStr = formatStr
-					} else {
-						messageStr = args.map(serializeArg).join(" ")
-					}
-
-					// Store in buffer for devtool retrieval
-					logBuffer.push({ level: method, text: messageStr, timestamp: Date.now() })
-					// Trim oldest entries when buffer exceeds max size
-					if (logBuffer.length > MAX_BUFFER_SIZE) {
-						logBuffer.splice(0, logBuffer.length - MAX_BUFFER_SIZE)
-					}
-
-					vscode.postMessage({
-						type: "webviewLog",
-						text: `[WEBVIEW][${method.toUpperCase()}] ${messageStr}`,
-					} as never)
-				} catch {
-					// Serialization safety — never break the caller
-				}
+				captureConsoleLog(method, args)
 			},
 			writable: true,
 			configurable: true,

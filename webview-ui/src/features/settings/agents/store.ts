@@ -1,8 +1,41 @@
 import { types, Instance } from "mobx-state-tree"
-import { ApiConfigStore } from "./api-config/store"
-import { AutoApproveStore } from "./auto-approve/store"
-import { IndexingStore } from "./indexing/store"
-import { ModeSelectorStore } from "./mode-selector/store"
+
+/**
+ * ApiConfigStore — tracks API configuration list and current selection.
+ * Receives snapshots from the extension-side store via MstBridge.
+ */
+const ApiConfigStore = types.model("ApiConfigStore", {
+	listApiConfigMeta: types.array(types.frozen<Record<string, unknown>>()),
+	currentApiConfigId: types.string,
+})
+
+/**
+ * AutoApproveStore — tracks auto-approval settings.
+ * Receives snapshots from the extension-side store via MstBridge.
+ */
+const AutoApproveStore = types.model("AutoApproveStore", {
+	autoApproveSettings: types.frozen<Record<string, boolean>>(),
+	isAutoApprovalEnabled: false,
+})
+
+/**
+ * IndexingStore — tracks code indexing status and search results.
+ * Receives snapshots from the extension-side store via MstBridge.
+ */
+const IndexingStore = types.model("IndexingStore", {
+	indexingStatus: types.frozen<Record<string, unknown>>(),
+	codeSearchResults: types.array(types.frozen<Record<string, unknown>>()),
+})
+
+/**
+ * ModeSelectorStore — tracks available modes and current mode selection.
+ * Receives snapshots from the extension-side store via MstBridge.
+ */
+const ModeSelectorStore = types.model("ModeSelectorStore", {
+	currentMode: types.string,
+	allModes: types.array(types.frozen<Record<string, unknown>>()),
+	customModes: types.array(types.frozen<Record<string, unknown>>()),
+})
 
 /**
  * AgentStateStore — composite store for all agent-state sub-stores.
@@ -18,5 +51,3 @@ export const AgentStateStore = types.model("AgentStateStore", {
 })
 
 export type IAgentStateStore = Instance<typeof AgentStateStore>
-
-/** @deprecated Use `getRootStore().agentState` instead. Will be removed after all consumers migrate. */

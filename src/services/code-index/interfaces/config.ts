@@ -1,4 +1,4 @@
-import { ApiHandlerOptions } from "../../../shared/api" // Adjust path if needed
+import { ApiHandlerOptions } from "@shared/api" // Adjust path if needed
 import { EmbedderProvider } from "./manager"
 
 /**

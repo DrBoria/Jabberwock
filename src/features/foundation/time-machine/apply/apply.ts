@@ -3,7 +3,7 @@
  * Transforms file contents using parsed hunks.
  */
 
-import type { Hunk, UpdateFileChunk } from "./parser"
+import type { Hunk, UpdateFileChunk } from "./parser.types"
 import { seekSequence } from "./seek-sequence"
 
 /**
@@ -44,54 +44,80 @@ function computeReplacements(
 	let lineIndex = 0
 
 	for (const chunk of chunks) {
-		// If a chunk has a change_context, find it first
-		if (chunk.changeContext !== null) {
-			const idx = seekSequence(originalLines, [chunk.changeContext], lineIndex, false)
-			if (idx === null) {
-				throw new ApplyPatchError(`Failed to find context '${chunk.changeContext}' in ${filePath}`)
-			}
-			lineIndex = idx + 1
-		}
-
-		if (chunk.oldLines.length === 0) {
-			// Pure addition (no old lines). Add at the end or before final empty line.
-			const insertionIdx =
-				originalLines.length > 0 && originalLines[originalLines.length - 1] === ""
-					? originalLines.length - 1
-					: originalLines.length
-			replacements.push([insertionIdx, 0, chunk.newLines])
-			continue
-		}
-
-		// Try to find the old_lines in the file
-		let pattern = chunk.oldLines
-		let newSlice = chunk.newLines
-		let found = seekSequence(originalLines, pattern, lineIndex, chunk.isEndOfFile)
-
-		// If not found and pattern ends with empty string (trailing newline),
-		// retry without it
-		if (found === null && pattern.length > 0 && pattern[pattern.length - 1] === "") {
-			pattern = pattern.slice(0, -1)
-			if (newSlice.length > 0 && newSlice[newSlice.length - 1] === "") {
-				newSlice = newSlice.slice(0, -1)
-			}
-			found = seekSequence(originalLines, pattern, lineIndex, chunk.isEndOfFile)
-		}
-
-		if (found !== null) {
-			replacements.push([found, pattern.length, newSlice])
-			lineIndex = found + pattern.length
-		} else {
-			throw new ApplyPatchError(
-				`Failed to find expected lines in ${filePath}:\n${chunk.oldLines.join("\n").substring(0, 200)}${chunk.oldLines.join("\n").length > 200 ? "..." : ""}`,
-			)
-		}
+		const replacement = processChunk(originalLines, filePath, chunk, lineIndex)
+		replacements.push(replacement)
+		lineIndex = replacement[0] + replacement[1]
 	}
 
 	// Sort replacements by start index
 	replacements.sort((a, b) => a[0] - b[0])
 
 	return replacements
+}
+
+function processChunk(
+	originalLines: string[],
+	filePath: string,
+	chunk: UpdateFileChunk,
+	lineIndex: number,
+): [number, number, string[]] {
+	const ctxLineIndex = resolveChangeContext(originalLines, filePath, chunk, lineIndex)
+
+	if (chunk.oldLines.length === 0) {
+		const insertionIdx =
+			originalLines.length > 0 && originalLines[originalLines.length - 1] === ""
+				? originalLines.length - 1
+				: originalLines.length
+		return [insertionIdx, 0, chunk.newLines]
+	}
+
+	return findMatchOrThrow(originalLines, filePath, chunk, ctxLineIndex)
+}
+
+function resolveChangeContext(
+	originalLines: string[],
+	filePath: string,
+	chunk: UpdateFileChunk,
+	lineIndex: number,
+): number {
+	if (chunk.changeContext === null) {
+		return lineIndex
+	}
+
+	const idx = seekSequence(originalLines, [chunk.changeContext], lineIndex, false)
+	if (idx === null) {
+		throw new ApplyPatchError(`Failed to find context '${chunk.changeContext}' in ${filePath}`)
+	}
+	return idx + 1
+}
+
+function findMatchOrThrow(
+	originalLines: string[],
+	filePath: string,
+	chunk: UpdateFileChunk,
+	lineIndex: number,
+): [number, number, string[]] {
+	let pattern = chunk.oldLines
+	let newSlice = chunk.newLines
+	let found = seekSequence(originalLines, pattern, lineIndex, chunk.isEndOfFile)
+
+	// If not found and pattern ends with empty string (trailing newline),
+	// retry without it
+	if (found === null && pattern.length > 0 && pattern[pattern.length - 1] === "") {
+		pattern = pattern.slice(0, -1)
+		if (newSlice.length > 0 && newSlice[newSlice.length - 1] === "") {
+			newSlice = newSlice.slice(0, -1)
+		}
+		found = seekSequence(originalLines, pattern, lineIndex, chunk.isEndOfFile)
+	}
+
+	if (found !== null) {
+		return [found, pattern.length, newSlice]
+	}
+
+	throw new ApplyPatchError(
+		`Failed to find expected lines in ${filePath}:\n${chunk.oldLines.join("\n").substring(0, 200)}${chunk.oldLines.join("\n").length > 200 ? "..." : ""}`,
+	)
 }
 
 /**

@@ -1,5 +1,5 @@
-import type { RooTerminalCallbacks, JabberwockTerminalProcessResultPromise } from "./types"
-import { BaseTerminal } from "./BaseTerminal"
+import type { RooTerminalCallbacks, JabberwockTerminalProcess, JabberwockTerminalProcessResultPromise } from "./types"
+import { BaseTerminal } from "./terminal-core/BaseTerminal"
 import { ExecaTerminalProcess } from "./ExecaTerminalProcess"
 import { mergePromise } from "./mergePromise"
 
@@ -23,12 +23,13 @@ export class ExecaTerminal extends BaseTerminal {
 
 		const process = new ExecaTerminalProcess(this)
 		process.command = command
-		this.process = process
+		this.process = process as JabberwockTerminalProcess
 
-		process.on("line", (line) => callbacks.onLine(line, process))
-		process.once("completed", (output) => callbacks.onCompleted(output, process))
-		process.once("shell_execution_started", (pid) => callbacks.onShellExecutionStarted(pid, process))
-		process.once("shell_execution_complete", (details) => callbacks.onShellExecutionComplete(details, process))
+		const jProcess = process as JabberwockTerminalProcess
+		process.on("line", (line) => callbacks.onLine(line, jProcess))
+		process.once("completed", (output) => callbacks.onCompleted(output, jProcess))
+		process.once("shell_execution_started", (pid) => callbacks.onShellExecutionStarted(pid, jProcess))
+		process.once("shell_execution_complete", (details) => callbacks.onShellExecutionComplete(details, jProcess))
 
 		const promise = new Promise<void>((resolve, reject) => {
 			process.once("continue", () => resolve())
@@ -36,6 +37,6 @@ export class ExecaTerminal extends BaseTerminal {
 			process.run(command)
 		})
 
-		return mergePromise(process, promise)
+		return mergePromise(jProcess, promise)
 	}
 }

@@ -9,8 +9,7 @@ import {
 } from "@jabberwock/types"
 
 import { logger } from "@utils/logging"
-import { supportPrompt } from "../../../shared/support-prompt"
-import { isPassThroughStateKey } from "@features/foundation/vscode/context"
+import { supportPrompt } from "@shared/support-prompt"
 
 /**
  * Run all settings migrations in order.
@@ -21,6 +20,7 @@ export async function runSettingsMigrations(context: vscode.ExtensionContext): P
 	await migrateInvalidApiProvider(context)
 	await migrateLegacyCondensingPrompt(context)
 	await migrateOldDefaultCondensingPrompt(context)
+	await migrateOldGlobalStateSnapshot(context)
 }
 
 // ─── Migration: Legacy condensing prompt ────────────────────────────────
@@ -144,5 +144,26 @@ async function migrateImageGenerationSettings(context: vscode.ExtensionContext) 
 		logger.error(
 			`Error during image generation settings migration: ${error instanceof Error ? error.message : String(error)}`,
 		)
+	}
+}
+
+// ─── Migration: Remove old backend snapshot from globalState ─────────────
+// The snapshot (~17.5MB) was previously stored in VS Code's key-value
+// globalState via context.globalState.update(), which triggers
+// "large extension state" warnings (~10MB limit).  It is now persisted
+// to the file system (context.globalStorageUri / ".backend-snapshot.json").
+const OLD_SNAPSHOT_KEY = "jabberwock.backendRootStore.snapshot"
+
+async function migrateOldGlobalStateSnapshot(context: vscode.ExtensionContext) {
+	try {
+		const oldSnapshot = context.globalState.get(OLD_SNAPSHOT_KEY)
+		if (oldSnapshot !== undefined) {
+			logger.info(
+				`[Migrations] Removing old backend root store snapshot from globalState (key: "${OLD_SNAPSHOT_KEY}")`,
+			)
+			await context.globalState.update(OLD_SNAPSHOT_KEY, undefined)
+		}
+	} catch (error) {
+		logger.error(`Error during old snapshot migration: ${error instanceof Error ? error.message : String(error)}`)
 	}
 }

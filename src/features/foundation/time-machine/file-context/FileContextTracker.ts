@@ -1,7 +1,6 @@
 import * as path from "path"
 import * as vscode from "vscode"
 import type { RecordSource } from "./FileContextTrackerTypes"
-import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
 import { getBackendRootStore } from "@features/storeSingleton"
 
 /**
@@ -18,7 +17,6 @@ import { getBackendRootStore } from "@features/storeSingleton"
  */
 export class FileContextTracker {
 	readonly taskId: string
-	private providerRef: WeakRef<ProviderHandle>
 
 	// File tracking and watching
 	private fileWatchers = new Map<string, vscode.FileSystemWatcher>()
@@ -26,8 +24,7 @@ export class FileContextTracker {
 	private recentlyEditedByRoo = new Set<string>()
 	private checkpointPossibleFiles = new Set<string>()
 
-	constructor(provider: ProviderHandle, taskId: string) {
-		this.providerRef = new WeakRef(provider)
+	constructor(taskId: string) {
 		this.taskId = taskId
 	}
 

@@ -97,8 +97,17 @@ export abstract class CacheStrategy {
 	 * This implementation is based on the BaseProvider's countTokens method
 	 * but adapted to work without requiring an instance of BaseProvider
 	 */
+	private countTextTokens(text: string): number {
+		if (text.length === 0) return 0
+
+		const words = text.split(/\s+/).filter((word) => word.length > 0)
+		let tokens = words.length * 1.3
+		tokens += (text.match(/[.,!?;:()[\]{}""''`]/g) || []).length * 0.3
+		tokens += (text.match(/\n/g) || []).length * 0.5
+		return tokens
+	}
+
 	protected estimateTokenCount(message: Anthropic.Messages.MessageParam): number {
-		// Use a more sophisticated token counting approach
 		if (!message.content) return 0
 
 		let totalTokens = 0
@@ -106,40 +115,16 @@ export abstract class CacheStrategy {
 		if (Array.isArray(message.content)) {
 			for (const block of message.content) {
 				if (block.type === "text") {
-					// Use a more accurate token estimation than simple character count
-					// This is still an approximation but better than character/4
-					const text = block.text || ""
-					if (text.length > 0) {
-						// Count words and add overhead for punctuation and special tokens
-						const words = text.split(/\s+/).filter((word) => word.length > 0)
-						// Average English word is ~1.3 tokens
-						totalTokens += words.length * 1.3
-						// Add overhead for punctuation and special characters
-						totalTokens += (text.match(/[.,!?;:()[\]{}""''`]/g) || []).length * 0.3
-						// Add overhead for newlines
-						totalTokens += (text.match(/\n/g) || []).length * 0.5
-					}
+					totalTokens += this.countTextTokens(block.text || "")
 				} else if (block.type === "image") {
-					// For images, use a conservative estimate
 					totalTokens += 300
 				}
 			}
 		} else if (typeof message.content === "string") {
-			const text = message.content
-			// Count words and add overhead for punctuation and special tokens
-			const words = text.split(/\s+/).filter((word) => word.length > 0)
-			// Average English word is ~1.3 tokens
-			totalTokens += words.length * 1.3
-			// Add overhead for punctuation and special characters
-			totalTokens += (text.match(/[.,!?;:()[\]{}""''`]/g) || []).length * 0.3
-			// Add overhead for newlines
-			totalTokens += (text.match(/\n/g) || []).length * 0.5
+			totalTokens += this.countTextTokens(message.content)
 		}
 
-		// Add a small overhead for message structure
-		totalTokens += 10
-
-		return Math.ceil(totalTokens)
+		return Math.ceil(totalTokens + 10)
 	}
 
 	/**

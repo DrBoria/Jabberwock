@@ -28,25 +28,46 @@ export function computeUnifiedDiffStats(diff?: string): DiffStats | null {
 		const patches = parsePatch(diff)
 		if (!patches || patches.length === 0) return null
 
-		let added = 0
-		let removed = 0
-
-		for (const p of patches) {
-			for (const h of (p as { hunks?: Array<{ lines?: string[] }> }).hunks ?? []) {
-				for (const l of h.lines ?? []) {
-					const ch = (l as string)[0]
-					if (ch === "+") added++
-					else if (ch === "-") removed++
-				}
-			}
-		}
+		const { added, removed } = countPatchChanges(patches)
 
 		if (added > 0 || removed > 0) return { added, removed }
 		return { added: 0, removed: 0 }
 	} catch {
-		// If parsing fails for any reason, signal no stats
 		return null
 	}
+}
+
+function countPatchChanges(patches: unknown[]): { added: number; removed: number } {
+	let added = 0
+	let removed = 0
+
+	for (const p of patches) {
+		const hunks = (p as { hunks?: Array<{ lines?: string[] }> }).hunks ?? []
+		added += countAddedLines(hunks)
+		removed += countRemovedLines(hunks)
+	}
+
+	return { added, removed }
+}
+
+function countAddedLines(hunks: Array<{ lines?: string[] }>): number {
+	let count = 0
+	for (const h of hunks) {
+		for (const l of h.lines ?? []) {
+			if ((l as string)[0] === "+") count++
+		}
+	}
+	return count
+}
+
+function countRemovedLines(hunks: Array<{ lines?: string[] }>): number {
+	let count = 0
+	for (const h of hunks) {
+		for (const l of h.lines ?? []) {
+			if ((l as string)[0] === "-") count++
+		}
+	}
+	return count
 }
 
 /**

@@ -2,8 +2,8 @@ import EventEmitter from "events"
 import * as vscode from "vscode"
 import type { TaskProviderEvents } from "@jabberwock/types"
 
-import { Package } from "../../../shared/package"
-import type { MdmService } from "../../../services/mdm/MdmService"
+import { Package } from "@shared/package"
+import type { MdmService } from "@services/mdm/MdmService"
 import { getBackendRootStore } from "@features/storeSingleton"
 
 import {

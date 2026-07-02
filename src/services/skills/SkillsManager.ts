@@ -4,17 +4,21 @@ import * as vscode from "vscode"
 import matter from "gray-matter"
 
 import type { EventBridge } from "@features/foundation/webview/EventBridge"
-import { getGlobalRooDirectory, getGlobalAgentsDirectory, getProjectAgentsDirectoryForCwd } from "../jabberwock-config"
-import { directoryExists, fileExists } from "../jabberwock-config"
-import { SkillMetadata, SkillContent } from "../../shared/skills"
-import { modes, getAllModes } from "../../shared/modes"
+import {
+	getGlobalRooDirectory,
+	getGlobalAgentsDirectory,
+	getProjectAgentsDirectoryForCwd,
+} from "@services/jabberwock-config"
+import { directoryExists, fileExists } from "@services/jabberwock-config"
+import { SkillMetadata, SkillContent } from "@shared/skills"
+import { modes, getAllModes } from "@shared/modes"
 import {
 	validateSkillName as validateSkillNameShared,
 	SkillNameValidationError,
 	SKILL_NAME_MAX_LENGTH,
 } from "@jabberwock/types"
 import { getBackendRootStore } from "@features/storeSingleton"
-import { getWorkspacePath } from "../../utils/path"
+import { getWorkspacePath } from "@utils/io/path"
 
 export class SkillsManager {
 	private skills: SkillMetadata[] = []

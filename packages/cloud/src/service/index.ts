@@ -1,0 +1,6 @@
+export { CloudAPI } from "./CloudAPI.ts"
+export { CloudService } from "./CloudService.ts"
+export { CloudServiceFacade } from "./CloudServiceFacade.ts"
+export { CloudSettingsService } from "./CloudSettingsService.ts"
+export { CloudShareService } from "./CloudShareService.ts"
+export { StaticSettingsService } from "./StaticSettingsService.ts"

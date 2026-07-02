@@ -1,12 +1,12 @@
 import * as vscode from "vscode"
 import type { EventBridge } from "@features/foundation/webview/EventBridge"
-import type { ITaskModel } from "../../../../task/store"
+import type { ITaskModel } from "@features/chat/task/store"
 import type { Notification } from "@jabberwock/types"
-import { handleCheckpointRestoreOperation } from "../../../../task/notifications/handlers/checkpointRestoreHandler"
-import { saveTaskMessages } from "../../actions/saveMessages"
-import { getVscodeContext } from "../../../../../foundation/vscode/context"
+import { handleCheckpointRestoreOperation } from "@features/chat/task/notifications/handlers/checkpoint/checkpointRestoreHandler"
+import { saveTaskMessages } from "@features/chat/task/messages/actions/saveMessages"
+import { getVscodeContext } from "@features/foundation/vscode/context"
 import { postStateToWebview } from "@features/foundation/window-manager/store"
-import { t } from "../../../../../../i18n"
+import { t } from "@i18n"
 import { findMessageIndices, findFirstApiIndexAtOrAfter } from "./findMessageIndices"
 
 /**
@@ -40,6 +40,54 @@ export async function handleDeleteOperation(
  * Handles confirmed message deletion from webview dialog.
  * Performs the actual deletion with optional checkpoint restoration.
  */
+async function handleDeleteWithCheckpoint(
+	provider: EventBridge,
+	store: ITaskModel,
+	messageTs: number,
+	targetMessage: Notification,
+): Promise<void> {
+	const checkpoints = store.messages.filter((msg) => msg.say === "checkpoint_saved" && msg.ts > messageTs)
+
+	const nextCheckpoint = checkpoints[0]
+
+	if (nextCheckpoint && nextCheckpoint.text) {
+		await handleCheckpointRestoreOperation({
+			provider,
+			currentCline: store,
+			messageTs: targetMessage.ts!,
+			messageIndex: store.messages.indexOf(targetMessage),
+			checkpoint: { hash: nextCheckpoint.text },
+			operation: "delete",
+		})
+	} else {
+		console.log("[handleDeleteMessageConfirm] No checkpoint found before message")
+		vscode.window.showWarningMessage("No checkpoint found before this message")
+	}
+}
+
+async function handleDeleteWithoutCheckpoint(
+	store: ITaskModel,
+	messageIndex: number,
+	targetMessage: Notification,
+): Promise<void> {
+	const preservedCheckpoints = new Map<number, Notification["checkpoint"]>()
+	for (let i = 0; i < messageIndex; i++) {
+		const msg = store.messages[i]
+		if (msg?.checkpoint && msg.ts) {
+			preservedCheckpoints.set(msg.ts, msg.checkpoint)
+		}
+	}
+
+	await store.messageManager!.rewindToTimestamp(targetMessage.ts!, { includeTargetMessage: false })
+
+	for (const [ts, checkpoint] of preservedCheckpoints) {
+		const msgIndex = store.messages.findIndex((msg) => msg.ts === ts)
+		if (msgIndex !== -1) {
+			store.messages[msgIndex].checkpoint = checkpoint
+		}
+	}
+}
+
 export async function handleDeleteMessageConfirm(
 	provider: EventBridge,
 	store: ITaskModel,
@@ -49,6 +97,7 @@ export async function handleDeleteMessageConfirm(
 	const { messageIndex, apiConversationHistoryIndex } = findMessageIndices(messageTs, store)
 	let apiIndexToUse = apiConversationHistoryIndex
 	const tsThreshold = store.messages[messageIndex]?.ts
+
 	if (apiIndexToUse === -1 && typeof tsThreshold === "number") {
 		apiIndexToUse = findFirstApiIndexAtOrAfter(tsThreshold, store)
 	}
@@ -62,47 +111,14 @@ export async function handleDeleteMessageConfirm(
 		const targetMessage = store.messages[messageIndex]
 
 		if (restoreCheckpoint) {
-			const checkpoints = store.messages.filter((msg) => msg.say === "checkpoint_saved" && msg.ts > messageTs)
-
-			const nextCheckpoint = checkpoints[0]
-
-			if (nextCheckpoint && nextCheckpoint.text) {
-				await handleCheckpointRestoreOperation({
-					provider,
-					currentCline: store,
-					messageTs: targetMessage.ts!,
-					messageIndex,
-					checkpoint: { hash: nextCheckpoint.text },
-					operation: "delete",
-				})
-			} else {
-				console.log("[handleDeleteMessageConfirm] No checkpoint found before message")
-				vscode.window.showWarningMessage("No checkpoint found before this message")
-			}
+			await handleDeleteWithCheckpoint(provider, store, messageTs, targetMessage)
 		} else {
-			const preservedCheckpoints = new Map<number, Notification["checkpoint"]>()
-			for (let i = 0; i < messageIndex; i++) {
-				const msg = store.messages[i]
-				if (msg?.checkpoint && msg.ts) {
-					preservedCheckpoints.set(msg.ts, msg.checkpoint)
-				}
-			}
-
-			await store.messageManager!.rewindToTimestamp(targetMessage.ts!, { includeTargetMessage: false })
-
-			for (const [ts, checkpoint] of preservedCheckpoints) {
-				const msgIndex = store.messages.findIndex((msg) => msg.ts === ts)
-				if (msgIndex !== -1) {
-					store.messages[msgIndex].checkpoint = checkpoint
-				}
-			}
-
+			await handleDeleteWithoutCheckpoint(store, messageIndex, targetMessage)
 			await saveTaskMessages({
 				messages: store.messages,
 				taskId: store.taskId,
 				globalStoragePath: getVscodeContext().globalStorageUri.fsPath,
 			})
-
 			await postStateToWebview(provider)
 		}
 	} catch (error) {

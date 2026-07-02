@@ -5,28 +5,83 @@ import { useMemo } from "react"
 import { formatTokens, formatCurrency, formatDuration, formatScore } from "@/lib"
 import { useOpenRouterModels } from "@/lib/hooks"
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui"
+import type { ModelInfo } from "@jabberwock/types"
 
 import type { EvalRun } from "./types"
 import { Plot } from "./plot"
+
+function resolveModelLabel(run: EvalRun): string {
+	if (run.name) return run.name
+	if (run.description) return run.description
+	return run.model
+}
+
+function resolveRunDescription(run: EvalRun, modelInfo: ModelInfo | undefined): string | null {
+	if (run.description) return run.description
+	if (modelInfo) return modelInfo.description ?? null
+	return null
+}
+
+function resolveContextWindow(run: EvalRun, modelInfo: ModelInfo | undefined): number | null {
+	if (run.contextWindow) return run.contextWindow
+	if (modelInfo) return modelInfo.contextWindow ?? null
+	return null
+}
+
+function resolveInputPrice(run: EvalRun, modelInfo: ModelInfo | undefined): number | null {
+	if (run.inputPrice) return run.inputPrice
+	if (modelInfo) return modelInfo.inputPrice ?? null
+	return null
+}
+
+function resolveOutputPrice(run: EvalRun, modelInfo: ModelInfo | undefined): number | null {
+	if (run.outputPrice) return run.outputPrice
+	if (modelInfo) return modelInfo.outputPrice ?? null
+	return null
+}
+
+type OpenRouterModelsMap = Record<string, { modelInfo: ModelInfo }>
+
+function enrichRun(run: EvalRun, openRouterModels: OpenRouterModelsMap | undefined) {
+	const modelId = run.modelId
+	const openRouterModelInfo = modelId && openRouterModels ? openRouterModels[modelId]?.modelInfo : undefined
+
+	return {
+		...run,
+		label: resolveModelLabel(run),
+		cost: run.taskMetrics.cost,
+		description: resolveRunDescription(run, openRouterModelInfo),
+		contextWindow: resolveContextWindow(run, openRouterModelInfo),
+		inputPrice: resolveInputPrice(run, openRouterModelInfo),
+		outputPrice: resolveOutputPrice(run, openRouterModelInfo),
+	}
+}
+
+function getLanguageScore(
+	scores: EvalRun["languageScores"],
+	lang: keyof NonNullable<EvalRun["languageScores"]>,
+): number {
+	if (scores) {
+		return scores[lang] ?? 0
+	}
+	return 0
+}
+
+function LanguageScoreCell({
+	scores,
+	lang,
+}: {
+	scores: EvalRun["languageScores"]
+	lang: keyof NonNullable<EvalRun["languageScores"]>
+}) {
+	return <TableCell className="text-muted-foreground">{formatScore(getLanguageScore(scores, lang))}%</TableCell>
+}
 
 export function Evals({ runs }: { runs: EvalRun[] }) {
 	const { data: openRouterModels } = useOpenRouterModels()
 
 	const tableData: (EvalRun & { label: string; cost: number })[] = useMemo(
-		() =>
-			runs.map((run) => {
-				const openRouterModelInfo = openRouterModels?.[run.modelId ?? ""]?.modelInfo
-
-				return {
-					...run,
-					label: run.name || run.description || run.model,
-					cost: run.taskMetrics.cost,
-					description: run.description ?? openRouterModelInfo?.description ?? null,
-					contextWindow: run.contextWindow ?? openRouterModelInfo?.contextWindow ?? null,
-					inputPrice: run.inputPrice ?? openRouterModelInfo?.inputPrice ?? null,
-					outputPrice: run.outputPrice ?? openRouterModelInfo?.outputPrice ?? null,
-				}
-			}),
+		() => runs.map((run) => enrichRun(run, openRouterModels)),
 		[runs, openRouterModels],
 	)
 
@@ -121,21 +176,11 @@ export function Evals({ runs }: { runs: EvalRun[] }) {
 								</div>
 							</TableCell>
 							<TableCell className="border-r">{formatCurrency(run.taskMetrics.cost)}</TableCell>
-							<TableCell className="text-muted-foreground">
-								{formatScore(run.languageScores?.go ?? 0)}%
-							</TableCell>
-							<TableCell className="text-muted-foreground">
-								{formatScore(run.languageScores?.java ?? 0)}%
-							</TableCell>
-							<TableCell className="text-muted-foreground">
-								{formatScore(run.languageScores?.javascript ?? 0)}%
-							</TableCell>
-							<TableCell className="text-muted-foreground">
-								{formatScore(run.languageScores?.python ?? 0)}%
-							</TableCell>
-							<TableCell className="text-muted-foreground">
-								{formatScore(run.languageScores?.rust ?? 0)}%
-							</TableCell>
+							<LanguageScoreCell scores={run.languageScores} lang="go" />
+							<LanguageScoreCell scores={run.languageScores} lang="java" />
+							<LanguageScoreCell scores={run.languageScores} lang="javascript" />
+							<LanguageScoreCell scores={run.languageScores} lang="python" />
+							<LanguageScoreCell scores={run.languageScores} lang="rust" />
 							<TableCell className="font-bold">{run.score}%</TableCell>
 						</TableRow>
 					))}

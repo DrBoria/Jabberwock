@@ -1,7 +1,7 @@
 import { Box, Text } from "ink"
 import Fuzzysort from "fuzzysort"
 
-import { Icon } from "../../Icon.js"
+import { Icon } from "../../display/Icon.js"
 import type { AutocompleteTrigger, AutocompleteItem, TriggerDetectionResult } from "../types.js"
 
 export interface FileResult extends AutocompleteItem {

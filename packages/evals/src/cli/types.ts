@@ -1,7 +1,7 @@
 import { type TaskEvent } from "@jabberwock/types"
 
 import type { Run, Task } from "../db/index"
-import { Logger } from "./utils"
+import { Logger } from "./helpers/logging/logger"
 
 export class SubprocessTimeoutError extends Error {
 	constructor(timeout: number) {

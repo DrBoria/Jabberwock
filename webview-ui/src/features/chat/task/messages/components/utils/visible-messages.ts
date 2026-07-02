@@ -77,26 +77,30 @@ function collectCheckpointHashes(modifiedMessages: Notification[]): Set<string> 
 	return hashes
 }
 
+function tryParseCheckpointHash(msg: Notification): string | undefined {
+	if (msg.type !== "say" || msg.say !== "checkpoint_saved" || !msg.text) return undefined
+	try {
+		const parsed = JSON.parse(msg.text)
+		return typeof parsed.hash === "string" ? parsed.hash : undefined
+	} catch {
+		return undefined
+	}
+}
+
+function isUserFeedbackReferencingHash(msg: Notification, hash: string): boolean {
+	return msg.type === "say" && msg.say === "user_feedback" && msg.text === hash
+}
+
 /**
  * Removes duplicate checkpoint_saved messages that follow user_feedback with the same hash.
  */
 function deduplicateCheckpoints(messages: Notification[], checkpointHashes: Set<string>): Notification[] {
 	const result = [...messages]
 	for (let i = 1; i < result.length; i++) {
-		const msg = result[i]
-		if (msg.type === "say" && msg.say === "checkpoint_saved" && msg.text) {
-			try {
-				const parsed = JSON.parse(msg.text)
-				if (parsed.hash && checkpointHashes.has(parsed.hash)) {
-					const prevMsg = result[i - 1]
-					if (prevMsg.type === "say" && prevMsg.say === "user_feedback" && prevMsg.text === parsed.hash) {
-						result.splice(i, 1)
-						i--
-					}
-				}
-			} catch {
-				// ignore
-			}
+		const hash = tryParseCheckpointHash(result[i])
+		if (hash && checkpointHashes.has(hash) && isUserFeedbackReferencingHash(result[i - 1], hash)) {
+			result.splice(i, 1)
+			i--
 		}
 	}
 	return result

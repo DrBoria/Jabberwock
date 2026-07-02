@@ -110,7 +110,7 @@ async function main() {
 				}
 				if (messageDoneCode !== "queued") {
 					throw new Error(
-						`expected interleaved message done code \"queued\", got \"${messageDoneCode ?? "none"}\"`,
+						`expected interleaved message done code "queued", got "${messageDoneCode ?? "none"}\"`,
 					)
 				}
 				if (!messageQueueEnqueuedSeen) {

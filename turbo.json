@@ -28,9 +28,15 @@
 			"persistent": true
 		},
 		"check-types": {
-			"dependsOn": ["^build"]
+			"dependsOn": ["^build"],
+			"cache": false
 		},
-		"lint": {},
-		"test": {}
+		"lint": {
+			"cache": false
+		},
+		"test": {},
+		"format": {
+			"cache": false
+		}
 	}
 }

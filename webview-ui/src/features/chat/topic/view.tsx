@@ -1,50 +1,39 @@
-import { useEffect, useRef, useState, useMemo } from "react"
-import { useTranslation } from "react-i18next"
+import { useState, useMemo, useCallback } from "react"
 import { observer } from "mobx-react-lite"
-import { Instance } from "mobx-state-tree"
+import { useChatTree } from "@/features/chat/tree/store"
+import { useSelectedModel } from "@/features/foundation/ui/hooks/useSelectedModel/useSelectedModel"
+import { useWindowManager } from "@/features/foundation/window-manager/store"
+import { useChatUI } from "@/features/chat/store"
 import { useCloudUpsell } from "@src/hooks/useCloudUpsell"
-import { CloudUpsellDialog } from "@src/features/cloud/components/CloudUpsellDialog"
-import DismissibleUpsell from "@src/features/foundation/components/DismissibleUpsell"
-import { ChevronUp, ChevronDown, HardDriveDownload, HardDriveUpload, FoldVertical, ArrowLeft, Bot } from "lucide-react"
-import prettyBytes from "pretty-bytes"
-
-import { getLatestTodo } from "@shared/todo"
-
-import { getModelMaxOutputTokens } from "@shared/api"
-import { findLastIndex } from "@shared/array"
-
-import { formatLargeNumber } from "@src/utils/formatNumber"
-import { cn } from "@src/lib/utils"
+import { IconButton } from "@src/shared/ui/buttons/icon-button"
+import { FoldVertical } from "lucide-react"
+import { TaskHeaderView } from "./view/task-header-view"
 import {
-	StandardTooltip,
-	Button,
-	Table,
-	TableBody,
-	TableRow,
-	TableCell,
-	CircularProgress,
-} from "@src/features/foundation/ui"
-import { useSelectedModel } from "@/features/foundation/ui/hooks/useSelectedModel"
-import { useChatTree, TaskNode } from "@src/features/chat/task/messages/store"
-import { useWindowManager } from "@src/features/foundation/window-manager/store"
+	computeCostBreakdown,
+	computeIsTaskComplete,
+	computeMaxTokens,
+	computeTaskImages,
+	computeAggregatedCost,
+	computeHasSubtasks,
+	computeTodos,
+	computeHasTodos,
+	handleCardClickHelper,
+	handleBackToParentHelper,
+	useLongRunningTaskMessage,
+	getActiveNodeId,
+	getContextWindow,
+	getTaskText,
+	toZero,
+	hasParentTask,
+	handleCondenseClick,
+} from "./view/helpers"
 import { rootStore } from "@src/features/store"
-import { useChatUI } from "@src/features/chat/store"
-
-import Thumbnails from "@src/features/foundation/components/Thumbnails"
-
-import { TaskActions } from "../task/messages/components/task-actions"
-import { ContextWindowProgress } from "./progress/context-window-progress"
-import { Mention } from "../text-area/mention/mention"
-import { TodoListDisplay } from "./todo/todo-list-display"
-import { IconButton } from "@src/features/foundation/ui"
 
 const TaskHeaderComponent = () => {
-	// ALL HOOKS MUST BE CALLED BEFORE ANY EARLY RETURN (Rules of Hooks)
-	const { t } = useTranslation()
 	const { apiConfiguration, currentTaskItem, messages } = rootStore.extensionState
 	const tree = useChatTree()
-	const { nodes } = tree
-	const currentNodeId = tree.activeNodeId?.id || currentTaskItem?.id
+	const nodes = useMemo(() => new Map(tree.nodes.entries()), [tree.nodes])
+	const currentNodeId = getActiveNodeId(tree, currentTaskItem)
 	const { id: modelId, info: model } = useSelectedModel(apiConfiguration)
 	const { pushWindow, popWindow, activeWindows } = useWindowManager()
 	const ui = useChatUI()
@@ -57,504 +46,82 @@ const TaskHeaderComponent = () => {
 		totalCost,
 		contextTokens,
 	} = apiMetrics
-	const buttonsDisabled = ui.sendingDisabled
-	const costBreakdown = useMemo(() => {
-		const details: string[] = []
-		if (tokensIn) details.push(`↑${tokensIn} in`)
-		if (tokensOut) details.push(`↓${tokensOut} out`)
-		if (cacheWrites) details.push(`CW:${cacheWrites}`)
-		if (cacheReads) details.push(`CR:${cacheReads}`)
-		return details.length > 0 ? details.join(" ") : undefined
-	}, [tokensIn, tokensOut, cacheWrites, cacheReads])
+	const buttonsDisabled = ui.textArea.sendingDisabled
+
+	const costBreakdown = useMemo(
+		() => computeCostBreakdown(tokensIn, tokensOut, cacheWrites, cacheReads),
+		[tokensIn, tokensOut, cacheWrites, cacheReads],
+	)
 	const [isTaskExpanded, setIsTaskExpanded] = useState(false)
-	const [showLongRunningTaskMessage, setShowLongRunningTaskMessage] = useState(false)
-	const { isOpen, openUpsell, closeUpsell, handleConnect } = useCloudUpsell({
-		autoOpenOnAuth: false,
-	})
-
-	const textContainerRef = useRef<HTMLDivElement>(null)
-	const textRef = useRef<HTMLDivElement>(null)
-
-	// Check if the task is complete by looking at the last relevant message (skipping resume messages)
-	const isTaskComplete =
-		messages && messages.length > 0
-			? (() => {
-					const lastRelevantIndex = findLastIndex(
-						messages,
-						(m) => !(m.ask === "resume_task" || m.ask === "resume_completed_task"),
-					)
-					return lastRelevantIndex !== -1 ? messages[lastRelevantIndex]?.ask === "completion_result" : false
-				})()
-			: false
-
-	const contextWindow = model?.contextWindow || 1
-
-	// Calculate maxTokens (reserved for output) once for reuse in percentage and tooltip
+	const { isOpen, openUpsell, closeUpsell, handleConnect } = useCloudUpsell({ autoOpenOnAuth: false })
+	const isTaskComplete = useMemo(() => computeIsTaskComplete(messages), [messages])
+	const [showLongRunningTaskMessage] = useLongRunningTaskMessage(currentTaskItem, isTaskComplete)
+	const contextWindow = getContextWindow(model)
 	const maxTokens = useMemo(
-		() =>
-			model
-				? getModelMaxOutputTokens({
-						modelId,
-						model,
-						settings: apiConfiguration,
-					})
-				: 0,
+		() => computeMaxTokens(model, modelId, apiConfiguration),
 		[model, modelId, apiConfiguration],
 	)
-	const reservedForOutput = maxTokens || 0
-
-	useEffect(() => {
-		const timer = setTimeout(() => {
-			if (currentTaskItem && !isTaskComplete) {
-				setShowLongRunningTaskMessage(true)
-			}
-		}, 120_000) // Show upsell after 2 minutes
-
-		return () => clearTimeout(timer)
-	}, [currentTaskItem, isTaskComplete])
-
-	// ── Derived state (replaces prop-drilled task, aggregatedCost, hasSubtasks, todos) ──
-	const taskText = currentTaskItem?.task ?? ""
-	const taskImages = useMemo(() => {
-		if (!currentNodeId || !nodes.has(currentNodeId)) return []
-		const node = nodes.get(currentNodeId)
-		const firstTextMessage = (node as Instance<typeof TaskNode>)?.messages?.find((m) => m.say === "text")
-		return firstTextMessage?.images || []
-	}, [currentNodeId, nodes])
-	const aggregatedCost = useMemo(() => {
-		return currentNodeId && ui.aggregatedCostsMap.has(currentNodeId)
-			? (ui.aggregatedCostsMap.get(currentNodeId)!.totalCost as number)
-			: undefined
-	}, [currentNodeId, ui.aggregatedCostsMap])
-	const hasSubtasks = useMemo(() => {
-		return !!(
-			currentNodeId &&
-			ui.aggregatedCostsMap.has(currentNodeId) &&
-			(ui.aggregatedCostsMap.get(currentNodeId)!.childrenCost as number) > 0
-		)
-	}, [currentNodeId, ui.aggregatedCostsMap])
-	const todos = useMemo(() => {
-		const extensionTodos = rootStore.extensionState.currentTaskTodos
-		if (extensionTodos && extensionTodos.length > 0) {
-			const messageBasedTodos = getLatestTodo(messages)
-			if (messageBasedTodos && messageBasedTodos.length > 0) return messageBasedTodos
-			return extensionTodos
-		}
-		return getLatestTodo(messages)
-	}, [messages])
-
+	const taskText = getTaskText(currentTaskItem)
+	const taskImages = useMemo(() => computeTaskImages(currentNodeId, nodes), [currentNodeId, nodes])
+	const aggregatedCost = useMemo(
+		() => computeAggregatedCost(currentNodeId, ui.aggregatedCostsMap),
+		[currentNodeId, ui.aggregatedCostsMap],
+	)
+	const hasSubtasks = useMemo(
+		() => computeHasSubtasks(currentNodeId, ui.aggregatedCostsMap),
+		[currentNodeId, ui.aggregatedCostsMap],
+	)
+	const todos = useMemo(() => computeTodos(messages), [messages])
+	const hasTodos = computeHasTodos(todos)
+	const isSubtask = hasParentTask(currentTaskItem)
+	const handleCardClick = useCallback(
+		(e: React.MouseEvent<HTMLDivElement>) => handleCardClickHelper(e, setIsTaskExpanded),
+		[],
+	)
+	const handleBackToParent = useCallback(
+		() => handleBackToParentHelper(activeWindows, popWindow, currentTaskItem),
+		[activeWindows, popWindow, currentTaskItem],
+	)
+	const handleCondense = useCallback(() => handleCondenseClick(currentTaskItem), [currentTaskItem])
 	const condenseButton = (
-		<IconButton
-			title={t("chat:task.condenseContext")}
-			icon={FoldVertical}
-			disabled={buttonsDisabled}
-			onClick={() => currentTaskItem && rootStore.chat.condenseContext(currentTaskItem.id)}
-		/>
+		<IconButton title="Condense Context" icon={FoldVertical} disabled={buttonsDisabled} onClick={handleCondense} />
 	)
 
-	const hasTodos = todos && Array.isArray(todos) && todos.length > 0
-
-	// Determine if this is a subtask (has a parent)
-	const isSubtask = !!currentTaskItem?.parentTaskId
-
-	const handleBackToParent = () => {
-		if (activeWindows.length > 1) {
-			popWindow()
-		} else if (currentTaskItem?.parentTaskId) {
-			rootStore.chat.navigateToTask(currentTaskItem.parentTaskId)
-		}
-	}
-
 	return (
-		<div className="group pt-2 pb-0 px-3">
-			{isSubtask && (
-				<div className="mb-2" onClick={(e) => e.stopPropagation()}>
-					<Button
-						variant="link"
-						size="sm"
-						onClick={handleBackToParent}
-						className="flex items-center gap-1.5 p-0 h-auto text-xs text-vscode-textLink-foreground hover:brightness-125 transition-all">
-						<ArrowLeft className="size-3" />
-						{t("chat:task.backToParentTask")}
-					</Button>
-				</div>
-			)}
-			{showLongRunningTaskMessage && !isTaskComplete && (
-				<DismissibleUpsell
-					upsellId="longRunningTask"
-					onClick={() => openUpsell()}
-					dismissOnClick={false}
-					variant="banner">
-					{t("cloud:upsell.longRunningTask")}
-				</DismissibleUpsell>
-			)}
-			<div
-				className={cn(
-					"px-3 pt-2.5 pb-2 flex flex-col gap-1.5 relative z-1 cursor-pointer",
-					"bg-vscode-input-background hover:bg-vscode-input-background/90",
-					"text-vscode-foreground/80 hover:text-vscode-foreground",
-					"shadow-lg shadow-vscode-sideBar-background/50 rounded-xl",
-					hasTodos && "border-b-0",
-				)}
-				onClick={(e) => {
-					// Don't expand if clicking on todos section
-					if (e.target instanceof Element && e.target.closest("[data-todo-list]")) {
-						return
-					}
-
-					// Don't expand if clicking on buttons or interactive elements
-					if (
-						e.target instanceof Element &&
-						(e.target.closest("button") ||
-							e.target.closest('[role="button"]') ||
-							e.target.closest(".share-button") ||
-							e.target.closest("[data-radix-popper-content-wrapper]") ||
-							e.target.closest("img") ||
-							e.target.tagName === "IMG")
-					) {
-						return
-					}
-
-					// Don't expand/collapse if user is selecting text
-					const selection = window.getSelection()
-					if (selection && selection.toString().length > 0) {
-						return
-					}
-
-					setIsTaskExpanded(!isTaskExpanded)
-				}}>
-				<div className="flex justify-between items-center gap-0">
-					<div className="flex items-center select-none grow min-w-0">
-						<div className="grow min-w-0">
-							{isTaskExpanded && <span className="font-bold">{t("chat:task.title")}</span>}
-							{!isTaskExpanded && (
-								<div className="flex items-center gap-2 whitespace-nowrap overflow-hidden text-ellipsis">
-									<Mention text={taskText} />
-								</div>
-							)}
-						</div>
-						<div className="flex items-center shrink-0 ml-2" onClick={(e) => e.stopPropagation()}>
-							<StandardTooltip content={isTaskExpanded ? t("chat:task.collapse") : t("chat:task.expand")}>
-								<button
-									onClick={() => setIsTaskExpanded(!isTaskExpanded)}
-									className="shrink-0 min-h-[20px] min-w-[20px] p-[2px] cursor-pointer opacity-85 hover:opacity-100 bg-transparent border-none rounded-md">
-									{isTaskExpanded ? (
-										<ChevronUp size={16} />
-									) : (
-										<ChevronDown size={16} className="opacity-0 group-hover:opacity-100" />
-									)}
-								</button>
-							</StandardTooltip>
-						</div>
-					</div>
-				</div>
-				{!isTaskExpanded && contextWindow > 0 && (
-					<div
-						className="flex items-center justify-between text-sm text-muted-foreground/70"
-						onClick={(e) => e.stopPropagation()}>
-						<div className="flex items-center gap-2">
-							<StandardTooltip
-								content={(() => {
-									const availableSpace = contextWindow - (contextTokens || 0) - reservedForOutput
-
-									return (
-										<Table className="text-base ml-1.5">
-											<TableBody>
-												<TableRow>
-													<TableCell className="font-medium whitespace-nowrap">
-														{t("chat:tokenProgress.tokensUsedLabel")}
-													</TableCell>
-													<TableCell className="text-right text-[0.9em] font-mono">
-														{formatLargeNumber(contextTokens || 0)} /{" "}
-														{formatLargeNumber(contextWindow)}
-													</TableCell>
-												</TableRow>
-												{reservedForOutput > 0 && (
-													<TableRow>
-														<TableCell className="font-medium whitespace-nowrap">
-															{t("chat:tokenProgress.reservedForResponseLabel")}
-														</TableCell>
-														<TableCell className="text-right text-[0.9em] font-mono">
-															{formatLargeNumber(reservedForOutput)}
-														</TableCell>
-													</TableRow>
-												)}
-												{availableSpace > 0 && (
-													<TableRow>
-														<TableCell className="font-medium whitespace-nowrap">
-															{t("chat:tokenProgress.availableSpaceLabel")}
-														</TableCell>
-														<TableCell className="text-right text-[0.9em] font-mono">
-															{formatLargeNumber(availableSpace)}
-														</TableCell>
-													</TableRow>
-												)}
-											</TableBody>
-										</Table>
-									)
-								})()}
-								side="top"
-								sideOffset={8}>
-								<span className="flex items-center gap-1.5">
-									{(() => {
-										// Calculate percentage of available input space used
-										// Available input space = context window - reserved for output
-										const availableInputSpace = contextWindow - reservedForOutput
-										const percentage =
-											availableInputSpace > 0
-												? Math.round(((contextTokens || 0) / availableInputSpace) * 100)
-												: 0
-										return (
-											<>
-												<CircularProgress percentage={percentage} />
-												<span>{percentage}%</span>
-											</>
-										)
-									})()}
-								</span>
-							</StandardTooltip>
-							{!!totalCost && (
-								<>
-									<span>·</span>
-									<StandardTooltip
-										content={
-											hasSubtasks ? (
-												<div>
-													<div>
-														{t("chat:costs.totalWithSubtasks", {
-															cost: (aggregatedCost ?? totalCost).toFixed(2),
-														})}
-													</div>
-													{costBreakdown && (
-														<div className="text-xs mt-1">{costBreakdown}</div>
-													)}
-												</div>
-											) : (
-												<div>{t("chat:costs.total", { cost: totalCost.toFixed(2) })}</div>
-											)
-										}
-										side="top"
-										sideOffset={8}>
-										<>
-											<span>
-												${(aggregatedCost ?? totalCost).toFixed(2)}
-												{hasSubtasks && (
-													<span
-														className="text-xs ml-1"
-														title={t("chat:costs.includesSubtasks")}>
-														*
-													</span>
-												)}
-											</span>
-										</>
-									</StandardTooltip>
-								</>
-							)}
-						</div>
-					</div>
-				)}
-				{/* Expanded state: Show task text and images */}
-				{isTaskExpanded && (
-					<>
-						<div
-							ref={textContainerRef}
-							className="text-vscode-font-size overflow-y-auto break-words break-anywhere relative">
-							<div
-								ref={textRef}
-								className="overflow-auto max-h-80 whitespace-pre-wrap break-words break-anywhere cursor-text py-0.5"
-								style={{
-									display: "-webkit-box",
-									WebkitLineClamp: "unset",
-									WebkitBoxOrient: "vertical",
-								}}>
-								<Mention text={taskText} />
-							</div>
-						</div>
-						{taskImages.length > 0 && <Thumbnails images={taskImages} />}
-
-						<div onClick={(e) => e.stopPropagation()}>
-							<TaskActions item={currentTaskItem} buttonsDisabled={buttonsDisabled} />
-						</div>
-
-						<div className="pt-3 mt-2 -mx-2.5 px-2.5 border-t border-vscode-sideBar-background">
-							<table className="w-full text-sm">
-								<tbody>
-									{contextWindow > 0 && (
-										<tr>
-											<th
-												className="font-medium text-left align-top w-1 whitespace-nowrap pr-3 h-[24px]"
-												data-testid="context-window-label">
-												{t("chat:task.contextWindow")}
-											</th>
-											<td className="font-light align-top">
-												<div className={`max-w-md -mt-1.5 flex flex-nowrap gap-1`}>
-													<ContextWindowProgress
-														contextWindow={contextWindow}
-														contextTokens={contextTokens || 0}
-														maxTokens={maxTokens || undefined}
-													/>
-													{condenseButton}
-												</div>
-											</td>
-										</tr>
-									)}
-
-									<tr>
-										<th className="font-medium text-left align-top w-1 whitespace-nowrap pr-3 h-[24px]">
-											{t("chat:task.tokens")}
-										</th>
-										<td className="font-light align-top">
-											<div className="flex items-center gap-1 flex-wrap">
-												{typeof tokensIn === "number" && tokensIn > 0 && (
-													<span>↑ {formatLargeNumber(tokensIn)}</span>
-												)}
-												{typeof tokensOut === "number" && tokensOut > 0 && (
-													<span>↓ {formatLargeNumber(tokensOut)}</span>
-												)}
-											</div>
-										</td>
-									</tr>
-
-									{((typeof cacheReads === "number" && cacheReads > 0) ||
-										(typeof cacheWrites === "number" && cacheWrites > 0)) && (
-										<tr>
-											<th className="font-medium text-left align-top w-1 whitespace-nowrap pr-3 h-[24px]">
-												{t("chat:task.cache")}
-											</th>
-											<td className="font-light align-top">
-												<div className="flex items-center gap-1 flex-wrap">
-													{typeof cacheWrites === "number" && cacheWrites > 0 && (
-														<>
-															<HardDriveDownload className="size-2.5" />
-															<span>{formatLargeNumber(cacheWrites)}</span>
-														</>
-													)}
-													{typeof cacheReads === "number" && cacheReads > 0 && (
-														<>
-															<HardDriveUpload className="size-2.5" />
-															<span>{formatLargeNumber(cacheReads)}</span>
-														</>
-													)}
-												</div>
-											</td>
-										</tr>
-									)}
-
-									{!!totalCost && (
-										<tr>
-											<th className="font-medium text-left align-top w-1 whitespace-nowrap pr-3 h-[24px]">
-												{t("chat:task.apiCost")}
-											</th>
-											<td className="font-light align-top">
-												<StandardTooltip
-													content={
-														hasSubtasks ? (
-															<div>
-																<div>
-																	{t("chat:costs.totalWithSubtasks", {
-																		cost: (aggregatedCost ?? totalCost).toFixed(2),
-																	})}
-																</div>
-																{costBreakdown && (
-																	<div className="text-xs mt-1">{costBreakdown}</div>
-																)}
-															</div>
-														) : (
-															<div>
-																{t("chat:costs.total", { cost: totalCost.toFixed(2) })}
-															</div>
-														)
-													}
-													side="top"
-													sideOffset={8}>
-													<span>
-														${(aggregatedCost ?? totalCost).toFixed(2)}
-														{hasSubtasks && (
-															<span
-																className="text-xs ml-1"
-																title={t("chat:costs.includesSubtasks")}>
-																*
-															</span>
-														)}
-													</span>
-												</StandardTooltip>
-											</td>
-										</tr>
-									)}
-
-									{/* Size display */}
-									{!!currentTaskItem?.size && currentTaskItem.size > 0 && (
-										<tr>
-											<th className="font-medium text-left align-top w-1 whitespace-nowrap pr-2 h-[20px]">
-												{t("chat:task.size")}
-											</th>
-											<td className="font-light align-top">
-												{prettyBytes(currentTaskItem.size)}
-											</td>
-										</tr>
-									)}
-								</tbody>
-							</table>
-						</div>
-					</>
-				)}
-				{/* Todo list - always shown at bottom when todos exist */}
-				{hasTodos && (
-					<TodoListDisplay
-						todos={todos}
-						onTodoClick={(taskId) => pushWindow("chat", { targetNodeId: taskId })}
-					/>
-				)}
-
-				{/* Active Subagents List (Navigation Downwards) */}
-				{nodes.get(currentTaskItem?.id || "")?.childTasks &&
-					nodes.get(currentTaskItem?.id || "")!.childTasks!.length > 0 && (
-						<div className="mt-3 pt-2 border-t border-vscode-sideBar-border flex flex-col gap-1.5 overflow-hidden">
-							<span className="text-[10px] font-bold uppercase tracking-widest opacity-50 px-1">
-								{t("chat:task.activeSubagents")}
-							</span>
-							<div className="flex flex-col gap-1 max-h-32 overflow-y-auto scrollable pr-1">
-								{nodes
-									.get(currentTaskItem?.id || "")!
-									.childTasks!.filter((c): c is NonNullable<typeof c> => c != null)
-									.map((child) => (
-										<div
-											key={child.id}
-											onClick={(e) => {
-												e.stopPropagation()
-												pushWindow("chat", { targetNodeId: child.id })
-											}}
-											className="flex items-center justify-between p-2 rounded-lg bg-vscode-sideBarSectionHeader-background hover:bg-vscode-toolbar-hoverBackground cursor-pointer transition-colors group/child">
-											<div className="flex items-center gap-2 min-w-0">
-												<div className="p-1 bg-vscode-badge-background rounded group-hover/child:bg-vscode-focusBorder group-hover/child:text-white transition-colors">
-													<Bot size={12} />
-												</div>
-												<div className="flex flex-col min-w-0">
-													<span className="text-[11px] font-semibold truncate leading-tight italic opacity-90">
-														{child.mode || "Agent"}
-													</span>
-													<span className="text-[10px] truncate opacity-60 leading-tight">
-														{child.title || "Working..."}
-													</span>
-												</div>
-											</div>
-											<div
-												className={cn(
-													"text-[9px] px-1.5 py-0.5 rounded-full border border-current opacity-60",
-													child.status === "in_progress" && "text-vscode-charts-yellow",
-													child.status === "completed" && "text-vscode-charts-green",
-													child.status === "failed" && "text-vscode-charts-red",
-												)}>
-												{child.status}
-											</div>
-										</div>
-									))}
-							</div>
-						</div>
-					)}
-			</div>
-			<CloudUpsellDialog open={isOpen} onOpenChange={closeUpsell} onConnect={handleConnect} />
-		</div>
+		<TaskHeaderView
+			isSubtask={isSubtask}
+			handleBackToParent={handleBackToParent}
+			showLongRunningTaskMessage={showLongRunningTaskMessage}
+			isTaskComplete={isTaskComplete}
+			openUpsell={openUpsell}
+			closeUpsell={closeUpsell}
+			handleConnect={handleConnect}
+			isOpen={isOpen}
+			hasTodos={hasTodos}
+			handleCardClick={handleCardClick}
+			isTaskExpanded={isTaskExpanded}
+			setIsTaskExpanded={setIsTaskExpanded}
+			taskText={taskText}
+			contextWindow={contextWindow}
+			contextTokens={toZero(contextTokens)}
+			reservedForOutput={toZero(maxTokens)}
+			totalCost={totalCost}
+			aggregatedCost={aggregatedCost}
+			hasSubtasks={hasSubtasks}
+			costBreakdown={costBreakdown}
+			condenseButton={condenseButton}
+			taskImages={taskImages}
+			currentTaskItem={currentTaskItem}
+			buttonsDisabled={buttonsDisabled}
+			maxTokens={toZero(maxTokens)}
+			tokensIn={tokensIn}
+			tokensOut={tokensOut}
+			cacheReads={cacheReads}
+			cacheWrites={cacheWrites}
+			nodes={nodes}
+			pushWindow={pushWindow}
+			todos={todos}
+		/>
 	)
 }
 

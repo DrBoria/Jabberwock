@@ -1,5 +1,5 @@
 import * as vscode from "vscode"
-import { Package } from "../../../shared/package"
+import { Package } from "@shared/package"
 
 /**
  * Gets the API request timeout from VSCode configuration with validation.

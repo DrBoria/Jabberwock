@@ -1,8 +1,8 @@
 import { reaction } from "mobx"
 import { getSnapshot } from "mobx-state-tree"
 import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
-import type { IBackendRootStore } from "../../store"
-import { postStateToWebview, scheduleStatePush } from "./store"
+import type { IBackendRootStore } from "@features/store"
+import { postStateToWebview, scheduleStatePush } from "./store/messaging"
 
 /**
  * Set up MobX reactions that synchronize MST state changes to the webview.

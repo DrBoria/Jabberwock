@@ -6,13 +6,13 @@ import sanitize from "sanitize-filename"
 
 import type { ModelRecord } from "@jabberwock/types"
 
-import { getVscodeContext } from "../../../features/foundation/vscode/context"
-import { RouterName } from "../../../shared/api"
-import { getCacheDirectoryPath } from "../../../utils/storage"
-import { fileExistsAtPath } from "../../../utils/fs"
-import { safeWriteJson } from "../../../utils/safeWriteJson"
+import { getVscodeContext } from "@features/foundation/vscode/context"
+import { RouterName } from "@shared/api"
+import { getCacheDirectoryPath } from "@utils/io"
+import { fileExistsAtPath } from "@utils/io/fs"
+import { safeWriteJson } from "@utils/io"
 
-import { getOpenRouterModelEndpoints } from "./openrouter"
+import { getOpenRouterModelEndpoints } from "./providers/openai-compatible/openrouter"
 import { getModels } from "./modelCache"
 
 const memoryCache = new NodeCache({ stdTTL: 5 * 60, checkperiod: 5 * 60 })
@@ -33,6 +33,41 @@ async function readModelEndpoints(key: string): Promise<ModelRecord | undefined>
 	return exists ? JSON.parse(await fs.readFile(filePath, "utf8")) : undefined
 }
 
+async function copyParentCapabilities(modelProviders: ModelRecord, modelId: string): Promise<void> {
+	const parentModels = await getModels({ provider: "openrouter" })
+	const parentModel = parentModels[modelId]
+
+	if (!parentModel) {
+		return
+	}
+
+	for (const endpointKey of Object.keys(modelProviders)) {
+		modelProviders[endpointKey].supportsReasoningEffort = parentModel.supportsReasoningEffort
+		modelProviders[endpointKey].supportedParameters = parentModel.supportedParameters
+			? [...parentModel.supportedParameters]
+			: undefined
+	}
+}
+
+async function persistModelEndpoints(key: string, modelProviders: ModelRecord): Promise<void> {
+	memoryCache.set(key, modelProviders)
+
+	try {
+		await writeModelEndpoints(key, modelProviders)
+	} catch (error) {
+		console.error(`[jabberwock] [getModelProviders] error writing ${key} endpoints to file cache`, error)
+	}
+}
+
+async function loadFromFileCache(router: RouterName): Promise<ModelRecord | undefined> {
+	try {
+		return await readModelEndpoints(router)
+	} catch (error) {
+		console.error(`[jabberwock] [getModelProviders] error reading ${router} endpoints from file cache`, error)
+	}
+	return undefined
+}
+
 export const getModelEndpoints = async ({
 	router,
 	modelId,
@@ -42,63 +77,23 @@ export const getModelEndpoints = async ({
 	modelId?: string
 	endpoint?: string
 }): Promise<ModelRecord> => {
-	// OpenRouter is the only provider that supports model endpoints, but you
-	// can see how we'd extend this to other providers in the future.
 	if (router !== "openrouter" || !modelId || !endpoint) {
 		return {}
 	}
 
 	const key = getCacheKey(router, modelId)
-	let modelProviders = memoryCache.get<ModelRecord>(key)
+	const cached = memoryCache.get<ModelRecord>(key)
+	if (cached) {
+		return cached
+	}
 
-	if (modelProviders) {
-		// console.log(`[getModelProviders] NodeCache hit for ${key} -> ${Object.keys(modelProviders).length}`)
+	const modelProviders = await getOpenRouterModelEndpoints(modelId)
+
+	if (Object.keys(modelProviders).length > 0) {
+		await copyParentCapabilities(modelProviders, modelId)
+		await persistModelEndpoints(key, modelProviders)
 		return modelProviders
 	}
 
-	modelProviders = await getOpenRouterModelEndpoints(modelId)
-
-	// Copy model-level capabilities from the parent model to each endpoint
-	// These are capabilities that don't vary by provider (tools, reasoning, etc.)
-	if (Object.keys(modelProviders).length > 0) {
-		const parentModels = await getModels({ provider: "openrouter" })
-		const parentModel = parentModels[modelId]
-
-		if (parentModel) {
-			// Copy model-level capabilities to all endpoints
-			// Clone arrays to avoid shared mutable references
-			for (const endpointKey of Object.keys(modelProviders)) {
-				modelProviders[endpointKey].supportsReasoningEffort = parentModel.supportsReasoningEffort
-				modelProviders[endpointKey].supportedParameters = parentModel.supportedParameters
-					? [...parentModel.supportedParameters]
-					: undefined
-			}
-		}
-	}
-
-	if (Object.keys(modelProviders).length > 0) {
-		// console.log(`[getModelProviders] API fetch for ${key} -> ${Object.keys(modelProviders).length}`)
-		memoryCache.set(key, modelProviders)
-
-		try {
-			await writeModelEndpoints(key, modelProviders)
-			// console.log(`[getModelProviders] wrote ${key} endpoints to file cache`)
-		} catch (error) {
-			console.error(`[jabberwock] [getModelProviders] error writing ${key} endpoints to file cache`, error)
-		}
-
-		return modelProviders
-	}
-
-	try {
-		modelProviders = await readModelEndpoints(router)
-		// console.log(`[getModelProviders] read ${key} endpoints from file cache`)
-	} catch (error) {
-		console.error(`[jabberwock] [getModelProviders] error reading ${key} endpoints from file cache`, error)
-	}
-
-	return modelProviders ?? {}
+	return (await loadFromFileCache(router)) ?? {}
 }
-
-export const flushModelProviders = async (router: RouterName, modelId: string) =>
-	memoryCache.del(getCacheKey(router, modelId))
