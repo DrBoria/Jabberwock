@@ -1,25 +1,12 @@
-import * as vscode from "vscode"
-
-import { TodoItem } from "@jabberwock/types"
-
 import type { ITaskModel } from "@features/chat/task/store"
 import { getModeBySlug, getAllModes } from "@shared/modes"
 import { formatResponse } from "@features/settings/context/responses"
-import { t } from "@i18n"
 import { parseMarkdownChecklist } from "@features/chat/tools/t-w/UpdateTodoListTool"
-import { Package } from "@shared/package"
 import { BaseTool, ToolCallbacks, ToolParams } from "@features/chat/tools/a-b/BaseTool"
 import type { ToolUse } from "@shared/tools"
 import { ask } from "@features/chat/task/notifications/actions/ask"
 import { userBroadcast } from "@features/chat/task/messages/actions/say"
 import { sayAndCreateMissingParamError } from "@features/chat/task/messages/actions/command/sayAndCreateMissingParamError"
-
-interface NewTaskParams {
-	mode: string
-	message: string
-	todos?: string
-	is_async?: boolean // Jabberwock: async orchestration
-}
 
 export class NewTaskTool extends BaseTool<"new_task"> {
 	readonly name = "new_task" as const

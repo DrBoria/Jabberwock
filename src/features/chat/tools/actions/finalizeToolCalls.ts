@@ -1,18 +1,14 @@
-import { Anthropic } from "@anthropic-ai/sdk"
-import { serializeError } from "serialize-error"
-
 import { type Notification } from "@jabberwock/types"
+import { t } from "@i18n"
 
 import { GroundingSource } from "@api/transform/stream"
 import { findLastIndex } from "@shared/array"
-import { t } from "@i18n"
 
 import type { ITaskModel } from "@features/chat/task/store"
 import { presentAssistantMessage } from "@features/chat/task/messages/actions"
 import { parseFinalToolCall } from "./parse-tool-call"
 import type { ToolUse, McpToolUse } from "@shared/tools"
 import type { AssistantMessageContent } from "@features/chat/task/messages/actions/types"
-import { diagnosticsManager } from "@jabberwock/devtool"
 
 import { buildAssistantContentForApi, enforceNewTaskIsolation, saveAssistantMessageToHistory } from "./tool-executor"
 import { type TaskDelegate } from "@features/chat/task/condense/actions/types"

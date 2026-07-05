@@ -1,8 +1,6 @@
 import type { ModelInfo, BedrockModelId } from "@jabberwock/types"
 import {
-	bedrockDefaultModelId,
 	bedrockModels,
-	bedrockDefaultPromptRouterModelId,
 	BEDROCK_MAX_TOKENS,
 	BEDROCK_DEFAULT_CONTEXT,
 	AWS_INFERENCE_PROFILE_MAPPING,
@@ -148,8 +146,8 @@ export function parseArn(
  */
 export function getModelById(
 	modelId: string,
-	modelType?: string,
-	options?: { awsUseCrossRegionInference?: boolean; awsUseGlobalInference?: boolean; awsCustomArn?: string },
+	_modelType?: string,
+	_options?: { awsUseCrossRegionInference?: boolean; awsUseGlobalInference?: boolean; awsCustomArn?: string },
 ): { id: BedrockModelId | string; info: ModelInfo } {
 	const knownModel = (bedrockModels as Record<string, ModelInfo>)[modelId]
 

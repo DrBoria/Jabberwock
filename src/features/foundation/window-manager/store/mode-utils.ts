@@ -1,4 +1,3 @@
-import * as vscode from "vscode"
 import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
 import { postStateToWebview } from "./messaging"
 import { getVscodeContext } from "@features/foundation/vscode/context"

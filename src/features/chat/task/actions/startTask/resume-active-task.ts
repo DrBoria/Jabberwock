@@ -1,5 +1,4 @@
 import { registerTask } from "@features/chat/task/actions/taskRegistry"
-import { getBackendRootStore } from "@features/storeSingleton"
 import type { ITaskModel } from "@features/chat/task/store"
 import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
 import { setTimeMachineState } from "@features/foundation/time-machine/actions/getTimeMachine"

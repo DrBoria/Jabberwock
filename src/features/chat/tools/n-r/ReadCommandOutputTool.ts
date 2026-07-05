@@ -1,5 +1,3 @@
-import * as fs from "fs/promises"
-
 import type { ITaskModel } from "@features/chat/task/store"
 
 import { BaseTool, ToolCallbacks } from "@features/chat/tools/a-b/BaseTool"

@@ -3,8 +3,6 @@ import * as path from "path"
 
 import { SimpleGit } from "simple-git"
 
-import { fileExistsAtPath } from "@utils/io/fs"
-import { arePathsEqual } from "@utils/io/path"
 import { executeRipgrep } from "@services/search/file-search"
 
 import { CheckpointDiff, CheckpointResult } from "./types"

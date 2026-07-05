@@ -1,10 +1,6 @@
-import { serializeError } from "serialize-error"
-
 import type { ToolName, NotificationAsk, ModeConfig } from "@jabberwock/types"
 import { ConsecutiveMistakeError } from "@jabberwock/types"
 import { getTelemetryService } from "@jabberwock/telemetry"
-
-import { t } from "@i18n"
 
 import { defaultModeSlug } from "@shared/modes"
 import type { ToolResponse, ToolUse } from "@shared/tools"

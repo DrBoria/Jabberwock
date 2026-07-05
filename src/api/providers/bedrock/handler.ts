@@ -1,8 +1,6 @@
 import {
 	BedrockRuntimeClient,
 	ConverseStreamCommand,
-	ConverseCommand,
-	BedrockRuntimeClientConfig,
 	SystemContentBlock,
 	Message,
 } from "@aws-sdk/client-bedrock-runtime"
@@ -12,27 +10,19 @@ import { BEDROCK_DEFAULT_TEMPERATURE } from "@jabberwock/types"
 import { ApiStream } from "@api/transform/stream"
 import { BaseProvider } from "@api/providers/base-provider"
 import { logger } from "@utils/logging"
-import { getModelParams } from "@api/transform/model-params"
 import type { AnthropicReasoningParams } from "@api/transform/content/reasoning"
 import type { SingleCompletionHandler, ApiHandlerCreateMessageMetadata } from "@api/index"
 import type { BedrockPayloadWithServiceTier } from "./core/types"
 import { tryParseStreamEvent, handleStreamEvent, type StreamHandlerContext } from "./stream"
 import { handleCreateMessageError, type ErrorHandlerContext } from "./errors"
 import { completePrompt } from "./core/complete"
-import { parseArn, parseBaseModelId, getModelById } from "./core/models"
+import { parseArn, getModelById } from "./core/models"
 import { buildCreateMessagePayload } from "./core/payload"
 import { convertToBedrockConverseMessages, supportsAwsPromptCache } from "./core/cache"
 import type { CachePointPlacement } from "@api/transform/cache-strategy/types"
 import {
-	resolveModelFromArn,
-	resolveModelFromDropdown,
-	apply1MContextIfEnabled,
-	applyServiceTierPricing,
-} from "./core/resolve"
-import {
 	buildClientConfig,
 	buildThinkingConfig,
-	resolveThinkingBudget,
 	buildAnthropicBetas,
 	buildConversationId,
 	isServiceTierSupported,

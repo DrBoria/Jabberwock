@@ -1,5 +1,3 @@
-import { Anthropic } from "@anthropic-ai/sdk"
-
 import {
 	type CancelReason,
 	type ApiReqData,
@@ -23,12 +21,8 @@ import {
 	GroundingSource,
 } from "@api/transform/stream"
 import { calculateApiCostAnthropic, calculateApiCostOpenAI } from "@shared/api/cost"
-import { findLastIndex } from "@shared/array"
-import { t } from "@i18n"
-import type { AssistantMessageContent } from "@features/chat/task/messages/actions"
 import { RawChunkTracker } from "@features/api/handlers/helpers/process/rawChunkProcessor"
 import { parseToolCall } from "@features/chat/tools/actions/parse-tool-call"
-import { diagnosticsManager } from "@jabberwock/devtool"
 import type { IBackendRootStore } from "@features/store"
 
 import type { StreamHandle } from "@features/chat/task/condense/actions/types"

@@ -1,10 +1,6 @@
 import { z } from "zod"
 
-import {
-	providerSettingsWithIdSchema,
-	discriminatedProviderSettingsWithIdSchema,
-	type ProviderName,
-} from "@jabberwock/types"
+import { providerSettingsWithIdSchema, type ProviderName } from "@jabberwock/types"
 
 // Type-safe model migrations mapping
 export type ModelMigrations = {

@@ -1,11 +1,9 @@
 import crypto from "crypto"
 
-import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
-
-import type { ApiHandlerCreateMessageMetadata } from "@api"
-import type { ApiMessage } from "@features/chat/task/messages/actions/save/saveApiMessages.types"
+import { getTelemetryService } from "@jabberwock/telemetry"
 import { t } from "@i18n"
-import { supportPrompt } from "@shared/support-prompt"
+
+import type { ApiMessage } from "@features/chat/task/messages/actions/save/saveApiMessages.types"
 
 import {
 	getCondenseEligibilityError,

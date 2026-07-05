@@ -4,7 +4,6 @@ import * as diff from "diff"
 import { validateAccess } from "@utils/ignore"
 import { LOCK_TEXT_SYMBOL } from "@features/settings/constants"
 import { isWriteProtected } from "@utils/protect"
-import { SHIELD_SYMBOL } from "@features/settings/constants"
 
 export const formatResponse = {
 	toolDenied: () =>

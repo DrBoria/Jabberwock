@@ -1,24 +1,11 @@
 import * as fs from "fs/promises"
 import * as path from "path"
-import * as vscode from "vscode"
 import matter from "gray-matter"
 
-import type { EventBridge } from "@features/foundation/webview/EventBridge"
-import {
-	getGlobalRooDirectory,
-	getGlobalAgentsDirectory,
-	getProjectAgentsDirectoryForCwd,
-} from "@services/jabberwock-config"
+import { getGlobalAgentsDirectory, getProjectAgentsDirectoryForCwd } from "@services/jabberwock-config"
 import { directoryExists, fileExists } from "@services/jabberwock-config"
 import { SkillMetadata, SkillContent } from "@shared/skills"
-import { modes, getAllModes } from "@shared/modes"
-import {
-	validateSkillName as validateSkillNameShared,
-	SkillNameValidationError,
-	SKILL_NAME_MAX_LENGTH,
-} from "@jabberwock/types"
 import { getBackendRootStore } from "@features/storeSingleton"
-import { getWorkspacePath } from "@utils/io/path"
 
 export class SkillsManager {
 	private skills: SkillMetadata[] = []
@@ -94,7 +81,7 @@ export class SkillsManager {
 		return [...this.skills]
 	}
 
-	async getSkillContent(name: string, currentMode?: string): Promise<SkillContent | null> {
+	async getSkillContent(name: string, _currentMode?: string): Promise<SkillContent | null> {
 		const skill = this.skills.find((s) => s.name === name)
 		if (!skill) return null
 
@@ -142,7 +129,7 @@ export class SkillsManager {
 		return skillMdPath
 	}
 
-	async deleteSkill(skillName: string, source: "global" | "project", skillMode?: string): Promise<void> {
+	async deleteSkill(skillName: string, source: "global" | "project", _skillMode?: string): Promise<void> {
 		const baseDir =
 			source === "global" ? getGlobalAgentsDirectory() : getProjectAgentsDirectoryForCwd(this.getCwd())
 		if (!baseDir) {

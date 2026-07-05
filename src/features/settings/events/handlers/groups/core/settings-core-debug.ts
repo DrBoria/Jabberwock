@@ -19,7 +19,7 @@ import {
 	SETTINGS_LOCATOR_TARGET,
 } from "@features/settings/events/constants"
 
-export function registerSettingsCoreDebugHandlers(bus: IntentBus): void {
+export function registerSettingsCoreDebugHandlers(_bus: IntentBus): void {
 	onWebviewMessage(SETTINGS_INSERT_TEXT_INTO_TEXTAREA, (_provider, message) => {
 		const store = getBackendRootStore()
 		if (!store) return

@@ -16,7 +16,7 @@ import {
 	SETTINGS_BROWSE_FOR_WORKTREE_PATH,
 } from "@features/settings/events/constants"
 
-export function registerWorktreesHandlers(bus: IntentBus): void {
+export function registerWorktreesHandlers(_bus: IntentBus): void {
 	onWebviewMessage(SETTINGS_LIST_WORKTREES, (_provider, message) => {
 		const store = getBackendRootStore()
 		if (!store) return

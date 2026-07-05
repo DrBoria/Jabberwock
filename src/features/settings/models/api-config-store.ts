@@ -1,7 +1,6 @@
 import { Instance } from "mobx-state-tree"
 import { isSecretStateKey, type JabberwockSettings } from "@jabberwock/types"
 import { EventBridge } from "@features/foundation/webview/EventBridge"
-import { getBackendRootStore } from "@features/storeSingleton"
 import { getSettingsAccess } from "@utils/settings"
 import { getProviderSettingsManager } from "./provider-settings-manager"
 import { postStateToWebview } from "@features/foundation/window-manager/store"
@@ -23,7 +22,7 @@ export function getApiConfigState(rootStore: IBackendRootStore): ApiConfigState 
 /**
  * Gets the current configuration (minus secrets).
  */
-export function getConfiguration(provider: EventBridge): JabberwockSettings {
+export function getConfiguration(_provider: EventBridge): JabberwockSettings {
 	return Object.fromEntries(
 		Object.entries(getSettingsAccess().getValues()).filter(([key]) => !isSecretStateKey(key)),
 	) as JabberwockSettings

@@ -54,7 +54,7 @@ export function setupMcpHubListeners(task: ITaskModel, mcpHub: McpHub) {
 		mcpHub.on(
 			"interactiveUiRequested",
 			async (args: { uri: string; resolve: (data: unknown) => void; reject: (err: Error) => void }) => {
-				const { uri, resolve, reject } = args
+				const { uri, resolve, reject: _reject } = args
 				// Pause LLM execution and show interactive UI in Webview
 				console.log("[Jabberwock] Handling interactiveUiRequested for URI:", uri)
 

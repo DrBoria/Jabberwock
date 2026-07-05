@@ -8,7 +8,7 @@ import type { IntentBus } from "@features/intents/bus"
 import { saveMessages } from "@features/chat/task/messages/actions/saveMessages"
 
 export function registerOnNotificationPersist(bus: IntentBus): void {
-	bus.register(IntentType.NotificationPersist, async (intent, ctx) => {
+	bus.register(IntentType.NotificationPersist, async (intent, _ctx) => {
 		const { taskId } = intent.payload as { taskId: string }
 
 		await saveMessages(taskId)

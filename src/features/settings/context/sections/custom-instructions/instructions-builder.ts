@@ -7,7 +7,7 @@ import type { SystemPromptSettings } from "@features/settings/context/types"
 import { LANGUAGES } from "@shared/language"
 import { getRooDirectoriesForCwd, getAllRooDirectoriesForCwd } from "@services/jabberwock-config"
 
-import { loadModeRules, type ModeRulesResult } from "./rules-loader"
+import { loadModeRules } from "./rules-loader"
 import { loadAllAgentRulesFiles } from "./agent-rules"
 import { safeReadFile, directoryExists, readTextFilesFromDirectory, formatDirectoryContent } from "./utils"
 

@@ -6,7 +6,7 @@ import type { IntentBus } from "@features/intents/bus"
  */
 export function registerOnScriptFinished(bus: IntentBus): void {
 	bus.register(IntentType.ScriptFinished, async (intent, _ctx) => {
-		const { taskId, exitCode, output } = intent.payload as {
+		const { taskId, exitCode } = intent.payload as {
 			taskId: string
 			exitCode: number
 			output: string

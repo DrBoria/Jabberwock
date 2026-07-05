@@ -31,29 +31,29 @@ async function handleWebviewLaunched(ctx: never): Promise<void> {
 
 	await getVscodeContext().updateGlobalState("customModes", customModes)
 
-	// 2. API Configuration
+	// 2. API Config Profile Management — MUST run before reading store state
+	await syncApiConfigProfiles(provider, rootStore)
+
+	// 3. API Configuration
 	const additionalState = loadApiConfiguration(rootStore)
 
-	// 3. Task History
+	// 4. Task History
 	await sendTaskHistory(provider, rootStore)
 
-	// 4. Restore Chat State from MST
+	// 5. Restore Chat State from MST
 	await restoreChatState(provider, rootStore)
 
-	// 5. Post State to Webview
+	// 6. Post State to Webview
 	postStateToWebview(provider as never, Object.keys(additionalState).length > 0 ? additionalState : undefined)
 
-	// 6. Workspace Tracker
+	// 7. Workspace Tracker
 	await initializeWorkspaceTracker(provider)
 
-	// 7. Theme
+	// 8. Theme
 	getTheme().then((theme: { [key: string]: unknown }) =>
 		provider.postMessageToWebview({ type: "theme", text: JSON.stringify(theme) }),
 	)
 
-	// 8. MCP Servers
+	// 9. MCP Servers
 	syncMcpServers(provider, rootStore)
-
-	// 9. API Config Profile Management
-	syncApiConfigProfiles(provider, rootStore)
 }

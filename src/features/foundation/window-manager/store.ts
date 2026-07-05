@@ -1,6 +1,5 @@
 import * as vscode from "vscode"
 import { types, Instance } from "mobx-state-tree"
-import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
 import WorkspaceTracker from "@integrations/workspace/WorkspaceTracker"
 import {
 	WebviewViewType,

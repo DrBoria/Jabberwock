@@ -56,7 +56,7 @@ export async function migrateOpenAiHeaders(providerProfiles: ProviderProfiles): 
 
 export async function migrateConsecutiveMistakeLimit(providerProfiles: ProviderProfiles): Promise<void> {
 	try {
-		for (const [name, apiConfig] of Object.entries(providerProfiles.apiConfigs)) {
+		for (const [_name, apiConfig] of Object.entries(providerProfiles.apiConfigs)) {
 			if (apiConfig.consecutiveMistakeLimit == null) {
 				apiConfig.consecutiveMistakeLimit = DEFAULT_CONSECUTIVE_MISTAKE_LIMIT
 			}

@@ -46,7 +46,7 @@ export const toRequestyServiceUrl = (baseUrl?: string | null, service: URLType =
 		const validatedUrl = new URL(urlToUse).toString()
 		// Apply service type transformation
 		return replaceCname(validatedUrl, service)
-	} catch (error) {
+	} catch (_error) {
 		// If the provided baseUrl is invalid, fall back to the default
 		if (baseUrl && baseUrl !== REQUESTY_BASE_URL) {
 			console.warn(`[jabberwock] Invalid base URL "${baseUrl}", falling back to default`)

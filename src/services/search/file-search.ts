@@ -49,7 +49,7 @@ export async function executeRipgrep({
 					}
 
 					count++
-				} catch (error) {
+				} catch (_error) {
 					// Silently ignore errors processing individual paths.
 				}
 			} else {

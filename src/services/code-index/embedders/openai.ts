@@ -16,7 +16,7 @@ import {
 	HttpError,
 } from "@services/code-index/shared/validateContent"
 import { TelemetryEventName } from "@jabberwock/types"
-import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
+import { getTelemetryService } from "@jabberwock/telemetry"
 import { handleProviderError } from "@api/providers/utils/error-handler"
 
 /**

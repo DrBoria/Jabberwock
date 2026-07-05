@@ -3,7 +3,6 @@ import os from "os"
 import ignore from "ignore"
 import { VirtualWorkspace } from "@features/foundation/time-machine/VirtualWorkspace"
 import { arePathsEqual } from "@utils/io/path"
-import { DIRS_TO_IGNORE } from "./constants"
 import type { ScanContext } from "./list-files-filter"
 import { shouldIncludeDirectory } from "./list-files-filter"
 

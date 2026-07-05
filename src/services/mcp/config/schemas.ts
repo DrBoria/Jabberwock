@@ -1,5 +1,4 @@
 import { z } from "zod"
-import * as vscode from "vscode"
 
 // ─── Error messages ──────────────────────────────────────────────────
 

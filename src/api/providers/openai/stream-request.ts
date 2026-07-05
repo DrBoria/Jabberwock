@@ -8,7 +8,7 @@ import type { OpenAiReasoningParams } from "@api/transform/content/reasoning"
 import { TagMatcher } from "@utils/text"
 import { convertToOpenAiMessages } from "@api/transform/format/openai-format"
 import { convertToR1Format } from "@api/transform/r1/format"
-import type { ApiStream, ApiStreamChunk } from "@api/transform/stream"
+import type { ApiStream } from "@api/transform/stream"
 import type { ApiHandlerCreateMessageMetadata } from "@api/index"
 
 import {

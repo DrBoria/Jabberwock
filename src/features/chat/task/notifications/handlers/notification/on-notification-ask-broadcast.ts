@@ -32,7 +32,7 @@ import { updateNotification } from "@features/chat/task/notifications/actions/co
 
 export function registerOnNotificationAskBroadcast(bus: IntentBus): void {
 	for (const type of NOTIFICATION_TYPES) {
-		bus.register(type, async (intent, ctx: IntentHandlerContext) => {
+		bus.register(type, async (intent, _ctx: IntentHandlerContext) => {
 			const payload = intent.payload as {
 				taskId: string
 				notification: Notification

@@ -10,12 +10,7 @@ import { CodeBlock, ICodeParser, IVectorStore } from "@services/code-index/inter
 import { CacheManager } from "@services/code-index/cache-manager"
 import { MAX_FILE_SIZE_BYTES } from "@services/code-index/constants"
 import { isPathInIgnoredDirectory } from "@services/glob/ignore-utils"
-import {
-	handleBatchProcessingError,
-	reportBatchDeletionError,
-	reportBatchFailure,
-	reportDeletionError,
-} from "@services/code-index/processors/scannerHelpers"
+import { reportBatchDeletionError, reportDeletionError } from "@services/code-index/processors/scannerHelpers"
 
 export function filterSupportedPaths(ignoreInstance: Ignore, allowedPaths: string[], scanWorkspace: string): string[] {
 	return allowedPaths.filter((filePath) => {
@@ -34,8 +29,8 @@ export async function readAndParseFile(
 	cacheManager: CacheManager,
 	codeParser: ICodeParser,
 	filePath: string,
-	scanWorkspace: string,
-	signal: AbortSignal | undefined,
+	_scanWorkspace: string,
+	_signal: AbortSignal | undefined,
 ): Promise<{
 	content: string
 	currentFileHash: string

@@ -142,7 +142,7 @@ export class McpHub extends EventEmitter {
 			(source) => this.initializeMcpServers(source),
 		)
 
-	private initializeMcpServers = (source: "global" | "project"): Promise<void> => initializeAllServers(this.hubDeps)
+	private initializeMcpServers = (_source: "global" | "project"): Promise<void> => initializeAllServers(this.hubDeps)
 
 	toggleServerDisabled = (serverName: string, disabled: boolean, source?: "global" | "project"): Promise<void> =>
 		toggleServerDisabled(this.s, serverName, disabled, () => this.getMcpSettingsFilePath(), source)

@@ -8,8 +8,6 @@ import { formatLanguage } from "@shared/language"
 import { isEmpty } from "@utils/object"
 
 import { McpHub } from "@services/mcp/core/McpHub"
-import { CodeIndexManager } from "@services/code-index/manager/manager"
-import { getCodeIndexManager } from "@services/code-index/manager/manager.factory"
 import { SkillsManager } from "@services/skills/SkillsManager"
 
 import type { SystemPromptSettings } from "./types"
@@ -76,8 +74,6 @@ async function generatePrompt(
 
 	const modeConfig = resolveModeConfig(mode, customModeConfigs)
 	const shouldIncludeMcp = shouldIncludeMcpSection(modeConfig, mcpHub)
-
-	const codeIndexManager = getCodeIndexManager(context, cwd)
 
 	const [modesSection, skillsSection] = await Promise.all([
 		getModesSection(context),

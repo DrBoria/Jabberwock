@@ -14,7 +14,7 @@ import {
 	SETTINGS_REFRESH_ALL_MCP_SERVERS,
 } from "@features/settings/events/constants"
 
-export function registerSettingsMcpHandlers(bus: IntentBus): void {
+export function registerSettingsMcpHandlers(_bus: IntentBus): void {
 	onWebviewMessage(SETTINGS_OPEN_MCP_SETTINGS, (_provider, message) => {
 		const store = getBackendRootStore()
 		if (!store) return

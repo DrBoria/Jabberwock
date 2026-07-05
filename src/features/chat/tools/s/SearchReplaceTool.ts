@@ -42,7 +42,7 @@ export class SearchReplaceTool extends BaseTool<"search_replace"> {
 			const accessResult = await validateSearchReplaceAccess(task, relPath, pushToolResult)
 			if (!accessResult) return
 
-			const { absolutePath, isFileWriteProtected } = accessResult
+			const { absolutePath, isFileWriteProtected: _isFileWriteProtected } = accessResult
 
 			const matchResult = await readAndMatchContent(
 				absolutePath,

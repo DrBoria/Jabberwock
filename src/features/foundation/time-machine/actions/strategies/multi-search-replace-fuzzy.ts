@@ -2,7 +2,7 @@ import { distance } from "fastest-levenshtein"
 
 import type { DiffResult } from "@shared/tools"
 
-import { addLineNumbers, everyLineHasLineNumbers, stripLineNumbers } from "@integrations/misc/extract-text/helpers"
+import { addLineNumbers, everyLineHasLineNumbers } from "@integrations/misc/extract-text/helpers"
 import { normalizeString } from "@utils/text"
 
 export function checkAllLinesHaveNumbers(searchContent: string, replaceContent: string): boolean {

@@ -185,7 +185,7 @@ export async function getProfileEntry(
 /**
  * Gets all profile names.
  */
-export async function getProfiles(provider: EventBridge): Promise<string[]> {
+export async function getProfiles(_provider: EventBridge): Promise<string[]> {
 	const psm = getProviderSettingsManager()
 	if (!psm) {
 		return []
@@ -202,7 +202,7 @@ export async function getProfiles(provider: EventBridge): Promise<string[]> {
 /**
  * Gets the currently active profile name.
  */
-export function getActiveProfile(provider: EventBridge): string | undefined {
+export function getActiveProfile(_provider: EventBridge): string | undefined {
 	const state = getBackendRootStore()
 	return (state.settings.apiConfig as { currentConfigName?: string })?.currentConfigName
 }

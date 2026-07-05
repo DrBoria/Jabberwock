@@ -26,7 +26,7 @@ async function readAgentRulesFile(filePath: string): Promise<string> {
 				resolvedPath = fileInfo[0].resolvedPath
 			}
 		}
-	} catch (err) {
+	} catch (_err) {
 		return ""
 	}
 
@@ -59,7 +59,7 @@ export async function loadAgentRulesFileFromDirectory(
 				results.push(`${header}\n${content}`)
 				break
 			}
-		} catch (err) {
+		} catch (_err) {
 			// Silently ignore errors - agent rules files are optional
 		}
 	}
@@ -75,7 +75,7 @@ export async function loadAgentRulesFileFromDirectory(
 				: `# Agent Rules Local (${localFilename}):`
 			results.push(`${localHeader}\n${localContent}`)
 		}
-	} catch (err) {
+	} catch (_err) {
 		// Silently ignore errors - local agent rules file is optional
 	}
 

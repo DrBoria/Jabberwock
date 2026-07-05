@@ -1,6 +1,5 @@
 import { types, Instance } from "mobx-state-tree"
 import type { EventBridge } from "@features/foundation/webview/EventBridge"
-import { getState } from "@features/storeSingleton"
 
 export const McpModel = types.model("Mcp", {})
 

@@ -1,4 +1,4 @@
-import { type SayToolData, DEFAULT_WRITE_DELAY_MS } from "@jabberwock/types"
+import { DEFAULT_WRITE_DELAY_MS } from "@jabberwock/types"
 import type { AskApproval } from "@shared/tools"
 import type { ITaskModel } from "@features/chat/task/store"
 import { formatResponse } from "@features/settings/context/responses"

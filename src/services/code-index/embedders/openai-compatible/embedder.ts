@@ -12,13 +12,10 @@ import { handleProviderError } from "@api/providers/utils/error-handler"
 import { EmbeddingRateLimiter } from "./rate-limiter"
 import {
 	isFullEndpointUrl,
-	buildHttpError,
-	parseEmbeddingJsonResponse,
 	processEmbeddingResponse,
 	makeDirectEmbeddingRequest,
 	embedWithClient,
 } from "./embedder-utils"
-import type { OpenAIEmbeddingResponse } from "./types"
 
 export class OpenAICompatibleEmbedder implements IEmbedder {
 	private embeddingsClient: OpenAI

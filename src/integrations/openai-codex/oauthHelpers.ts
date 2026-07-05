@@ -5,7 +5,7 @@ import { z } from "zod"
 /**
  * OpenAI Codex OAuth Configuration
  */
-import { extractAccountId, OpenAiCodexOAuthTokenError, parseOAuthErrorDetails } from "./oauthTokenParsing"
+import { OpenAiCodexOAuthTokenError, parseOAuthErrorDetails } from "./oauthTokenParsing"
 
 export const OPENAI_CODEX_OAUTH_CONFIG = {
 	authorizationEndpoint: "https://auth.openai.com/oauth/authorize",

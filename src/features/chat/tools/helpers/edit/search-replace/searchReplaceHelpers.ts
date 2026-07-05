@@ -87,7 +87,7 @@ export async function readAndMatchContent(
 	try {
 		fileContent = await getVirtualWorkspace().readFile(absolutePath, "utf8")
 		fileContent = fileContent.replace(/\r\n/g, "\n")
-	} catch (error) {
+	} catch (_error) {
 		task._state.setConsecutiveMistakeCount(task._state.consecutiveMistakeCount + 1)
 		task.recordToolError("search_replace")
 		const errorMessage = `Failed to read file '${relPath}'. Please verify file permissions and try again.`

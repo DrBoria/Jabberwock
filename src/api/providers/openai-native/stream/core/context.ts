@@ -1,13 +1,4 @@
-import type { Anthropic } from "@anthropic-ai/sdk"
-
 import { type ServiceTier } from "@jabberwock/types"
-
-import { type ApiStream, type ApiStreamUsageChunk } from "@api/transform/stream"
-import { Package } from "@shared/package"
-import { getTelemetryService } from "@jabberwock/telemetry"
-
-import type { OpenAiNativeModel, RawUsage } from "@api/providers/openai-native/types"
-import { normalizeUsage } from "@api/providers/openai-native/usage"
 
 /**
  * Context passed to stream processing functions.

@@ -111,7 +111,7 @@ export function normalizeJsonSchema(schema: Record<string, unknown>): Record<str
 		type,
 		required,
 		properties,
-		additionalProperties,
+		additionalProperties: _additionalProperties,
 		format,
 		items,
 		minItems,
@@ -167,7 +167,7 @@ export function flattenTopLevelComposition(schema: Record<string, unknown>): Rec
 		return { ...schema }
 	}
 
-	const { anyOf, oneOf, allOf, ...rest } = schema
+	const { anyOf: _anyOf, oneOf: _oneOf, allOf: _allOf, ...rest } = schema
 	const { properties, required, type, ...variantRest } = objectVariant
 
 	const flattened: Record<string, unknown> = { ...rest, ...variantRest }

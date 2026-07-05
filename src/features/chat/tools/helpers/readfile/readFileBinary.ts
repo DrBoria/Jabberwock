@@ -14,7 +14,7 @@ import {
 } from "@features/chat/tools/helpers/generate-image/imageHelpers"
 import { systemBroadcast } from "@features/chat/task/messages/actions/say"
 
-import { getVirtualWorkspace, getFileContextTracker } from "@features/foundation/time-machine/actions/getTimeMachine"
+import { getFileContextTracker } from "@features/foundation/time-machine/actions/getTimeMachine"
 
 import type { FileResult } from "./readFileHelpers"
 import { getErrorMessage } from "./readFileHelpers"

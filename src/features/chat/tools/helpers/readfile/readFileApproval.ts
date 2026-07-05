@@ -1,7 +1,5 @@
 import path from "path"
 
-import type { SayToolData } from "@jabberwock/types"
-
 import type { ITaskModel } from "@features/chat/task/store"
 import { isPathOutsideWorkspace } from "@utils/io"
 import { getReadablePath } from "@utils/io/path"

@@ -7,7 +7,7 @@ import type { IntentBus } from "@features/intents/bus"
  */
 export function registerOnMcpToolResult(bus: IntentBus): void {
 	bus.register(BackendIntentType.McpToolResult, async (intent, ctx) => {
-		const { taskId, toolName, result, isError } = intent.payload as {
+		const { taskId, result, isError } = intent.payload as {
 			taskId: string
 			toolName: string
 			result: string

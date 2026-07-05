@@ -1,11 +1,6 @@
 import OpenAI from "openai"
 
-import {
-	type ModelRecord,
-	openRouterDefaultModelId,
-	openRouterDefaultModelInfo,
-	DEEP_SEEK_DEFAULT_TEMPERATURE,
-} from "@jabberwock/types"
+import { type ModelRecord, openRouterDefaultModelInfo, DEEP_SEEK_DEFAULT_TEMPERATURE } from "@jabberwock/types"
 
 import type { ApiHandlerOptions } from "@shared/api"
 import { getModelParams } from "@api/transform/model-params"

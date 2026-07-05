@@ -2,9 +2,6 @@ import psTree from "ps-tree"
 import process from "process"
 import { execa } from "execa"
 
-import type { RooTerminal } from "@integrations/terminal/types"
-import { BaseTerminal } from "@integrations/terminal/terminal-core/BaseTerminal"
-
 export function startPidUpdate(pid: number | undefined, callback: (newPid: number) => void): Promise<void> {
 	if (!pid) {
 		return Promise.resolve()

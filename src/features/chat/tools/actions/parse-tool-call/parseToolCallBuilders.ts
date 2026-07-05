@@ -1,4 +1,4 @@
-import type { ToolBuildResult, ToolArgConfig, RawApiFileEntry } from "./parseToolCallBuilders.types"
+import type { ToolBuildResult } from "./parseToolCallBuilders.types"
 import { resolveToolArgConfig, assignCoercedParam } from "./parseToolCallBuilders.config"
 
 export function buildToolArgs(name: string, args: Record<string, unknown>, lax: boolean): ToolBuildResult | null {

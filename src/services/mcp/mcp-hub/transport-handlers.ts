@@ -1,5 +1,3 @@
-import * as vscode from "vscode"
-
 import type { Stream } from "stream"
 
 import type { McpHubState } from "@services/mcp/core/types"

@@ -1,21 +1,15 @@
 import { types } from "mobx-state-tree"
 import * as vscode from "vscode"
-import type WorkspaceTracker from "@integrations/workspace/WorkspaceTracker"
 
 // ─── Non-serializable type aliases ──────────────────────────────────────────
 
 type DomRequestCallback = (result: string) => void
 type ActivePageCallback = (activePage: string) => void
-type TaskCreationCallback = (instance: Record<string, unknown>) => void
-
 export interface ChatNode {
 	addMessage(msg: Record<string, unknown>): void
 	syncUiMessages(msgs: unknown[]): void
 	setMode(mode: string): void
 }
-
-type BranchCallback = (parentId: string, label: string, taskId: string) => void
-type SwitchContextCallback = (taskId: string) => void
 
 // ─── types.custom() wrappers ───────────────────────────────────────────────
 
@@ -80,7 +74,7 @@ export const PendingDomRequestsType = types.custom<
 		return new Map()
 	},
 	toSnapshot(value: Map<string, { callback: DomRequestCallback; meta: PendingDomRequestMeta }>) {
-		return Array.from(value.entries()).map(([requestId, callback]) => ({
+		return Array.from(value.entries()).map(([requestId, _callback]) => ({
 			requestId,
 			type: "",
 			params: {},

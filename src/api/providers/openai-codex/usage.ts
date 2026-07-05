@@ -4,7 +4,7 @@ import { getExtractedUsageToken, getNumberProp } from "./utils"
 
 export function normalizeUsage(
 	usage: Record<string, unknown>,
-	model: OpenAiCodexModel,
+	_model: OpenAiCodexModel,
 ): ApiStreamUsageChunk | undefined {
 	if (!usage) return undefined
 

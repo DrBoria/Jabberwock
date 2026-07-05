@@ -1,21 +1,13 @@
-import * as vscode from "vscode"
 import * as path from "path"
 import * as fs from "fs/promises"
 import * as os from "os"
-
-import * as yaml from "yaml"
 
 import { type ModeConfig } from "@jabberwock/types"
 
 import { fileExistsAtPath } from "@utils/io/fs"
 import { getWorkspacePath } from "@utils/io/path"
-import { getGlobalRooDirectory } from "@services/jabberwock-config"
-import { logger } from "@utils/logging"
-import { t } from "@i18n"
 
-import { type RuleFile, JABBERWOCKMODES_FILENAME } from "@features/settings/agents/modes-file-service/types"
-import { createMockExtensionContext } from "@features/settings/agents/modes-file-service/mock"
-import { loadAndMergeModes } from "@features/settings/agents/modes-file-service/file-ops"
+import { type RuleFile } from "@features/settings/agents/modes-file-service/types"
 
 export function hasNoValidRules(rulesFiles: RuleFile[] | undefined): boolean {
 	return !rulesFiles || !Array.isArray(rulesFiles) || rulesFiles.length === 0

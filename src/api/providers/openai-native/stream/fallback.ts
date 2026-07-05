@@ -62,10 +62,10 @@ async function* tryHandleChoicesContent(
 	return void 0
 }
 
-async function* tryHandleItemText(parsed: Record<string, unknown>, hasContent: boolean): ApiStream {
+async function* tryHandleItemText(parsed: Record<string, unknown>, _hasContent: boolean): ApiStream {
 	const item = parsed.item as Record<string, unknown> | undefined
 	if (item && typeof item.text === "string" && item.text.length > 0) {
-		hasContent = true
+		_hasContent = true
 		yield { type: "text", text: item.text }
 		return void 0
 	}
@@ -83,13 +83,13 @@ async function* handleCompleteResponseOutput(
 	const output = response?.output as Record<string, unknown>[] | undefined
 	if (!output) return void 0
 
-	let localHasContent = hasContent
+	let _localHasContent = hasContent
 	for (const outputItem of output) {
 		if (yield* yieldTextFromOutputItem(outputItem, ctx)) {
-			localHasContent = true
+			_localHasContent = true
 		}
 		if (yield* yieldReasoningFromOutputItem(outputItem)) {
-			localHasContent = true
+			_localHasContent = true
 		}
 	}
 	if (response?.usage) {

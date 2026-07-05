@@ -63,7 +63,7 @@ export async function fetchOllamaModel(
 	ollamaBaseUrl: string | undefined,
 	ollamaApiKey: string | undefined,
 	modelId: string,
-	modelsCache: Record<string, ModelInfo>,
+	_modelsCache: Record<string, ModelInfo>,
 ): Promise<{ id: string; info: ModelInfo }> {
 	const models = await getOllamaModels(ollamaBaseUrl, ollamaApiKey)
 	return {

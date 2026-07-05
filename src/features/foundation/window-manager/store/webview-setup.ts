@@ -115,7 +115,7 @@ function setWebviewHtmlContent(provider: ProviderHandle, webview: vscode.Webview
 	}
 }
 
-async function loadInitialWebviewState(provider: ProviderHandle): Promise<WebviewStatePayload> {
+async function loadInitialWebviewState(_provider: ProviderHandle): Promise<WebviewStatePayload> {
 	let initialState: WebviewStatePayload = {}
 	try {
 		const psm = getProviderSettingsManager()

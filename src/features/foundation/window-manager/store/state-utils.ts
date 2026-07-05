@@ -10,7 +10,7 @@ export function initWindowManagerState(_provider: ProviderHandle): void {
 	// No-op — state is initialized via MST model defaults
 }
 
-function lazyGetState(provider: ProviderHandle): { foundation: { windowManager: IWindowManagerModel } } {
+function lazyGetState(_provider: ProviderHandle): { foundation: { windowManager: IWindowManagerModel } } {
 	const rootStore = getBackendRootStore()
 	return rootStore as { foundation: { windowManager: IWindowManagerModel } }
 }

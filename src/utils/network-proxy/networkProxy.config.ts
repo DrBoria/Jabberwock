@@ -1,7 +1,7 @@
 import * as vscode from "vscode"
 import { Package } from "@shared/package"
 import { ProxyConfig } from "./networkProxy.types"
-import { proxyState, log } from "./networkProxy.state"
+import { proxyState } from "./networkProxy.state"
 
 export function getProxyConfig(): ProxyConfig {
 	const defaultServerUrl = "http://127.0.0.1:8888"

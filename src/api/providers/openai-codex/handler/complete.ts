@@ -1,5 +1,3 @@
-import { v7 as uuidv7 } from "uuid"
-
 import { ApiProviderError } from "@jabberwock/types"
 import { getTelemetryService } from "@jabberwock/telemetry"
 

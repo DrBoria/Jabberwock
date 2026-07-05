@@ -1,5 +1,4 @@
-import type { Language, ExperimentId, JabberwockSettings } from "@jabberwock/types"
-import { getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
+import type { Language, ExperimentId } from "@jabberwock/types"
 import { changeLanguage } from "@i18n"
 import { Package } from "@shared/package"
 import { experimentDefault } from "@shared/experiments"
@@ -7,7 +6,6 @@ import { Terminal } from "@integrations/terminal/terminal-core/Terminal"
 import { setTtsEnabled, setTtsSpeed } from "@utils/token/tts"
 import * as vscode from "vscode"
 import { getVscodeContext } from "@features/foundation/vscode/context"
-import { getSettingsAccess } from "@utils/settings"
 import { getMcpServerManager } from "@services/mcp/core/McpServerManager"
 
 type SettingHandler = (value: unknown) => Promise<unknown>

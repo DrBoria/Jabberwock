@@ -1,11 +1,4 @@
-import type {
-	ModelInfo,
-	OpenAiNativeModelId,
-	OPENAI_NATIVE_DEFAULT_TEMPERATURE,
-	ReasoningEffortExtended,
-	ServiceTier,
-	VerbosityLevel,
-} from "@jabberwock/types"
+import type { ModelInfo, ReasoningEffortExtended, ServiceTier, VerbosityLevel } from "@jabberwock/types"
 
 export interface OpenAiNativeModel {
 	id: string

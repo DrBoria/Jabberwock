@@ -1,5 +1,4 @@
 import type { ITaskModel } from "@features/chat/task/store"
-import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
 
 import { getBackendRootStore } from "@features/storeSingleton"
 
@@ -11,29 +10,29 @@ import { getBackendRootStore } from "@features/storeSingleton"
  * Delegates to provider to start a subtask.
  */
 async function delegateToProvider(
-	taskId: string,
-	message: string,
-	initialTodos: unknown[],
-	mode: string,
+	_taskId: string,
+	_message: string,
+	_initialTodos: unknown[],
+	_mode: string,
 ): Promise<ITaskModel | undefined> {
 	return undefined
 }
 
 export async function startSubtask(
-	taskId: string,
-	message: string,
-	initialTodos?: unknown[],
-	mode?: string,
+	_taskId: string,
+	_message: string,
+	_initialTodos?: unknown[],
+	_mode?: string,
 ): Promise<ITaskModel | undefined> {
 	// startSubtask was removed from Task - direct delegation
-	const subtask = await delegateToProvider(taskId, message, initialTodos ?? [], mode ?? "")
+	const subtask = await delegateToProvider(_taskId, _message, _initialTodos ?? [], _mode ?? "")
 	return subtask
 }
 
 /**
  * Resumes after delegation.
  */
-export async function resumeAfterDelegation(taskId: string, completionResult?: string): Promise<void> {
+export async function resumeAfterDelegation(_taskId: string, _completionResult?: string): Promise<void> {
 	// resumeAfterDelegation was removed from Task - standalone implementation
 	// The actual resume logic is handled by reopenParentFromDelegation
 	// This function is kept as a stub for API compatibility
@@ -49,7 +48,7 @@ export async function reopenParentFromDelegation(params: {
 	childTaskId: string
 	completionResultSummary: string
 }): Promise<void> {
-	const { parentTaskId, childTaskId, completionResultSummary } = params
+	const { parentTaskId, childTaskId: _childTaskId, completionResultSummary: _completionResultSummary } = params
 	const parentTask = getBackendRootStore().chat.getTask(parentTaskId)
 	if (!parentTask) {
 		console.error(`[jabberwock] [reopenParentFromDelegation] Parent task ${parentTaskId} not found`)
@@ -69,10 +68,10 @@ export async function delegateParentAndOpenChild(params: {
 	initialTodos?: unknown[]
 	mode?: string
 }): Promise<ITaskModel> {
-	const { parentTaskId, message, initialTodos, mode } = params
+	const { parentTaskId, message: _message, initialTodos: _initialTodos, mode: _mode } = params
 
 	// startSubtask was removed from TaskModel — use standalone function instead
-	const childTask = await startSubtask(parentTaskId, message, initialTodos ?? [], mode ?? "")
+	const childTask = await startSubtask(parentTaskId, _message, _initialTodos ?? [], _mode ?? "")
 	if (!childTask) {
 		throw new Error(`[delegateParentAndOpenChild] Failed to create subtask for task ${parentTaskId}`)
 	}

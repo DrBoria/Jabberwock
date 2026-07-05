@@ -1,5 +1,5 @@
 import { Anthropic } from "@anthropic-ai/sdk"
-import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
+import { getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 import { findLastIndex } from "@shared/array"
 
 /**

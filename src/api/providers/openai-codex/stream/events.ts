@@ -1,5 +1,4 @@
-import type { ApiStream, ApiStreamUsageChunk } from "@api/transform/stream"
-import type { OpenAiCodexModel } from "@api/providers/openai-codex/types"
+import type { ApiStream } from "@api/transform/stream"
 import { extractTextFromEvent, extractPartText } from "@api/providers/openai-codex/utils"
 import type { StreamState } from "@api/providers/openai-codex/types"
 

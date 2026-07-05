@@ -3,7 +3,6 @@ import delay from "delay"
 
 import { initVscodeContext } from "@features/foundation/vscode/context"
 import { EventBridge } from "@features/foundation/webview/EventBridge"
-import { getCodeIndexManager } from "@services/code-index/manager/manager.factory"
 import { MdmService, getMdmService } from "@services/mdm/MdmService"
 import { setPanel } from "./panel-store"
 
@@ -15,12 +14,10 @@ export const openClineInNewTab = async ({
 	outputChannel: vscode.OutputChannel
 }) => {
 	initVscodeContext(context)
-	const codeIndexManager = getCodeIndexManager(context)
-
 	let mdmService: MdmService | undefined
 	try {
 		mdmService = getMdmService()
-	} catch (error) {
+	} catch (_error) {
 		mdmService = undefined
 	}
 

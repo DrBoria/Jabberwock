@@ -49,7 +49,7 @@ export class EmbeddingRateLimiter {
 		}
 	}
 
-	async updateOnRateLimit(error: HttpError): Promise<void> {
+	async updateOnRateLimit(_error: HttpError): Promise<void> {
 		const release = await EmbeddingRateLimiter.state.mutex.acquire()
 		try {
 			const state = EmbeddingRateLimiter.state

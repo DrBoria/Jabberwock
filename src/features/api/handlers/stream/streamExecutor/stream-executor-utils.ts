@@ -40,7 +40,7 @@ export async function processApiResponse(
 	rawChunkTracker: RawChunkTracker,
 	tokenState: TokenState,
 	accumulatedText: { value: string },
-	makeUpdateFn: () => void,
+	_makeUpdateFn: () => void,
 ): Promise<StreamResult> {
 	const { task, delegate, store } = ctx
 

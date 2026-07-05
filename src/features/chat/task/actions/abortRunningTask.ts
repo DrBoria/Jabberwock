@@ -16,7 +16,7 @@ export async function popTaskFromStack(_lastMessage?: string): Promise<void> {
 /**
  * Cancels the current task by calling its abort handler.
  */
-export async function abortRunningTask(provider: ProviderHandle): Promise<void> {
+export async function abortRunningTask(_provider: ProviderHandle): Promise<void> {
 	const currentTask = getBackendRootStore().chat.activeTask
 	if (currentTask?.abort) {
 		currentTask.abortTask()

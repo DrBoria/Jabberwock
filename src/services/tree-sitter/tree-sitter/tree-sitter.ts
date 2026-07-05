@@ -4,7 +4,7 @@ import { LanguageParser, loadRequiredLanguageParsers } from "@services/tree-sitt
 import { fileExistsAtPath } from "@utils/io/fs"
 import { parseMarkdown } from "@services/tree-sitter/markdownParser"
 import { validateAccess } from "@utils/ignore"
-import { getMinComponentLines, extensions } from "./config"
+import { extensions } from "./config"
 import { processCaptures } from "./parser"
 
 export async function parseSourceCodeDefinitionsForFile(

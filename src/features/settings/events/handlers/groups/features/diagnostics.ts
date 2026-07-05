@@ -7,7 +7,7 @@ import {
 	DIAGNOSTICS_DOWNLOAD_ERROR_DIAGNOSTICS,
 } from "@features/settings/events/constants"
 
-export function registerDiagnosticsHandlers(bus: IntentBus): void {
+export function registerDiagnosticsHandlers(_bus: IntentBus): void {
 	onWebviewMessage(DIAGNOSTICS_CLEAR_DIAGNOSTICS, (_provider, message) => {
 		const store = getBackendRootStore()
 		if (!store) return

@@ -3,7 +3,6 @@ import type { IntentBus } from "@features/intents/bus"
 import * as vscode from "vscode"
 import { getWindowManagerState, postStateToWebview } from "@features/foundation/window-manager/store"
 import { Package } from "@shared/package"
-import { getVscodeContext } from "@features/foundation/vscode/context"
 import { getSettingsAccess } from "@utils/settings"
 import { diagnosticsManager } from "@jabberwock/devtool"
 

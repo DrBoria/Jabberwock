@@ -3,7 +3,7 @@ import { LLM, LLMInfo, LLMInstanceInfo, LMStudioClient } from "@lmstudio/sdk"
 
 import { type ModelInfo, lMStudioDefaultModelInfo } from "@jabberwock/types"
 
-import { flushModels, getModels } from "@api/providers/fetchers/modelCache"
+import { flushModels } from "@api/providers/fetchers/modelCache"
 
 const modelsWithLoadedDetails = new Set<string>()
 
@@ -21,13 +21,13 @@ export const forceFullModelDetailsLoad = async (baseUrl: string, modelId: string
 
 		// Mark this model as having full details loaded.
 		modelsWithLoadedDetails.add(modelId)
-	} catch (error) {
-		const err = error as { code?: string }
+	} catch (_error) {
+		const err = _error as { code?: string }
 		if (err.code === "ECONNREFUSED") {
 			console.warn(`[jabberwock] Error connecting to LMStudio at ${baseUrl}`)
 		} else {
 			console.error(
-				`[jabberwock] Error refreshing LMStudio model details: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`,
+				`[jabberwock] Error refreshing LMStudio model details: ${JSON.stringify(_error, Object.getOwnPropertyNames(_error), 2)}`,
 			)
 		}
 	}
@@ -76,7 +76,7 @@ export async function getLMStudioModels(baseUrl = "http://localhost:1234"): Prom
 				// Use the model path as the key since that's what users select
 				models[model.path] = parseLMStudioModel(model)
 			}
-		} catch (error) {
+		} catch (_error) {
 			console.warn("[jabberwock] Failed to list downloaded models, falling back to loaded models only")
 		}
 
@@ -114,13 +114,13 @@ export async function getLMStudioModels(baseUrl = "http://localhost:1234"): Prom
 			models[lmstudioModel.modelKey] = parseLMStudioModel(lmstudioModel)
 			modelsWithLoadedDetails.add(lmstudioModel.modelKey)
 		}
-	} catch (error) {
-		const err = error as { code?: string }
+	} catch (_error) {
+		const err = _error as { code?: string }
 		if (err.code === "ECONNREFUSED") {
 			console.warn(`[jabberwock] Error connecting to LMStudio at ${baseUrl}`)
 		} else {
 			console.error(
-				`[jabberwock] Error fetching LMStudio models: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`,
+				`[jabberwock] Error fetching LMStudio models: ${JSON.stringify(_error, Object.getOwnPropertyNames(_error), 2)}`,
 			)
 		}
 	}

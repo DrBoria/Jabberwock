@@ -1,6 +1,5 @@
 import os from "os"
 import * as path from "path"
-import fs from "fs/promises"
 
 import * as vscode from "vscode"
 import { ZodError } from "zod"
@@ -8,13 +7,8 @@ import { ZodError } from "zod"
 import { type ModeConfig } from "@jabberwock/types"
 import { getTelemetryService } from "@jabberwock/telemetry"
 
-import { ProviderSettingsManager } from "@features/settings/models/provider-settings-manager/ProviderSettingsManager"
-import type { SettingsAccess } from "@utils/settings"
 import { updateCustomModeInFile, requireContext } from "@features/settings/agents"
-import { getBackendRootStore } from "@features/storeSingleton"
 import { resolveDefaultSaveUri } from "@utils/io/export"
-import { postStateToWebview } from "@features/foundation/window-manager/store"
-import { t } from "@i18n"
 
 import type { ImportOptions, ImportWithProviderOptions } from "./importSettings.types"
 import { parseSettingsFile, validateApiConfigs, resolveCurrentApiConfig } from "./importSettings.helpers"

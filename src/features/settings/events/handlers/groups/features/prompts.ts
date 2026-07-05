@@ -10,7 +10,7 @@ import {
 	AGENT_STATE_CUSTOM_INSTRUCTIONS,
 } from "@features/settings/events/constants"
 
-export function registerPromptsHandlers(bus: IntentBus): void {
+export function registerPromptsHandlers(_bus: IntentBus): void {
 	onWebviewMessage(AGENT_STATE_UPDATE_PROMPT, (_provider, message) => {
 		const store = getBackendRootStore()
 		if (!store) return

@@ -12,7 +12,7 @@ import {
 	AGENT_STATE_OPEN_CUSTOM_MODES_SETTINGS,
 } from "@features/settings/events/constants"
 
-export function registerModesHandlers(bus: IntentBus): void {
+export function registerModesHandlers(_bus: IntentBus): void {
 	onWebviewMessage(AGENT_STATE_UPDATE_CUSTOM_MODE, (_provider, message) => {
 		const store = getBackendRootStore()
 		if (!store) return

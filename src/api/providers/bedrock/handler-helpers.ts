@@ -8,7 +8,7 @@ import { shouldUseReasoningBudget } from "@shared/api"
 import type { ApiHandlerCreateMessageMetadata } from "@api/index"
 import type { AnthropicReasoningParams } from "@api/transform/content/reasoning"
 import { Anthropic } from "@anthropic-ai/sdk"
-import { parseArn, parseBaseModelId, getModelById, is1MContextModel } from "./core/models"
+import { parseArn, parseBaseModelId, is1MContextModel } from "./core/models"
 
 import { getModelParams } from "@api/transform/model-params"
 import { BEDROCK_DEFAULT_TEMPERATURE } from "@jabberwock/types"

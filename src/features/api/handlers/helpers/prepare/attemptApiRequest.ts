@@ -14,7 +14,7 @@ import { getBackendRootStore } from "@features/storeSingleton"
  */
 export async function* createAttemptApiRequest(
 	task: ITaskModel,
-	retryAttempt: number,
+	_retryAttempt: number,
 	_opts: { [key: string]: unknown },
 ): AsyncGenerator<unknown> {
 	const systemPrompt = await getSystemPrompt(task)

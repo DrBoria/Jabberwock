@@ -169,7 +169,7 @@ export async function saveDiffDirectly(
 export async function saveDiffWithView(
 	relPath: string,
 	diffResult: DiffResult,
-	originalContent: string,
+	_originalContent: string,
 ): Promise<void> {
 	if (!diffResult.success) {
 		return

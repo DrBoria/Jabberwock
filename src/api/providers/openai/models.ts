@@ -32,7 +32,7 @@ export async function getOpenAiModels(baseUrl?: string, apiKey?: string, openAiH
 		const response = await axios.get(`${trimmedBaseUrl}/models`, config)
 		const modelsArray = response.data?.data?.map((model: { id: string }) => model.id) || []
 		return [...new Set<string>(modelsArray)]
-	} catch (error) {
+	} catch (_error) {
 		return []
 	}
 }

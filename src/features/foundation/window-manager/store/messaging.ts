@@ -100,7 +100,7 @@ export async function postStateToWebviewWithoutTaskHistory(provider: ProviderHan
 	await postStateToWebviewWithoutMessages(provider)
 }
 
-export async function refreshWorkspace(provider: ProviderHandle): Promise<void> {
+export async function refreshWorkspace(_provider: ProviderHandle): Promise<void> {
 	await vscode.commands.executeCommand("workbench.action.reloadWindow")
 }
 

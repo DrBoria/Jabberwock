@@ -6,7 +6,6 @@ import {
 	generateCodeChallenge,
 	generateState,
 	buildAuthorizationUrl,
-	isTokenExpired,
 } from "./oauthHelpers"
 import { startOAuthCallbackServer } from "./oauthCallbackServer"
 import {

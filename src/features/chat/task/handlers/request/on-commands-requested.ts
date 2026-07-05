@@ -2,9 +2,7 @@ import { IntentType } from "@jabberwock/types"
 import type { IntentBus } from "@features/intents/bus"
 import type { Command } from "@services/command/commands"
 import { getCommands } from "@services/command/commands"
-import { EventBridge } from "@features/foundation/webview/EventBridge"
 import { getSkillsManager } from "@features/settings/skills/store"
-import { getMstState } from "@features/foundation/mst/store"
 import { defaultModeSlug } from "@shared/modes"
 
 /**

@@ -1,4 +1,4 @@
-import type { ModelInfo, BedrockModelId, ProviderSettings } from "@jabberwock/types"
+import type { ModelInfo, BedrockModelId } from "@jabberwock/types"
 import { logger } from "@utils/logging"
 import { ConverseCommand } from "@aws-sdk/client-bedrock-runtime"
 import type { Message } from "@aws-sdk/client-bedrock-runtime"

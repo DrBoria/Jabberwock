@@ -1,5 +1,3 @@
-import { type FileEntry } from "@jabberwock/types"
-
 export interface ToolBuildResult {
 	nativeArgs: Record<string, unknown>
 	usedLegacyFormat?: boolean

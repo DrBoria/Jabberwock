@@ -1,5 +1,3 @@
-import type { McpServerRequestData } from "@jabberwock/types"
-
 import type { ITaskModel } from "@features/chat/task/store"
 import { formatResponse } from "@features/settings/context/responses"
 import { getMcpServerManager } from "@services/mcp/core/McpServerManager"

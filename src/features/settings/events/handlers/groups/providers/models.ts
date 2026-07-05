@@ -13,7 +13,7 @@ import {
 	AGENT_STATE_FLUSH_ROUTER_MODELS,
 } from "@features/settings/events/constants"
 
-export function registerModelsHandlers(bus: IntentBus): void {
+export function registerModelsHandlers(_bus: IntentBus): void {
 	onWebviewMessage(AGENT_STATE_REQUEST_ROUTER_MODELS, (_provider, message) => {
 		const store = getBackendRootStore()
 		if (!store) return

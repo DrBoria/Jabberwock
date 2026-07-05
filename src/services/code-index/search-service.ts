@@ -4,7 +4,7 @@ import { IEmbedder } from "./interfaces/embedder"
 import { IVectorStore } from "./interfaces/vector-store"
 import { CodeIndexConfigManager } from "./config"
 import { CodeIndexStateManager } from "./state-manager"
-import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
+import { getTelemetryService } from "@jabberwock/telemetry"
 import { TelemetryEventName } from "@jabberwock/types"
 
 /**

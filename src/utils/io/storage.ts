@@ -19,7 +19,7 @@ export async function getStorageBasePath(defaultPath: string): Promise<string> {
 		// This is the line causing the error in tests
 		const config = vscode.workspace.getConfiguration(Package.name)
 		customStoragePath = config.get<string>("customStoragePath", "")
-	} catch (error) {
+	} catch (_error) {
 		console.warn("[jabberwock] Could not access VSCode configuration - using default path")
 		return defaultPath
 	}
@@ -96,7 +96,7 @@ export async function promptForCustomStoragePath(): Promise<void> {
 	try {
 		const currentConfig = vscode.workspace.getConfiguration(Package.name)
 		currentPath = currentConfig.get<string>("customStoragePath", "")
-	} catch (error) {
+	} catch (_error) {
 		console.error("[jabberwock] Could not access configuration")
 		return
 	}
@@ -120,7 +120,7 @@ export async function promptForCustomStoragePath(): Promise<void> {
 				}
 
 				return null // Path format is valid
-			} catch (e) {
+			} catch (_e) {
 				return t("common:storage.enter_valid_path")
 			}
 		},

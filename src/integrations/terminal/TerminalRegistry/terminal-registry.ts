@@ -3,7 +3,6 @@ import * as vscode from "vscode"
 import { arePathsEqual } from "@utils/io/path"
 
 import { RooTerminal, RooTerminalProvider } from "@integrations/terminal/types"
-import { TerminalProcess } from "@integrations/terminal/terminal-core/TerminalProcess"
 import { Terminal } from "@integrations/terminal/terminal-core/Terminal"
 import { ExecaTerminal } from "@integrations/terminal/ExecaTerminal"
 import { ShellIntegrationManager } from "@integrations/terminal/ShellIntegrationManager"

@@ -1,5 +1,4 @@
 import * as vscode from "vscode"
-import path from "path"
 
 import type { ITaskModel } from "@features/chat/task/store"
 import { CodeIndexManager } from "@services/code-index/manager/manager"

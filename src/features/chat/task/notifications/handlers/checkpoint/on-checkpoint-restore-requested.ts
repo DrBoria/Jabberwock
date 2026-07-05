@@ -20,7 +20,7 @@ export function registerOnCheckpointRestoreRequested(bus: IntentBus): void {
 
 			try {
 				await when(() => ctx.rootStore.chat.activeTask?.isInitialized === true, { timeout: 3_000 })
-			} catch (error) {
+			} catch (_error) {
 				vscode.window.showErrorMessage(t("common:errors.checkpoint_timeout"))
 			}
 
@@ -30,7 +30,7 @@ export function registerOnCheckpointRestoreRequested(bus: IntentBus): void {
 					mode: result.data.mode,
 					commitHash: result.data.commitHash,
 				})
-			} catch (error) {
+			} catch (_error) {
 				vscode.window.showErrorMessage(t("common:errors.checkpoint_failed"))
 			}
 		}

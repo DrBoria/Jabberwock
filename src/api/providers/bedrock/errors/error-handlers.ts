@@ -6,11 +6,6 @@ import { logger } from "@utils/logging"
 import type { BedrockErrorMetadata } from "@api/providers/bedrock/core/types"
 import { getErrorType, ERROR_TYPES, type ErrorHandlerContext } from "./error-types"
 
-function getClientRegion(client: { config?: { region?: string | (() => string) } }): string {
-	const region = client?.config?.region
-	return typeof region === "function" ? String(region()) : (region ?? "")
-}
-
 function buildErrorTemplateVars(error: unknown, ctx: ErrorHandlerContext): Record<string, string> {
 	const templateVars: Record<string, string> = {}
 

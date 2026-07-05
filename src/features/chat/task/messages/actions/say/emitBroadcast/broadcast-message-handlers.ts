@@ -1,10 +1,4 @@
-import type {
-	NotificationSay,
-	Notification,
-	ToolProgressStatus,
-	ContextCondense,
-	ContextTruncation,
-} from "@jabberwock/types"
+import type { NotificationSay, ToolProgressStatus, ContextCondense, ContextTruncation } from "@jabberwock/types"
 import type { CheckpointData } from "./emit-broadcast"
 import { getTask } from "@features/chat/task/actions/taskRegistry"
 import { emitMessageCreate, emitMessageUpdate } from "./broadcast-message-emitters"

@@ -1,15 +1,9 @@
-import * as crypto from "crypto"
-
 /**
  * OpenAI Responses API maximum length for call_id field.
  * This limit applies to both function_call and function_call_output items.
  */
 export const OPENAI_CALL_ID_MAX_LENGTH = 64
 
-/**
- * Sanitize a tool_use ID to match API validation pattern: ^[a-zA-Z0-9_-]+$
- * Replaces any invalid character with underscore.
- */
 /**
  * Sanitize a tool_use ID for use as an OpenAI call_id.
  *

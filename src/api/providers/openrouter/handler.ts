@@ -16,21 +16,8 @@ import type { ApiHandlerCreateMessageMetadata, SingleCompletionHandler } from "@
 import { generateImageWithProvider, ImageGenerationResult } from "@api/providers/utils/image-generation"
 
 import { type OpenRouterError, type CompletionUsage } from "./types"
-import {
-	type StreamContext,
-	createStreamContext,
-	processStreamChunk,
-	buildUsageChunk,
-	consolidateStreamedReasoning,
-} from "./stream"
-import {
-	handleStreamingError,
-	handleRequestError,
-	buildRequestOptions,
-	buildProviderConfig,
-	prepareCreateMessage,
-	executeStreamRequest,
-} from "./helpers"
+import { createStreamContext, processStreamChunk, buildUsageChunk, consolidateStreamedReasoning } from "./stream"
+import { handleStreamingError, prepareCreateMessage, executeStreamRequest } from "./helpers"
 import { executeCompletePrompt, buildModelResult } from "./complete"
 
 export class OpenRouterHandler extends BaseProvider implements SingleCompletionHandler {

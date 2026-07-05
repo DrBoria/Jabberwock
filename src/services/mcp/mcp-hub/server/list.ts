@@ -1,23 +1,13 @@
-import * as vscode from "vscode"
 import deepEqual from "fast-deep-equal"
 import { z } from "zod"
 
-import { t } from "@i18n"
-
-import {
-	validateServerConfig,
-	resolveConfigPath,
-	updateServerConfig,
-	readServerConfigFromFile,
-	ServerConfigSchema,
-} from "@services/mcp"
-import { fetchToolsList } from "@services/mcp/features/tools"
-import { fetchResourcesList, fetchResourceTemplatesList } from "@services/mcp/features/resources"
+import { validateServerConfig, resolveConfigPath, updateServerConfig, ServerConfigSchema } from "@services/mcp"
+import { readServerConfigFromFile } from "@services/mcp/config/file"
 
 import type { McpHubState } from "@services/mcp/core/types"
 import { findConnection, deleteConnection } from "@services/mcp/mcp-hub/connection/manager"
 import { notifyWebviewOfServerChanges } from "@services/mcp/mcp-hub/notifications"
-import { showErrorMessage, getProjectMcpPath, isMcpEnabled } from "@services/mcp/mcp-hub/init"
+import { showErrorMessage, getProjectMcpPath } from "@services/mcp/mcp-hub/init"
 import { connectToServer, setupNewServer, reconnectServer } from "@services/mcp/mcp-hub/connection/lifecycle"
 import { removeAllFileWatchers } from "@services/mcp/mcp-hub/watchers"
 import { refreshServerCapabilities } from "./refresh"
@@ -71,7 +61,7 @@ async function processNewServers(
 	state: McpHubState,
 	newServers: Record<string, unknown>,
 	source: "global" | "project",
-	getMcpSettingsFilePath: () => Promise<string>,
+	_getMcpSettingsFilePath: () => Promise<string>,
 ): Promise<void> {
 	for (const [name, config] of Object.entries(newServers)) {
 		const currentConnection = findConnection(state, name, source)
@@ -98,7 +88,7 @@ export async function toggleServerDisabled(
 	state: McpHubState,
 	serverName: string,
 	disabled: boolean,
-	getMcpSettingsFilePath: () => Promise<string>,
+	_getMcpSettingsFilePath: () => Promise<string>,
 	source?: "global" | "project",
 ): Promise<void> {
 	try {
@@ -112,7 +102,7 @@ export async function toggleServerDisabled(
 			serverName,
 			{ disabled },
 			serverSource,
-			() => resolveConfigPath(serverSource, getMcpSettingsFilePath, getProjectMcpPath),
+			() => resolveConfigPath(serverSource, _getMcpSettingsFilePath, getProjectMcpPath),
 			() => {
 				state.isProgrammaticUpdate = true
 			},
@@ -130,7 +120,7 @@ export async function toggleServerDisabled(
 			const updatedConfig = await readServerConfigFromFile(
 				serverName,
 				serverSource,
-				getMcpSettingsFilePath,
+				_getMcpSettingsFilePath,
 				getProjectMcpPath,
 			)
 			await connectToServer(state, serverName, updatedConfig, serverSource)
@@ -138,16 +128,16 @@ export async function toggleServerDisabled(
 			const updatedConfig = await readServerConfigFromFile(
 				serverName,
 				serverSource,
-				getMcpSettingsFilePath,
+				_getMcpSettingsFilePath,
 				getProjectMcpPath,
 			)
 			await deleteConnection(state, serverName, serverSource)
 			await connectToServer(state, serverName, updatedConfig, serverSource)
 		} else if (connection.server.status === "connected") {
-			await refreshServerCapabilities(state, serverName, serverSource, getMcpSettingsFilePath)
+			await refreshServerCapabilities(state, serverName, serverSource, _getMcpSettingsFilePath)
 		}
 
-		await notifyWebviewOfServerChanges(state, getMcpSettingsFilePath, getProjectMcpPath)
+		await notifyWebviewOfServerChanges(state, _getMcpSettingsFilePath, getProjectMcpPath)
 	} catch (error) {
 		showErrorMessage(`Failed to update server ${serverName} state`, error)
 		throw error

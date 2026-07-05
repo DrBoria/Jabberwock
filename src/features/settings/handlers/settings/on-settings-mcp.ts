@@ -16,7 +16,7 @@ import { EventBridge } from "@features/foundation/webview/EventBridge"
  */
 export function registerOnSettingsMcp(bus: IntentBus): void {
 	// ── openMcpSettings ───────────────────────────────────────────────
-	bus.register(IntentType.SettingsMcpSettingsOpen, async (_intent, ctx) => {
+	bus.register(IntentType.SettingsMcpSettingsOpen, async (_intent, _ctx) => {
 		const mcpHub = await getMcpServerManager().getMcpHub()
 		const mcpSettingsFilePath = await mcpHub?.getMcpSettingsFilePath()
 
@@ -75,7 +75,7 @@ export function registerOnSettingsMcp(bus: IntentBus): void {
 	})
 
 	// ── restartMcpServer ──────────────────────────────────────────────
-	bus.register(IntentType.SettingsMcpServerRestart, async (intent, ctx) => {
+	bus.register(IntentType.SettingsMcpServerRestart, async (intent, _ctx) => {
 		const payload = intent.payload as { text: string; source: string }
 
 		try {
@@ -89,7 +89,7 @@ export function registerOnSettingsMcp(bus: IntentBus): void {
 	})
 
 	// ── toggleToolAlwaysAllow ─────────────────────────────────────────
-	bus.register(IntentType.SettingsMcpToolAlwaysAllow, async (intent, ctx) => {
+	bus.register(IntentType.SettingsMcpToolAlwaysAllow, async (intent, _ctx) => {
 		const payload = intent.payload as {
 			serverName: string
 			source: string
@@ -113,7 +113,7 @@ export function registerOnSettingsMcp(bus: IntentBus): void {
 	})
 
 	// ── toggleToolEnabledForPrompt ────────────────────────────────────
-	bus.register(IntentType.SettingsMcpToolEnabledForPrompt, async (intent, ctx) => {
+	bus.register(IntentType.SettingsMcpToolEnabledForPrompt, async (intent, _ctx) => {
 		const payload = intent.payload as {
 			serverName: string
 			source: string
@@ -137,7 +137,7 @@ export function registerOnSettingsMcp(bus: IntentBus): void {
 	})
 
 	// ── toggleMcpServer ───────────────────────────────────────────────
-	bus.register(IntentType.SettingsMcpServerToggle, async (intent, ctx) => {
+	bus.register(IntentType.SettingsMcpServerToggle, async (intent, _ctx) => {
 		const payload = intent.payload as {
 			serverName: string
 			disabled: boolean
@@ -159,7 +159,7 @@ export function registerOnSettingsMcp(bus: IntentBus): void {
 	})
 
 	// ── updateMcpTimeout ──────────────────────────────────────────────
-	bus.register(IntentType.SettingsMcpTimeoutUpdate, async (intent, ctx) => {
+	bus.register(IntentType.SettingsMcpTimeoutUpdate, async (intent, _ctx) => {
 		const payload = intent.payload as {
 			serverName: string
 			value: number

@@ -36,6 +36,7 @@ import {
 	getProviderSettingsManager,
 	ProviderSettingsManager,
 } from "./features/settings/models/provider-settings-manager"
+import { initializeStoreApiConfig } from "./features/chat/task/handlers/on-webview-launched/webview-api-config"
 import { createMcpServerManager } from "./services/mcp/core/McpServerManager"
 import { initializeCoreSetup, initializeCodeIndexManagers } from "./extension-activation/modules/core/core"
 import { setupIntentBus } from "./extension-activation/modules/core/intents"
@@ -86,6 +87,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	const providerSettingsManager = new ProviderSettingsManager(context)
 	setProviderSettingsManager(providerSettingsManager)
+
+	// Populate MST store's apiConfig from PSM immediately so tasks have
+	// the correct API configuration at creation time, not just after webview launch.
+	void initializeStoreApiConfig()
 
 	await setupAgentsFileService(context, outputChannel)
 	await setupDevtool(provider, outputChannel)

@@ -4,7 +4,7 @@ import type { McpTool, McpToolCallResponse } from "@jabberwock/types"
 
 import { z } from "zod"
 
-import { readServerToolConfig, readServerConfigFromFile, ServerConfigSchema } from "@services/mcp/index"
+import { readServerToolConfig, ServerConfigSchema } from "@services/mcp/index"
 import type { McpConnection } from "@services/mcp/core/types"
 
 // ─── Tool timeout ────────────────────────────────────────────────────

@@ -1,5 +1,4 @@
 import * as path from "path"
-import { isBinaryFile } from "isbinaryfile"
 import { virtualWorkspace } from "@features/foundation/time-machine/VirtualWorkspace"
 import { readWithSlice } from "@integrations/misc/indentation-reader"
 import { DEFAULT_LINE_LIMIT } from "@features/settings/context/tools/native-tools/r/read_file"

@@ -1,5 +1,4 @@
-import { type Notification, TelemetryEventName } from "@jabberwock/types"
-import { getCloudService, isCloudEnabled } from "@jabberwock/cloud"
+import { type Notification } from "@jabberwock/types"
 import { getTask } from "@features/chat/task/actions/taskRegistry"
 import { restoreTodoListForTask } from "@features/chat/tools"
 import { getBackendRootStore } from "@features/storeSingleton"

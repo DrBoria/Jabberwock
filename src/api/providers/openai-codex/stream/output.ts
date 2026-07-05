@@ -39,7 +39,7 @@ export async function* handleCompleteResponseOutput(
 	model: OpenAiCodexModel,
 	state: StreamState,
 	deps: StreamDeps,
-	hasContent: boolean,
+	_hasContent: boolean,
 ): ApiStream {
 	const response = parsed.response as Record<string, unknown> | undefined
 	const output = response?.output as Record<string, unknown>[] | undefined

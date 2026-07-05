@@ -162,7 +162,7 @@ export class LmStudioHandler extends BaseProvider implements SingleCompletionHan
 				inputTokens,
 				outputTokens,
 			} as const
-		} catch (error) {
+		} catch (_error) {
 			throw new Error(
 				"Please check the LM Studio developer logs to debug what went wrong. You may need to load the model with a larger context limit to work with Jabberwock's prompts.",
 			)
@@ -208,7 +208,7 @@ export class LmStudioHandler extends BaseProvider implements SingleCompletionHan
 				throw handleProviderError(error, this.providerName)
 			}
 			return response.choices[0]?.message.content || ""
-		} catch (error) {
+		} catch (_error) {
 			throw new Error(
 				"Please check the LM Studio developer logs to debug what went wrong. You may need to load the model with a larger context length to work with Jabberwock's prompts.",
 			)
@@ -225,7 +225,7 @@ export async function getLmStudioModels(baseUrl = "http://localhost:1234") {
 		const response = await axios.get(`${baseUrl}/v1/models`)
 		const modelsArray = response.data?.data?.map((model: { id: string }) => model.id) || []
 		return [...new Set<string>(modelsArray)]
-	} catch (error) {
+	} catch (_error) {
 		return []
 	}
 }

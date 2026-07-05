@@ -4,15 +4,10 @@ import type { EventBridge } from "@features/foundation/webview/EventBridge"
 import type { ITaskModel } from "@features/chat/task/store"
 import type { Notification } from "@jabberwock/types"
 import { handleCheckpointRestoreOperation } from "@features/chat/task/notifications/handlers/checkpoint/checkpointRestoreHandler"
-import { resolveImageMentions } from "@features/chat/task/messages/actions/mentions/resolveImageMentions"
 import { saveTaskMessages } from "@features/chat/task/messages/actions/saveMessages"
 import { getVscodeContext } from "@features/foundation/vscode/context"
 import { postStateToWebview } from "@features/foundation/window-manager/store"
-import { t } from "@i18n"
-import {
-	findMessageIndices,
-	findFirstApiIndexAtOrAfter,
-} from "@features/chat/task/messages/handlers/helpers/findMessageIndices"
+import { findFirstApiIndexAtOrAfter } from "@features/chat/task/messages/handlers/helpers/findMessageIndices"
 import type { ApiMessage } from "@features/chat/task/messages/actions/save/saveApiMessages.types"
 
 export async function handleEditWithCheckpoint(
@@ -57,11 +52,7 @@ export async function handleEditWithoutCheckpoint(
 	editedContent: string,
 	images?: string[],
 ): Promise<void> {
-	const { deleteFromMessageIndex, deleteFromApiIndex } = findDeleteBoundaries(
-		store,
-		messageIndex,
-		apiConversationHistoryIndex,
-	)
+	const { deleteFromMessageIndex } = findDeleteBoundaries(store, messageIndex, apiConversationHistoryIndex)
 
 	const preservedCheckpoints = new Map<number, Notification["checkpoint"]>()
 	for (let i = 0; i < deleteFromMessageIndex; i++) {

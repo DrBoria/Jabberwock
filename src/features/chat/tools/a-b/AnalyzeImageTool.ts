@@ -1,6 +1,5 @@
 import path from "path"
 import { formatResponse } from "@features/settings/context/responses"
-import { fileExistsAtPath } from "@utils/io/fs"
 import { getReadablePath } from "@utils/io/path"
 import { BaseTool, ToolCallbacks } from "./BaseTool"
 import type { ToolUse } from "@shared/tools"

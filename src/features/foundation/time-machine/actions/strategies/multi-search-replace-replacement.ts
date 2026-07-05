@@ -85,7 +85,7 @@ export function processReplacement(
 		}
 	}
 
-	const { searchLines, replaceLines, searchContent, replaceContent, startLine } = prepared
+	const { searchLines, searchContent, replaceContent, startLine } = prepared
 
 	if (searchLines.length === 0) {
 		return {

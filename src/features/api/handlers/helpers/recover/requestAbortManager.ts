@@ -32,7 +32,7 @@ export function createAbortPromise(task: StreamHandle): Promise<never> | null {
 /**
  * Creates a timeout promise for the first chunk of a stream.
  */
-export function createFirstChunkTimeoutPromise(task: StreamHandle): Promise<never> {
+export function createFirstChunkTimeoutPromise(_task: StreamHandle): Promise<never> {
 	const FIRST_CHUNK_TIMEOUT_MS = 300_000
 	return new Promise<never>((_, reject) => {
 		setTimeout(() => reject(new Error(t("common:errors.model_no_response"))), FIRST_CHUNK_TIMEOUT_MS)

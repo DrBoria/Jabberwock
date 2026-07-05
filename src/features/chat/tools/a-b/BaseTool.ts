@@ -1,7 +1,6 @@
 import type { ToolName } from "@jabberwock/types"
 
 import type { ITaskModel } from "@features/chat/task/store"
-import { diagnosticsManager } from "@jabberwock/devtool"
 import type { ToolUse, HandleError, PushToolResult, AskApproval, NativeToolArgs } from "@shared/tools"
 
 /**
@@ -59,7 +58,7 @@ export abstract class BaseTool<TName extends ToolName> {
 	 * @param task - Task instance
 	 * @param block - Partial ToolUse block
 	 */
-	async handlePartial(task: ITaskModel, block: ToolUse<TName>): Promise<void> {
+	async handlePartial(_task: ITaskModel, _block: ToolUse<TName>): Promise<void> {
 		// Default: no-op for partial messages
 		// Tools can override to show streaming UI updates
 	}

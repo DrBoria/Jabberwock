@@ -107,7 +107,7 @@ function sanitizeChatSnapshot(snapshot: Record<string, unknown>): void {
 			sanitizedTasks[taskId] = taskData
 			continue
 		}
-		const { messages, ...cleanTask } = taskData
+		const { messages: _messages, ...cleanTask } = taskData
 		sanitizedTasks[taskId] = cleanTask
 	}
 	chatSnap.tasks = sanitizedTasks

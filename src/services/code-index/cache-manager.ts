@@ -3,7 +3,7 @@ import { createHash } from "crypto"
 import { ICacheManager } from "./interfaces/cache"
 import debounce from "lodash.debounce"
 import { safeWriteJson } from "@utils/io"
-import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
+import { getTelemetryService } from "@jabberwock/telemetry"
 import { TelemetryEventName } from "@jabberwock/types"
 
 /**

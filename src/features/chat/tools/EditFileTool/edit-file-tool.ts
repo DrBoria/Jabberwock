@@ -14,7 +14,6 @@ import { getDiffViewProvider, getVirtualWorkspace } from "@features/foundation/t
 import { isWriteProtected } from "@utils/protect"
 import { validateAccess } from "@utils/ignore"
 import {
-	type LineEnding,
 	normalizeToLF,
 	coerceStringParam,
 	resolveRelativePath,

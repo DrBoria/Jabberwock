@@ -76,7 +76,6 @@ export async function buildNativeToolsArray(options: BuildToolsOptions): Promise
  * @param options - Configuration options for building the tools
  * @returns BuildToolsResult with tools array and optional allowedFunctionNames
  */
-import { CodeIndexManager } from "@services/code-index/manager/manager"
 import { getCodeIndexManager } from "@services/code-index/manager/manager.factory"
 
 export async function buildNativeToolsArrayWithRestrictions(options: BuildToolsOptions): Promise<BuildToolsResult> {

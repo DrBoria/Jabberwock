@@ -1,5 +1,3 @@
-import path from "path"
-
 import { type SayToolData, DEFAULT_WRITE_DELAY_MS } from "@jabberwock/types"
 
 import { getReadablePath } from "@utils/io/path"

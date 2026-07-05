@@ -1,7 +1,7 @@
 import { Anthropic } from "@anthropic-ai/sdk"
 import OpenAI from "openai"
 
-import { type ModelInfo, type QwenCodeModelId, qwenCodeModels, qwenCodeDefaultModelId } from "@jabberwock/types"
+import { type ModelInfo, qwenCodeModels, qwenCodeDefaultModelId } from "@jabberwock/types"
 
 import type { ApiHandlerOptions } from "@shared/api"
 
@@ -11,13 +11,7 @@ import { ApiStream } from "@api/transform/stream"
 import { BaseProvider } from "@api/providers/base-provider"
 import type { SingleCompletionHandler, ApiHandlerCreateMessageMetadata } from "@api/index"
 
-import {
-	type QwenOAuthCredentials,
-	loadCachedQwenCredentials,
-	doRefreshAccessToken,
-	isTokenValid,
-	getQwenCachedCredentialPath,
-} from "./auth"
+import { type QwenOAuthCredentials, loadCachedQwenCredentials, doRefreshAccessToken, isTokenValid } from "./auth"
 import { processQwenDelta } from "./utils"
 
 interface QwenCodeHandlerOptions extends ApiHandlerOptions {

@@ -1,7 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk"
 
 import type { ApiMessage } from "@features/chat/task/messages/actions/save/saveApiMessages.types"
-import { supportPrompt } from "@shared/support-prompt"
 
 export const MIN_CONDENSE_THRESHOLD = 5
 export const MAX_CONDENSE_THRESHOLD = 100

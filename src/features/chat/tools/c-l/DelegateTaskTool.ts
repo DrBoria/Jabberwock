@@ -7,13 +7,6 @@ import { ask } from "@features/chat/task/notifications/actions/ask"
 import { userBroadcast } from "@features/chat/task/messages/actions/say"
 import { sayAndCreateMissingParamError } from "@features/chat/task/messages/actions/command/sayAndCreateMissingParamError"
 
-interface DelegateTaskParams {
-	task_id: string
-	target_role: string
-	message: string
-	is_async?: boolean
-}
-
 export class DelegateTaskTool extends BaseTool<"delegate_task"> {
 	readonly name = "delegate_task" as const
 

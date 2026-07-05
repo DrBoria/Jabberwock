@@ -134,7 +134,7 @@ export function isToolAllowedInMode(
 	customModes: ModeConfig[] | undefined,
 	experiments: Record<string, boolean> | undefined,
 	codeIndexManager?: CodeIndexManager,
-	settings?: { [key: string]: unknown },
+	_settings?: { [key: string]: unknown },
 ): boolean {
 	const modeSlug = mode ?? defaultModeSlug
 

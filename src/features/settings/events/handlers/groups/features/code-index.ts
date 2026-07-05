@@ -13,7 +13,7 @@ import {
 	AGENT_STATE_CLEAR_INDEX_DATA,
 } from "@features/settings/events/constants"
 
-export function registerCodeIndexHandlers(bus: IntentBus): void {
+export function registerCodeIndexHandlers(_bus: IntentBus): void {
 	onWebviewMessage(AGENT_STATE_SAVE_CODE_INDEX_SETTINGS_ATOMIC, (_provider, message) => {
 		const store = getBackendRootStore()
 		if (!store) return

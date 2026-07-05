@@ -123,7 +123,7 @@ export async function updateModesInFile(
 
 	try {
 		content = await fs.readFile(filePath, "utf-8")
-	} catch (error) {
+	} catch (_error) {
 		content = yaml.stringify({ customModes: [] }, { lineWidth: 0 })
 	}
 
@@ -131,7 +131,7 @@ export async function updateModesInFile(
 
 	try {
 		settings = parseYamlSafely(content, filePath)
-	} catch (error) {
+	} catch (_error) {
 		settings = { customModes: [] }
 	}
 

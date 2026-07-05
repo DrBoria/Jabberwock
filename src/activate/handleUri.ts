@@ -1,7 +1,6 @@
 import * as vscode from "vscode"
 
-import { CloudService, getCloudService, hasCloudService } from "@jabberwock/cloud"
-
+import { getCloudService } from "@jabberwock/cloud"
 import { handleOpenRouterCallback, handleRequestyCallback } from "./oauth-handlers"
 
 const handleAuthCallback = async (query: URLSearchParams) => {

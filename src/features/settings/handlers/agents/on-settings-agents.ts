@@ -1,13 +1,10 @@
 import { IntentType, type ModeConfig } from "@jabberwock/types"
 import type { IntentBus } from "@features/intents/bus"
-import { defaultModeSlug, getAllModes } from "@shared/modes"
-import { t } from "@i18n"
-import * as vscode from "vscode"
+import { getAllModes } from "@shared/modes"
 import { postStateToWebview } from "@features/foundation/window-manager/store"
 import { getVscodeContext } from "@features/foundation/vscode/context"
 import { checkRulesDirectoryHasContent, getCustomModesFilePath, requireContext } from "@features/settings/agents"
 import { openFile } from "@integrations/misc/open-file"
-import { EventBridge } from "@features/foundation/webview/EventBridge"
 
 import {
 	handleUpdateCustomMode,
@@ -64,7 +61,7 @@ export function registerOnSettingsAgents(bus: IntentBus): void {
 			const modes = getAllModes(customModes) as { slug: string; name: string }[]
 			await provider.postMessageToWebview({ type: "modes", modes })
 		} catch (error) {
-			EventBridge.outputChannel?.appendLine(
+			console.error(
 				`Error fetching modes: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 			)
 			await provider.postMessageToWebview({ type: "modes", modes: [] })

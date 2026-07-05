@@ -1,37 +1,8 @@
-import path from "path"
-import os from "os"
-
-import * as vscode from "vscode"
-import delay from "delay"
-
-import { ContextCondense, TodoItem, TodoStatus } from "@jabberwock/types"
-import type { ExperimentId, ModeConfig } from "@jabberwock/types"
-import { ApiHandlerCreateMessageMetadata } from "@api"
-
-import { formatLanguage } from "@shared/language"
-import { defaultModeSlug } from "@shared/modes"
-import { getFullModeDetails } from "@shared/modes/extension"
-import { getApiMetrics } from "@shared/api/getApiMetrics"
-import { listFiles } from "@services/glob/list-files"
-import { TerminalRegistry } from "@integrations/terminal/TerminalRegistry"
-import { Terminal } from "@integrations/terminal/terminal-core/Terminal"
-import { arePathsEqual } from "@utils/io/path"
-import { formatResponse } from "@features/settings/context/responses"
 import { getGitStatus } from "@utils/git"
-import { getVirtualWorkspace } from "@features/foundation/time-machine/actions/getTimeMachine"
-import { filterPaths } from "@utils/ignore"
-import { getShell } from "@utils/shell"
-import osName from "os-name"
-import { getFileContextTracker } from "@features/foundation/time-machine/actions/getTimeMachine"
-import type { RooTerminal } from "@integrations/terminal/types"
-
-import { buildNativeToolsArrayWithRestrictions } from "@features/chat/tools/actions/buildToolDefinitions"
 import { summarizeConversation } from "@features/chat/task/condense/handlers/on-context-condense"
 import type { ITaskModel } from "@features/chat/task/store"
-import { flushPendingToolResultsToHistory } from "@features/chat/tools/actions/flushPendingToolResults"
 import { overwriteApiConversationHistory } from "@features/chat/task/messages/actions/save/saveApiMessages"
 import { getSystemPrompt } from "@features/settings/context/systemPrompt"
-import { getState } from "@features/storeSingleton"
 
 import {
 	buildVisibleFilesSection,

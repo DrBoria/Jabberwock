@@ -2,7 +2,6 @@ import { Anthropic } from "@anthropic-ai/sdk"
 import OpenAI from "openai"
 
 import type { ModelInfo } from "@jabberwock/types"
-import { OPENAI_AZURE_AI_INFERENCE_PATH } from "@jabberwock/types"
 import type { ApiHandlerOptions } from "@shared/api"
 import type { ApiHandlerCreateMessageMetadata } from "@api/index"
 import { convertToOpenAiMessages } from "@api/transform/format/openai-format"

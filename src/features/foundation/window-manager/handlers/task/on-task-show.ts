@@ -1,7 +1,7 @@
 import { IntentType, historyItemSchema } from "@jabberwock/types"
 import type { HistoryItem } from "@jabberwock/types"
 import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
-import type { IntentBus, IntentHandler } from "@features/intents/bus"
+import type { IntentBus } from "@features/intents/bus"
 import type { IIntentPayload } from "@features/intents/store"
 import type { IntentHandlerContext } from "@features/intents/context"
 import { postStateToWebview } from "@features/foundation/window-manager/store"

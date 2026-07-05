@@ -1,11 +1,8 @@
-import * as vscode from "vscode"
-
 import { JabberwockEventName, IntentType, IntentStatus } from "@jabberwock/types"
-import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
+import { getTelemetryService } from "@jabberwock/telemetry"
 
 import { formatResponse } from "@features/settings/context/responses"
 import type { ToolUse } from "@shared/tools"
-import { t } from "@i18n"
 
 import type { ITaskModel } from "@features/chat/task/store"
 import { BaseTool, ToolCallbacks } from "./BaseTool"

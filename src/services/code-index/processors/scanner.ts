@@ -2,35 +2,20 @@ import { listFiles } from "@services/glob/list-files"
 import { VirtualWorkspace } from "@features/foundation/time-machine/VirtualWorkspace"
 import { Ignore } from "ignore"
 import { readIgnoreFile, filterPaths } from "@utils/ignore"
-import { stat } from "fs/promises"
-import * as path from "path"
-import { generateRelativeFilePath } from "@services/code-index/shared/get-relative-path"
 import { getWorkspacePathForContext } from "@utils/io/path"
-import { scannerExtensions } from "@services/code-index/shared/supported-extensions"
 import * as vscode from "vscode"
 import { CodeBlock, ICodeParser, IEmbedder, IVectorStore, IDirectoryScanner } from "@services/code-index/interfaces"
-import { createHash } from "crypto"
 import pLimit from "p-limit"
 import { Mutex } from "async-mutex"
 import { CacheManager } from "@services/code-index/cache-manager"
 import {
-	MAX_FILE_SIZE_BYTES,
 	MAX_LIST_FILES_LIMIT_CODE_INDEX,
 	BATCH_SEGMENT_THRESHOLD,
-	MAX_BATCH_RETRIES,
 	PARSING_CONCURRENCY,
 	BATCH_PROCESSING_CONCURRENCY,
-	MAX_PENDING_BATCHES,
 } from "@services/code-index/constants"
-import { isPathInIgnoredDirectory } from "@services/glob/ignore-utils"
 import { Package } from "@shared/package"
-import {
-	BatchContext,
-	handleFileError,
-	reportBatchDeletionError,
-	reportBatchFailure,
-	reportDeletionError,
-} from "./scannerHelpers"
+import { BatchContext, handleFileError } from "./scannerHelpers"
 import {
 	accumulateBlocks,
 	filterSupportedPaths,

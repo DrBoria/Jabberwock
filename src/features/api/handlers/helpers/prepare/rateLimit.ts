@@ -2,8 +2,6 @@ import delay from "delay"
 
 import type { StreamHandle, AttemptApiRequestCallbacks } from "@features/chat/task/condense/actions/types"
 
-import type { IBackendRootStore } from "@features/store"
-
 type RateLimitTask = {
 	apiConfiguration?: unknown
 	lastApiRequestTime?: number

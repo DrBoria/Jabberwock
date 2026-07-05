@@ -10,7 +10,14 @@ export default [
 			"no-empty": "off",
 			"prefer-const": "off",
 
-			"@typescript-eslint/no-unused-vars": "off",
+			"@typescript-eslint/no-unused-vars": [
+				"error",
+				{
+					argsIgnorePattern: "^_",
+					varsIgnorePattern: "^_",
+					caughtErrorsIgnorePattern: "^_",
+				},
+			],
 			"@typescript-eslint/no-require-imports": "off",
 			"@typescript-eslint/ban-ts-comment": "off",
 

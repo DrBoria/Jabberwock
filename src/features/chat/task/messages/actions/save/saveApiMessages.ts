@@ -9,8 +9,6 @@ import { getTaskDirectoryPath } from "@utils/io"
 
 import type { ApiMessage } from "./saveApiMessages.types"
 export type { ApiMessage }
-import { buildCleanConversationHistory } from "./saveApiMessages.helpers"
-
 export async function readApiConversation({
 	taskId,
 	globalStoragePath,

@@ -4,7 +4,6 @@ import * as fs from "fs/promises"
 
 import { z } from "zod"
 
-import { t } from "@i18n"
 import { fileExistsAtPath } from "@utils/io/fs"
 import { safeWriteJson } from "@utils/io"
 import { getSettingsDirectoryPath } from "@utils/io"

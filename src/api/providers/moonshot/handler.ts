@@ -1,4 +1,4 @@
-import { moonshotModels, moonshotDefaultModelId, type ModelInfo } from "@jabberwock/types"
+import { moonshotModels, moonshotDefaultModelId } from "@jabberwock/types"
 
 import type { ApiHandlerOptions } from "@shared/api"
 

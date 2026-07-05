@@ -44,7 +44,7 @@ export async function buildHttpError(response: Response): Promise<HttpError> {
 export async function parseEmbeddingJsonResponse(response: Response): Promise<OpenAIEmbeddingResponse> {
 	try {
 		return await response.json()
-	} catch (e) {
+	} catch (_e) {
 		const error = new Error(`Failed to parse response JSON`) as HttpError
 		error.status = response.status
 		throw error

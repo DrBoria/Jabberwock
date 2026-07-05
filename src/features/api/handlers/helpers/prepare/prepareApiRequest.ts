@@ -1,10 +1,9 @@
 import { Anthropic } from "@anthropic-ai/sdk"
 
-import { type Notification, type ApiReqData, getApiProtocol, getModelId, isRetiredProvider } from "@jabberwock/types"
+import { type ApiReqData, getApiProtocol, getModelId, isRetiredProvider } from "@jabberwock/types"
 import { getTelemetryService } from "@jabberwock/telemetry"
 
 import { findLastIndex } from "@shared/array"
-import { t } from "@i18n"
 
 import type { ITaskModel } from "@features/chat/task/store"
 import type { IBackendRootStore } from "@features/store"

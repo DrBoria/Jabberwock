@@ -1,5 +1,3 @@
-import * as vscode from "vscode"
-
 import type { ExitCodeDetails } from "@integrations/terminal/types"
 import { BaseTerminalProcess } from "./BaseTerminalProcess"
 import { Terminal } from "./Terminal"

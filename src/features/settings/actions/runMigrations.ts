@@ -1,12 +1,6 @@
 import * as vscode from "vscode"
 
-import {
-	isProviderName,
-	isRetiredProvider,
-	GLOBAL_STATE_KEYS,
-	SECRET_STATE_KEYS,
-	GLOBAL_SECRET_KEYS,
-} from "@jabberwock/types"
+import { isProviderName, isRetiredProvider } from "@jabberwock/types"
 
 import { logger } from "@utils/logging"
 import { supportPrompt } from "@shared/support-prompt"

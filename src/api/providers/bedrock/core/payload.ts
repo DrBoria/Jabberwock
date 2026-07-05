@@ -1,4 +1,4 @@
-import type { ProviderSettings, ModelInfo, BedrockModelId, BedrockServiceTier } from "@jabberwock/types"
+import type { ModelInfo, BedrockModelId, BedrockServiceTier } from "@jabberwock/types"
 import type { AnthropicReasoningParams } from "@api/transform/content/reasoning"
 import type OpenAI from "openai"
 import type { ApiHandlerCreateMessageMetadata } from "@api/index"

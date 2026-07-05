@@ -1,7 +1,6 @@
 import { Anthropic } from "@anthropic-ai/sdk"
 
 import { getTelemetryService } from "@jabberwock/telemetry"
-import { t } from "@i18n"
 import type { ITaskModel } from "@features/chat/task/store"
 import type { AssistantMessageContent } from "@features/chat/task/messages/actions"
 import type { ToolUse } from "@shared/tools"

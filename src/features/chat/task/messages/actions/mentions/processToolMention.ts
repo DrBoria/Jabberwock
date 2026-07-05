@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk"
 
 import { parseMentions } from "./parseMentions"
 import { ParseOptions } from "./processContextMention"
-import { buildTextParts, contentBlocksToTextParts } from "./processFileMention"
+import { buildTextParts } from "./processFileMention"
 
 async function processToolResultStringContent(
 	block: Anthropic.Messages.ToolResultBlockParam,

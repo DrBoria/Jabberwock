@@ -1,7 +1,5 @@
 import * as vscode from "vscode"
 
-import { type HistoryItem, IntentType, IntentStatus } from "@jabberwock/types"
-
 import { formatResponse } from "@features/settings/context/responses"
 import { Package } from "@shared/package"
 import { t } from "@i18n"
@@ -16,7 +14,7 @@ import { sayAndCreateMissingParamError } from "@features/chat/task/messages/acti
 export async function validateAttemptCompletionPreConditions(
 	task: ITaskModel,
 	result: string | undefined,
-	pushToolResult: (content: string) => void,
+	_pushToolResult: (content: string) => void,
 ): Promise<string | null> {
 	if (task._state.didToolFailInCurrentTurn) {
 		const errorMsg = t("common:errors.attempt_completion_tool_failed")

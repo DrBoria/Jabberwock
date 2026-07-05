@@ -2,7 +2,6 @@ import { Anthropic } from "@anthropic-ai/sdk"
 
 import type { ITaskModel } from "@features/chat/task/store"
 import { sanitizeToolUseId } from "@utils/mcp"
-import type { ToolUse, McpToolUse } from "@shared/tools"
 
 /**
  * Builds the assistant content array for API conversation history from the

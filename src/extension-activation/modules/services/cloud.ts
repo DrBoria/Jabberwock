@@ -2,9 +2,8 @@ import * as vscode from "vscode"
 
 import type { AuthState, CloudUserInfo } from "@jabberwock/types"
 import { getTelemetryService } from "@jabberwock/telemetry"
-import { createCloudService, getCloudService } from "@jabberwock/cloud"
+import { createCloudService } from "@jabberwock/cloud"
 
-import { Package } from "@shared/package"
 import { EventBridge } from "@features/foundation/webview/EventBridge"
 import { getVscodeContext } from "@features/foundation/vscode/context"
 import { postStateToWebviewWithoutMessages } from "@features/foundation/window-manager/store"
@@ -96,7 +95,7 @@ export async function setupCloudService(
 		postStateListener()
 	}
 
-	const userInfoHandler = async ({ userInfo }: { userInfo: CloudUserInfo }) => {
+	const userInfoHandler = async ({ userInfo: _userInfo }: { userInfo: CloudUserInfo }) => {
 		postStateListener()
 	}
 

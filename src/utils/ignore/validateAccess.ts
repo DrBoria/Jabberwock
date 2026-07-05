@@ -43,7 +43,7 @@ export function validateAccess(patterns: string | undefined, filePath: string, c
 
 		// Check if the real path is ignored
 		return !ignoreInstance.ignores(relativePath)
-	} catch (error) {
+	} catch (_error) {
 		// Allow access to files outside cwd or on errors (backward compatibility)
 		return true
 	}

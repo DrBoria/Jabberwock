@@ -2,8 +2,6 @@ import { inspect } from "util"
 
 import type EventEmitter from "events"
 
-import type { Terminal } from "./terminal-core/Terminal"
-import type { ExitCodeDetails } from "./types"
 import { matchVsceMarkers, stripCursorSequences, removeVSCodeShellIntegration } from "./vsce-markers"
 
 /**

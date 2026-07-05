@@ -34,7 +34,7 @@ export async function checkCommandExistence(
 
 				const skillContent = await resolveSkillContentForMode(skillsManager, commandName, currentMode)
 				return { commandName, command: undefined, skillContent }
-			} catch (error) {
+			} catch (_error) {
 				return { commandName, command: undefined, skillContent: null }
 			}
 		}),
@@ -115,8 +115,8 @@ export function buildSlashCommandHelp(
 			}
 			commandOutput += command.content
 			help += `\n\n<command name="${commandName}">\n${commandOutput}\n</command>`
-		} catch (error) {
-			const errMsg = error instanceof Error ? error.message : String(error)
+		} catch (_error) {
+			const errMsg = _error instanceof Error ? _error.message : String(_error)
 			help += `\n\n<command name="${commandName}">\nError loading command '${commandName}': ${errMsg}\n</command>`
 		}
 	}

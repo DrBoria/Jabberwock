@@ -2,7 +2,6 @@ import { z } from "zod"
 
 import { ServerConfigSchema } from "./schemas"
 import {
-	typeErrorMessage,
 	stdioFieldsErrorMessage,
 	sseFieldsErrorMessage,
 	streamableHttpFieldsErrorMessage,

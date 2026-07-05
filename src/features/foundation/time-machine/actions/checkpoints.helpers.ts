@@ -29,7 +29,7 @@ export async function getCheckpointService(task: ITaskModel, { interval = 250 }:
 	const log = (message: string) => {
 		try {
 			EventBridge.outputChannel?.appendLine(message)
-		} catch (err) {
+		} catch (_err) {
 			// NO-OP
 		}
 	}
@@ -178,7 +178,7 @@ export function resolveDiffConfig(
 export async function showDiff(
 	service: CheckpointService,
 	diffConfig: { fromHash: string | undefined; title: string },
-	checkpoints: string[],
+	_checkpoints: string[],
 ): Promise<void> {
 	const { fromHash, title } = diffConfig
 	const changes = await service.getDiff({ from: fromHash, to: undefined })

@@ -5,7 +5,7 @@ import { LanguageParser, loadRequiredLanguageParsers } from "@services/tree-sitt
 import { ICodeParser, CodeBlock } from "@services/code-index/interfaces"
 import { scannerExtensions, fallbackExtensions } from "@services/code-index/shared/supported-extensions"
 import { MIN_BLOCK_CHARS } from "@services/code-index/constants"
-import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
+import { getTelemetryService } from "@jabberwock/telemetry"
 import { TelemetryEventName } from "@jabberwock/types"
 import { sanitizeErrorMessage } from "@services/code-index/shared/sanitizeInput"
 import { chunkTextByLines } from "./text-chunker"

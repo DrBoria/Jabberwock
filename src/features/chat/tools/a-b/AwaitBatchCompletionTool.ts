@@ -1,7 +1,6 @@
 import { BaseTool, ToolCallbacks } from "./BaseTool"
 import type { ITaskModel } from "@features/chat/task/store"
 import { ToolUse } from "@shared/tools"
-import { formatResponse } from "@features/settings/context/responses"
 import { ask } from "@features/chat/task/notifications/actions/ask"
 import { getTask } from "@features/chat/task/actions/taskRegistry"
 

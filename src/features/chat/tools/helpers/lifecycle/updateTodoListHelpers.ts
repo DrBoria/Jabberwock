@@ -1,6 +1,5 @@
 import type { ITaskModel } from "@features/chat/task/store"
 import { formatResponse } from "@features/settings/context/responses"
-import type { ToolCallbacks } from "@features/chat/tools/a-b/BaseTool"
 import cloneDeep from "clone-deep"
 import crypto from "crypto"
 

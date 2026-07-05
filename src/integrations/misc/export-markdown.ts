@@ -1,6 +1,4 @@
 import { Anthropic } from "@anthropic-ai/sdk"
-import os from "os"
-import * as path from "path"
 import * as vscode from "vscode"
 
 // Extended content block types to support new Anthropic API features
@@ -35,7 +33,7 @@ export async function downloadTask(
 	defaultUri: vscode.Uri,
 ): Promise<vscode.Uri | undefined> {
 	// File name
-	const fileName = getTaskFileName(dateTs)
+	const _fileName = getTaskFileName(dateTs)
 
 	// Generate markdown
 	const markdownContent = conversationHistory

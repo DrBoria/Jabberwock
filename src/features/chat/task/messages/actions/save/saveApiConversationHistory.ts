@@ -3,9 +3,6 @@ import { Anthropic } from "@anthropic-ai/sdk"
 import { type ApiMessage, readApiConversation, saveApiMessages } from "."
 import { getTask } from "@features/chat/task/actions/taskRegistry"
 import { getBackendRootStore } from "@features/storeSingleton"
-import { getEffectiveApiHistory } from "@features/chat/task/condense/handlers/on-context-condense-history"
-import { validateAndFixToolResultIds } from "@features/chat/tools/actions/validateToolResultIds"
-
 import type { ITaskModel } from "@features/chat/task/store"
 
 export async function saveApiConversationHistory(taskId: string, globalStoragePath: string): Promise<boolean> {
@@ -49,7 +46,7 @@ export async function addToApiConversationHistory(
 	globalStoragePath: string,
 	task: ITaskModel,
 	message: Anthropic.MessageParam,
-	reasoning?: string,
+	_reasoning?: string,
 ): Promise<void> {
 	const ts = task.generateUniqueTs()
 	;(task.apiConversationHistory as ApiMessage[]).push({ ...message, ts } as ApiMessage)

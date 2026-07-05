@@ -6,7 +6,6 @@ import type { CodeIndexManager } from "@services/code-index/manager/manager"
 import type { McpHub } from "@services/mcp/core/McpHub"
 import { isToolAllowedForMode } from "@features/chat/tools"
 import {
-	type ModelToolCustomizationResult,
 	buildFilteredTools,
 	excludeCodebaseSearchIfDisabled,
 	excludeToolIfExperimentDisabled,

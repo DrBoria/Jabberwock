@@ -1,8 +1,8 @@
-import { ProviderSettings, Notification, GlobalState, TelemetryEventName } from "@jabberwock/types"
-import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
-import { supportPrompt } from "@shared/support-prompt"
+import { ProviderSettings, Notification, TelemetryEventName } from "@jabberwock/types"
+import { getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 import { singleCompletionHandler } from "@utils/single-completion-handler"
 import { ProviderSettingsManager } from "@features/settings/models/provider-settings-manager/ProviderSettingsManager"
+import { supportPrompt } from "@shared/support-prompt"
 
 export interface MessageEnhancerOptions {
 	text: string
@@ -64,7 +64,10 @@ export class MessageEnhancer {
 			if (includeTaskHistoryInEnhance && currentClineMessages && currentClineMessages.length > 0) {
 				const taskHistory = this.extractTaskHistory(currentClineMessages)
 				if (taskHistory) {
-					promptToEnhance = `${text}\n\nUse the following previous conversation context as needed:\n${taskHistory}`
+					promptToEnhance = `${text}
+
+Use the following previous conversation context as needed:
+${taskHistory}`
 				}
 			}
 

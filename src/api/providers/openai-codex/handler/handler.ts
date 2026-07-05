@@ -2,26 +2,18 @@ import { v7 as uuidv7 } from "uuid"
 import { Anthropic } from "@anthropic-ai/sdk"
 import OpenAI from "openai"
 
-import { openAiCodexDefaultModelId, OpenAiCodexModelId, openAiCodexModels } from "@jabberwock/types"
 import { openAiCodexOAuthManager } from "@integrations/openai-codex/oauth"
 
 import type { ApiStream } from "@api/transform/stream"
-import { getModelParams } from "@api/transform/model-params"
 
 import { BaseProvider } from "@api/providers/base-provider"
 import type { SingleCompletionHandler, ApiHandlerCreateMessageMetadata } from "@api/index"
-import type { OpenAiCodexModel, ResponsesRequestBody, StreamState } from "@api/providers/openai-codex/types"
+import type { OpenAiCodexModel, ResponsesRequestBody } from "@api/providers/openai-codex/types"
 import { CODEX_API_BASE_URL, resetStreamState } from "@api/providers/openai-codex/types"
 import { buildCodexHeaders, throwAuthError } from "@api/providers/openai-codex/utils"
 import { formatFullConversation } from "@api/providers/openai-codex/format"
-import { formatTools } from "./tools"
 import { handleStreamResponse, processEvent } from "@api/providers/openai-codex/stream"
-import {
-	createProviderError,
-	createStreamError,
-	buildStatusCodeErrorText,
-	parseErrorResponse,
-} from "@api/providers/openai-codex/error"
+import { createProviderError, buildStatusCodeErrorText, parseErrorResponse } from "@api/providers/openai-codex/error"
 import { normalizeUsage } from "@api/providers/openai-codex/usage"
 import { executeCompletePrompt, handleCompletePromptError } from "./complete"
 import { buildRequestBody, getModel as getResolvedModel, getReasoningEffort } from "./helpers"

@@ -19,7 +19,7 @@ import {
 	SETTINGS_CREATE_COMMAND,
 } from "@features/settings/events/constants"
 
-export function registerSettingsCoreUiHandlers(bus: IntentBus): void {
+export function registerSettingsCoreUiHandlers(_bus: IntentBus): void {
 	onWebviewMessage(SETTINGS_UPDATE_SETTINGS, (_provider, message) => {
 		const store = getBackendRootStore()
 		if (!store) return

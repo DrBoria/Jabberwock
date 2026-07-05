@@ -1,7 +1,6 @@
 import { IMAGE_GENERATION_MODEL_IDS, IMAGE_GENERATION_MODELS } from "@jabberwock/types"
 import type { ITaskModel } from "@features/chat/task/store"
 import { sayAndCreateMissingParamError } from "@features/chat/task/messages/actions/command/sayAndCreateMissingParamError"
-import type { PushToolResult } from "@shared/tools"
 
 export interface ResolvedImageModel {
 	selectedModel: string

@@ -11,7 +11,7 @@ import {
 	SETTINGS_OPEN_MENTION,
 } from "@features/settings/events/constants"
 
-export function registerSettingsFilesHandlers(bus: IntentBus): void {
+export function registerSettingsFilesHandlers(_bus: IntentBus): void {
 	onWebviewMessage(SETTINGS_OPEN_IMAGE, (_provider, message) => {
 		const store = getBackendRootStore()
 		if (!store) return

@@ -110,7 +110,7 @@ export function processSettledFileResult(
 	batchResults: FileProcessingResult[],
 	pathsToExplicitlyDelete: string[],
 	processedCountInBatch: number,
-	totalFilesInBatch: number,
+	_totalFilesInBatch: number,
 ): {
 	resultPath?: string
 	points?: PointStruct[]
@@ -136,7 +136,7 @@ export function processSettledFileResult(
 export async function processSingleFile(
 	ctx: BatchContext,
 	fileDetail: { path: string; uri: vscode.Uri; originalType: "create" | "change" },
-	totalFilesInBatch: number,
+	_totalFilesInBatch: number,
 ): Promise<{ path: string; result?: FileProcessingResult; error?: Error }> {
 	try {
 		const result = await ctx.processFile(fileDetail.path)

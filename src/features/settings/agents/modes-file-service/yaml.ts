@@ -49,7 +49,7 @@ export function parseYamlSafely(content: string, filePath: string): unknown {
 		if (filePath.endsWith(JABBERWOCKMODES_FILENAME)) {
 			try {
 				return JSON.parse(content)
-			} catch (jsonError) {
+			} catch (_jsonError) {
 				const errorMsg = yamlError instanceof Error ? yamlError.message : String(yamlError)
 				console.error(`[jabberwock] [modesFileService] Failed to parse YAML from ${filePath}:`, errorMsg)
 

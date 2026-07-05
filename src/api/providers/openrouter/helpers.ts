@@ -8,7 +8,6 @@ import {
 } from "@jabberwock/types"
 import { getTelemetryService } from "@jabberwock/telemetry"
 
-import type { OpenRouterErrorResponse } from "./types"
 import {
 	OpenRouterErrorResponseSchema,
 	extractErrorFromMetadataRaw,
@@ -23,7 +22,6 @@ import { normalizeMistralToolCallId } from "@api/transform/format/mistral-format
 import { convertToR1Format } from "@api/transform/r1/format"
 import { addCacheBreakpoints as addGeminiCacheBreakpoints } from "@api/transform/caching/gemini"
 import { addCacheBreakpoints as addAnthropicCacheBreakpoints } from "@api/transform/caching/anthropic"
-import type { ApiHandlerCreateMessageMetadata } from "@api/index"
 
 export function handleStreamingError(
 	error: OpenRouterError,
@@ -104,7 +102,7 @@ export function prepareCreateMessage(
 	systemPrompt: string,
 	messages: Anthropic.Messages.MessageParam[],
 	modelId: string,
-	reasoning: OpenRouterReasoningParams | undefined,
+	_reasoning: OpenRouterReasoningParams | undefined,
 ): OpenAI.Chat.ChatCompletionMessageParam[] {
 	const isMistral = modelId.toLowerCase().includes("mistral")
 	let openAiMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [

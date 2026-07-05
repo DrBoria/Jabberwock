@@ -75,9 +75,6 @@ export async function getSystemPrompt(task: ITaskModel): Promise<string> {
 
 	const jabberwockIgnoreInstructions = getIgnoreInstructions(task.jabberwockIgnoreController)
 
-	// DEBUG: Log what mode and custom modes are resolved for system prompt building
-	const resolvedModeConfig = customModes?.find((m) => m.slug === (task._state._taskMode || defaultModeSlug))
-
 	return await (async () => {
 		const provider = getProvider()
 

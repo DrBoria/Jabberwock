@@ -7,9 +7,7 @@ import {
 	getSafeFallbackShell,
 	type WindowsTerminalProfile,
 	type WindowsTerminalProfiles,
-	type MacTerminalProfile,
 	type MacTerminalProfiles,
-	type LinuxTerminalProfile,
 	type LinuxTerminalProfiles,
 } from "./paths"
 

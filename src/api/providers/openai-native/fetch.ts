@@ -1,6 +1,6 @@
 import * as os from "os"
 
-import { type ServiceTier, ApiProviderError } from "@jabberwock/types"
+import { ApiProviderError } from "@jabberwock/types"
 import { getTelemetryService } from "@jabberwock/telemetry"
 
 import { Package } from "@shared/package"

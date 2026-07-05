@@ -6,7 +6,6 @@ import {
 	type SyncContext,
 } from "@features/settings/models/provider-settings-manager/ProviderSettingsManager-types"
 import {
-	findUniqueProfileName,
 	deleteRemovedCloudProfiles,
 	updateExistingCloudProfile,
 	addNewCloudProfile,

@@ -1,5 +1,3 @@
-import path from "path"
-
 import type { ReadFileMode, ReadFileParams } from "@jabberwock/types"
 
 import type { ITaskModel } from "@features/chat/task/store"

@@ -16,7 +16,6 @@ import {
 	buildSkillResult,
 	resolveSkillContentForMode,
 } from "@services/skills/skillInvocation"
-import { getState } from "@features/storeSingleton"
 import { getProvider } from "@features/foundation/webview/providerRegistry"
 
 interface RunSlashCommandParams {

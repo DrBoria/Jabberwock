@@ -1,5 +1,4 @@
 import { defaultModeSlug } from "@shared/modes"
-import { t } from "@i18n"
 import type { Goal, Notification } from "@jabberwock/types"
 
 import { getTask } from "@features/chat/task/actions/taskRegistry"

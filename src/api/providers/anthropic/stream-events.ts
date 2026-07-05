@@ -1,6 +1,5 @@
 import { Anthropic } from "@anthropic-ai/sdk"
 import type { ModelInfo } from "@jabberwock/types"
-import type { ApiStreamChunk } from "@api/transform/stream"
 import { calculateApiCostAnthropic } from "@shared/api/cost"
 
 export function* handleAnthropicMessageStart(

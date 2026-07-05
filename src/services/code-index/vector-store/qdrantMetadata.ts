@@ -6,7 +6,7 @@ import { getQdrantCollectionInfo } from "./qdrantCollectionManager"
 export async function checkQdrantIndexedData(
 	client: QdrantClient,
 	collectionName: string,
-	vectorSize: number,
+	_vectorSize: number,
 ): Promise<boolean> {
 	try {
 		const collectionInfo = await getQdrantCollectionInfo(client, collectionName)

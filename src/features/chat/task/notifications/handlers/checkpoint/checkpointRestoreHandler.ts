@@ -4,7 +4,7 @@ import { saveTaskMessages } from "@features/chat/task/messages/actions"
 import * as vscode from "vscode"
 import { when } from "mobx"
 import { t } from "@i18n"
-import { getState, getBackendRootStore } from "@features/storeSingleton"
+import { getBackendRootStore } from "@features/storeSingleton"
 import { getTaskWithId } from "@features/hist/actions"
 import { createTaskWithHistoryItem } from "@features/chat/task/actions/startTask"
 import { getVscodeContext } from "@features/foundation/vscode/context"
@@ -85,12 +85,12 @@ export async function handleCheckpointRestoreOperation(config: CheckpointRestore
 		}
 		// For edit operations, the task cancellation in checkpointRestore
 		// will trigger reinitialization, which will process pendingEditAfterRestore
-	} catch (error) {
-		console.error(`[jabberwock] Error in checkpoint restore (${operation}):`, error)
+	} catch (_error) {
+		console.error(`[jabberwock] Error in checkpoint restore (${operation}):`, _error)
 		vscode.window.showErrorMessage(
-			`Error during checkpoint restore: ${error instanceof Error ? error.message : String(error)}`,
+			`Error during checkpoint restore: ${_error instanceof Error ? _error.message : String(_error)}`,
 		)
-		throw error
+		throw _error
 	}
 }
 
@@ -107,7 +107,7 @@ export async function waitForClineInitialization(
 			timeout: timeoutMs,
 		})
 		return true
-	} catch (error) {
+	} catch (_error) {
 		vscode.window.showErrorMessage(t("common:errors.checkpoint_timeout"))
 		return false
 	}

@@ -25,7 +25,7 @@ export async function directoryExists(dirPath: string): Promise<boolean> {
 	try {
 		const stats = await fs.stat(dirPath)
 		return stats.isDirectory()
-	} catch (err) {
+	} catch (_err) {
 		return false
 	}
 }
@@ -87,7 +87,7 @@ export async function resolveSymLink(
 		} else if (stats.isSymbolicLink()) {
 			await resolveSymLink(resolvedTarget, fileInfo, depth + 1)
 		}
-	} catch (err) {
+	} catch (_err) {
 		// Skip invalid symlinks
 	}
 }
@@ -125,7 +125,7 @@ export async function readTextFilesFromDirectory(
 						return { filename: resolvedPath, content, sortKey: originalPath }
 					}
 					return null
-				} catch (err) {
+				} catch (_err) {
 					return null
 				}
 			}),
@@ -142,7 +142,7 @@ export async function readTextFilesFromDirectory(
 				return filenameA.localeCompare(filenameB)
 			})
 			.map(({ filename, content }) => ({ filename, content }))
-	} catch (err) {
+	} catch (_err) {
 		return []
 	}
 }

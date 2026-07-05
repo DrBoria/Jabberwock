@@ -1,5 +1,3 @@
-import delay from "delay"
-
 import { CommandExecutionStatus } from "@jabberwock/types"
 import { getTelemetryService } from "@jabberwock/telemetry"
 
@@ -30,7 +28,7 @@ export async function executeWithShellFallback(
 	task: ITaskModel,
 	options: ExecuteCommandOptions,
 	pushToolResult: (content: ToolResponse) => void,
-	handleError: (msg: string, error: Error) => Promise<void>,
+	_handleError: (msg: string, error: Error) => Promise<void>,
 ): Promise<void> {
 	try {
 		const [rejected, result] = await executeCommandInTerminal(task, options)

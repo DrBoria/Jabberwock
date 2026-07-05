@@ -4,9 +4,8 @@ import { escapeRegExp } from "@features/chat/tools/helpers/shared"
 export { escapeRegExp }
 
 import type { ITaskModel } from "@features/chat/task/store"
-import type { SayToolData } from "@jabberwock/types"
 
-import type { LineEnding, ReplacementResult, ReplacementError } from "./editFileHelpers.types"
+import type { LineEnding, ReplacementError } from "./editFileHelpers.types"
 export type { LineEnding, ReplacementError }
 
 import {

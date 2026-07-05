@@ -16,7 +16,7 @@ import { getSettingsAccess } from "@utils/settings"
  */
 export function registerOnSettingsFiles(bus: IntentBus): void {
 	// ── openImage ─────────────────────────────────────────────────────
-	bus.register(IntentType.SettingsFileImageOpen, async (intent, ctx) => {
+	bus.register(IntentType.SettingsFileImageOpen, async (intent, _ctx) => {
 		const payload = intent.payload as {
 			text: string
 			values?: { create?: boolean; content?: string; line?: number }
@@ -25,7 +25,7 @@ export function registerOnSettingsFiles(bus: IntentBus): void {
 	})
 
 	// ── saveImage ─────────────────────────────────────────────────────
-	bus.register(IntentType.SettingsFileImageSave, async (intent, ctx) => {
+	bus.register(IntentType.SettingsFileImageSave, async (intent, _ctx) => {
 		const payload = intent.payload as { dataUri: string }
 		if (!payload.dataUri) return
 

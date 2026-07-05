@@ -9,7 +9,7 @@ import {
 	AGENT_STATE_DEBUG_SETTING,
 } from "@features/settings/events/constants"
 
-export function registerVscodeSettingsHandlers(bus: IntentBus): void {
+export function registerVscodeSettingsHandlers(_bus: IntentBus): void {
 	onWebviewMessage(AGENT_STATE_UPDATE_VS_CODE_SETTING, (_provider, message) => {
 		const store = getBackendRootStore()
 		if (!store) return

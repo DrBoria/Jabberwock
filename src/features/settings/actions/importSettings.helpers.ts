@@ -7,7 +7,6 @@ import {
 	type ProviderSettingsWithId,
 } from "@jabberwock/types"
 import { providerProfilesSchema } from "@features/settings/models/provider-settings-manager/ProviderSettingsManager-types"
-import { getTelemetryService } from "@jabberwock/telemetry"
 
 export type RawProviderProfiles = {
 	currentApiConfigName?: string
@@ -24,7 +23,7 @@ export function sanitizeProviderConfig(configName: string, apiConfig: unknown): 
 
 	if (config.apiProvider !== undefined && !isProviderName(config.apiProvider)) {
 		const invalidProvider = config.apiProvider
-		const { apiProvider, ...restConfig } = config
+		const { apiProvider: _apiProvider, ...restConfig } = config
 		return {
 			config: restConfig,
 			warning: `Profile "${configName}": Invalid provider "${invalidProvider}" was removed. Please reconfigure this profile.`,

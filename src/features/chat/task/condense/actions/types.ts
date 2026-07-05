@@ -2,7 +2,6 @@ import type { Anthropic } from "@anthropic-ai/sdk"
 import type { ProviderSettings } from "@jabberwock/types"
 import type { ApiMessage } from "@features/chat/task/messages/actions/save/saveApiMessages.types"
 import type { ITaskModel } from "@features/chat/task/store"
-import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
 import type { AssistantMessageContent } from "@features/chat/task/messages/actions"
 
 /**

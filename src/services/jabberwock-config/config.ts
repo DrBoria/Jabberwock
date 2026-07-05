@@ -126,7 +126,7 @@ export async function discoverSubfolderRooDirectories(cwd: string): Promise<stri
 		}
 
 		return Array.from(rooDirs).sort()
-	} catch (error) {
+	} catch (_error) {
 		return []
 	}
 }

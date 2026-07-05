@@ -6,7 +6,6 @@ import * as yaml from "yaml"
 
 import type { MarketplaceItem, InstallMarketplaceItemOptions } from "@jabberwock/types"
 import { importModeWithRules, deleteCustomModeFromFile } from "@features/settings/agents"
-import { getState } from "@features/storeSingleton"
 
 import {
 	resolveContent,
@@ -79,7 +78,7 @@ export class SimpleInstaller {
 					line = slugLineIndex + 1
 				}
 			}
-		} catch (error) {
+		} catch (_error) {
 			// If we can't find the line number, that's okay
 		}
 
@@ -140,7 +139,7 @@ export class SimpleInstaller {
 		}
 	}
 
-	private async removeMode(item: MarketplaceItem, target: "project" | "global"): Promise<void> {
+	private async removeMode(item: MarketplaceItem, _target: "project" | "global"): Promise<void> {
 		let content: string
 		if (Array.isArray(item.content)) {
 			content = item.content[0].content
@@ -152,7 +151,7 @@ export class SimpleInstaller {
 		try {
 			const modeData = yaml.parse(content)
 			modeSlug = modeData.slug
-		} catch (error) {
+		} catch (_error) {
 			throw new Error("Invalid mode content: unable to parse YAML")
 		}
 
@@ -171,11 +170,11 @@ export class SimpleInstaller {
 			const existingData = JSON.parse(existing)
 
 			if (existingData?.mcpServers) {
-				let content: string
+				let _content: string
 				if (Array.isArray(item.content)) {
-					content = item.content[0].content
+					_content = item.content[0].content
 				} else {
-					content = item.content
+					_content = item.content
 				}
 
 				const removeItemId = item.id
@@ -183,7 +182,7 @@ export class SimpleInstaller {
 
 				await fs.writeFile(filePath, JSON.stringify(existingData, null, 2), "utf-8")
 			}
-		} catch (error) {
+		} catch (_error) {
 			// File doesn't exist or other error, nothing to remove
 		}
 	}

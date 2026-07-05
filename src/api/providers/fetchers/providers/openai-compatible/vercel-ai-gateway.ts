@@ -47,8 +47,6 @@ const vercelAiGatewayModelsResponseSchema = z.object({
 	data: z.array(vercelAiGatewayModelSchema),
 })
 
-type VercelAiGatewayModelsResponse = z.infer<typeof vercelAiGatewayModelsResponseSchema>
-
 function logVercelParseError(
 	response: { data: unknown; headers?: Record<string, string>; status?: number },
 	result: { success: false; error: { format(): unknown } },
@@ -80,7 +78,7 @@ const isLanguageModel = (model: unknown): model is { id: string; type: string } 
 	return typeof m.id === "string" && (m.id as string).length > 0 && m.type === "language"
 }
 
-export async function getVercelAiGatewayModels(options?: ApiHandlerOptions): Promise<Record<string, ModelInfo>> {
+export async function getVercelAiGatewayModels(_options?: ApiHandlerOptions): Promise<Record<string, ModelInfo>> {
 	const models: Record<string, ModelInfo> = {}
 	const baseURL = "https://ai-gateway.vercel.sh/v1"
 

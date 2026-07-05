@@ -1,5 +1,5 @@
 import type { Anthropic } from "@anthropic-ai/sdk"
-import type { GenerateContentConfig, GroundingMetadata, GenerateContentResponseUsageMetadata } from "@google/genai"
+import type { GroundingMetadata, GenerateContentResponseUsageMetadata } from "@google/genai"
 
 import type { ModelInfo } from "@jabberwock/types"
 import type { ApiHandlerOptions } from "@shared/api"

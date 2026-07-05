@@ -3,7 +3,7 @@ import type { McpConnection } from "@services/mcp/core/types"
 
 // ─── Update server tool list ─────────────────────────────────────────
 
-import { readFile, writeFile } from "fs/promises"
+import { readFile } from "fs/promises"
 import { safeWriteJson } from "@utils/io"
 
 export async function updateServerToolList(

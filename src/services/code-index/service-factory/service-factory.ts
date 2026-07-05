@@ -1,8 +1,7 @@
 import * as vscode from "vscode"
 import { Ignore } from "ignore"
 
-import type { EmbedderProvider } from "@jabberwock/types"
-import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
+import { getTelemetryService } from "@jabberwock/telemetry"
 import { TelemetryEventName } from "@jabberwock/types"
 
 import { t } from "@i18n"
@@ -15,7 +14,7 @@ import { codeParser, DirectoryScanner, FileWatcher } from "@services/code-index/
 import type { ICodeParser, IEmbedder, IFileWatcher, IVectorStore } from "@services/code-index/interfaces"
 import { CodeIndexConfigManager } from "@services/code-index/config/manager"
 import { CacheManager } from "@services/code-index/cache-manager"
-import type { CodeIndexConfig } from "@services/code-index/interfaces/config"
+
 import { BATCH_SEGMENT_THRESHOLD } from "@services/code-index/constants"
 import { EMBEDDER_FACTORIES } from "./embedder-factories"
 

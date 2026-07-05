@@ -22,7 +22,7 @@ import { BaseTool, ToolCallbacks } from "@features/chat/tools/a-b/BaseTool"
 import { ask } from "@features/chat/task/notifications/actions/ask"
 import { sayAndCreateMissingParamError } from "@features/chat/task/messages/actions/command/sayAndCreateMissingParamError"
 
-import type { InternalFileEntry, FileResult } from "@features/chat/tools/helpers/readfile"
+import type { FileResult } from "@features/chat/tools/helpers/readfile"
 import {
 	updateFileResultInList,
 	validateOffsetParam,

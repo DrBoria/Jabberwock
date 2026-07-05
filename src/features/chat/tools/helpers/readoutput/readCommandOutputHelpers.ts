@@ -5,8 +5,6 @@ import { getTaskDirectoryPath } from "@utils/io"
 
 import type { ITaskModel } from "@features/chat/task/store"
 import { systemBroadcast } from "@features/chat/task/messages/actions/say"
-import { sayAndCreateMissingParamError } from "@features/chat/task/messages/actions/command/sayAndCreateMissingParamError"
-import { escapeRegExp, formatBytes } from "@features/chat/tools/helpers/shared"
 
 export const DEFAULT_LIMIT = 40 * 1024
 

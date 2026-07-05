@@ -30,8 +30,8 @@ export async function checkpointSave(task: ITaskModel, force = false, suppressMe
 
 	return service
 		.saveCheckpoint(`Task: ${task.taskId}, Time: ${Date.now()}`, { allowEmpty: force, suppressMessage })
-		.catch((err: unknown) => {
-			console.error("[jabberwock] [Task#checkpointSave] caught unexpected error, disabling checkpoints", err)
+		.catch((_err: unknown) => {
+			console.error("[jabberwock] [Task#checkpointSave] caught unexpected error, disabling checkpoints", _err)
 			task._state.setEnableCheckpoints(false)
 		})
 }
@@ -83,16 +83,13 @@ export async function checkpointRestore(
 		}
 
 		sendCancelTask()
-	} catch (err) {
+	} catch (_err) {
 		EventBridge.outputChannel?.appendLine("[checkpointRestore] disabling checkpoints for this task")
 		task._state.setEnableCheckpoints(false)
 	}
 }
 
-export async function checkpointDiff(
-	task: ITaskModel,
-	{ ts, previousCommitHash, commitHash, mode }: CheckpointDiffOptions,
-) {
+export async function checkpointDiff(task: ITaskModel, { commitHash, mode }: CheckpointDiffOptions) {
 	const service = await getCheckpointService(task)
 
 	if (!service) {
@@ -119,7 +116,7 @@ export async function checkpointDiff(
 
 	try {
 		await showDiff(service, diffConfig, checkpoints)
-	} catch (err) {
+	} catch (_err) {
 		EventBridge.outputChannel?.appendLine("[checkpointDiff] disabling checkpoints for this task")
 		task._state.setEnableCheckpoints(false)
 	}

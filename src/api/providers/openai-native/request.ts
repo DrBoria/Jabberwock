@@ -1,6 +1,5 @@
 import type { ReasoningEffortExtended, ServiceTier, VerbosityLevel } from "@jabberwock/types"
 import type { ApiHandlerCreateMessageMetadata } from "@api/index"
-import type { ApiHandlerOptions } from "@shared/api"
 import type { OpenAiNativeModel, ResponsesRequestBody } from "./types"
 import { processSchemaProp } from "./types"
 import { isMcpTool } from "@utils/mcp"

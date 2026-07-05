@@ -15,13 +15,7 @@ import {
 	shouldSkipRestart,
 	hasProviderChanged,
 } from "./utils"
-import {
-	ConfigManagerFields,
-	CONFIG_CHECKERS,
-	hasAuthConfigChanged,
-	hasDimensionChanged,
-	buildSnapshot,
-} from "./snapshot"
+import { ConfigManagerFields, hasAuthConfigChanged, hasDimensionChanged } from "./snapshot"
 
 /**
  * Configuration fields populated by loading from the context proxy.

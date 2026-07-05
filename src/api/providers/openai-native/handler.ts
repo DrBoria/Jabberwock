@@ -10,7 +10,6 @@ import {
 	OpenAiNativeModelId,
 	openAiNativeModels,
 	OPENAI_NATIVE_DEFAULT_TEMPERATURE,
-	type VerbosityLevel,
 	type ReasoningEffortExtended,
 	type ServiceTier,
 } from "@jabberwock/types"

@@ -3,26 +3,11 @@ import { parseJSON } from "partial-json"
 import { type ToolName, toolNames } from "@jabberwock/types"
 import { customToolRegistry } from "@jabberwock/core"
 
-import { type ToolUse, type McpToolUse, type ToolParamName, type NativeToolArgs, toolParamNames } from "@shared/tools"
+import { type ToolUse, type McpToolUse, type ToolParamName, toolParamNames } from "@shared/tools"
 import { resolveToolAlias } from "@features/settings/context/tools/tool-alias-config"
-import { MCP_TOOL_PREFIX, MCP_TOOL_SEPARATOR, parseMcpToolName, normalizeMcpToolName } from "@utils/mcp"
-import { buildToolArgs } from "./parseToolCallBuilders"
-
-/**
- * Helper type to extract properly typed native arguments for a given tool.
- */
-type NativeArgsFor<TName extends ToolName> = TName extends keyof NativeToolArgs ? NativeToolArgs[TName] : never
+import { MCP_TOOL_PREFIX, MCP_TOOL_SEPARATOR, parseMcpToolName } from "@utils/mcp"
 
 // ─── Internal helpers ───────────────────────────────────────────────────
-
-function getMcpToolUse(toolCall: { id: string; name: string; arguments: string }): McpToolUse | null {
-	const normalizedName = normalizeMcpToolName(toolCall.name)
-	const mcpPrefix = MCP_TOOL_PREFIX + MCP_TOOL_SEPARATOR
-	if (!normalizedName.startsWith(mcpPrefix)) {
-		return null
-	}
-	return parseDynamicMcpTool({ ...toolCall, name: normalizedName })
-}
 
 function resolveAndValidateToolName(name: string): string | null {
 	const resolved = resolveToolAlias(name)

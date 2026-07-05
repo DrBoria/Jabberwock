@@ -14,7 +14,7 @@ import {
 	AGENT_STATE_ENHANCEMENT_API_CONFIG_ID,
 } from "@features/settings/events/constants"
 
-export function registerApiConfigHandlers(bus: IntentBus): void {
+export function registerApiConfigHandlers(_bus: IntentBus): void {
 	onWebviewMessage(AGENT_STATE_SAVE_API_CONFIGURATION, (_provider, message) => {
 		const store = getBackendRootStore()
 		if (!store) return

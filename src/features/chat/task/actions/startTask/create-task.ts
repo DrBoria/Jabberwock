@@ -10,7 +10,7 @@ import { resumeActiveTask } from "./resume-active-task"
 
 import type { IBackendRootStore } from "@features/store"
 
-export async function createTaskWithHistoryItem(provider: ProviderHandle, historyItem: unknown): Promise<void> {
+export async function createTaskWithHistoryItem(_provider: ProviderHandle, _historyItem: unknown): Promise<void> {
 	const currentTask = getBackendRootStore().chat.activeTask
 
 	if (!currentTask) {

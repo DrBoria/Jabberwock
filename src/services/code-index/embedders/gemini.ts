@@ -3,7 +3,7 @@ import { IEmbedder, EmbeddingResponse, EmbedderInfo } from "@services/code-index
 import { GEMINI_MAX_ITEM_TOKENS } from "@services/code-index/constants"
 import { t } from "@i18n"
 import { TelemetryEventName } from "@jabberwock/types"
-import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
+import { getTelemetryService } from "@jabberwock/telemetry"
 
 /**
  * Gemini embedder implementation that wraps the OpenAI Compatible embedder

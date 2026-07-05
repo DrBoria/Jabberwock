@@ -14,7 +14,7 @@ import {
 	isTextContent,
 } from "./events"
 import { handleNonCoreStreamEvent } from "./routing"
-import { isItemEventType, trackToolCallFromItem, noopGenerator } from "@api/providers/openai-codex/utils"
+import { isItemEventType, trackToolCallFromItem } from "@api/providers/openai-codex/utils"
 
 const noopEventTypes = new Set(["response.tool_call_arguments.done", "response.function_call_arguments.done"])
 
@@ -74,7 +74,7 @@ async function* processEventChunks(
 	model: OpenAiCodexModel,
 	state: StreamState,
 	deps: StreamDeps,
-	hasContent: boolean,
+	_hasContent: boolean,
 ): ApiStream {
 	for await (const outChunk of processEvent(parsed, model, state, deps)) {
 		if (outChunk.type === "text") {
@@ -149,9 +149,9 @@ async function* handleUnhandledProcessEvent(
 
 async function* handleOutputItemEvent(
 	event: Record<string, unknown>,
-	model: OpenAiCodexModel,
+	_model: OpenAiCodexModel,
 	state: StreamState,
-	deps: StreamDeps,
+	_deps: StreamDeps,
 ): ApiStream {
 	const item = event.item as Record<string, unknown> | undefined
 	if (!item) return

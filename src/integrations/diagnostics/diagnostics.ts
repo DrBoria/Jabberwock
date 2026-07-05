@@ -74,7 +74,7 @@ function buildGroupedResult(entries: DiagnosticEntry[], cwd: string): string {
 	}
 
 	let result = ""
-	for (const [uriStr, fileEntries] of grouped) {
+	for (const [_uriStr, fileEntries] of grouped) {
 		const uri = fileEntries[0].uri
 		fileEntries.sort((a, b) => a.diagnostic.range.start.line - b.diagnostic.range.start.line)
 		result += `\n\n${path.relative(cwd, uri.fsPath).toPosix()}`

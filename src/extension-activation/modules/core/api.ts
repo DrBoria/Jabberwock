@@ -10,11 +10,9 @@ import type {
 	ProviderSettingsEntry,
 } from "@jabberwock/types"
 
-import { Package } from "@shared/package"
 import { EventBridge } from "@features/foundation/webview/EventBridge"
 import { getBackendRootStore } from "@features/storeSingleton"
 import { startNewTask, createTaskWithHistoryItem } from "@features/chat/task/actions/startTask"
-import { resumeTask } from "@features/chat/task/actions/resumeTask"
 import { isTaskInHistory, getCurrentTaskStack } from "@features/chat/task/actions/taskRegistry"
 import { popTaskFromStack, abortRunningTask } from "@features/chat/task/actions/abortRunningTask"
 import { sendMessage } from "@features/chat/task/messages/actions/sendMessage"

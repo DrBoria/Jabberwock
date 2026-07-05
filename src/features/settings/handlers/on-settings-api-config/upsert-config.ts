@@ -4,7 +4,7 @@ import * as vscode from "vscode"
 import { t } from "@i18n"
 import { getVscodeContext } from "@features/foundation/vscode/context"
 import { getProviderSettingsManager } from "@features/settings/models/provider-settings-manager/ProviderSettingsManager"
-import { upsertProviderProfile, activateProviderProfile } from "@features/settings/models/api-config-store.profiles"
+import { upsertProviderProfile } from "@features/settings/models/api-config-store.profiles"
 import { postStateToWebview } from "@features/foundation/window-manager/store"
 import { EventBridge } from "@features/foundation/webview/EventBridge"
 

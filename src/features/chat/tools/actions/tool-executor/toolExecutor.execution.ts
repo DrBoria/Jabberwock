@@ -84,7 +84,7 @@ async function handleNoToolUse(task: ITaskModel): Promise<void> {
 
 export async function waitForToolExecutionAndPrepareNextContent(
 	task: ITaskModel,
-	assistantMessage: string,
+	_assistantMessage: string,
 ): Promise<Anthropic.TextBlockParam[] | null> {
 	await pollForUserMessageContentReady(task)
 

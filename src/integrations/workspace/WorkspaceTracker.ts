@@ -3,7 +3,7 @@ import { VirtualWorkspace } from "@features/foundation/time-machine/VirtualWorks
 import * as path from "path"
 
 import { listFiles } from "@services/glob/list-files"
-import { EventBridge, type ProviderHandle } from "@features/foundation/webview/EventBridge"
+import { type ProviderHandle } from "@features/foundation/webview/EventBridge"
 import { toRelativePath, getWorkspacePath } from "@utils/io/path"
 import { getBackendRootStore } from "@features/storeSingleton"
 

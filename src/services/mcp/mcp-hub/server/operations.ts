@@ -1,11 +1,6 @@
-import * as vscode from "vscode"
-import delay from "delay"
-
-import { t } from "@i18n"
 import { safeWriteJson } from "@utils/io"
 
 import {
-	validateServerConfig,
 	resolveConfigPath,
 	readServerConfigFromFile,
 	getMcpSettingsFilePath as getMcpSettingsFilePathFromConfig,
@@ -23,7 +18,7 @@ import {
 	readProviderContext,
 	getWorkspacePathValue,
 } from "@services/mcp/mcp-hub/notifications"
-import { showErrorMessage, getProjectMcpPath, isMcpEnabled } from "@services/mcp/mcp-hub/init"
+import { showErrorMessage, getProjectMcpPath } from "@services/mcp/mcp-hub/init"
 import { connectToServer } from "@services/mcp/mcp-hub/connection/lifecycle"
 import {
 	readResource as readResourceFromUtils,

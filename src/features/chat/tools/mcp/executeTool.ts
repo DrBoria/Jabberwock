@@ -90,7 +90,7 @@ async function tryDeterministicDelegation(
 		const delegationResult = await processDeterministicDelegation(task, text)
 
 		if (delegationResult === null) {
-			const toolResultPretty =
+			const _toolResultPretty =
 				"Plan cancelled: the user removed all tasks during review. No tasks to execute. Use attempt_completion to inform the user."
 			task._state.setTodoList([])
 			return

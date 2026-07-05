@@ -54,16 +54,16 @@ export async function* handleNonCoreEventByType(
 	}
 
 	const nonCoreHandlers: Record<string, (p: Record<string, unknown>, h: boolean) => ApiStream> = {
-		"response.text.delta": (p, h) => handleTextDeltaOutput(p, state),
-		"response.output_text.delta": (p, h) => handleTextDeltaOutput(p, state),
+		"response.text.delta": (p, _h) => handleTextDeltaOutput(p, state),
+		"response.output_text.delta": (p, _h) => handleTextDeltaOutput(p, state),
 		"response.text.done": (p, h) => handleTextDoneOutput(p, state, h),
 		"response.output_text.done": (p, h) => handleTextDoneOutput(p, state, h),
-		"response.reasoning.delta": (p, h) => handleReasoningDeltaOutput(p),
-		"response.reasoning_text.delta": (p, h) => handleReasoningDeltaOutput(p),
-		"response.reasoning_summary.delta": (p, h) => handleReasoningSummaryOutput(p),
-		"response.reasoning_summary_text.delta": (p, h) => handleReasoningSummaryOutput(p),
-		"response.refusal.delta": (p, h) => handleRefusalDeltaOutput(p, state),
-		"response.output_item.added": (p, h) => handleOutputItemAddedOutput(p, state),
+		"response.reasoning.delta": (p, _h) => handleReasoningDeltaOutput(p),
+		"response.reasoning_text.delta": (p, _h) => handleReasoningDeltaOutput(p),
+		"response.reasoning_summary.delta": (p, _h) => handleReasoningSummaryOutput(p),
+		"response.reasoning_summary_text.delta": (p, _h) => handleReasoningSummaryOutput(p),
+		"response.refusal.delta": (p, _h) => handleRefusalDeltaOutput(p, state),
+		"response.output_item.added": (p, _h) => handleOutputItemAddedOutput(p, state),
 		"response.completed": (p, h) => handleCompleteOrDoneOutput(p, state, h),
 		"response.done": (p, h) => handleCompleteOrDoneOutput(p, state, h),
 	}
@@ -81,7 +81,7 @@ export async function* handleUnknownNonCoreEvent(
 	model: OpenAiCodexModel,
 	state: StreamState,
 	deps: StreamDeps,
-	hasContent: boolean,
+	_hasContent: boolean,
 ): ApiStream {
 	const choices = parsed.choices as Array<{ delta?: { content?: string } }> | undefined
 	if (choices?.[0]?.delta?.content) {

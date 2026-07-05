@@ -45,7 +45,7 @@ export async function readAndFormatFile(
 		const result = await extractTextFromFileWithMetadata(absoluteFilePath)
 		const filePath = path.join(mentionPath, entryName)
 		return formatFileReadResult(filePath.toPosix(), result)
-	} catch (error) {
+	} catch (_error) {
 		return null
 	}
 }

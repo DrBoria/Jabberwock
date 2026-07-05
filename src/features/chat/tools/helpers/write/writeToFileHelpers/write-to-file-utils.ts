@@ -1,9 +1,7 @@
 import path from "path"
 
-import { type SayToolData } from "@jabberwock/types"
-
 import type { ITaskModel } from "@features/chat/task/store"
-import { formatResponse } from "@features/settings/context/responses"
+import type { SayToolData } from "@features/settings/store.types"
 import { RecordSource } from "@features/foundation/time-machine/file-context/FileContextTrackerTypes"
 import { getReadablePath } from "@utils/io/path"
 import { isPathOutsideWorkspace } from "@utils/io"

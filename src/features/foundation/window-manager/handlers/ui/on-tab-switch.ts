@@ -1,7 +1,7 @@
 import { IntentType } from "@jabberwock/types"
 import type { IntentBus } from "@features/intents/bus"
 import { postMessageToWebview } from "@features/foundation/window-manager/store"
-import { TelemetryService, getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
+import { getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 
 /**
  * Handles foundation.tab.switch intent — switches the active tab.

@@ -1,7 +1,6 @@
 import * as vscode from "vscode"
 
 import { Package } from "@shared/package"
-import { EventBridge } from "@features/foundation/webview/EventBridge"
 import { t } from "@i18n"
 import { getVisibleProviderOrLog } from "@activate/registerCommands"
 

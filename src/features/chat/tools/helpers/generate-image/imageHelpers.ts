@@ -1,6 +1,5 @@
 import path from "path"
 import * as fs from "fs/promises"
-import { t } from "@i18n"
 import prettyBytes from "pretty-bytes"
 
 /**
