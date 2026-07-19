@@ -153,13 +153,35 @@ export function handleSayMessage(ui: IChatUIStore, lastMessage: Notification): v
 		case "api_req_rate_limit_wait":
 			ui.textArea.setSendingDisabled(true)
 			break
-		case "api_req_started":
-			ui.textArea.setSendingDisabled(true)
+		case "api_req_started": {
+			// If the api_req_started notification has a cancelReason in its
+			// text JSON, the stream was cleanly aborted (e.g. user clicked
+			// Stop). Do NOT set sendingDisabled(true) — the abort handler
+			// already reset the UI, and this would prevent the user from
+			// sending a new message.
+			const hasCancelReason = (() => {
+				try {
+					const data = JSON.parse(lastMessage.text ?? "{}") as Record<string, unknown>
+					return !!data.cancelReason
+				} catch {
+					return false
+				}
+			})()
+			if (!hasCancelReason) {
+				ui.textArea.setSendingDisabled(true)
+			}
+			// Preserve active tool ask UI regardless of enableButtons state.
+			// Partial tool asks (streaming content) may have buttons disabled,
+			// but they should not be cleared by a new API request starting.
+			if (ui.currentAsk === "tool") {
+				break
+			}
 			ui.setCurrentAsk("")
 			ui.setEnableButtons(false)
 			ui.setPrimaryButtonText("")
 			ui.setSecondaryButtonText("")
 			break
+		}
 	}
 }
 

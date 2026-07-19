@@ -21,6 +21,7 @@ import {
 	GroundingSource,
 } from "@api/transform/stream"
 import { calculateApiCostAnthropic, calculateApiCostOpenAI } from "@shared/api/cost"
+import { findLastIndex } from "@shared/array"
 import { RawChunkTracker } from "@features/api/handlers/helpers/process/rawChunkProcessor"
 import { parseToolCall } from "@features/chat/tools/actions/parse-tool-call"
 import type { IBackendRootStore } from "@features/store"
@@ -31,6 +32,7 @@ import {
 	handleToolCallDeltaEvent,
 	handleToolCallEndEvent,
 } from "@features/api/handlers/helpers/process/toolCallHandlers"
+import { sendMessageUpdated } from "@features/chat/task/messages/events/actions/sendMessageEvent"
 
 /**
  * Callbacks injected by the caller to decouple stream chunk handling from Task.
@@ -77,7 +79,12 @@ export function createChunkHandlers(
 			state.outputTokens += usageChunk.outputTokens
 			state.cacheWriteTokens += usageChunk.cacheWriteTokens ?? 0
 			state.cacheReadTokens += usageChunk.cacheReadTokens ?? 0
-			state.totalCost = usageChunk.totalCost
+			if (usageChunk.totalCost !== undefined) {
+				state.totalCost = usageChunk.totalCost
+			}
+			// Update api_req_started notification text with real-time token data
+			// so the frontend getApiMetrics() parses non-zero values during streaming
+			updateApiReqMsg(task, state)
 		},
 
 		grounding: (chunk) => {
@@ -168,11 +175,18 @@ export function updateApiReqMsg(
 	cancelReason?: CancelReason,
 	streamingFailedMessage?: string,
 ): void {
-	if (state.lastApiReqIndex < 0 || !state.messages[state.lastApiReqIndex]) {
+	// Find the actual last api_req_started notification instead of relying on the
+	// hardcoded lastApiReqIndex (which is always 0 from callers). The notification
+	// is typically not at index 0 in the messages array.
+	const lastApiReqIndex = findLastIndex(
+		task.notifications.items,
+		(m) => m.type === "say" && m.say === "api_req_started",
+	)
+	if (lastApiReqIndex < 0 || !task.notifications.items[lastApiReqIndex]) {
 		return
 	}
 
-	const existingData = JSON.parse(state.messages[state.lastApiReqIndex].text || "{}")
+	const existingData = JSON.parse(task.notifications.items[lastApiReqIndex].text || "{}")
 
 	const modelId = getModelId(task.apiConfiguration)
 	const apiProvider = task.apiConfiguration.apiProvider
@@ -198,14 +212,19 @@ export function updateApiReqMsg(
 					state.cacheReadTokens,
 				)
 
-	task.messages[state.lastApiReqIndex].text = JSON.stringify({
-		...existingData,
-		tokensIn: costResult.totalInputTokens,
-		tokensOut: costResult.totalOutputTokens,
-		cacheWrites: state.cacheWriteTokens,
-		cacheReads: state.cacheReadTokens,
-		cost: state.totalCost ?? costResult.totalCost,
-		cancelReason,
-		streamingFailedMessage,
-	} satisfies ApiReqData)
+	const updatedMessage: Notification = {
+		...task.notifications.items[lastApiReqIndex],
+		text: JSON.stringify({
+			...existingData,
+			tokensIn: costResult.totalInputTokens,
+			tokensOut: costResult.totalOutputTokens,
+			cacheWrites: state.cacheWriteTokens,
+			cacheReads: state.cacheReadTokens,
+			cost: state.totalCost ?? costResult.totalCost,
+			cancelReason,
+			streamingFailedMessage,
+		} satisfies ApiReqData),
+	}
+	task.notifications.updateNotification(lastApiReqIndex, updatedMessage)
+	sendMessageUpdated(updatedMessage)
 }

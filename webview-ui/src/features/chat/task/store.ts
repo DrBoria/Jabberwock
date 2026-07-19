@@ -1,4 +1,6 @@
 import { vscode } from "@jabberwock/devtool/webview"
+import { getRoot } from "mobx-state-tree"
+
 import type { WebviewMessage, Goal, Notification } from "@jabberwock/types"
 import { eventConstants } from "@jabberwock/types"
 
@@ -37,10 +39,12 @@ export function createTaskActions(self: TaskActionsParams) {
 		sendMessage(text: string, images: string[], goals?: Goal[]) {
 			const trimmed = text.trim()
 			if (!trimmed && images.length === 0) return
+			const root = getRoot<{ extensionState: { mode: string } }>(self as never)
 			vscode.postMessage({
 				type: eventConstants.CHAT.TASK.NEW_TASK,
 				text: trimmed,
 				images,
+				mode: root.extensionState.mode,
 				...(goals && goals.length > 0 ? { goals } : {}),
 			} satisfies WebviewMessage)
 			self.textArea.clearInput()
@@ -59,6 +63,7 @@ export function createTaskActions(self: TaskActionsParams) {
 			vscode.postMessage({
 				type: eventConstants.CHAT.TASK.CANCEL_TASK,
 			} satisfies WebviewMessage)
+			self.textArea.setSendingDisabled(false)
 		},
 
 		// ── Navigate to task ───────────────────────────────────────

@@ -7,6 +7,8 @@ import { saveMessages } from "@features/chat/task/messages/actions/saveMessages"
 import type { StreamHandle } from "@features/chat/task/condense/actions/types"
 import type { ApiRequestContext } from "@features/api/handlers/helpers/prepare/prepareApiRequest"
 
+const MAX_RETRY_ATTEMPTS = 3
+
 export async function handleStreamError(
 	ctx: ApiRequestContext,
 	sh: StreamHandle,
@@ -18,6 +20,11 @@ export async function handleStreamError(
 	diagnosticsManager.log(streamErrorMsg, "error")
 
 	if (ctx.task._state.abandoned) {
+		return null
+	}
+
+	if (ctx.retryAttempt >= MAX_RETRY_ATTEMPTS) {
+		console.error(`[Stream] Max retry attempts (${MAX_RETRY_ATTEMPTS}) reached for task ${ctx.taskId}`)
 		return null
 	}
 
@@ -46,6 +53,7 @@ export async function handleStreamError(
 			payload: {
 				taskId: ctx.taskId,
 				content: ctx.userContent,
+				retryAttempt: ctx.retryAttempt + 1,
 			},
 			status: IntentStatus.Queued,
 			createdAt: Date.now(),

@@ -31,13 +31,19 @@
 			"@intentConstants": ["./src/features/intents/IntentConstants"],
 			"@packageJson": ["../src/package.json"],
 			"@utils/*": ["../src/utils/*"],
+			"@api": ["../src/api/index.ts"],
 			"@api/*": ["../src/api/*"],
 			"@components/*": ["./src/components/*"],
 			"@sections/*": ["./src/sections/*"],
 			"@i18n": ["../src/i18n"],
 			"@i18n/*": ["../src/i18n/*"],
 			"@features/*": ["../src/features/*"],
-			"@services/*": ["../src/services/*"]
+			"@foundation/*": ["../src/foundation/*"],
+			"@services/*": ["../src/services/*"],
+			"@activate/*": ["../src/activate/*"],
+			"@integrations/*": ["../src/integrations/*"],
+			"@workers/types": ["../src/workers/types.ts"],
+			"@packages/types/src/mcp": ["../packages/types/src/mcp/mcp.ts"]
 		}
 	},
 	"include": ["src", "../src/types", "../src/package.json", "vitest.setup.ts"],

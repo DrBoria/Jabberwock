@@ -101,15 +101,22 @@ export async function isMcpEnabled(): Promise<boolean> {
 
 export async function getProjectMcpPath(): Promise<string | null> {
 	const workspacePath = getWorkspacePath()
-	const projectMcpDir = path.join(workspacePath, ".jabberwock")
-	const projectMcpPath = path.join(projectMcpDir, "mcp.json")
+	const candidates = [
+		path.join(workspacePath, ".jabberwock", "mcp.json"),
+		path.join(workspacePath, ".jabber", "mcp.json"),
+		path.join(workspacePath, ".roo", "mcp.json"),
+	]
 
-	try {
-		await fs.access(projectMcpPath)
-		return projectMcpPath
-	} catch {
-		return null
+	for (const candidatePath of candidates) {
+		try {
+			await fs.access(candidatePath)
+			return candidatePath
+		} catch {
+			continue
+		}
 	}
+
+	return null
 }
 
 // ─── Initialize MCP servers ──────────────────────────────────────────

@@ -85,6 +85,19 @@ export function createFrontendBridge(options: CreateFrontendBridgeOptions): Fron
 				}
 			}),
 
+		getNestedStoreState: (store, path?) =>
+			sendQuery(
+				"getNestedStoreState",
+				(result) => {
+					try {
+						return JSON.parse(result) as Record<string, unknown>
+					} catch {
+						return {}
+					}
+				},
+				{ store, path },
+			),
+
 		getActionBuffer: () =>
 			sendQuery("getActionBuffer", (result) => {
 				try {

@@ -1,0 +1,28 @@
+web_dashboard_open_on_launch: false
+# Лимит длины ответа (срезает огромные дампы файлов/AST)
+default_max_tool_answer_chars: 10000
+
+# Игнорируемые директории для поиска (исключает минифицированный код)
+ignored_paths:
+  - "node_modules/**"
+  - "dist/**"
+  - "build/**"
+  - ".git/**"
+  - "out/**"
+  - ".next/**"
+
+# Режимы (исключен 'editing' для отключения инструментов модификации, если нужно только чтение)
+default_modes:
+  - interactive
+
+# Отключение ненужных инструментов (удаляет их JSON-схемы из системного промпта модели)
+# Раскомментируйте или добавьте те, что точно не используются в сессии.
+excluded_tools:
+  - insert_lines
+  - create_file
+  - delete_file
+  - move_file
+  - create_directory
+  - rename_file
+  - ask_human
+  - open_dashboard

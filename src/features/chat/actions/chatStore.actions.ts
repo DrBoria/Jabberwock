@@ -104,6 +104,7 @@ export const ChatModel = ChatModelWithViews.actions((self) => ({
 		taskNumber: number
 		workspacePath: string
 		apiConfiguration: ProviderSettings
+		consecutiveMistakeLimit?: number
 	}): import("../task/store").ITaskModel {
 		let task: import("../task/store").ITaskModel
 		try {
@@ -124,6 +125,7 @@ export const ChatModel = ChatModelWithViews.actions((self) => ({
 				abandoned: false,
 				skipPrevResponseIdOnce: false,
 				apiConfiguration: options.apiConfiguration,
+				consecutiveMistakeLimit: options.consecutiveMistakeLimit,
 			})
 		} catch (err) {
 			console.error(`[jabberwock] TaskModel.create failed:`, err)

@@ -31,6 +31,7 @@ async function createFreshTask(
 	images?: string[],
 	taskConfiguration?: { [key: string]: unknown },
 	goals?: Goal[],
+	mode?: string,
 ): Promise<ITaskModel> {
 	const apiModel = store.settings.apiConfig
 	const rawConfig = apiModel.toProviderSettings()
@@ -43,6 +44,10 @@ async function createFreshTask(
 
 	const resolvedTaskId = resolveTaskId(taskConfiguration)
 	const taskNumber = store.chat.tasks.size + 1
+	const consecutiveMistakeLimit =
+		taskConfiguration && "consecutiveMistakeLimit" in taskConfiguration
+			? (taskConfiguration.consecutiveMistakeLimit as number)
+			: Number.MAX_SAFE_INTEGER
 	const newTask = createTaskModel({
 		provider,
 		apiConfiguration: rawConfig,
@@ -50,6 +55,8 @@ async function createFreshTask(
 		images: images ?? [],
 		taskId: resolvedTaskId,
 		taskNumber,
+		mode,
+		consecutiveMistakeLimit,
 	})
 
 	if (typeof newTask.setGoals === "function") {
@@ -73,6 +80,7 @@ export async function createTask(
 	taskConfiguration?: { [key: string]: unknown },
 	_extra?: unknown,
 	goals?: Goal[],
+	mode?: string,
 ): Promise<ITaskModel> {
 	const store = getBackendRootStore()
 	const currentTask = store.chat.activeTask
@@ -86,7 +94,7 @@ export async function createTask(
 	}
 
 	if (text) {
-		return createFreshTask(store, provider, text, images, taskConfiguration, goals)
+		return createFreshTask(store, provider, text, images, taskConfiguration, goals, mode)
 	}
 
 	throw new Error("Cannot create task: no text provided")

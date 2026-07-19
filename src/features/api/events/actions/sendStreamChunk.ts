@@ -24,11 +24,12 @@ import { postMessageToWebview } from "@features/foundation/window-manager/store"
  *
  * @param payload - Streaming payload with taskId and accumulated text
  */
-export function sendStreamChunk(payload: { taskId: string; text: string }): void {
+export function sendStreamChunk(payload: { taskId: string; text: string; reset?: boolean }): void {
 	const provider = getProvider()
 	postMessageToWebview(provider, {
-		type: "streamChunk", // NOT an EventConstant — hardcoded literal (intentional)
+		type: "streamChunk",
 		taskId: payload.taskId,
 		text: payload.text,
+		reset: payload.reset,
 	})
 }

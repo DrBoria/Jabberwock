@@ -86,6 +86,10 @@ function tryParseApiRequest(text: string): number | undefined {
 		const parsedText: ParsedApiReqStartedTextType = JSON.parse(text)
 		const { tokensIn, tokensOut } = parsedText
 
+		if (typeof tokensIn !== "number" && typeof tokensOut !== "number") {
+			return undefined
+		}
+
 		return (tokensIn || 0) + (tokensOut || 0)
 	} catch {
 		return undefined

@@ -66,6 +66,23 @@ export function formatValidationError(validationError: unknown, serverName?: str
 	throw validationError
 }
 
+function inferConfigType(config: Record<string, unknown>, hasStdioFields: boolean, hasUrlFields: boolean): void {
+	if (!config.type && hasStdioFields) {
+		config.type = "stdio"
+	}
+
+	if (hasUrlFields && !config.type) {
+		inferUrlServerType(config)
+	}
+}
+
+function applyMcpTransportMapping(config: Record<string, unknown>): void {
+	const transportTypes = ["stdio", "sse", "websocket", "streamable-http"]
+	if (config.type && transportTypes.includes(config.type as string)) {
+		config.mcpTransport = config.type
+	}
+}
+
 export function validateServerConfig(
 	config: Record<string, unknown>,
 	serverName?: string,
@@ -77,15 +94,13 @@ export function validateServerConfig(
 		throw new Error(mixedFieldsErrorMessage)
 	}
 
-	if (!config.type && hasStdioFields) {
-		config.type = "stdio"
-	}
-
-	if (hasUrlFields && !config.type) {
-		inferUrlServerType(config)
-	}
+	inferConfigType(config, hasStdioFields, hasUrlFields)
 
 	validateTransportType(config.type as string | undefined)
+
+	// Map type to mcpTransport for downstream transport creation
+	applyMcpTransportMapping(config)
+
 	validateTransportFields(config.mcpTransport as string | undefined, hasStdioFields, hasUrlFields)
 
 	if (!hasStdioFields && !hasUrlFields) {

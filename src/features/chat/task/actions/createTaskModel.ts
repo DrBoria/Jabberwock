@@ -27,6 +27,8 @@ export interface CreateTaskModelOptions {
 	taskId?: string
 	taskNumber: number
 	workspacePath?: string
+	mode?: string
+	consecutiveMistakeLimit?: number
 }
 
 /**
@@ -36,56 +38,59 @@ export interface CreateTaskModelOptions {
  * Sets up the necessary volatile properties that were previously handled
  * by the Task class constructor.
  */
+function resolveTaskMode(explicitMode: string | undefined, historyItem: CreateTaskModelOptions["historyItem"]): string {
+	return explicitMode ?? historyItem?.mode ?? "code"
+}
+
+function resolveIdentityValues(options: CreateTaskModelOptions) {
+	const { historyItem, taskId: explicitTaskId, workspacePath: explicitWorkspacePath } = options
+	const resolvedTaskId = historyItem ? historyItem.id : explicitTaskId || uuidv7()
+	return {
+		resolvedTaskId,
+		resolvedRootTaskId: historyItem?.rootTaskId ?? resolvedTaskId,
+		resolvedParentTaskId: historyItem?.parentTaskId,
+		resolvedWorkspacePath: explicitWorkspacePath ?? getWorkspacePath(path.join(os.homedir(), "Desktop")),
+		resolvedInstanceId: crypto.randomUUID().slice(0, 8),
+	}
+}
+
 export function createTaskModel(options: CreateTaskModelOptions): ITaskModel {
 	const {
 		provider,
 		apiConfiguration,
 		historyItem,
 		task: _text,
-		taskId: explicitTaskId,
 		taskNumber,
-		workspacePath: explicitWorkspacePath,
+		mode: explicitMode,
+		consecutiveMistakeLimit,
 	} = options
-
 	const store = getBackendRootStore()
 
 	// ── Compute identity values ──────────────────────────────────
-	const resolvedTaskId = historyItem ? historyItem.id : explicitTaskId || uuidv7()
-
-	const resolvedRootTaskId = historyItem?.rootTaskId ?? resolvedTaskId
-	const resolvedParentTaskId = historyItem?.parentTaskId
-	const resolvedWorkspacePath = explicitWorkspacePath ?? getWorkspacePath(path.join(os.homedir(), "Desktop"))
-	const resolvedInstanceId = crypto.randomUUID().slice(0, 8)
+	const identity = resolveIdentityValues(options)
 
 	// ── Create MST model instance (single source of truth) ───────
 	const model = store.chat.createTask({
-		taskId: resolvedTaskId,
-		instanceId: resolvedInstanceId,
-		rootTaskId: resolvedRootTaskId,
-		parentTaskId: resolvedParentTaskId,
+		taskId: identity.resolvedTaskId,
+		instanceId: identity.resolvedInstanceId,
+		rootTaskId: identity.resolvedRootTaskId,
+		parentTaskId: identity.resolvedParentTaskId,
 		childTaskIds: [],
 		taskNumber,
-		workspacePath: resolvedWorkspacePath,
+		workspacePath: identity.resolvedWorkspacePath,
 		apiConfiguration,
+		consecutiveMistakeLimit,
 	})
 
 	// ── Set up volatile properties (migrated from Task class) ────
-	// Use MST action methods to respect tree protection
 	model.setGlobalStoragePath(provider.context.globalStorageUri.fsPath)
-
-	// Initialize mode from history item or default to "code"
-	const taskMode = historyItem?.mode ?? "code"
-	model.setTaskMode(taskMode)
-
-	// Initialize the taskModeReady promise so await task.taskModeReady resolves immediately
+	model.setTaskMode(resolveTaskMode(explicitMode, historyItem))
 	model.setTaskModeReady(Promise.resolve())
 
-	// Initialize mode/api-config promises based on whether we're resuming
 	if (historyItem) {
 		model.askResolve = undefined
 	}
 
-	// Wire up the attemptApiRequest volatile property (migrated from Task class)
 	console.log(`[createTaskModel] Setting attemptApiRequest on task ${model.taskId}`)
 	model.setAttemptApiRequest((retryAttempt, opts) => createAttemptApiRequest(model, retryAttempt, opts))
 	console.log(`[createTaskModel] attemptApiRequest is now: ${typeof model.attemptApiRequest}`)

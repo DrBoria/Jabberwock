@@ -101,6 +101,56 @@ export function resetStreamingState(
  * This runs after the main stream loop has finished processing content chunks,
  * because some providers send usage data at the very end of the stream.
  */
+/**
+ * Processes a single chunk during background usage collection.
+ * Returns whether usage was found and the updated token counts.
+ */
+async function processUsageChunk(
+	chunk: { [key: string]: unknown } | undefined,
+	task: StreamHandle,
+	tokens: {
+		input: number
+		output: number
+		cacheWrite: number
+		cacheRead: number
+		total?: number
+	},
+	streamModelInfo: { [key: string]: unknown },
+	updateApiReqMsg: () => void,
+	saveMessages?: () => Promise<unknown>,
+): Promise<{
+	usageFound: boolean
+	input: number
+	output: number
+	cacheWrite: number
+	cacheRead: number
+	total?: number
+}> {
+	if (!chunk) {
+		return { usageFound: false, ...tokens }
+	}
+
+	if (chunk.type !== "usage") {
+		return { usageFound: false, ...tokens }
+	}
+
+	const input = tokens.input + (chunk.inputTokens as number)
+	const output = tokens.output + (chunk.outputTokens as number)
+	const cacheWrite = tokens.cacheWrite + ((chunk.cacheWriteTokens ?? 0) as number)
+	const cacheRead = tokens.cacheRead + ((chunk.cacheReadTokens ?? 0) as number)
+	const total = (chunk.totalCost as number | undefined) ?? tokens.total
+
+	await captureUsageData(
+		task,
+		{ input, output, cacheWrite, cacheRead, total },
+		streamModelInfo,
+		updateApiReqMsg,
+		saveMessages,
+	)
+
+	return { usageFound: true, input, output, cacheWrite, cacheRead, total }
+}
+
 export async function drainStreamInBackground(
 	task: StreamHandle,
 	iterator: AsyncIterator<{ [key: string]: unknown }>,
@@ -150,31 +200,28 @@ export async function drainStreamInBackground(
 			item = await iterator.next()
 			chunkCount++
 
-			if (!chunk) {
-				continue
-			}
+			const result = await processUsageChunk(
+				chunk,
+				task,
+				{
+					input: bgInputTokens,
+					output: bgOutputTokens,
+					cacheWrite: bgCacheWriteTokens,
+					cacheRead: bgCacheReadTokens,
+					total: bgTotalCost,
+				},
+				streamModelInfo,
+				updateApiReqMsg,
+				saveMessages,
+			)
 
-			if (chunk.type === "usage") {
+			if (result.usageFound) {
 				usageFound = true
-				bgInputTokens += chunk.inputTokens as number
-				bgOutputTokens += chunk.outputTokens as number
-				bgCacheWriteTokens += (chunk.cacheWriteTokens ?? 0) as number
-				bgCacheReadTokens += (chunk.cacheReadTokens ?? 0) as number
-				bgTotalCost = chunk.totalCost as number | undefined
-
-				await captureUsageData(
-					task,
-					{
-						input: bgInputTokens,
-						output: bgOutputTokens,
-						cacheWrite: bgCacheWriteTokens,
-						cacheRead: bgCacheReadTokens,
-						total: bgTotalCost,
-					},
-					streamModelInfo,
-					updateApiReqMsg,
-					saveMessages,
-				)
+				bgInputTokens = result.input
+				bgOutputTokens = result.output
+				bgCacheWriteTokens = result.cacheWrite
+				bgCacheReadTokens = result.cacheRead
+				bgTotalCost = result.total
 			}
 		}
 

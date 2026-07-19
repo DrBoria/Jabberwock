@@ -26,6 +26,7 @@ export const IntentType = { ...IntentTypeCore, ...IntentTypeSettings } as const
 export enum IntentStatus {
 	Queued = "queued",
 	Processing = "processing",
+	Suspended = "suspended",
 	Success = "success",
 	Failed = "failed",
 }

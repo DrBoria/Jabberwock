@@ -1,6 +1,7 @@
 import type { DomHandlerContext } from "./types.js"
 import { getWebviewConsoleLogs } from "../webview/console.js"
 import { getSnapshot, applySnapshot } from "mobx-state-tree"
+import { resolveNestedPath, resolvePath } from "../api/mst/snapshot/tree.js"
 
 /**
  * Options for store query handlers within the DOM message handler.
@@ -14,6 +15,7 @@ export interface StoreQueryOptions {
  * Create store query handlers that can be merged into the action handlers map.
  * These require access to the MST rootStore and optional callbacks.
  */
+
 export function createStoreQueryHandlers(
 	rootStore: unknown,
 	options?: StoreQueryOptions,
@@ -67,6 +69,43 @@ export function createStoreQueryHandlers(
 				type: "domResponse",
 				requestId: req.requestId as string,
 				text: JSON.stringify(snapshot),
+			})
+		},
+
+		getNestedStoreState: async (_ctx, req) => {
+			const store = req.store as string
+			const path = req.path as string | undefined
+			const snapshot = getSnapshot(rootStore as never)
+
+			const storeData = resolveNestedPath(snapshot as Record<string, unknown>, store)
+			if (storeData === undefined) {
+				_ctx.postMessage({
+					type: "domResponse",
+					requestId: req.requestId as string,
+					text: JSON.stringify({ error: `Store "${store}" not found` }),
+				})
+				return
+			}
+
+			let result: unknown
+			if (path) {
+				result = resolvePath(storeData as Record<string, unknown>, path)
+				if (result === undefined) {
+					_ctx.postMessage({
+						type: "domResponse",
+						requestId: req.requestId as string,
+						text: JSON.stringify({ error: `Path "${path}" not found in store "${store}"` }),
+					})
+					return
+				}
+			} else {
+				result = storeData
+			}
+
+			_ctx.postMessage({
+				type: "domResponse",
+				requestId: req.requestId as string,
+				text: JSON.stringify(result),
 			})
 		},
 

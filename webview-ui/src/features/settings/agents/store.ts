@@ -31,11 +31,23 @@ const IndexingStore = types.model("IndexingStore", {
  * ModeSelectorStore — tracks available modes and current mode selection.
  * Receives snapshots from the extension-side store via MstBridge.
  */
-const ModeSelectorStore = types.model("ModeSelectorStore", {
-	currentMode: types.string,
-	allModes: types.array(types.frozen<Record<string, unknown>>()),
-	customModes: types.array(types.frozen<Record<string, unknown>>()),
-})
+const ModeSelectorStore = types
+	.model("ModeSelectorStore", {
+		currentMode: types.string,
+		allModes: types.array(types.frozen<Record<string, unknown>>()),
+		customModes: types.array(types.frozen<Record<string, unknown>>()),
+	})
+	.actions((self) => ({
+		setCurrentMode(mode: string) {
+			self.currentMode = mode
+		},
+		setAllModes(modes: Record<string, unknown>[]) {
+			self.allModes.replace(modes)
+		},
+		setCustomModes(modes: Record<string, unknown>[]) {
+			self.customModes.replace(modes)
+		},
+	}))
 
 /**
  * AgentStateStore — composite store for all agent-state sub-stores.

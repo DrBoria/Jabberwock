@@ -222,3 +222,39 @@ export const BackendIntentType = {
  * Union type of all backend intent type string values.
  */
 export type BackendIntentType = (typeof BackendIntentType)[keyof typeof BackendIntentType]
+
+/**
+ * Frontend-specific intent priority map.
+ *
+ * Lower number = higher priority. Critical (0) preempts any running fiber.
+ */
+export const IntentPriority = {
+	Critical: 0,
+	High: 1,
+	Normal: 2,
+	Low: 3,
+} as const
+
+export type IntentPriority = (typeof IntentPriority)[keyof typeof IntentPriority]
+
+export const INTENT_PRIORITY: Record<string, IntentPriority> = {
+	"task.cancel.requested": IntentPriority.Critical,
+	"system.failure": IntentPriority.Critical,
+	"user.message.received": IntentPriority.High,
+	"chat.ask.response.received": IntentPriority.High,
+	"webview.event": IntentPriority.High,
+	"message.agent.broadcast": IntentPriority.Normal,
+	"message.system.broadcast": IntentPriority.Normal,
+	"message.mcp.broadcast": IntentPriority.Normal,
+	"message.user.broadcast": IntentPriority.Normal,
+	"notification.ask.tool_approval": IntentPriority.Normal,
+	"notification.ask.follow_up": IntentPriority.Normal,
+	"notification.ask.sub_task": IntentPriority.Normal,
+	"notification.persist": IntentPriority.Normal,
+	"api.streaming.started": IntentPriority.Normal,
+	"api.streaming.ended": IntentPriority.Normal,
+	"file.context.tracked": IntentPriority.Normal,
+	"log.write": IntentPriority.Low,
+	"agent.request.failed": IntentPriority.Low,
+	"mcp.tool.result": IntentPriority.Low,
+}

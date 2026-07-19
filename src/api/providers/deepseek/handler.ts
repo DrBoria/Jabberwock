@@ -127,7 +127,7 @@ export class DeepSeekHandler extends OpenAiHandler {
 		const isThinkingModel = modelId.includes("deepseek-reasoner")
 
 		const convertedMessages = convertToR1Format([{ role: "user", content: systemPrompt }, ...messages], {
-			mergeToolResultText: isThinkingModel,
+			mergeToolResultText: true,
 		})
 
 		const requestOptions = this.buildDeepSeekRequestOptions(modelId, isThinkingModel, metadata, convertedMessages)

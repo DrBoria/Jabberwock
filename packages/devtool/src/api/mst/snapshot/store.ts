@@ -51,22 +51,20 @@ export async function getFrontendStoreHelper(
 	fields?: string,
 ): Promise<string> {
 	try {
-		const snapshot = await frontendBridge.getRootSnapshot()
 		if (store) {
-			const storeData = resolveNestedPath(snapshot as Record<string, unknown>, store)
-			if (storeData === undefined) {
-				return JSON.stringify({ error: `Store "${store}" not found` })
+			const nestedState = await frontendBridge.getNestedStoreState(store, path)
+			const err = (nestedState as { error?: string }).error
+			if (err) {
+				return JSON.stringify({ error: err })
 			}
 			if (path) {
-				const resolved = resolvePath(storeData as Record<string, unknown>, path)
-				if (resolved === undefined) {
-					return JSON.stringify({ error: `Path "${path}" not found in store "${store}"` })
-				}
-				const truncated = truncateDeep(resolved, 5, undefined, 0, 10, 500, cursor, limit)
+				const truncated = truncateDeep(nestedState, 5, undefined, 0, 10, 500, cursor, limit)
 				return JSON.stringify(truncated)
 			}
-			return getFrontendStoreData(storeData as Record<string, unknown>, cursor, limit, fields)
+			return getFrontendStoreData(nestedState as Record<string, unknown>, cursor, limit, fields)
 		}
+
+		const snapshot = await frontendBridge.getRootSnapshot()
 		const stores = Object.entries(snapshot as Record<string, unknown>).map(([key, value]) => ({
 			name: key,
 			keys: Object.keys((value as Record<string, unknown>) ?? {}).join(", "),

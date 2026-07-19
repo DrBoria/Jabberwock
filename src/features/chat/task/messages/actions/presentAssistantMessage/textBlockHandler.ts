@@ -15,6 +15,12 @@ async function handleTextBlockContent(task: ITaskModel, block: AssistantMessageC
 		content = content.replace(/\s?<\/thinking>/g, "")
 	}
 
+	// During active streaming, skip the MST agentBroadcast for partial text blocks.
+	// The fast path (sendStreamChunk → StreamingFooter) provides real-time rendering.
+	if (block.partial && task._state.isStreaming) {
+		return
+	}
+
 	await agentBroadcast(task.taskId, "text", content, undefined, block.partial)
 }
 

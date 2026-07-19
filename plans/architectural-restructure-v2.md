@@ -1,807 +1,676 @@
-# Architectural Restructure v2 — Events Action Creators Architecture (Revised 2026-05-31)
+# Architectural Restructure v2 — Events Action Creators Architecture with Fiber Priority Dispatch (Revised 2026-07-14)
 
-> ⚠️ **WHITELIST RULE**: If a file or folder is NOT listed in the target structure below, it MUST NOT exist in the filesystem. Any file found outside this structure must be deleted, refactored, or migrated into the paths described here.
+---
+
+> **WHITELIST RULE**: If a file or folder is NOT listed in the target structure below, it MUST NOT exist in the filesystem. Any file found outside this structure must be deleted, refactored, or migrated into the paths described here.
 
 ---
 
 ## Core Principles
 
-1. **No pipeline state machine** — no string-based `pipelineState` enum. Pure `Event → Intent → Handler` pattern.
-2. **No factories** — MST/MobX reactive stores only. No `createJabberwockApi`, no `Task.create`.
-3. **No `as unknown` casts** — strict typing. Zero casts in `src/`.
-4. **Each event type has its own intent handler** — extensible by adding new intent types and handlers.
-5. **Reactive programming** — Intents flow through IntentBus. Intents stored in MST `IntentStore`, dispatched by `IntentBus` to feature handlers. No imperative pipeline loops.
-6. **IntentBus with dynamic handler registration** — each feature exports `register*Handlers(bus)` called at startup. Handlers are pure functions.
-7. **No chat reactions.ts** — replaced by `setupIntents()`.
-8. **No streaming MST model** — streaming state is ephemeral, not stored.
-9. **No topic/ dir** — topic is a field in `TaskStore`, nothing more.
-10. **No message queue dir** — messages store IS the queue.
-11. **EventBridge is the SOLE IPC channel** — no `ipc/handlers/` layer. EventBridge is ONLY for frontend↔backend communication (typed Events, not Intents).
-12. **Intents are per-side** — frontend and backend each have their own `IntentBus` + `IntentStore`. Intents NEVER cross the EventBridge.
-13. **EventBridge transports Events** — Events are the typed protocol between frontend↔backend.
-14. **Action Creators** — `ask()`, and all other actions are action creators (like Redux actionCreators). They create Intents via `intentStore.createIntent()`, NOT callbacks. One action creator can create multiple Intents.
-15. **ALL state in MST** — zero module-level state variables (`let` state outside MST is forbidden). No singletons, no global `_taskRegistry`, no `lastUsedTs`.
-16. **No callbacks** — only Intents dispatched through IntentBus. No `pWaitFor`, no `callback` in payload.
-17. **Task owns Messages and Notifications** — `task/messages/` and `task/notifications/` are _per-task sub-models_, NOT at `chat/` level.
-18. **Entity hierarchy**: History → Chat → Task → Messages | Notifications. Intents is standalone (global, per-side).
-19. **Events layer does ALL cross-side communication** — `events/actions/` send events to the other side (call `EventBridge.postMessage`), `events/handlers/` receive events from the other side (create Intents). Local handlers NEVER touch EventBridge directly.
-20. **STREAMING EXCEPTION** — `events/actions/sendStreamChunk()` is the ONLY place that calls `EventBridge.postMessage` directly from a handler context. Streaming chunks (1-5 bytes) bypass EventConstants and IntentBus to avoid spamming MST store with per-byte updates. This is the SINGLE documented exception to rule #19.
-21. **Messages is the SINGLE collection** — `task/messages/` stores ALL chat content discriminated by `type: "user" | "agent" | "mcp_tool" | "system"`. No separate collection for agent output. Common base: `ts`, `text?`, `images?`, `type`. Unique fields per type.
-22. **Notification only for "ask"** — `task/notifications/` stores ONLY `type: "ask"` (user action required). No "say" type. All previous "say" content migrates to `Messages` with appropriate type.
-23. **`events/` folder follows the same `actions|handlers` sub-pattern** as the main feature — `events/actions/sendAskResponse.ts` (sends to other side), `events/handlers/on-ask-response-received.ts` (receives from other side, creates Intents).
-24. **Event action creators can create MULTIPLE Intents** — just like regular action creators. A single incoming event may trigger 1, 2, or more Intents depending on the event's payload and semantics.
-25. **Events `on-*-received` naming** — event handlers use past-tense `on-<event-name>-received.ts` because they handle events that HAVE BEEN received from the other side.
-26. **Events `send*` naming** — event actions use imperative `send<EventName>.ts` because they SEND events to the other side.
-27. **EventConstants — shared between frontend and backend** — all event type strings are defined in a shared `EventConstants` object (aggregated per-feature), never hardcoded as string literals. Both sides import from the same source.
-28. **IntentConstants — per-side** — frontend and backend each have their own `IntentConstants.ts` file (intents are internal per-side, so their constants are unique per side).
-29. **`events/constants.ts` per feature** — each feature's `events/` folder contains a `constants.ts` file defining that feature's event key constants (e.g., `ASK_RESPONSE = "ask.response"`). These are aggregated into the shared `EventConstants`.
-30. **No string literals in Event or Intent flows** — always use `EventConstants.feature.KEY` or `IntentConstants.feature.KEY`. Zero inline strings for event types or intent types.
+1. **EventBridge is the SOLE IPC channel** — frontend and backend communicate ONLY through `EventBridge.postMessage()`. No direct `webview.postMessage()` calls (except the single documented streaming exception). No `vscode.postMessage()` bypasses.
+
+2. **Every event is sent through an action creator** — handlers NEVER call `EventBridge.postMessage()` directly. They call `events/actions/sendEventName()`. Action creators can create multiple Intents.
+
+3. **Every event is received through a handler** — `events/handlers/on-event-name-received.ts` receives the event, creates an Intent, and returns. The handler name matches the event constant name.
+
+4. **ALL state in MST** — zero module-level mutable state. No `let`/`const` mutable variables outside MST stores. State lives in MST models, mutations happen through MST actions.
+
+5. **Handler creates Intent, NOT an Event directly** — handlers process intents and may create new intents or call event action creators. They NEVER call EventBridge directly. Action creators are the sole bridge to the IPC layer.
+
+6. **IntentBus uses fiber-style priority dispatch** — observation (MobX reaction) and execution (scheduler) are decoupled. The reaction feeds a priority queue; the scheduler dispatches from the queue in priority order. High-priority intents (cancel, system failure) preempt lower-priority work.
+
+7. **Handlers yield at explicit points** — long-running handlers (streaming, MCP tool calls) declare yield points where the scheduler can pause the current fiber, dispatch a higher-priority intent, and resume. Yielding is opt-in per handler.
+
+8. **No synchronous bypass for urgent intents** — the priority queue and preemption mechanism replace the current pattern of direct synchronous state mutations for Stop/Cancel. Cancel goes through IntentBus with highest priority.
+
+9. **Intents are per-side** — frontend and backend each have their own IntentBus + IntentStore + IntentConstants. An intent NEVER crosses the EventBridge. Only Events cross.
+
+10. **Registration pattern is NOT monolithic** — no `handler.ts` that registers everything. Each `events/handlers/on-*.ts` file calls its own registration function. Each intent handler file calls `bus.register()` directly. Registration is scattered by design.
+
+11. **One action creator file per Event constant** — `events/actions/send<EventName>.ts` exports one action creator function. The filename matches the Event constant name in PascalCase. The function name is `send<EventName>`.
+
+12. **One handler file per Event/Intent type** — `events/handlers/on-<event-name>-received.ts` handles one event type. Intent handlers follow the same pattern in `handlers/` directories.
+
+13. **Event action creators can create multiple Intents** — not limited to 1:1 mapping. For example, `sendAskToolApproval` creates both a notification Intent and a message broadcast Intent.
+
+14. **Streaming is an EXCEPTION PATTERN** — most chunks bypass MST and IntentBus entirely, going directly `webview.postMessage()` → `StreamingStore`. Only START and END go through MST. This is the only documented exception to rule #1.
+
+15. **Every feature has `events/` folder** — no `events.ts` files anywhere. Events are always in `events/actions/` + `events/handlers/` subdirectories.
+
+16. **All files PascalCase except handlers** — handlers are kebab-case (`on-*-received.ts`) to match event constant naming. Everything else is PascalCase.
+
+17. **Constants are shared between frontend and backend** — EventConstants in a shared location. IntentConstants are per-side (frontend has its own, backend has its own).
+
+18. **Import from barrel** — features export through `index.ts`. Consumers import from the feature barrel, never from deep paths.
+
+19. **Handlers are stateless** — no class instances as handlers. Pure async functions receiving `(intent, ctx)` or `(event, ctx)`.
+
+20. **`ctx` carries root store + intentStore + provider** — the handler context is the only dependency injection. No singleton imports inside handlers.
+
+21. **Notifications have ONLY `"ask"` type** — no `"say"` type exists. All previous "say" content uses Messages with appropriate type discriminators (`"agent"`, `"system"`, `"mcp_tool"`, `"user"`).
+
+22. **Messages use discriminated union** — `UserMessage | AgentMessage | McpToolMessage | SystemMessage` in a single `task.messages` MST collection. Each type has specific fields.
+
+23. **Registration has NO duplication** — each `events/handlers/index.ts` calls individual `on-*-received.ts` setup functions. No duplicate registration logic.
+
+24. **StreamingStore is non-MST** — the `api/streaming/` sub-feature has a non-MST reactive store that exists only during active streaming. Garbage collected when streaming ends.
+
+25. **The MobX reaction layer is OBSERVATION only** — it feeds the scheduler's priority queue. It does NOT execute handlers. Execution is the scheduler's responsibility.
+
+26. **MST snapshots are preserved 100%** — the scheduler calls MST actions (`dispatchIntent`, `suspendIntent`, `resumeIntent`, `markSuccess`, `failIntent`). Every state mutation creates an MST snapshot. The DevTool undo/redo sees the same timeline as before, with additional Suspend/Resume entries for preemption points.
+
+27. **Priority is expressed as buckets, not numeric values** — intents belong to one of: `Critical` (cancel, system failure), `High` (user input, UI events), `Normal` (stream end, notifications), `Low` (log writes, analytics). Buckets are defined in IntentConstants per feature group.
+
+28. **Handlers must be yield-safe** — handlers that yield (via `await`) must handle the case where their intent was suspended and resumed. They check `intentStore.getById(id)?.status` after resume to detect if they were cancelled while suspended.
 
 ---
 
-## NAMING CONVENTIONS (MUST FOLLOW)
+## File naming per concern
 
-### File naming per concern
-
-| Concern                       | Naming Rule                   | Examples                                                                                                                                                                   |
-| ----------------------------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- | -------------------------- | -------------------------------------------------------------------------------- |
-| **MST Store**                 | `store.ts`                    | Feature state model                                                                                                                                                        |
-| **Events folder**             | `events/`                     | Directory with `constants.ts` + `actions/` + `handlers/` subdirs                                                                                                           |
-| **Event constants**           | `constants.ts`                | Feature-specific event key constants, exported for aggregation into shared `EventConstants`                                                                                |
-| **Event action (send)**       | `send<EventName>.ts`          | `sendAskResponse.ts` — calls `EventBridge.postMessage({type: EventConstants.chat.ASK_RESPONSE, ...})`                                                                      |
-| **Event handler (receive)**   | `on-<event-name>-received.ts` | `on-ask-response-received.ts` — receives event via EventBridge using `EventConstants.chat.ASK_RESPONSE`, creates Intent using `IntentConstants.chat.ASK_RESPONSE_RECEIVED` |
-| **Event registration barrel** | `events/handlers/index.ts`    | `register*Events(bus, eventBridge)` — wires all `eventBridge.on()` subscriptions                                                                                           |     | `events/handlers/index.ts` | `register*Events(bus, eventBridge)` — wires all `eventBridge.on()` subscriptions |
-| **Barrel**                    | `index.ts`                    | Re-exports all public API of the feature                                                                                                                                   |
-| **Action Creator**            | `actionName.ts`               | Imperative verb — "do something". Pure function that calls `intentStore.createIntent()`                                                                                    |
-| **Intent Handler**            | `on-<past-event>.ts`          | "on something happened". Registered on IntentBus, dispatched when Intent of matching type is queued                                                                        |
-| **Component** (frontend)      | `ComponentName.tsx`           | PascalCase React component                                                                                                                                                 |
-| **Helper/Utility**            | `helperName.ts`               | camelCase, placed in `helpers/` subfolder of the feature                                                                                                                   |
+| Concern               | Convention                                    | Example                                     |
+| --------------------- | --------------------------------------------- | ------------------------------------------- |
+| MST store             | `store.ts`                                    | `chat/task/store.ts`                        |
+| Feature barrel        | `index.ts`                                    | `chat/task/index.ts`                        |
+| Event handler         | `events/handlers/on-<event-name>-received.ts` | `events/handlers/on-api-request-started.ts` |
+| Event action creator  | `events/actions/send<EventName>.ts`           | `events/actions/sendApiRequest.ts`          |
+| Intent handler        | `handlers/on-<intent-name>.ts`                | `handlers/on-user-message-received.ts`      |
+| Intent action creator | `actions/<IntentName>.ts`                     | `actions/createUserMessage.ts`              |
+| Component             | `<ComponentName>.tsx`                         | `chat/task/components/ChatTree.tsx`         |
+| Constants file        | `constants.ts`                                | `chat/task/constants.ts`                    |
+| Constants type def    | `types.ts`                                    | `chat/task/types.ts`                        |
 
 ### What goes where
 
 ```
-feature/events/
-├── constants.ts          ← Feature-specific event key constants (e.g., ASK_RESPONSE = "ask.response")
-│                           Used by both actions/ and handlers/, aggregated into shared EventConstants
-│
-├── actions/              ← SEND events to the other side (call EventBridge.postMessage)
-│   │                       Uses EventConstants for event type keys
-│   ├── sendAskResponse.ts    export function sendAskResponse(eb: EventBridge, payload)
-│   │                             → eb.postMessage({type: EventConstants.chat.ASK_RESPONSE, ...payload})
-│   ├── sendChatTreePatch.ts  export function sendChatTreePatch(eb: EventBridge, patch)
-│   │                             → eb.postMessage({type: EventConstants.chat.CHAT_TREE_PATCH, ...patch})
-│   └── index.ts              barrel re-exporting all send* functions
-│
-├── handlers/             ← RECEIVE events from the other side (create Intents via IntentBus)
-│   │                       Uses EventConstants for event matching, IntentConstants for intent creation
-│   ├── on-ask-response-received.ts   export function onAskResponseReceived(eb, bus)
-│   │                                     → eb.on(EventConstants.chat.ASK_RESPONSE, msg => {
-│   │                                         bus.createIntent({type: IntentConstants.chat.ASK_RESPONSE_RECEIVED, ...})
-│   │                                         // can create MULTIPLE intents
-│   │                                       })
-│   ├── on-delete-message-received.ts export function onDeleteMessageReceived(eb, bus)
-│   │                                     → eb.on(EventConstants.chat.DELETE_MESSAGE, msg => {
-│   │                                         bus.createIntent({type: IntentConstants.chat.MESSAGE_DELETE_REQUESTED})
-│   │                                       })
-│   └── index.ts              ← register*Events(bus, eventBridge) — calls each on-* function
-│
-└── index.ts              ← barrel, re-exports constants, actions, AND registration function
-
-feature/actions/              ← Action creators (imperative verb: do something, local logic)
-│                               Uses IntentConstants for intent type keys
-│   ├── doSomething.ts        export function doSomething(...) { intentStore.createIntent({type: IntentConstants.feature.SOMETHING, ...}) }
-│   └── index.ts
-
-feature/handlers/             ← Intent handlers (on-<past-event>: react to something that happened)
-│                               Uses IntentConstants for intent type matching
-│   ├── on-message-received.ts    export function onMessageReceived(intent, ctx) { ... }
-│   ├── helpers/                  ← Helper/utility functions used by handlers
-│   │   ├── backoff.ts
-│   │   └── index.ts
-│   └── index.ts                 ← register*Handlers(bus)
-```
-
-feature/actions/ ← Action creators (imperative verb: do something, local logic)
-│ ├── doSomething.ts export function doSomething(...) { intentStore.createIntent(...) }
-│ └── index.ts
-
-feature/handlers/ ← Intent handlers (on-<past-event>: react to something that happened)
-│ ├── on-message-received.ts export function onMessageReceived(intent, ctx) { ... }
-│ ├── helpers/ ← Helper/utility functions used by handlers
-│ │ ├── backoff.ts
-│ │ └── index.ts
-│ └── index.ts ← register\*Handlers(bus)
-
-components/ (frontend only) ← React UI components
-├── MessageArea.tsx
-└── index.ts
-
+feature/
+├── store.ts                    # MST store model (MUST be named store.ts)
+├── index.ts                    # Barrel — re-exports public API
+├── types.ts                    # TypeScript types/interfaces (if not in store)
+├── constants.ts                # Feature-specific constants (NOT EventConstants or IntentConstants)
+├── events/
+│   ├── actions/
+│   │   ├── send<EventName>.ts  # ONE action creator per Event constant
+│   │   └── index.ts            # Barrel
+│   └── handlers/
+│       ├── on-<event-name>-received.ts  # ONE handler per Event constant
+│       └── index.ts            # Barrel — calls individual setup functions
+├── actions/
+│   └── <IntentName>.ts         # Pure action creators that create Intents
+├── handlers/
+│   ├── on-<intent-name>.ts     # ONE handler per Intent type
+│   └── index.ts                # Barrel — calls individual bus.register() calls
+└── components/
+    └── <ComponentName>.tsx      # React components
 ```
 
 ### Action creator vs Handler — how to tell
 
-| Criterion | Event Action (events/actions/) | Event Handler (events/handlers/) | Action Creator (actions/) | Intent Handler (handlers/) |
-|-----------|-------------------------------|----------------------------------|--------------------------|---------------------------|
-| **Role** | **SENDER** — sends events to the other side | **RECEIVER** — receives events from the other side | **CREATOR** — creates Intents locally | **PROCESSOR** — processes an Intent |
-| **Triggers** | Called by local handlers needing cross-side sync | Incoming event from other side (EventBridge.on) | App code, other action creators, handlers | IntentBus dispatch reaction |
-| **Purpose** | Send event to other side via EventBridge (`events/actions` sends — that's their job) | Receive event from other side, create Intents (`events/handlers` receives — that's their job) | Create Intents for local logic | Process an Intent |
-| **Naming** | `send<Event>.ts` — imperative + "send" prefix | `on-<event>-received.ts` — past tense, "received" suffix | Imperative verb: `startTask`, `sendMessage` | Past event: `on-task-started`, `on-message-received` |
-| **Uses constants** | `EventConstants.feature.EVENT_KEY` for postMessage type | `EventConstants.feature.EVENT_KEY` for eventBridge.on() + `IntentConstants.feature.INTENT_KEY` for createIntent | `IntentConstants.feature.INTENT_KEY` for createIntent | `IntentConstants.feature.INTENT_KEY` for registration |
-| **Calls** | `EventBridge.postMessage(...)` | `intentStore.createIntent(...)` | `intentStore.createIntent(...)` | Reads intent payload, calls event actions or action creators |
-| **Return** | `void` | `void` (creates Intents) | `void` (creates Intents) | `Promise<void>` (processes intent) |
-| **Can create multiple Intents** | N/A (sends one event) | Yes (one incoming event → multiple Intents) | Yes | No (one handler = one intent processed) |
-| **Has side effects** | No (only sends IPC) | No (only creates Intents) | No (only creates Intents) | Yes (calls APIs, writes files, etc.) |
-| **File pattern** | `events/actions/send<Name>.ts` | `events/handlers/on-<name>-received.ts` | `actions/<name>.ts` | `handlers/on-<past-event>.ts` |
+|                  | Action creator                                               | Handler                                                 |
+| ---------------- | ------------------------------------------------------------ | ------------------------------------------------------- |
+| **Location**     | `actions/` directory                                         | `handlers/` directory                                   |
+| **What it does** | Creates one or more Intents via `intentStore.createIntent()` | Receives an Intent (or Event) and performs side effects |
+| **Side effects** | None — pure intent creation                                  | Allowed — MST mutations, event sending, IO              |
+| **Returns**      | `void` (fire-and-forget)                                     | `Promise<void>` (async handler)                         |
+| **Naming**       | PascalCase filename matching Intent name                     | `on-<intent-name>.ts`                                   |
 
 ### Naming examples
 
-**WRONG ❌** (mixed concerns):
-```
-
-events/on-ask-response.ts ← Wrong! Flat file, no actions|handlers subpattern AND no "received" suffix
-events/on-response-received.ts ← Past tense but in events/ without subpattern
-events/sendAskResponse.ts ← Bare file in events/ — should be in events/actions/
-actions/handleResponse.ts ← "handle" sounds like a handler, but it's in actions/
-actions/agent/attemptApiRequest.ts ← Called by IntentBus (it's a handler!), not an action creator
-events/events.ts ← Should be events/ folder, not events.ts file
-
-```
-
-**CORRECT ✅**:
-```
-
-events/actions/sendAskResponse.ts ← Event action — sends "ask.response" to other side
-events/actions/sendChatTreePatch.ts ← Event action — sends "chat.tree.patch" to other side
-events/handlers/on-ask-response-received.ts ← Event handler — receives "ask.response", creates Intent
-events/handlers/on-delete-message-received.ts ← Event handler — receives "delete.message", creates Intent
-events/actions/sendChatStarted.ts ← Event action — sends "chat.started" to other side
-actions/respondToAsk.ts ← Action creator — local intent creation
-actions/approveAsk.ts ← Action creator — local intent creation
-handlers/agent/on-api-request-started.ts ← Handler (was attemptApiRequest.ts)
-handlers/agent/on-stream-chunk-received.ts ← Handler (was streamChunkHandlers.ts)
-
-```
+| Intent Type                      | Action Creator File                         | Handler File                  |
+| -------------------------------- | ------------------------------------------- | ----------------------------- |
+| `notification.ask.tool_approval` | `askToolApproval.ts`                        | `on-notification-persist.ts`  |
+| `message.agent.broadcast`        | `agentBroadcast.ts`                         | `on-agent-broadcast.ts`       |
+| `user.message.received`          | N/A (created by Event handler)              | `on-user-message-received.ts` |
+| `system.failure`                 | N/A (created by IntentBus on handler error) | `on-system-failure.ts`        |
 
 ---
 
-## STANDARD FEATURE PATTERN
-
-### Backend feature
+## Backend feature
 
 ```
-
-feature/
-├── store.ts MST model. Define state, actions, views, volatility.
-├── events/ Cross-side communication layer.
-│ ├── constants.ts Feature-specific event key constants (e.g., ASK_RESPONSE = "ask.response")
-│ │ Exported for aggregation into shared EventConstants
-│ ├── actions/ Send events TO the frontend (via EventBridge.postMessage).
-│ │ │ Uses EventConstants.feature.KEY for event type
-│ │ ├── sendSomething.ts export function sendSomething(eb: EventBridge, payload)
-│ │ │ → eb.postMessage({type: EventConstants.feature.SOMETHING, ...payload})
-│ │ └── index.ts
-│ ├── handlers/ Handle events FROM the frontend (create Intents).
-│ │ │ Uses EventConstants.feature.KEY for matching, IntentConstants for intent type
-│ │ ├── on-event-received.ts export function onEventReceived(eb: EventBridge, bus: IntentBus)
-│ │ │ → eb.on(EventConstants.feature.KEY, msg => bus.createIntent({type: IntentConstants.feature.INTENT, ...}))
-│ │ └── index.ts ← register*Events(bus, eventBridge)
-│ └── index.ts Barrel. Re-exports constants, all send* actions + register*Events function.
-├── index.ts Barrel. Re-export public symbols.
-├── actions/ Action creators. Pure functions that create Intents.
-│ │ Uses IntentConstants.feature.KEY for intent type
-│ ├── doSomething.ts
-│ └── index.ts
-├── handlers/ Intent handlers. Registered on IntentBus via `register*Handlers(bus)`.
-│ │ Uses IntentConstants.feature.KEY for registration
-│ ├── on-something-happened.ts
-│ ├── helpers/ (optional) Helper/utility functions.
-│ └── index.ts
-[sub-feature]/ Same pattern recursively (store, events/, index, actions/, handlers/).
-
-````
+src/features/<feature-name>/
+├── store.ts
+├── index.ts
+├── types.ts              (optional)
+├── constants.ts           (optional)
+├── events/
+│   ├── actions/
+│   │   ├── send<EventName>.ts
+│   │   └── index.ts
+│   └── handlers/
+│       ├── on-<event-name>-received.ts
+│       └── index.ts
+├── actions/
+│   ├── <IntentName>.ts
+│   └── index.ts
+├── handlers/
+│   ├── on-<intent-name>.ts
+│   └── index.ts
+├── components/           (only if feature renders in webview — rare for backend)
+└── utils/                (optional, non-MST helpers)
+```
 
 ### How Event Registration Works
 
-Each feature exports a registration function that wires up incoming events from EventBridge to the Intent system.
-**All event/intent type keys use constants — never string literals.**
+When an Event arrives from the EventBridge, it follows this flow:
 
-```typescript
-// events/constants.ts — feature-specific event key constants
-export const chatEventConstants = {
-  ASK_RESPONSE: "ask.response" as const,
-  DELETE_MESSAGE: "delete.message" as const,
-  DELETE_MESSAGE_CONFIRM: "delete.message.confirm" as const,
-  SUBMIT_EDITED_MESSAGE: "submit.edited.message" as const,
-  EDIT_MESSAGE_CONFIRM: "edit.message.confirm" as const,
-} as const
-````
-
-```typescript
-// events/handlers/on-ask-response-received.ts
-import type { EventBridge } from "../../../foundation/webview/EventBridge"
-import type { IntentBus } from "../../../intents/bus"
-import { EventConstants } from "@jabberwock/types" // shared between frontend and backend
-import { IntentConstants } from "../../../intents/constants" // per-side
-
-export function onAskResponseReceived(eventBridge: EventBridge, bus: IntentBus): void {
-	eventBridge.on(EventConstants.chat.ASK_RESPONSE, (msg) => {
-		// Event handler can create MULTIPLE intents from one event
-		bus.createIntent({
-			type: IntentConstants.chat.ASK_RESPONSE_RECEIVED,
-			payload: msg,
-		})
-
-		// Additional context — second intent from the same event
-		if (msg.text) {
-			bus.createIntent({
-				type: IntentConstants.chat.MESSAGE_DISPLAY,
-				payload: { text: msg.text },
-			})
-		}
-	})
-}
+```
+EventBridge receives message
+  → routes to events/handlers/on-<event-name>-received.ts
+    → handler creates Intent in IntentStore
+      → IntentBus picks it up (via MobX reaction)
+        → scheduler dispatches to feature's handlers/on-<intent-name>.ts
 ```
 
-```typescript
-// events/actions/sendAskResponse.ts
-import type { EventBridge } from "../../../foundation/webview/EventBridge"
-import type { AskResponseValue } from "@jabberwock/types"
-import { EventConstants } from "@jabberwock/types"
-
-export function sendAskResponse(
-	eventBridge: EventBridge,
-	payload: { askResponse: AskResponseValue; text?: string; images?: string[] },
-): void {
-	eventBridge.postMessage({ type: EventConstants.chat.ASK_RESPONSE, ...payload })
-}
-```
+Each `events/handlers/index.ts` is responsible for registering its own event handlers:
 
 ```typescript
 // events/handlers/index.ts
-import type { EventBridge } from "../../../foundation/webview/EventBridge"
-import type { IntentBus } from "../../../intents/bus"
+import { setupOnApiRequestStarted } from "./on-api-request-started"
+import { setupOnStreamChunkReceived } from "./on-stream-chunk-received"
 
-export function registerChatEvents(eventBridge: EventBridge, bus: IntentBus): void {
-	onAskResponseReceived(eventBridge, bus)
-	onDeleteMessageReceived(eventBridge, bus)
-	// ... each on-* handler registers its eventBridge.on() subscription
+export function registerEventHandlers(bus: EventBridge, intentStore: IIntentStore): void {
+	setupOnApiRequestStarted(bus, intentStore)
+	setupOnStreamChunkReceived(bus, intentStore)
 }
 ```
 
+Each `handlers/index.ts` registers its intent handlers:
+
 ```typescript
-// events/index.ts
-// Barrel — re-exports constants, send* functions, and registration
-export { chatEventConstants } from "./constants"
-export { sendAskResponse } from "./actions/sendAskResponse"
-export { sendChatTreePatch } from "./actions/sendChatTreePatch"
-// ...
-export { registerChatEvents } from "./handlers/index"
+// handlers/index.ts
+import { registerOnUserMessageReceived } from "./on-user-message-received"
+import { registerOnAgentResponseReceived } from "./on-agent-response-received"
+
+export function registerIntentHandlers(bus: IntentBus): void {
+	registerOnUserMessageReceived(bus)
+	registerOnAgentResponseReceived(bus)
+}
 ```
-
-### Frontend feature
-
-```
-feature/
-├── store.ts            MST model (same as backend).
-├── events/             Cross-side communication layer (mirrors backend pattern).
-│   ├── constants.ts    Feature-specific event key constants (mirrors backend constants.ts)
-│   │                     Exported for aggregation into shared EventConstants
-│   ├── actions/        Send events TO the backend (via EventBridge.postMessage).
-│   │   │                 Uses EventConstants.feature.KEY for event type
-│   │   ├── sendAskResponse.ts      export function sendAskResponse(eb, payload)
-│   │   └── index.ts
-│   ├── handlers/       Handle events FROM the backend (create Intents).
-│   │   │                 Uses EventConstants.feature.KEY for matching, IntentConstants for intent type
-│   │   ├── on-chat-tree-snapshot-received.ts   export function onChatTreeSnapshotReceived(eb, bus)
-│   │   │                                           → eb.on(EventConstants.chat.CHAT_TREE_SNAPSHOT, msg => bus.createIntent({...}))
-│   │   └── index.ts               ← register*Events(bus, eventBridge)
-│   └── index.ts         Barrel. Re-exports constants, actions, and registration.
-├── index.ts            Barrel.
-├── actions/            Action creators (same pattern as backend).
-├── handlers/           Intent handlers (same pattern as backend).
-├── components/         React components. Sub-dirs for logical grouping.
-│   ├── FeatureView.tsx
-│   └── index.ts
-[sub-feature]/          Same pattern recursively.
-```
-
-**Important**: The frontend's `events/actions/` and `events/handlers/` mirror the backend's but in reverse direction:
-
-- Frontend `events/actions/send*()` → calls `EventBridge.postMessage()` to send TO the backend
-- Frontend `events/handlers/on-*-received()` → listens for events FROM the backend (EventBridge received backend messages)
 
 ---
 
-## 🔴 THE 4 ENTITIES — DEFINITION \(MUST READ\)
+## Frontend feature
 
-These are the ONLY 4 communication entities in the system\. Everything maps to one of them\.
+```
+webview-ui/src/features/<feature-name>/
+├── store.ts
+├── index.ts
+├── types.ts              (optional)
+├── constants.ts           (optional)
+├── events/
+│   ├── actions/
+│   │   ├── send<EventName>.ts
+│   │   └── index.ts
+│   └── handlers/
+│       ├── on-<event-name>-received.ts
+│       └── index.ts
+├── actions/
+│   ├── <IntentType>.ts
+│   └── index.ts
+├── handlers/
+│   ├── on-<intent-name>.ts
+│   └── index.ts
+└── components/
+    └── <ComponentName>.tsx
+```
 
-### 1\. 🎯 Intent — Internal reactive communication \(PER\-SIDE\)
+---
 
-\*\*"What needs to be done\."\*\* Based on reactive programming\. Created via `intentStore\.createIntent\(\)` and processed by handlers registered per feature\.
+## 🔴 THE 4 ENTITIES — DEFINITION (MUST READ)
 
-- `IntentStore` stores pending intents \(id, type, payload, status, createdAt, traceId, parentId\)
-- `IntentBus` observes the store via MobX reaction, dispatches to handlers by `intent\.type`
-- Handlers live in feature `handlers/` dirs, registered via `register\*Handlers\(bus\)` at startup
-- Intents are \*\*per\-side\*\*: frontend has its own IntentBus\+IntentStore, backend has its own\. Intents NEVER cross EventBridge\.
-- Examples: `user\.message\.received`, `tool\.execution\.required`, `ask\.notification\.created`, `message\.display\.requested`
+### 1. 🎯 Intent — Internal reactive communication (PER-SIDE)
 
-### 2\. 📣 Notification — Communication with user \(ONLY "ask"\)
+| Property        | Value                                                                                                                       |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| **Scope**       | Per-side (frontend OR backend, never both)                                                                                  |
+| **Transport**   | In-memory MST store + MobX reaction                                                                                         |
+| **Purpose**     | Internal reactive communication within one side                                                                             |
+| **Creation**    | `intentStore.createIntent()` from action creators                                                                           |
+| **Consumption** | IntentBus dispatches to registered handlers                                                                                 |
+| **Lifecycle**   | `Queued → Processing → Success/Failed` (or `Queued → Processing → Suspended → Processing → Success/Failed` with preemption) |
+| **Persistence** | MST store — survives within session, not persisted across sessions                                                          |
+| **Testing**     | Direct handler invocation with mock intent                                                                                  |
 
-\*\*UI signals requiring user action\.\*\* Dialog, popup, log, error, ask question\.
+An Intent is a reactive entity stored in the MST IntentStore. When an Intent is created with `Queued` status, the IntentBus's MobX reaction detects it and feeds it into a **priority queue**. The scheduler dequeues intents by priority bucket and dispatches them to handlers.
 
-- Lives in `task/notifications/` as MST sub\-model \(NOT at `chat/` level\)
-- Types: `"ask"` \(user action required — approve/reject tool, follow\-up question\), `"vscode"` \(VS Code popup/modal\), `"log"` \(console\)
-- \*\*NO "say" type\*\* — all previous "say" content migrates to `Messages` with appropriate type \(see Message\)
-- Created via action creators: `ask\(\)` creates 3 Intents \(ask\.notification \+ message\.display \+ log\.write\)
+Intents have a **priority bucket** assigned at creation time based on their type. Priority buckets are defined in IntentConstants and determine scheduling order:
 
-### 3\. 💬 Message — Chat messages in task context \(SINGLE COLLECTION, DISCRIMINATED\)
+| Bucket     | Intent types                                                                 | Behavior                                                      |
+| ---------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `Critical` | `task.cancel.*`, `system.failure`                                            | Always dispatched immediately. Preempts current fiber.        |
+| `High`     | `user.message.received`, `ask.response.received`, `webview.event`            | Dispatched before any Normal/Low intent.                      |
+| `Normal`   | `message.*.broadcast`, `notification.*`, `settings.*`, `api.streaming.ended` | Default bucket. Normal FIFO within bucket.                    |
+| `Low`      | `log.write`, `diagnostics.*`, analytics                                      | Dispatched only when no Critical/High/Normal intents pending. |
 
-\*\*What's visible in the chat feed\.\*\* This is the \*\*single\*\* collection for ALL chat content — user messages, agent responses, MCP tool calls/results, system messages, streaming text\.
+**Intent lifecycle with preemption:**
 
-- Lives in `task/messages/` as MST sub\-model
-- \*\*Common base fields\*\* \(ALL message types\):
-    ```typescript
-    interface MessageBase {
-    	ts: number // timestamp — single ordering field
-    	type: "user" | "agent" | "mcp_tool" | "system"
-    	text?: string // partial during streaming, complete when done
-    	images?: string[]
-    }
-    ```
-- \*\*Unique fields per type\*\* \(discriminated by `type`\):
+```
+createIntent(priority=Critical)
+  → MobX reaction enqueues into priority queue
+    → scheduler: dequeue highest-priority item
+      → dispatchIntent(id)        [MST action → snapshot]
+        → handler runs as fiber
+          → yield point
+            → check: higher-priority work pending?
+              → YES: suspendIntent(id)  [MST action → snapshot]
+                → scheduler dispatches higher-priority intent
+                  → resumeIntent(id)    [MST action → snapshot]
+                    → handler resumes
+          → markSuccess(id)       [MST action → snapshot]
+```
 
-    ```typescript
-    interface UserMessage extends MessageBase {
-    	type: "user"
-    	// no unique fields — user sends text + images directly
-    }
+**Intent statuses:**
 
-    interface AgentMessage extends MessageBase {
-    	type: "agent"
-    	role: "agent"
-    	toolCalls: ToolCall[]
-    	toolResults: ToolResult[]
-    	cost: number
-    	tokensUsed: TokenCount
-    	finishReason: "completed" | "error" | "cancelled"
-    }
+| Status       | Meaning                                     | MST action                             |
+| ------------ | ------------------------------------------- | -------------------------------------- |
+| `Queued`     | Created, waiting for scheduler              | `createIntent()`                       |
+| `Processing` | Scheduler dispatched to handler             | `setProcessing()` / `dispatchIntent()` |
+| `Suspended`  | Handler preempted by higher-priority intent | `suspendIntent()`                      |
+| `Success`    | Handler completed successfully              | `markSuccess()`                        |
+| `Failed`     | Handler threw an error                      | `failIntent()`                         |
 
-    interface McpToolMessage extends MessageBase {
-    	type: "mcp_tool"
-    	serverName: string
-    	toolName: string
-    	input: McpToolInput
-    	output: McpToolOutput
-    	isError: boolean
-    }
+### 2. 📣 Notification — Communication with user (ONLY "ask")
 
-    interface SystemMessage extends MessageBase {
-    	type: "system"
-    	subsystem: "checkpoint" | "condense" | "task_control"
-    }
+| Property        | Value                                                            |
+| --------------- | ---------------------------------------------------------------- |
+| **Scope**       | Per-side (frontend receives, backend creates)                    |
+| **Transport**   | Event (backend → frontend via EventBridge)                       |
+| **Purpose**     | Ask user for approval/input (tool approval, follow-up, sub-task) |
+| **Creation**    | `ask*()` action creators in `chat/task/notifications/actions/`   |
+| **Consumption** | Frontend renders notification dialog                             |
+| **Type**        | Always `"ask"` — NEVER `"say"`                                   |
+| **Persistence** | MST store — `task.notifications` collection                      |
 
-    type ChatMessage = UserMessage | AgentMessage | McpToolMessage | SystemMessage
-    ```
+### 3. 💬 Message — Chat messages in task context (SINGLE COLLECTION, DISCRIMINATED)
 
-- \*\*Streaming\*\*: During active streaming, `AgentMessage\.text` contains partial text\. Frontend renders it reactively from the MST store \(`text` updates on each patch\)\. The MST store receives only 2 intents: `streaming_started` \(creates AgentMessage with text=""\) and `streaming_ended` \(finalizes text, sets finishReason\)\. Between them, chunks arrive via direct `postMessage` \(see Streaming Architecture\)\.
-- \*\*No separate collection for "say"\*\* — say\(\) is refactored into 4 action creators:
-    - `agentBroadcast\(\)` → creates `AgentMessage` \(type: "agent"\)
-    - `systemBroadcast\(\)` → creates `SystemMessage` \(type: "system"\)
-    - `mcpBroadcast\(\)` → creates `McpToolMessage` \(type: "mcp_tool"\)
-    - `userBroadcast\(\)` → creates `UserMessage` \(type: "user"\)
+| Property           | Value                                                               |
+| ------------------ | ------------------------------------------------------------------- | --------- | ------------ | ---------- |
+| **Scope**          | Per-side (frontend MST mirrors backend MST)                         |
+| **Transport**      | Event (backend → frontend via `sendChatTreePatch`)                  |
+| **Purpose**        | Display chat messages in the task feed                              |
+| **Creation**       | `*Broadcast()` action creators in `chat/task/messages/actions/say/` |
+| **Consumption**    | React renders `ChatTree` from `task.messages`                       |
+| **Discriminators** | `"user"`                                                            | `"agent"` | `"mcp_tool"` | `"system"` |
+| **Persistence**    | MST store — `task.messages` collection                              |
 
-### 4\. 🔄 Event — Frontend ↔ Backend communication ONLY
+### 4. 🔄 Event — Frontend ↔ Backend communication ONLY
 
-**Typed IPC between webview and backend.** Serialized, sent via `postMessage()`.
-
-- Defined in `packages/types/src/event-registry.ts`
-- **EventConstants** — shared between frontend and backend, aggregated from per-feature `events/constants.ts` files
-- **Events NEVER use string literals** — always reference `EventConstants.feature.KEY`
-- Transported by `EventBridge` class (sole IPC channel)
-- **Events layer does ALL cross-side communication**:
-    - `events/actions/send*()` — **SEND** events TO the other side (call `EventBridge.postMessage` with `EventConstants.feature.KEY`)
-    - `events/handlers/on-*-received()` — **RECEIVE** events FROM the other side (match with `EventConstants.feature.KEY`, create Intents with `IntentConstants.feature.KEY`)
-- **Local handlers NEVER call EventBridge directly** — they call `events/actions/send*()` functions
-- **Events can create multiple Intents** — a single incoming event may trigger multiple Intents
-- **Unified style**: Events actions send, events handlers receive. Same pattern as Intents (actions create, handlers process).
+| Property        | Value                                                        |
+| --------------- | ------------------------------------------------------------ |
+| **Scope**       | Cross-side (frontend → backend OR backend → frontend)        |
+| **Transport**   | EventBridge.postMessage()                                    |
+| **Purpose**     | Cross-side communication                                     |
+| **Creation**    | `events/actions/send<EventName>()` from intent handlers      |
+| **Consumption** | `events/handlers/on-<event-name>-received.ts` creates Intent |
 
 ---
 
 ### Architecture diagram — Two IntentBuses, One EventBridge, Events Layer
 
-> **UNIFIED STYLE**: `events/actions` = **SENDER** (sole job: call EventBridge.postMessage). `events/handlers` = **RECEIVER** (sole job: subscribe to EventBridge.on, create Intents). Same pattern for Intents (actions create, handlers process). Handlers call action functions; action functions perform the send/receive.
+```mermaid
+flowchart TB
+    subgraph FE["FRONTEND webview"]
+        FEUI["React UI"]
 
-```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│  FRONTEND (webview-ui)                                                        │
-│                                                                               │
-│  ┌─ EVENTS LAYER ─────────────────────────────────────────────────────┐      │
-│  │  RECEIVER: events/handlers/on-*-received.ts                        │      │
-│  │    subscribes to EventBridge.on(EventConstants.backend.KEY)         │      │
-│  │    creates Intent({type: IntentConstants.frontend.KEY})             │      │
-│  │    can create MULTIPLE intents from one event                       │      │
-│  │                                                                     │      │
-│  │  SENDER: events/actions/send*()  ← sole job: EventBridge.postMessage│      │
-│  │    called by local handlers when cross-side sync needed             │      │
-│  │    uses EventConstants.chat.KEY for event type                      │      │
-│  └─────────────────────────────────────────────────────────────────────┘      │
-│       ↓                                                                       │
-│  IntentBus (frontend) — dispatches to local handlers                          │
-│       ↓                                                                       │
-│  ┌───┼───────┐                                                                │
-│  ↓   ↓       ↓                                                                │
-│ notif  msg  settings                                                           │
-│ handlers handlers handlers                                                     │
-│       ↓                                                                        │
-│  Handler needs to notify backend:                                              │
-│    → calls events/actions/sendChatTreePatch(eb, payload)  ← calls ACTION      │
-│      events/actions SEND ─ that is their job                                  │
-│                                                                                 │
-│  User Action → Action Creator (actions/) — creates Intent                      │
-│    └─ IntentBus → handler → events/actions/send*(eb, payload) ────────────┐   │
-│                                                                            │   │
-│  THESE NEVER CALL EventBridge DIRECTLY:                                    │   │
-│    ❌ handlers/on-message-received.ts  (calls events/actions/send*() instead)  │
-│    ❌ actions/sendMessage.ts                                                  │
-│    ✅ events/actions/sendChatTreePatch.ts  (ONLY these call postMessage)      │
-└──────────────────────────────────────────────────────────────────────┘───────┘ │
-                                                                     │           │
-                                                                     ▼           │
-┌────────────────────────────────────────────────────────────────────┘─────────┐ │
-│  BACKEND (extension)                                                           │ │
-│                                                                                │ │
-│  ┌─ EVENTS LAYER ───────────────────────────────────────────────────────┐    │ │
-│  │  RECEIVER: events/handlers/on-*-received.ts                           │    │ │
-│  │    subscribes to EventBridge.on(EventConstants.frontend.KEY)          │    │ │
-│  │    creates Intent({type: IntentConstants.backend.KEY})                │    │ │
-│  │    can create MULTIPLE intents from one event                         │    │ │
-│  │                                                                       │    │ │
-│  │  SENDER: events/actions/send*()  ← sole job: EventBridge.postMessage │    │ │
-│  │    called by local handlers when cross-side sync needed               │    │ │
-│  │    uses EventConstants.backend.KEY for event type                     │    │ │
-│  └───────────────────────────────────────────────────────────────────────┘    │ │
-│       ↓                                                                       │ │
-│  IntentBus (backend) — dispatches to local handlers                           │ │
-│       ↓                                                                       │ │
-│  ┌───┼───────┐                                                                │ │
-│  ↓   ↓       ↓                                                                │ │
-│ task  msg  settings                                                           │ │
-│ handlers handlers handlers                                                    │ │
-│       ↓                                                                       │ │
-│  Handler needs to notify frontend:                                            │ │
-│    → calls events/actions/sendState(eb, payload)  ← calls ACTION              │ │
-│      events/actions SEND ─ that is their job                                  │ │
-│                                                                                │ │
-│  Action Creator (actions/) — creates Intent                                    │ │
-│    └─ IntentBus → handler → events/actions/send*(eb, payload) ────────────────┘ │
-│                                                                                  │ │
-│  THESE NEVER CALL EventBridge DIRECTLY:                                          │ │
-│    ❌ handlers/on-task-created.ts  (calls events/actions/send*() instead)         │ │
-│    ❌ actions/startTask.ts                                                         │ │
-│    ✅ events/actions/sendState.ts  (ONLY these call postMessage)                  │ │
-└────────────────────────────────────────────────────────────────────────────────────┘
+        subgraph FEIB["Frontend IntentBus"]
+            direction LR
+            FEReact["MobX reaction\nobservation only\nnon-blocking"]
+            FEPQ["Priority Queue\nCritical > High > Normal > Low"]
+            FESched["Fiber Scheduler\nmicrotask loop"]
+        end
+
+        FEIntentStore["MST IntentStore\nfrontend intents"]
+        FEHandlers["Intent Handlers\nhandlers/on-*.ts"]
+        FEEvents["Event Action Creators\nevents/actions/send*.ts"]
+
+        FEUI --> |"creates Intent"| FEIntentStore
+        FEReact --> |"feeds"| FEPQ
+        FEPQ --> |"dequeues by priority"| FESched
+        FESched --> |"dispatchIntent/suspend/resume"| FEIntentStore
+        FESched --> |"runs"| FEHandlers
+        FEHandlers --> |"calls"| FEEvents
+    end
+
+    subgraph EB["EventBridge\nsole IPC channel"]
+        EBSend["postMessage type + payload"]
+        EBRcv["routeExtensionMessage"]
+    end
+
+    subgraph BE["BACKEND extension host"]
+        subgraph BEIB["Backend IntentBus"]
+            direction LR
+            BEReact["MobX reaction\nobservation only\nnon-blocking"]
+            BEPQ["Priority Queue\nCritical > High > Normal > Low"]
+            BESched["Fiber Scheduler\nmicrotask loop"]
+        end
+
+        BEIntentStore["MST IntentStore\nbackend intents"]
+        BEHandlers["Intent Handlers\nhandlers/on-*.ts"]
+        BEEvents["Event Action Creators\nevents/actions/send*.ts"]
+        BEMST["Backend MST\nrootStore.tasks etc."]
+
+        BEMST --> |"creates Intent"| BEIntentStore
+        BEReact --> |"feeds"| BEPQ
+        BEPQ --> |"dequeues by priority"| BESched
+        BESched --> |"dispatchIntent/suspend/resume"| BEIntentStore
+        BESched --> |"runs"| BEHandlers
+        BEHandlers --> |"calls"| BEEvents
+    end
+
+    FEEvents --> |"postMessage"| EBSend
+    EBRcv --> |"creates Intent"| BEIntentStore
+    BEEvents --> |"postMessage"| EBSend
+    EBRcv --> |"creates Intent"| FEIntentStore
+
+    subgraph STREAMING["Streaming EXCEPTION"]
+        STREAM["sendStreamChunk.ts"]
+        STREAM2["StreamingStore\nnon-MST"]
+        STREAM --> |"direct webview.postMessage"| STREAM2
+    end
+
+    BEHandlers -.-> |"only for streaming chunks"| STREAM
 ```
 
 ### Key flow rules
 
-1\. \*\*Frontend → Backend\*\*: User action → Action Creator \(actions/\) creates Intents → IntentBus dispatches → Handlers \(handlers/\) run → Handler calls `events/actions/send\*\(eb, payload\)` → `EventBridge\.postMessage\(EVENT\)` → Backend `events/handlers/on-\*-received\.ts` → creates Intent → IntentBus → local Handlers
-2\. \*\*Backend → Frontend\*\*: Backend handler → calls `events/actions/send\*\(eb, payload\)` → `EventBridge\.postMessage\(EVENT\)` → Frontend `events/handlers/on-\*-received\.ts` → creates Intent → IntentBus → Handlers → UI re\-render
-3\. \*\*Intents NEVER cross EventBridge\*\* — only Events do
-4\. \*\*EventBridge is a pure pipe\*\* — `postMessageToWebview\(\)` / `onDidReceiveMessage\(\)\)` is its only responsibility
-5\. \*\*Local handlers NEVER call EventBridge directly\*\* — they call `events/actions/send\*\(\)` functions
-6\. \*\*`events/handlers/on-\*-received\.ts` files are sync action creators\*\* — they receive events FROM the other side and create Intents\. They can create MULTIPLE intents from one event\.
-7\. \*\*Action Creators \(actions/\) create Intents\*\* — they are NOT callbacks\. One action creator can create multiple Intents\.
-8\. \*\*STREAMING EXCEPTION — `events/actions/sendStreamChunk\(\)` bypasses EventConstants\*\*: See \[Streaming Architecture\]\(\#streaming\-architecture\) below\. This is the SINGLE documented exception to rule \#5\.
+```
+FRONTEND:
+  User action → action creator → intentStore.createIntent()
+    → Frontend IntentBus reaction (non-blocking) → priority queue
+      → scheduler dispatches → handler → events/actions/sendEvent()
+        → EventBridge.postMessage()
+
+BACKEND:
+  EventBridge receives event → events/handlers/on-*-received.ts
+    → intentStore.createIntent()
+      → Backend IntentBus reaction (non-blocking) → priority queue
+        → scheduler dispatches → handler
+          → MAY create more intents (chaining)
+          → MAY call events/actions/sendEvent() (to send result to frontend)
+          → MAY yield (yield point where scheduler can preempt)
+```
+
+**CRITICAL RULES:**
+
+1. Handler NEVER calls EventBridge.postMessage directly. It calls `events/actions/sendEvent()`.
+2. Handler CAN create multiple intents (chaining).
+3. Handler CANNOT assume it runs to completion without preemption — after a yield point, the intent may have been suspended or even cancelled.
+4. The streaming exception (`sendStreamChunk.ts`) is the ONLY place where `webview.postMessage()` is called from handler context.
+5. Cancel intents are `Critical` priority — they always jump the queue and preempt the current fiber at the next yield point.
+6. The MobX reaction is synchronous and non-blocking — it only feeds the queue, never awaits handlers.
 
 ---
 
-## 📡 Streaming Architecture \(EXCEPTION PATTERN\)
-
-The streaming architecture is the \*\*single documented exception\*\* to rule \#5 \("local handlers NEVER call EventBridge directly"\)\. It exists because:
-
-1\. \*\*VS Code limitation\*\*: The only IPC channel between Extension Host and Webview is `postMessage\(\)` — no SharedArrayBuffer, no shared memory, no direct byte streaming across processes
-2\. \*\*Per\-byte chunks\*\*: API responses arrive 1\-5 bytes at a time — dispatching an Intent per byte would spam the MST store with thousands of updates
-3\. \*\*UI smoothness\*\*: Debounce/heartbeat approaches were rejected because they "дёргаются" \(jerk\) in the UI
+## 📡 Streaming Architecture (EXCEPTION PATTERN)
 
 ### Architecture Overview
 
-```
-                     BACKEND \(extension host\)                              FRONTEND \(webview\)
-                     ──────────────────────                               ──────────────────
+Streaming is the ONLY exception to the rule "handler calls action creator, action creator calls EventBridge." This is a deliberate, documented optimization to avoid creating an MST snapshot for every 1-5 byte chunk.
 
-Handler starts streaming:
-  → Creates Intent\(type: IntentConstants\.api\.STREAMING_STARTED\)
-    → IntentBus → api/handlers/on\-api\-request\-started\.ts
-      → Creates AgentMessage\(text: ""\) in task\.messages store
-      → calls events/actions/sendChatTreePatch\(eb, \{patch\}\)
-        → EventBridge\.postMessage\(EventConstants\.chat\.CHAT_TREE_PATCH\)
-          → Frontend receives → creates AgentMessage\(text: ""\) in UI
+Key design decisions:
 
-  → API starts returning bytes 1\-5 at a time:
-    → Handler accumulates chunks in a local buffer \(NOT in MST\)
-    → Handler calls events/actions/sendStreamChunk\(webview, \{taskId, text: accumulatedText\}\)
-      → \*\*THIS calls webview\.postMessage\(\) directly\*\* \(see sendStreamChunk\.ts below\)
-        → Webview receives \{type: "streamChunk", text, taskId\}
-
-  → Stream completes:
-    → Creates Intent\(type: IntentConstants\.api\.STREAMING_ENDED\)
-      → IntentBus → api/handlers/on\-stream\-completed\.ts
-        → Updates AgentMessage\(text: finalText, finishReason: "completed"\)
-        → calls events/actions/sendChatTreePatch\(eb, \{patch\}\)
-          → EventBridge\.postMessage\(EventConstants\.chat\.CHAT_TREE_PATCH\)
-            → Frontend finalizes AgentMessage in UI
-```
+- **Only START and END go through MST** — two intents total (STREAMING_STARTED, STREAMING_ENDED)
+- **Chunks bypass MST** — direct `webview.postMessage()` → frontend `StreamingStore` (non-MST)
+- **The handler owning the stream has YIELD POINTS** — the chunk accumulation + send loop is the natural yield point where the scheduler can preempt for a Cancel intent
+- **`sendStreamChunk.ts` is the SINGLE documented exception** — calls `webview.webview.postMessage()` with hardcoded `"streamChunk"` type
 
 ### Exception File: `events/actions/sendStreamChunk.ts`
 
-This is the \*\*ONLY\*\* file that calls `EventBridge\.postMessage` directly from a handler context, bypassing EventConstants:
-
 ```typescript
-// src/features/api/events/actions/sendStreamChunk.ts
-// STREAMING EXCEPTION — bypasses EventConstants to avoid per-byte Intent spam
-// This is the SINGLE documented exception to the architecture rule \#19/\#5
+// This file is the SINGLE documented exception to Core Principle #2.
+// It calls webview.postMessage() directly from handler context.
+// Everywhere else, use events/actions/send*() → EventBridge.
+//
+// Rationale: Streaming chunks are 1-5 bytes at 50ms intervals.
+// Each chunk would create an MST snapshot, bloating the DevTool timeline
+// with thousands of useless snapshots. Instead, chunks bypass MST entirely
+// and are handled by a lightweight non-MST StreamingStore on the frontend.
 
-import type { WebviewView } from "vscode"
+import type Webview from "vscode"
 
-export function sendStreamChunk\(
-  webview: WebviewView,
-  payload: \{ taskId: string; text: string \},
-\): void \{
-  webview\.webview\.postMessage\(\{
-    type: "streamChunk",        // ← NOT an EventConstant — hardcoded literal \(intentional\)
-    taskId: payload\.taskId,
-    text: payload\.text,
-  \}\)
-\}
+export function sendStreamChunk(webview: Webview, taskId: string, text: string): void {
+	webview.postMessage({ type: "streamChunk", taskId, text })
+}
 ```
 
-**Why hardcoded `"streamChunk"` type?**: Because this event bypasses the entire events layer. It is not a standard Event — it's a raw IPC message. Adding it to EventConstants would suggest it follows the normal flow, which it does not.
-
-### Frontend Early\-Return: `messageBus.ts`
-
-The frontend `messageBus\.ts` has a special early\-return for `streamChunk` messages — they never touch the IntentBus or MST:
+### Frontend Early-Return: `messageBus.ts`
 
 ```typescript
-// webview-ui/src/core/messageBus.ts
-// EARLY RETURN for streaming chunks — bypasses IntentBus entirely
+// In webview-ui message routing (routeExtensionMessage or equivalent):
+// This check MUST happen BEFORE any IntentBus or MST processing.
 
-function routeExtensionMessage\(msg: Record<string, unknown>\): void \{
-  // STREAMING EXCEPTION: streamChunk bypasses IntentBus
-  if \(msg\.type === "streamChunk"\) \{
-    streamingStore\.appendChunk\(msg\.text as string\)
-    return
-  \}
-
-  // Normal flow: route through events/handlers/ → IntentBus
-  // ... existing routing logic ...
-\}
+if (msg.type === "streamChunk") {
+	streamingStore.appendChunk(msg.taskId, msg.text)
+	return // Early return — bypass IntentBus and MST
+}
 ```
 
-### Frontend StreamingStore \(non\-MST\)
-
-The `streamingStore` is a simple reactive store \*\*outside MST\*\* — it exists only during active streaming and is garbage\-collected when streaming ends:
+### Frontend StreamingStore (non-MST)
 
 ```typescript
-// webview-ui/src/features/streaming/store.ts
-// NON\-MST reactive store — ephemeral, exists only during streaming
-// Not part of MST because:
-//   1\. Receives 1000\+ updates per second — MST snapshots would be expensive
-//   2\. State is ephemeral — no need for persistence or undo
-//   3\. Only one stream active at a time
+// webview-ui/src/features/api/streaming/StreamingStore.ts
+// Non-MST reactive store — exists only during active streaming.
+// Garbage collected by stop() / dispose() when streaming ends.
 
-type StreamingState = \{
-  taskId: string | null
-  text: string
-  isActive: boolean
-  error: string | null
-\}
+class StreamingStore {
+	private chunks = new Map<string, string>()
 
-class StreamingStore \{
-  private state: StreamingState = \{
-    taskId: null,
-    text: "",
-    isActive: false,
-    error: null,
-  \}
+	appendChunk(taskId: string, text: string): void {
+		const existing = this.chunks.get(taskId) ?? ""
+		this.chunks.set(taskId, existing + text)
+		// Trigger React re-render (MobX observable or setState)
+	}
 
-  private listeners: Set<\(state: StreamingState\) => void> = new Set\(\)
+	getText(taskId: string): string {
+		return this.chunks.get(taskId) ?? ""
+	}
 
-  appendChunk\(chunk: string\): void \{
-    this\.state\.text += chunk
-    this\.notify\(\)
-  \}
-
-  start\(taskId: string\): void \{
-    this\.state = \{ taskId, text: "", isActive: true, error: null \}
-    this\.notify\(\)
-  \}
-
-  end\(finalText: string, error?: string\): void \{
-    this\.state\.text = finalText
-    this\.state\.isActive = false
-    this\.state\.error = error ?? null
-    this\.notify\(\)
-  \}
-
-  subscribe\(listener: \(state: StreamingState\) => void\): \(\) => void \{
-    this\.listeners\.add\(listener\)
-    return \(\) => this\.listeners\.delete\(listener\)
-  \}
-
-  private notify\(\): void \{
-    for \(const listener of this\.listeners\) \{
-      listener\(\{ \.\.\.this\.state \}\)
-    \}
-  \}
-\}
-
-export const streamingStore = new StreamingStore\(\)
+	stop(taskId: string): void {
+		this.chunks.delete(taskId)
+	}
+}
 ```
 
-### MST Store Entries \(Only 2\)
+### MST Store Entries (Only 2)
 
-The MST MessagesModel receives only 2 updates during streaming:
-
-| Event               | Intent                                    | MST Action                                                                  |
-| ------------------- | ----------------------------------------- | --------------------------------------------------------------------------- |
-| `STREAMING_STARTED` | `IntentConstants\.api\.STREAMING_STARTED` | Adds `AgentMessage\(text: ""\)` to `task\.messages`                         |
-| `STREAMING_ENDED`   | `IntentConstants\.api\.STREAMING_ENDED`   | Updates `AgentMessage\(text: finalText, finishReason\)` in `task\.messages` |
-
-Between these two intents, the MST store sees zero updates — all intermediate chunks go through the `StreamingStore` \(non\-MST\) and are rendered directly in the UI.
+```typescript
+// In the MST store, only two intents track streaming state:
+IntentConstants.api.STREAMING_STARTED // → sets task.streaming = true
+IntentConstants.api.STREAMING_ENDED // → sets task.streaming = false + finalizes text
+```
 
 ### Rendering in React Components
 
 ```typescript
-// In a React component that renders agent messages
-const streamingState = useStreamingStore\(\)  // custom hook subscribing to StreamingStore
+function MessageText({ taskId, message }: { taskId: string; message: AgentMessage }) {
+	const streamingText = useStreamingStore(taskId)
 
-// When message type is "agent" and taskId matches active stream:
-//   → render streamingState\.text directly \(not from MST\)
-// When streaming ends:
-//   → MST has the final AgentMessage\.text — render from MST
+	if (streamingText && !message.finishReason) {
+		// Stream is active — render from StreamingStore (fast, no MST)
+		return <span>{streamingText}</span>
+	}
+
+	// Stream completed — render from MST (final text + metadata)
+	return <span>{message.text}</span>
+}
 ```
 
 ---
 
 ## EventConstants — Shared Between Frontend and Backend
 
-**EventConstants** is the single source of truth for all event type string keys. It is shared between frontend and backend to ensure consistency — both sides use the exact same constant values for matching events.
+EventConstants are defined in a shared location accessible to both frontend and backend. They NEVER change per-side — the same constant value is used on both ends of the EventBridge.
 
 ### Structure
 
-Each feature's `events/constants.ts` exports feature-specific constants. These are aggregated into a single `EventConstants` object in a shared location (e.g., `packages/types/src/EventConstants.ts`):
-
-```typescript
-// packages/types/src/EventConstants.ts
-import { chatEventConstants } from "../../src/features/chat/events/constants"
-import { taskEventConstants } from "../../src/features/chat/task/events/constants"
-import { settingsEventConstants } from "../../src/features/settings/events/constants"
-// ... etc.
-
-export const EventConstants = {
-	chat: chatEventConstants,
-	task: taskEventConstants,
-	settings: settingsEventConstants,
-	// ... etc.
-} as const
+```
+packages/types/src/events/
+├── constants.ts          # ALL EventConstants — single flat namespace
+├── types.ts              # Event type definitions (discriminated union by type field)
+├── chat/
+│   ├── constants.ts      # Chat-feature EventConstants (legacy, being migrated to flat)
+│   └── types.ts
+├── foundation/
+│   ├── constants.ts      # Foundation-feature EventConstants
+│   └── types.ts
+├── settings/
+│   ├── constants.ts      # Settings-feature EventConstants
+│   └── types.ts
+└── ...per-feature
 ```
 
 ### Per-feature constants.ts example
 
 ```typescript
-// src/features/chat/events/constants.ts
-export const chatEventConstants = {
-	ASK_RESPONSE: "ask.response" as const,
-	DELETE_MESSAGE: "delete.message" as const,
-	DELETE_MESSAGE_CONFIRM: "delete.message.confirm" as const,
-	SUBMIT_EDITED_MESSAGE: "submit.edited.message" as const,
-	EDIT_MESSAGE_CONFIRM: "edit.message.confirm" as const,
-	CHAT_TREE_PATCH: "chat.tree.patch" as const,
-	MESSAGE_UPDATED: "message.updated" as const,
-	SHOW_EDIT_DIALOG: "show.edit.dialog" as const,
-	SHOW_DELETE_DIALOG: "show.delete.dialog" as const,
-	CHAT_TREE_SNAPSHOT: "chat.tree.snapshot" as const,
+// packages/types/src/events/settings/constants.ts
+export const EventConstantsSettings = {
+	THEME: "settings.theme",
+	CONFIG_UPDATED: "settings.config.updated",
+	LIST_API_CONFIG: "settings.list.api.config",
+	ROUTER_MODELS: "settings.router.models",
+	MCP_SERVERS: "settings.mcp.servers",
+	SKILLS: "settings.skills",
+	AGENTS_REQUEST: "settings.agents.request",
 } as const
 ```
 
 ### Usage
 
 ```typescript
-// events/actions/sendAskResponse.ts — uses EventConstants for event type
+// Backend: events/actions/sendTheme.ts
 import { EventConstants } from "@jabberwock/types"
-eventBridge.postMessage({ type: EventConstants.chat.ASK_RESPONSE, ...payload })
+import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
 
-// events/handlers/on-ask-response-received.ts — uses EventConstants for matching
+export function sendTheme(eb: ProviderHandle, text: string): void {
+	eb.postMessage({ type: EventConstants.settings.THEME, text })
+}
+
+// Frontend: events/handlers/on-theme-received.ts
 import { EventConstants } from "@jabberwock/types"
-eventBridge.on(EventConstants.chat.ASK_RESPONSE, (msg) => { ... })
+
+export function setupOnThemeReceived(bus: EventBridge, intentStore: IIntentStore): void {
+	bus.on(EventConstants.settings.THEME, (event) => {
+		intentStore.createIntent({
+			id: crypto.randomUUID(),
+			type: IntentConstants.settings.THEME_UPDATED,
+			payload: { text: event.text },
+			createdAt: Date.now(),
+		})
+	})
+}
 ```
-
-**Rules:**
-
-- Event type strings are **NEVER** hardcoded as string literals — always reference `EventConstants.feature.KEY`
-- Both frontend and backend import from the same `EventConstants` source for consistency
-- Per-feature `events/constants.ts` files define the actual values
-- Each `events/constants.ts` is re-exported from the feature's `events/index.ts` barrel
 
 ---
 
 ## IntentConstants — Per-Side (Frontend + Backend)
 
-**IntentConstants** define all intent type string keys. Unlike EventConstants, IntentConstants are **per-side** — frontend and backend each have their own file because intents are internal and unique per side.
+IntentConstants are defined per-side because frontend and backend have DIFFERENT intent types. Each side has its own IntentBus, its own IntentStore, and its own handlers.
+
+**Priority buckets are defined alongside IntentConstants** — each intent type constant maps to a priority bucket:
 
 ### Frontend IntentConstants
 
 ```typescript
-// webview-ui/src/features/intents/constants.ts
-export const IntentConstants = {
-	chat: {
-		ASK_RESPONSE_RECEIVED: "chat.ask.response.received" as const,
-		CHAT_TREE_SNAPSHOT_RECEIVED: "chat.tree.snapshot.received" as const,
-		CHAT_TREE_PATCH_RECEIVED: "chat.tree.patch.received" as const,
-		MESSAGE_UPDATED: "chat.message.updated" as const,
-		MESSAGE_DISPLAY: "chat.message.display" as const,
-	},
-	task: {
-		STATE_RECEIVED: "task.state.received" as const,
-		ACTION_RECEIVED: "task.action.received" as const,
-	},
-	settings: {
-		THEME_UPDATED: "settings.theme.updated" as const,
-		CONFIG_UPDATED: "settings.config.updated" as const,
-	},
-	api: {
-		STREAMING_STARTED: "api.streaming.started" as const,
-		STREAMING_ENDED: "api.streaming.ended" as const,
-	},
-	// ... per-feature intent constants
+// webview-ui/src/features/intents/IntentConstants.ts
+
+export const IntentPriority = {
+	Critical: 0,
+	High: 1,
+	Normal: 2,
+	Low: 3,
 } as const
+
+export type IntentPriority = (typeof IntentPriority)[keyof typeof IntentPriority]
+
+/**
+ * Priority map — every intent type gets a priority bucket.
+ * Used by the Fiber scheduler to order dispatch.
+ */
+export const INTENT_PRIORITY: Record<string, IntentPriority> = {
+	// ── Critical — always preempt
+	"task.cancel.requested": IntentPriority.Critical,
+	"system.failure": IntentPriority.Critical,
+
+	// ── High — user-facing
+	"user.message.received": IntentPriority.High,
+	"chat.ask.response.received": IntentPriority.High,
+	"webview.event": IntentPriority.High,
+
+	// ── Normal — standard operations
+	"message.agent.broadcast": IntentPriority.Normal,
+	"message.system.broadcast": IntentPriority.Normal,
+	"message.mcp.broadcast": IntentPriority.Normal,
+	"message.user.broadcast": IntentPriority.Normal,
+	"notification.ask.tool_approval": IntentPriority.Normal,
+	"notification.ask.follow_up": IntentPriority.Normal,
+	"notification.ask.sub_task": IntentPriority.Normal,
+	"api.streaming.started": IntentPriority.Normal,
+	"api.streaming.ended": IntentPriority.Normal,
+	"settings.*": IntentPriority.Normal,
+
+	// ── Low — background
+	"log.write": IntentPriority.Low,
+	"diagnostics.*": IntentPriority.Low,
+}
 ```
 
 ### Backend IntentConstants
 
 ```typescript
-// src/features/intents/constants.ts
-export const IntentConstants = {
-	chat: {
-		ASK_RESPONSE_RECEIVED: "chat.ask.response.received" as const,
-		MESSAGE_DELETE_REQUESTED: "chat.message.delete.requested" as const,
-		MESSAGE_EDIT_REQUESTED: "chat.message.edit.requested" as const,
-		MESSAGE_DISPLAY: "chat.message.display" as const,
-	},
-	task: {
-		NEW_REQUESTED: "task.new.requested" as const,
-		CANCEL_REQUESTED: "task.cancel.requested" as const,
-		CLEAR_REQUESTED: "task.clear.requested" as const,
-		TOOL_EXECUTION_REQUIRED: "task.tool.execution.required" as const,
-	},
-	api: {
-		STREAMING_STARTED: "api.streaming.started" as const,
-		STREAMING_ENDED: "api.streaming.ended" as const,
-		STREAM_CHUNK_RECEIVED: "api.stream.chunk.received" as const,
-	},
-	messages: {
-		AGENT_BROADCAST: "messages.agent.broadcast" as const,
-		SYSTEM_BROADCAST: "messages.system.broadcast" as const,
-		MCP_BROADCAST: "messages.mcp.broadcast" as const,
-		USER_BROADCAST: "messages.user.broadcast" as const,
-	},
-	// ... per-feature intent constants (unique to backend)
+// src/features/intents/IntentConstants.ts
+
+export const IntentPriority = {
+	Critical: 0,
+	High: 1,
+	Normal: 2,
+	Low: 3,
 } as const
+
+export type IntentPriority = (typeof IntentPriority)[keyof typeof IntentPriority]
+
+export const INTENT_PRIORITY: Record<string, IntentPriority> = {
+	// ── Critical — always preempt
+	"task.cancel.requested": IntentPriority.Critical,
+	"system.failure": IntentPriority.Critical,
+
+	// ── High — user-facing
+	"user.message.received": IntentPriority.High,
+	"ask.response.received": IntentPriority.High,
+	"tool.execution.required": IntentPriority.High,
+
+	// ── Normal — standard operations
+	"message.agent.broadcast": IntentPriority.Normal,
+	"message.system.broadcast": IntentPriority.Normal,
+	"message.mcp.broadcast": IntentPriority.Normal,
+	"message.user.broadcast": IntentPriority.Normal,
+	"notification.ask.tool_approval": IntentPriority.Normal,
+	"notification.ask.follow_up": IntentPriority.Normal,
+	"notification.ask.sub_task": IntentPriority.Normal,
+	"notification.persist": IntentPriority.Normal,
+	"api.streaming.started": IntentPriority.Normal,
+	"api.streaming.ended": IntentPriority.Normal,
+	"file.context.tracked": IntentPriority.Normal,
+	"settings.*": IntentPriority.Normal,
+
+	// ── Low — background
+	"log.write": IntentPriority.Low,
+	"agent.request.failed": IntentPriority.Low,
+	"mcp.tool.result": IntentPriority.Low,
+}
 ```
 
 ### Rules
 
-- **IntentConstants are per-side** — frontend and backend have different files
-- **EventConstants is shared** — one file, imported by both sides
-- **No string literals** — every intent type in `bus.createIntent()`, `bus.register()`, and handler registration uses `IntentConstants.feature.KEY`
-- IntentConstants live in the `intents/` folder of each side: `src/features/intents/constants.ts` (backend) and `webview-ui/src/features/intents/constants.ts` (frontend)
+1. `*` wildcard in priority map matches any intent type starting with the prefix before `.*`.
+2. If no match is found, the intent gets `Normal` priority (safe default).
+3. Priority is assigned at `createIntent()` time and stored on the intent model for scheduler use.
+4. Critical intents cause the scheduler to preempt the current fiber at the next yield point.
+5. Yield points are declared by handlers via `await scheduler.yield()` — handlers that never yield cannot be preempted mid-execution, but they also cannot be cancelled.
 
 ---
 
 ## Path Aliases for Constants
-
-To avoid messy relative imports (e.g., `../../../../intents/constants`), use TypeScript path aliases:
 
 ### tsconfig.json (backend — src/tsconfig.json)
 
@@ -809,8 +678,10 @@ To avoid messy relative imports (e.g., `../../../../intents/constants`), use Typ
 {
 	"compilerOptions": {
 		"paths": {
-			"@eventConstants": ["./features/events/EventConstants"],
-			"@intentConstants": ["./features/intents/constants"]
+			"@intentConstants": ["./features/intents/IntentConstants.ts"],
+			"@intentStore": ["./features/intents/store.ts"],
+			"@intentBus": ["./features/intents/bus.ts"],
+			"@intentContext": ["./features/intents/context.ts"]
 		}
 	}
 }
@@ -822,8 +693,10 @@ To avoid messy relative imports (e.g., `../../../../intents/constants`), use Typ
 {
 	"compilerOptions": {
 		"paths": {
-			"@eventConstants": ["../packages/types/src/EventConstants"],
-			"@intentConstants": ["./src/features/intents/constants"]
+			"@intentConstants": ["./src/features/intents/IntentConstants.ts"],
+			"@intentStore": ["./src/features/intents/store.ts"],
+			"@intentBus": ["./src/features/intents/bus.ts"],
+			"@intentContext": ["./src/features/intents/context.ts"]
 		}
 	}
 }
@@ -833,19 +706,10 @@ To avoid messy relative imports (e.g., `../../../../intents/constants`), use Typ
 
 ```typescript
 // Instead of:
-import { EventConstants } from "../../../../packages/types/src/EventConstants"
-import { IntentConstants } from "../../../../intents/constants"
-
+// import { IntentConstants } from "../../../../features/intents/IntentConstants"
 // Use:
-import { EventConstants } from "@eventConstants"
 import { IntentConstants } from "@intentConstants"
 ```
-
-**Rules:**
-
-- `@eventConstants` → resolves to the shared `EventConstants` file (aggregated from per-feature `events/constants.ts`)
-- `@intentConstants` → resolves to the per-side `IntentConstants` file (frontend or backend depending on context)
-- These aliases are used across ALL feature files — never use relative paths for constants imports
 
 ---
 
@@ -853,580 +717,374 @@ import { IntentConstants } from "@intentConstants"
 
 ```
 src/features/
-│
-├── intents/                                       ← 🎯 INTENT — GLOBAL core (BACKEND)
-│   ├── store.ts                                   IntentStoreModel MST — stays
-│   ├── bus.ts                                     IntentBus — stays
-│   ├── context.ts                                 IntentHandlerContext — stays
-│   ├── constants.ts                               IntentConstants — NEW (intent type constants per-side)
-│   └── index.ts                                   setupIntents() — stays
-│
-├── api/                                           ← 🔌 EXTERNAL API — wrapper around src/api/providers/ + src/api/transform/
-│   │                                                Uses intents for orchestration (actions create, handlers process)
-│   │                                                src/api/providers/ and src/api/transform/ stay in place — this is a thin layer
-│   ├── store.ts                                   ApiModel MST — NEW (error counters: timeout, rate_limited, auth_failed, etc.)
-│   ├── events/                                    NEW — events folder
-│   │   ├── constants.ts                           Feature-specific event key constants — NEW
-│   │   │                                            e.g., API_REQUEST_STARTED: "api.request.started" as const
-│   │   │                                            STREAMING_STARTED: "api.streaming.started" as const
-│   │   │                                            STREAMING_ENDED: "api.streaming.ended" as const
-│   │   ├── actions/                               Send events TO frontend
-│   │   │   ├── sendStreamChunk.ts                 **STREAMING EXCEPTION** — calls webview.postMessage directly
-│   │   │   │                                        (bypasses EventConstants, see Streaming Architecture section)
-│   │   │   └── index.ts
-│   │   ├── handlers/                              Handle events FROM frontend
-│   │   │   └── index.ts
-│   │   └── index.ts                               barrel
-│   ├── index.ts                                   barrel
-│   │
-│   ├── actions/                                   ← Action creators (create Intents for API calls)
-│   │   ├── requestApi.ts                          creates Intent to start API request
-│   │   └── index.ts
-│   │
-│   ├── handlers/                                  ← Intent handlers (process API request lifecycle)
-│   │   ├── on-api-request-started.ts              ← HANDLER (was actions/agent/attemptApiRequest.ts)
-│   │   │                                            Makes the actual API call via src/api/providers/
-│   │   ├── on-api-response-received.ts            ← Handles API response, creates response intents
-│   │   ├── on-api-error.ts                        ← Creates error-specific intents (timeout, rate_limited, auth_failed)
-│   │   ├── helpers/
-│   │   │   ├── handleStream.ts                    ← MOVED from actions/agent/handleStream.ts
-│   │   │   ├── streamChunkHandlers.ts             ← MOVED from actions/agent/streamChunkHandlers.ts
-│   │   │   ├── rawChunkProcessor.ts               ← MOVED from actions/agent/rawChunkProcessor.ts
-│   │   │   ├── backoff.ts                         ← MOVED from actions/agent/
-│   │   │   ├── contextWindow.ts                   ← MOVED from actions/agent/
-│   │   │   ├── mergeConsecutiveApiMessages.ts     ← MOVED from actions/agent/
-│   │   │   ├── prepareApiRequest.ts               ← MOVED from actions/agent/
-│   │   │   ├── rateLimit.ts                       ← MOVED from actions/agent/
-│   │   │   ├── requestAbortManager.ts             ← MOVED from actions/agent/
-│   │   │   ├── streaming.ts                       ← MOVED from actions/agent/
-│   │   │   └── index.ts
-│   │   ├── stream/                                ← 2-INTENT STREAMING (chunks are 1-5 bytes)
-│   │   │   │                                         Only 2 MST intents: STREAMING_STARTED, STREAMING_ENDED
-│   │   │   │                                         Intermediate chunks go via sendStreamChunk.ts exception
-│   │   │   │                                         (direct postMessage, see Streaming Architecture section)
-│   │   │   ├── on-streaming-started.ts            ← Creates IntentConstants.api.STREAMING_STARTED
-│   │   │   │                                         → Adds AgentMessage(text: "") to task.messages
-│   │   │   ├── on-streaming-ended.ts              ← Creates IntentConstants.api.STREAMING_ENDED
-│   │   │   │                                         → Updates AgentMessage with final text + finishReason
-│   │   │   └── index.ts
-│   │   └── index.ts                               registerApiHandlers()
-│
-├── history/                                       ← 💬 MESSAGE — chat history (NOT task history)
-│   ├── store.ts                                   HistoryModel MST — stays
-│   ├── events/                                    NEW — events folder (was events.ts)
-│   │   ├── constants.ts                           Feature-specific event key constants — NEW
-│   │   ├── actions/                               Send events TO frontend
-│   │   │   ├── sendSearchCommits.ts               export function sendSearchCommits(eb, payload)
-│   │   │   ├── sendImportSettings.ts              export function sendImportSettings(eb, payload)
-│   │   │   ├── sendExportSettings.ts              export function sendExportSettings(eb, payload)
-│   │   │   ├── sendResetState.ts                  export function sendResetState(eb, payload)
-│   │   │   ├── sendHistoryButtonClicked.ts        export function sendHistoryButtonClicked(eb, payload)
-│   │   │   └── index.ts
-│   │   ├── handlers/                              Handle events FROM frontend
-│   │   │   ├── on-search-commits-received.ts      receives "searchCommits" → creates Intent
-│   │   │   ├── on-import-settings-received.ts     receives "importSettings" → creates Intent
-│   │   │   ├── on-export-settings-received.ts     receives "exportSettings" → creates Intent
-│   │   │   ├── on-reset-state-received.ts         receives "resetState" → creates Intent
-│   │   │   ├── on-history-button-clicked-received.ts receives "historyButtonClicked" → creates Intent
-│   │   │   └── index.ts                           registerHistoryEvents()
-│   │   └── index.ts                               barrel
-│   ├── index.ts                                   stays
-│   └── handlers/
-│       ├── on-history.ts                          stays
-│       └── index.ts                               stays
-│
-├── chat/                                          ← 💬 MESSAGE + 📣 NOTIFICATION — per-chat container
-│   ├── store.ts                                   ChatModel MST — stays
-│   ├── events/                                    NEW — events folder (was events.ts)
-│   │   ├── constants.ts                           Feature-specific event key constants — NEW
-│   │   ├── actions/                               Send events TO frontend
-│   │   │   └── index.ts
-│   │   ├── handlers/                              Handle events FROM frontend
-│   │   │   └── index.ts                           registerChatEvents()
-│   │   └── index.ts                               barrel
-│   ├── index.ts                                   stays
-│   │
-│   ├── task/                                      ← 💬 MESSAGE — task execution context (per-chat)
-│   │   ├── store.ts                               TaskModel MST — stays
-│   │   ├── events/                                NEW — events folder (was events.ts)
-│   │   │   ├── constants.ts                       Feature-specific event key constants — NEW
-│   │   │   ├── actions/                           Send events TO frontend
-│   │   │   │   ├── sendState.ts                   export function sendState(eb, state)
-│   │   │   │   ├── sendAction.ts                  export function sendAction(eb, action)
-│   │   │   │   └── index.ts
-│   │   │   ├── handlers/                          Handle events FROM frontend
-│   │   │   │   ├── on-new-task-received.ts        receives "new.task" → creates Intent
-│   │   │   │   ├── on-cancel-task-received.ts     receives "cancelTask" → creates Intent
-│   │   │   │   ├── on-clear-task-received.ts      receives "clearTask" → creates Intent
-│   │   │   │   ├── on-task-sync-enabled-received.ts receives "taskSyncEnabled" → creates Intent
-│   │   │   │   ├── on-condense-context-received.ts receives "condenseTaskContextRequest" → creates Intent
-│   │   │   │   ├── on-webview-launched-received.ts receives "webviewDidLaunch" → creates Intent
-│   │   │   │   └── index.ts                       registerTaskEvents()
-│   │   │   └── index.ts                           barrel
-│   │   ├── index.ts                               stays
-│   │   │
-│   │   ├── handlers/                              ← 🎯 INTENT handlers (task lifecycle)
-│   │   │   ├── on-task-created.ts                 stays
-│   │   │   ├── on-task-cancelled.ts               stays
-│   │   │   ├── on-task-resumed.ts                 stays
-│   │   │   ├── on-tool-execution-required.ts      stays
-│   │   │   ├── on-script-finished.ts              stays
-│   │   │   ├── on-cancel-requested.ts             stays
-│   │   │   ├── on-clear-requested.ts              stays
-│   │   │   ├── on-commands-requested.ts           stays
-│   │   │   ├── on-condense-context-requested.ts   stays
-│   │   │   ├── on-new-requested.ts                stays
-│   │   │   ├── on-resume-requested.ts             stays
-│   │   │   ├── on-sync-enabled-set.ts             stays
-│   │   │   ├── on-textarea-enhance-requested.ts   stays
-│   │   │   ├── on-textarea-files-search-requested.ts stays
-│   │   │   ├── on-textarea-images-dragged.ts      stays
-│   │   │   ├── on-textarea-images-select-requested.ts stays
-│   │   │   ├── on-todolist-update.ts              stays
-│   │   │   ├── on-webview-launched.ts             stays
-│   │   │   └── index.ts                           registerAllTaskHandlers() — stays
-│   │   │
-│   │   ├── actions/                               ← Action creators (create Intents)
-│   │   │   ├── startTask.ts                       stays
-│   │   │   ├── resumeTask.ts                      stays
-│   │   │   ├── abortRunningTask.ts                stays
-│   │   │   ├── abortTask.ts                       stays
-│   │   │   ├── delegateTask.ts                    stays
-│   │   │   ├── taskRegistry.ts                    stays
-│   │   │   ├── aggregateTaskCosts.ts              stays
-│   │   │   ├── createTaskModel.ts                 stays
-│   │   │   └── index.ts                           stays
-│   │   │
-│   │   ├── messages/                              ← 💬 MESSAGE — core entity (per-task sub-model)
-│   │   │   │                                        MOVED from src/features/chat/messages/
-│   │   │   ├── store.ts                           MessagesModel MST — stays
-│   │   │   ├── events/                            NEW — events folder (was events.ts)
-│   │   │   │   ├── constants.ts                   Feature-specific event key constants — NEW
-│   │   │   │   ├── actions/                       Send events TO frontend
-│   │   │   │   │   ├── sendChatTreePatch.ts       export function sendChatTreePatch(eb, patch)
-│   │   │   │   │   ├── sendMessageUpdated.ts      export function sendMessageUpdated(eb, msg)
-│   │   │   │   │   ├── sendShowEditDialog.ts      export function sendShowEditDialog(eb, payload)
-│   │   │   │   │   ├── sendShowDeleteDialog.ts    export function sendShowDeleteDialog(eb, payload)
-│   │   │   │   │   └── index.ts
-│   │   │   │   ├── handlers/                      Handle events FROM frontend
-│   │   │   │   │   ├── on-ask-response-received.ts     receives "ask.response" → creates Intent(s)
-│   │   │   │   │   ├── on-delete-message-received.ts   receives "delete.message" → creates Intent
-│   │   │   │   │   ├── on-delete-confirm-received.ts   receives "deleteMessageConfirm" → creates Intent
-│   │   │   │   │   ├── on-edit-submit-received.ts      receives "submitEditedMessage" → creates Intent
-│   │   │   │   │   ├── on-edit-confirm-received.ts     receives "editMessageConfirm" → creates Intent
-│   │   │   │   │   └── index.ts                         registerMessageEvents()
-│   │   │   │   └── index.ts                       barrel
-│   │   │   ├── index.ts                           MOVED from src/features/chat/messages/index.ts
-│   │   │   │
-│   │   │   ├── actions/                           ← Action creators (message operations)
-│   │   │   │   │                                    MOVED from src/features/chat/messages/actions/
-│   │   │   │   ├── addMessage.ts                  MOVED
-│   │   │   │   ├── sendMessage.ts                 MOVED
-│   │   │   │   ├── updateMessage.ts               MOVED
-│   │   │   │   ├── saveMessages.ts                MOVED
-│   │   │   │   ├── persistMessages.ts             MOVED
-│   │   │   │   ├── presentAssistantMessage.ts     MOVED
-│   │   │   │   ├── saveApiConversation.ts         MOVED
-│   │   │   │   ├── getSavedMessages.ts            MOVED
-│   │   │   │   ├── apiHistoryPersistence.ts       MOVED
-│   │   │   │   ├── handleNotificationMessage.ts   MOVED
-│   │   │   │   ├── mentions.ts                    MOVED
-│   │   │   │   ├── processUserContentMentions.ts  MOVED
-│   │   │   │   ├── resolveImageMentions.ts        MOVED
-│   │   │   │   ├── say/                            NEW — say() REFACTORED into 4 action creators
-│   │   │   │   │   │                                **say() is split by message type, NOT by notification type**
-│   │   │   │   │   │                                Each action creator creates the correct Message type directly:
-│   │   │   │   │   ├── agentBroadcast.ts            creates AgentMessage (type: "agent")
-│   │   │   │   │   │                                  → intentStore.createIntent({type: IntentConstants.messages.AGENT_BROADCAST, ...})
-│   │   │   │   │   │                                  → handler adds AgentMessage to task.messages
-│   │   │   │   │   ├── systemBroadcast.ts           creates SystemMessage (type: "system")
-│   │   │   │   │   │                                  → intentStore.createIntent({type: IntentConstants.messages.SYSTEM_BROADCAST, ...})
-│   │   │   │   │   │                                  → handler adds SystemMessage to task.messages
-│   │   │   │   │   ├── mcpBroadcast.ts              creates McpToolMessage (type: "mcp_tool")
-│   │   │   │   │   │                                  → intentStore.createIntent({type: IntentConstants.messages.MCP_BROADCAST, ...})
-│   │   │   │   │   │                                  → handler adds McpToolMessage to task.messages
-│   │   │   │   │   ├── userBroadcast.ts             creates UserMessage (type: "user")
-│   │   │   │   │   │                                  → intentStore.createIntent({type: IntentConstants.messages.USER_BROADCAST, ...})
-│   │   │   │   │   │                                  → handler adds UserMessage to task.messages
-│   │   │   │   │   └── index.ts
-│   │   │   │   ├── messageManager.ts              MOVED
-│   │   │   │   ├── types.ts                       MOVED
-│   │   │   │   └── index.ts                       MOVED
-│   │   │   │
-│   │   │   ├── handlers/                          ← 🎯 INTENT handlers (message-specific)
-│   │   │   │   │                                    MOVED from src/features/chat/messages/handlers/
-│   │   │   │   │                                    + MERGED from src/features/chat/messages/actions/agent/
-│   │   │   │   │                                    (actions/agent/ files were NOT action creators — they are handlers)
-│   │   │   │   ├── user/
-│   │   │   │   │   ├── on-message-received.ts     MOVED from messages/handlers/user/
-│   │   │   │   │   └── index.ts
-│   │   │   │   ├── agent/
-│   │   │   │   │   ├── on-api-request-started.ts  ← RENAMED from messages/actions/agent/attemptApiRequest.ts
-│   │   │   │   │   ├── on-response-received.ts    MOVED from messages/handlers/agent/
-│   │   │   │   │   ├── on-request-failed.ts       MOVED from messages/handlers/agent/
-│   │   │   │   │   ├── on-stream-chunk-received.ts ← RENAMED from messages/actions/agent/streamChunkHandlers.ts
-│   │   │   │   │   ├── helpers/
-│   │   │   │   │   │   ├── backoff.ts              MOVED from messages/actions/agent/
-│   │   │   │   │   │   ├── contextWindow.ts        MOVED from messages/actions/agent/
-│   │   │   │   │   │   ├── handleStream.ts         MOVED from messages/actions/agent/
-│   │   │   │   │   │   ├── mergeConsecutiveApiMessages.ts  MOVED
-│   │   │   │   │   │   ├── prepareApiRequest.ts    MOVED
-│   │   │   │   │   │   ├── rateLimit.ts            MOVED
-│   │   │   │   │   │   ├── rawChunkProcessor.ts    MOVED
-│   │   │   │   │   │   ├── requestAbortManager.ts  MOVED
-│   │   │   │   │   │   ├── store.ts                MOVED (StreamingModel MST)
-│   │   │   │   │   │   ├── streaming.ts            MOVED
-│   │   │   │   │   │   └── index.ts
-│   │   │   │   │   └── index.ts
-│   │   │   │   ├── mcp/
-│   │   │   │   │   ├── on-tool-result.ts           MOVED from messages/handlers/mcp/
-│   │   │   │   │   └── index.ts
-│   │   │   │   ├── on-message-delete-confirmed.ts  MOVED from messages/handlers/
-│   │   │   │   ├── on-message-delete-requested.ts  MOVED
-│   │   │   │   ├── on-message-edit-confirmed.ts    MOVED
-│   │   │   │   ├── on-message-edit-requested.ts    MOVED
-│   │   │   │   ├── on-send-message-requested.ts    MOVED
-│   │   │   │   ├── helpers/
-│   │   │   │   │   ├── deleteOperations.ts         MOVED from messages/handlers/helpers/
-│   │   │   │   │   ├── editOperations.ts           MOVED
-│   │   │   │   │   ├── findMessageIndices.ts       MOVED
-│   │   │   │   │   └── resolveIncomingImages.ts    MOVED
-│   │   │   │   └── index.ts                        registerAllMessageHandlers()
-│   │   │   │
-│   │   │   └── index.ts
-│   │   │
-│   │   ├── notifications/                          ← 📣 NOTIFICATION — core entity (per-task sub-model)
-│   │   │   │                                        MOVED from src/features/chat/notifications/
-│   │   │   │                                        MERGED with existing src/features/chat/task/notifications/
-│   │   │   ├── store.ts                            NotificationsModel MST — stays
-│   │   │   ├── events/                             NEW — events folder (was events.ts)
-│   │   │   │   ├── constants.ts                    Feature-specific event key constants — NEW
-│   │   │   │   ├── actions/                        Send events TO frontend
-│   │   │   │   │   ├── sendTtsStart.ts             export function sendTtsStart(eb, payload)
-│   │   │   │   │   ├── sendTtsStop.ts              export function sendTtsStop(eb, payload)
-│   │   │   │   │   ├── sendCheckpointUpdated.ts    export function sendCheckpointUpdated(eb, payload)
-│   │   │   │   │   ├── sendMcpExecutionStatus.ts   export function sendMcpExecutionStatus(eb, payload)
-│   │   │   │   │   └── index.ts
-│   │   │   │   ├── handlers/                       Handle events FROM frontend
-│   │   │   │   │   ├── on-checkpoint-diff-received.ts    receives "checkpointDiff" → creates Intent
-│   │   │   │   │   ├── on-checkpoint-restore-received.ts receives "checkpointRestore" → creates Intent
-│   │   │   │   │   ├── on-play-sound-received.ts         receives "playSound" → creates Intent
-│   │   │   │   │   ├── on-tts-play-received.ts           receives "playTts" → creates Intent
-│   │   │   │   │   ├── on-tts-stop-received.ts           receives "stopTts" → creates Intent
-│   │   │   │   │   ├── on-tts-enabled-received.ts        receives "ttsEnabled" → creates Intent
-│   │   │   │   │   ├── on-tts-speed-received.ts          receives "ttsSpeed" → creates Intent
-│   │   │   │   │   ├── on-queue-message-received.ts      receives "queueMessage" → creates Intent
-│   │   │   │   │   ├── on-remove-queued-received.ts      receives "removeQueuedMessage" → creates Intent
-│   │   │   │   │   ├── on-edit-queued-received.ts        receives "editQueuedMessage" → creates Intent
-│   │   │   │   │   ├── on-elicitation-response-received.ts receives "elicitationResponse" → creates Intent
-│   │   │   │   │   └── index.ts                          registerNotificationEvents()
-│   │   │   │   └── index.ts
-│   │   │   ├── index.ts
-│   │   │   │
-│   │   │   ├── actions/                            ← Action creators (create Intents, NOT callbacks)
-│   │   │   │   ├── ask.ts                          ← REFACTORED from chat/notifications/actions/ask.ts
-│   │   │   │   │                                      Now creates 3 Intents:
-│   │   │   │   │                                        1. ask.notification → notification handler
-│   │   │   │   │                                        2. message.display → message handler
-│   │   │   │   │                                        3. log.write → settings handler
-│   │   │   │   │                                      ask() is further split into 3 specialized action creators:
-│   │   │   │   │                                        - askToolApproval()  — tool approval (yes/no)
-│   │   │   │   │                                        - askFollowUp()      — follow-up question to user
-│   │   │   │   │                                        - askSubTask()       — sub-task completion approval
-│   │   │   │   │                                     **say() REFACTORED into 4 action creators in messages/**
-│   │   │   │   │                                     (see messages/actions/say/ section below)
-│   │   │   │   ├── respondToAsk.ts                 ← RENAMED from chat/notifications/actions/handleResponse.ts
-│   │   │   │   │                                      Creates AskResponseReceived Intent (not callback)
-│   │   │   │   ├── AskIgnoredError.ts              MOVED from chat/notifications/actions/
-│   │   │   │   ├── addNotification.ts              MOVED from chat/task/notifications/actions/
-│   │   │   │   ├── findNotification.ts             MOVED
-│   │   │   │   ├── overwriteNotifications.ts       MOVED
-│   │   │   │   ├── updateNotification.ts           MOVED
-│   │   │   │   └── index.ts
-│   │   │   │
-│   │   │   ├── handlers/                           ← 🎯 INTENT handlers
-│   │   │   │   │                                    MOVED from src/features/chat/notifications/handlers/
-│   │   │   │   │                                    MERGED with existing src/features/chat/task/notifications/
-│   │   │   │   ├── on-ask-response-received.ts     MOVED from notifications/handlers/
-│   │   │   │   ├── on-notification-persist.ts      MOVED
-│   │   │   │   ├── on-checkpoint-diff-requested.ts MOVED
-│   │   │   │   ├── on-checkpoint-restore-requested.ts MOVED
-│   │   │   │   ├── on-elicitation-response.ts      MOVED
-│   │   │   │   ├── on-tts-enabled-set.ts           MOVED
-│   │   │   │   ├── on-tts-play.ts                  MOVED
-│   │   │   │   ├── on-tts-speed-set.ts             MOVED
-│   │   │   │   ├── on-tts-stop.ts                  MOVED
-│   │   │   │   └── index.ts                        registerAllNotificationHandlers()
-│   │   │   │
-│   │   │   └── index.ts
-│   │   │
-│   │   ├── condense/                               ← New — context condense feature (extracted from chat/actions/)
-│   │   │   ├── store.ts                            CondenseModel MST — to be created
-│   │   │   ├── events/
-│   │   │   │   ├── actions/
-│   │   │   │   │   └── index.ts
-│   │   │   │   ├── handlers/
-│   │   │   │   │   ├── on-condense-context-received.ts  receives "condenseTaskContextRequest" → creates Intent
-│   │   │   │   │   └── index.ts
-│   │   │   │   └── index.ts
-│   │   │   ├── index.ts                            barrel
+├── intents/                          # Intent system layer
+│   ├── IntentConstants.ts            # Backend IntentConstants + INTENT_PRIORITY map
+│   ├── store.ts                      # IntentStoreModel MST
+│   ├── bus.ts                        # IntentBus with Fiber scheduler
+│   └── context.ts                    # IntentHandlerContext type
+
+├── foundation/
+│   ├── window-manager/               # Webview window management
+│   │   ├── store.ts
+│   │   ├── index.ts
+│   │   ├── events/
 │   │   │   ├── actions/
-│   │   │   │   ├── condenseContext.ts               MOVED from chat/actions/condenseContext.ts
+│   │   │   │   ├── sendActivePage.ts
+│   │   │   │   ├── sendFocusPanel.ts
+│   │   │   │   ├── sendTabSwitch.ts
+│   │   │   │   ├── sendTaskState.ts
 │   │   │   │   └── index.ts
 │   │   │   └── handlers/
-│   │   │       ├── on-context-condense.ts           MOVED from chat/actions/summarizeConversation.ts
+│   │   │       ├── on-webview-message.ts   # Entry point for all webview messages
 │   │   │       └── index.ts
-│   │   │
-│   │   └── index.ts                                stays
-│   │
-│   ├── text-area/                                  ← 💬 MESSAGE — text area input (per-chat)
-│   │   ├── store.ts                                TextAreaModel MST — stays
-│   │   ├── events/
-│   │   │   ├── constants.ts                           Feature-specific event key constants — NEW
-│   │   │   ├── actions/
-│   │   │   │   └── index.ts
-│   │   │   ├── handlers/
-│   │   │   │   ├── on-enhanced-prompt-received.ts  receives "enhancedPrompt" → creates Intent
-│   │   │   │   ├── on-file-search-received.ts      receives "fileSearchResults" → creates Intent
-│   │   │   │   ├── on-insert-text-received.ts      receives "insertTextIntoTextarea" → creates Intent
-│   │   │   │   └── index.ts
-│   │   │   └── index.ts
-│   │   ├── index.ts                                stays
-│   │   └── components/ (frontend only)             N/A for backend
-│   │
-│   └── topic/                                      ← 💬 MESSAGE — topic selector (per-chat)
-│       ├── store.ts                                TopicModel MST — stays
-│       ├── events/
-│       │   ├── constants.ts                           Feature-specific event key constants — NEW
-│       │   ├── actions/
-│       │   │   └── index.ts
-│       │   ├── handlers/
-│       │   │   ├── on-task-history-updated-received.ts  receives "taskHistoryUpdated" → creates Intent
-│       │   │   ├── on-task-history-item-received.ts     receives "taskHistoryItemUpdated" → creates Intent
-│       │   │   ├── on-commands-received.ts              receives "commands" → creates Intent
-│       │   │   ├── on-modes-received.ts                 receives "modes" → creates Intent
-│       │   │   └── index.ts
-│       │   └── index.ts
-│       └── index.ts
-│
-├── settings/                                      ← Various settings stores
-│   ├── store.ts                                   SettingsModel MST — stays
-│   ├── events/                                    NEW — events folder (was events.ts)
-│   │   ├── constants.ts                           Feature-specific event key constants — NEW
-│   │   ├── actions/                               Send events TO frontend
-│   │   │   ├── sendSettingsChanged.ts             export function sendSettingsChanged(eb, payload)
-│   │   │   ├── sendTheme.ts                       export function sendTheme(eb, payload)
-│   │   │   └── index.ts
-│   │   ├── handlers/                              Handle events FROM frontend
-│   │   │   ├── on-api-config-received.ts           receives "apiConfig" webview event → creates Intent
-│   │   │   ├── on-code-index-received.ts           receives "codeIndex" webview event → creates Intent
-│   │   │   ├── on-files-received.ts                receives "files" webview event → creates Intent
-│   │   │   ├── ... (50+ event handlers, one per event-constants.ts entry)
-│   │   │   └── index.ts                           registerSettingsEvents()
-│   │   └── index.ts                               barrel
-│   ├── index.ts                                   stays
-│   ├── handlers/
-│   │   ├── on-setting-changed.ts                  stays
-│   │   └── index.ts                               stays
-│   │
-│   ├── agents/                                    ← 🎯 INTENT handlers + settings for modes
-│   │   ├── store.ts                               CustomModesManager MST — stays
-│   │   ├── events/                                NEW — events folder (was events.ts)
-│   │   │   ├── constants.ts                       Feature-specific event key constants — NEW
-│   │   │   ├── actions/
-│   │   │   │   └── index.ts
-│   │   │   ├── handlers/
-│   │   │   │   ├── on-code-action-received.ts     receives "codeAction" → creates Intent
-│   │   │   │   ├── on-terminal-action-received.ts receives "terminalAction" → creates Intent
-│   │   │   │   └── ... (40+ agent state event handlers)
-│   │   │   └── index.ts
-│   │   ├── index.ts                               stays
-│   │   └── handlers/
-│   │       ├── on-code-action.ts                  stays (renamed from handleCodeAction)
-│   │       ├── on-terminal-action.ts              stays (renamed from handleTerminalAction)
-│   │       └── index.ts                           stays
-│   │
-│   ├── ignore/
-│   │   ├── store.ts                               IgnoreModel MST — NEW
-│   │   ├── events/
-│   │   │   ├── constants.ts                           Feature-specific event key constants — NEW
-│   │   │   ├── actions/
-│   │   │   │   └── index.ts
-│   │   │   ├── handlers/
-│   │   │   │   └── index.ts
-│   │   │   └── index.ts
-│   │   ├── index.ts
-│   │   └── handlers/
-│   │       └── ignore.ts                          MOVED from settings/ignore/ignore.ts
-│   │
-│   ├── protect/
-│   │   ├── store.ts                               ProtectModel MST — NEW
-│   │   ├── events/
-│   │   │   ├── constants.ts                           Feature-specific event key constants — NEW
-│   │   │   ├── actions/
-│   │   │   │   └── index.ts
-│   │   │   ├── handlers/
-│   │   │   │   └── index.ts
-│   │   │   └── index.ts
-│   │   ├── index.ts
-│   │   └── handlers/
-│   │       └── protection.ts                      MOVED from settings/protect/protection.ts
-│   │
-│   ├── skills/
-│   │   ├── store.ts                               SkillsModel MST — stays
-│   │   ├── events/
-│   │   │   ├── constants.ts                           Feature-specific event key constants — NEW
-│   │   │   ├── actions/
-│   │   │   │   └── index.ts
-│   │   │   ├── handlers/
-│   │   │   │   └── index.ts
-│   │   │   └── index.ts
-│   │   └── index.ts
-│   │
-│   ├── mcp/
-│   │   ├── store.ts                               McpModel MST — stays
-│   │   ├── events/
-│   │   │   ├── constants.ts                           Feature-specific event key constants — NEW
-│   │   │   ├── actions/
-│   │   │   │   └── index.ts
-│   │   │   ├── handlers/
-│   │   │   │   └── index.ts
-│   │   │   └── index.ts
-│   │   └── index.ts
-│   │
-│   ├── models/
-│   │   ├── store.ts                               ModelsModel MST — stays
-│   │   ├── events/
-│   │   │   ├── constants.ts                           Feature-specific event key constants — NEW
-│   │   │   ├── actions/
-│   │   │   │   └── index.ts
-│   │   │   ├── handlers/
-│   │   │   │   └── index.ts
-│   │   │   └── index.ts
-│   │   └── index.ts
-│   │
+│   │   └── components/
+│   │       └── ...
 │   ├── webview/
-│   │   ├── store.ts                               WebviewModel MST — stays
-│   │   ├── events/
-│   │   │   ├── constants.ts                           Feature-specific event key constants — NEW
-│   │   │   ├── actions/
-│   │   │   │   └── index.ts
-│   │   │   ├── handlers/
-│   │   │   │   └── index.ts
-│   │   │   └── index.ts
-│   │   └── index.ts
-│   │
-│   ├── worktree/
-│   │   ├── store.ts                               WorktreeModel MST — NEW (was empty stub)
-│   │   ├── events/
-│   │   │   ├── constants.ts                           Feature-specific event key constants — NEW
-│   │   │   ├── actions/
-│   │   │   │   └── index.ts
-│   │   │   ├── handlers/
-│   │   │   │   └── index.ts
-│   │   │   └── index.ts
-│   │   └── index.ts
-│   │
-│   └── vscode/
-│       ├── store.ts                               VscodeModel MST — stays
-│       ├── events/
-│       │   ├── constants.ts                       Feature-specific event key constants — NEW
-│       │   ├── actions/
-│       │   │   └── index.ts
-│       │   ├── handlers/
-│       │   │   └── index.ts
-│       │   └── index.ts
-│       └── index.ts
-│
-├── cloud/
-│   ├── store.ts                                   CloudModel MST — stays
-│   ├── events/                                    NEW — events folder (was events.ts)
-│   │   ├── constants.ts                           Feature-specific event key constants — NEW
-│   │   ├── actions/
-│   │   │   └── index.ts
-│   │   ├── handlers/
-│   │   │   ├── on-account-login-received.ts       receives "accountLogin" → creates Intent
-│   │   │   ├── on-account-logout-received.ts      receives "accountLogout" → creates Intent
-│   │   │   ├── ... (9 cloud event handlers)
-│   │   │   └── index.ts
-│   │   └── index.ts
-│   ├── index.ts                                   stays
-│   └── handlers/
-│       └── index.ts                               stays
-│
-├── marketplace/
-│   ├── store.ts                                   MarketplaceModel MST — stays
-│   ├── events/                                    NEW — events folder (was events.ts)
-│   │   ├── constants.ts                           Feature-specific event key constants — NEW
-│   │   ├── actions/
-│   │   │   └── index.ts
-│   │   ├── handlers/
-│   │   │   ├── on-install-extension-received.ts   receives "installExtension" → creates Intent
-│   │   │   ├── on-uninstall-extension-received.ts receives "uninstallExtension" → creates Intent
-│   │   │   ├── ... (14 marketplace event handlers)
-│   │   │   └── index.ts
-│   │   └── index.ts
-│   ├── index.ts                                   stays
-│   └── handlers/
-│       └── index.ts                               stays
-│
-├── foundation/                                    ← Foundation features
-│   ├── events/                                    NEW — events folder (was events.ts)
-│   │   ├── constants.ts                           Feature-specific event key constants — NEW
-│   │   ├── actions/
-│   │   │   └── index.ts
-│   │   ├── handlers/
-│   │   │   └── index.ts
-│   │   └── index.ts
-│   ├── index.ts                                   stays
-│   │
-│   ├── webview/
-│   │   ├── EventBridge.ts                         Pure IPC EventEmitter — stays (92 lines, NOT changed)
-│   │   ├── webviewMessageHandler.ts               Registration-based dispatch — REFACTORED
-│   │   └── index.ts                               stays
-│   │
-│   ├── mst/
-│   │   ├── store.ts                               MstBridge MST — stays
-│   │   └── index.ts
-│   │
+│   │   └── EventBridge.ts                 # SOLE IPC channel — EventBridge class
 │   ├── time-machine/
-│   │   ├── store.ts                               TimeMachineModel MST — stays
+│   │   ├── store.ts                       # TimeMachine MST store
+│   │   └── file-context/
+│   │       ├── store.ts                   # FileContextTracker MST store
+│   │       ├── index.ts
+│   │       ├── events/
+│   │       │   ├── actions/
+│   │       │   │   ├── sendFileContext.ts
+│   │       │   │   └── index.ts
+│   │       │   └── handlers/
+│   │       │       ├── on-file-context-received.ts
+│   │       │       └── index.ts
+│   │       └── handlers/
+│   │           ├── on-file-context-tracked.ts
+│   │           └── index.ts
+
+├── settings/
+│   ├── store.ts                       # MST SettingsModel (replaces settingsService.ts)
+│   ├── index.ts
+│   ├── types.ts
+│   ├── events/
+│   │   ├── actions/
+│   │   │   ├── sendTheme.ts
+│   │   │   ├── sendConfigUpdated.ts
+│   │   │   ├── sendMcpServers.ts
+│   │   │   ├── sendApiConfig.ts
+│   │   │   ├── sendRouterModels.ts
+│   │   │   ├── sendSkills.ts
+│   │   │   └── index.ts
+│   │   └── handlers/
+│   │       ├── on-settings-changed-received.ts
+│   │       ├── on-settings-opened-received.ts
+│   │       └── index.ts
+│   ├── actions/
+│   │   ├── updateSetting.ts
+│   │   ├── setAnnouncement.ts
+│   │   ├── setTelemetry.ts
+│   │   ├── dismissUpsell.ts
+│   │   └── index.ts
+│   ├── handlers/
+│   │   ├── on-settings-update.ts
+│   │   └── index.ts
+│   ├── agents/
+│   │   ├── store.ts                   # AgentState/AgentModel MST (merged from foundation/agent-state/)
+│   │   ├── index.ts
 │   │   ├── events/
-│   │   │   ├── constants.ts                           Feature-specific event key constants — NEW
 │   │   │   ├── actions/
+│   │   │   │   ├── sendModeSelector.ts
+│   │   │   │   ├── sendModeCustom.ts
+│   │   │   │   └── index.ts
+│   │   │   └── handlers/
+│   │   │       ├── on-custom-mode-update-received.ts
+│   │   │       ├── on-mode-export-received.ts
+│   │   │       ├── on-mode-import-received.ts
+│   │   │       ├── on-mode-selector-opened-received.ts
+│   │   │       └── index.ts
+│   │   └── handlers/
+│   │       ├── on-code-action.ts
+│   │       ├── on-terminal-action.ts
+│   │       └── index.ts
+│   ├── code-index/
+│   │   ├── store.ts                   # CodeIndex MST store
+│   │   ├── index.ts
+│   │   ├── events/
+│   │   │   ├── actions/
+│   │   │   │   ├── sendCodeIndexSave.ts
+│   │   │   │   ├── sendCodeIndexStatus.ts
+│   │   │   │   ├── sendCodeIndexSecretStatus.ts
+│   │   │   │   ├── sendCodeIndexStart.ts
+│   │   │   │   ├── sendCodeIndexStop.ts
+│   │   │   │   ├── sendCodeIndexAutoEnable.ts
+│   │   │   │   ├── sendCodeIndexClear.ts
+│   │   │   │   └── index.ts
+│   │   │   └── handlers/
+│   │   │       ├── on-code-index-request-received.ts
+│   │   │       └── index.ts
+│   │   └── handlers/
+│   │       ├── on-code-index-save.ts
+│   │       └── index.ts
+│   ├── protect/
+│   │   ├── store.ts
+│   │   ├── index.ts
+│   │   ├── events/
+│   │   │   ├── actions/
+│   │   │   │   └── ...
+│   │   │   └── handlers/
+│   │   │       └── ...
+│   │   ├── actions/
+│   │   │   └── ...
+│   │   └── handlers/
+│   │       └── ...
+│   └── ignore/
+│       ├── store.ts
+│       ├── index.ts
+│       ├── events/
+│       │   ├── actions/
+│       │   │   └── ...
+│       │   └── handlers/
+│       │       └── ...
+│       ├── actions/
+│       │   └── ...
+│       └── handlers/
+│           └── ...
+
+├── history/
+│   ├── store.ts
+│   ├── index.ts
+│   ├── events/
+│   │   ├── actions/
+│   │   │   ├── sendHistory.ts
+│   │   │   ├── sendHistoryItem.ts
+│   │   │   └── index.ts
+│   │   └── handlers/
+│   │       ├── on-history-request-received.ts
+│   │       └── index.ts
+│   ├── actions/
+│   │   ├── searchCommits.ts
+│   │   ├── importSettings.ts
+│   │   ├── exportSettings.ts
+│   │   ├── resetState.ts
+│   │   └── index.ts
+│   ├── handlers/
+│   │   ├── on-history-commits-search.ts
+│   │   ├── on-history-settings-import.ts
+│   │   ├── on-history-settings-export.ts
+│   │   ├── on-history-state-reset.ts
+│   │   └── index.ts
+│   └── components/
+
+├── diagnostics/
+│   ├── store.ts
+│   ├── index.ts
+│   ├── events/
+│   │   ├── actions/
+│   │   │   ├── sendDiagnostics.ts
+│   │   │   └── index.ts
+│   │   └── handlers/
+│   │       ├── on-diagnostics-request-received.ts
+│   │       └── index.ts
+│   ├── actions/
+│   │   ├── clearDiagnostics.ts
+│   │   └── index.ts
+│   ├── handlers/
+│   │   ├── on-diagnostics-clear.ts
+│   │   └── index.ts
+│   └── components/
+
+├── cloud/
+│   ├── store.ts
+│   ├── index.ts
+│   ├── events/
+│   │   ├── actions/
+│   │   │   ├── sendAuthChanged.ts
+│   │   │   └── index.ts
+│   │   └── handlers/
+│   │       ├── on-cloud-auth-request-received.ts
+│   │       └── index.ts
+│   ├── actions/
+│   │   ├── signIn.ts
+│   │   ├── signOut.ts
+│   │   ├── switchOrganization.ts
+│   │   └── index.ts
+│   ├── handlers/
+│   │   ├── on-cloud-sign-in.ts
+│   │   ├── on-cloud-sign-out.ts
+│   │   ├── on-cloud-switch-organization.ts
+│   │   └── index.ts
+│   └── components/
+
+├── marketplace/
+│   ├── store.ts
+│   ├── index.ts
+│   ├── events/
+│   │   ├── actions/
+│   │   │   ├── sendMarketplaceData.ts
+│   │   │   └── index.ts
+│   │   └── handlers/
+│   │       ├── on-marketplace-request-received.ts
+│   │       └── index.ts
+│   ├── actions/
+│   │   ├── filterItems.ts
+│   │   ├── installItem.ts
+│   │   ├── removeItem.ts
+│   │   ├── fetchData.ts
+│   │   ├── refreshTools.ts
+│   │   └── index.ts
+│   ├── handlers/
+│   │   ├── on-marketplace-items-filter.ts
+│   │   ├── on-marketplace-item-install.ts
+│   │   ├── on-marketplace-item-remove.ts
+│   │   ├── on-marketplace-data-fetch.ts
+│   │   ├── on-marketplace-tools-refresh.ts
+│   │   └── index.ts
+│   └── components/
+
+├── chat/
+│   ├── store.ts                    # Chat MST store
+│   ├── index.ts
+│   ├── actions/
+│   │   ├── chatStore.actions.ts     # Store actions (setAbort, setIsRunning, etc.)
+│   │   ├── setActiveTask.ts
+│   │   └── index.ts
+│   ├── events/
+│   │   ├── actions/
+│   │   │   ├── sendAskResponse.ts
+│   │   │   ├── sendNewTask.ts
+│   │   │   ├── sendClearTask.ts
+│   │   │   └── index.ts
+│   │   └── handlers/
+│   │       ├── on-task-state-received.ts
+│   │       ├── on-messages-updated-received.ts
+│   │       └── index.ts
+│   ├── task/
+│   │   ├── store.ts                 # Task MST store
+│   │   ├── index.ts
+│   │   ├── task-store/              # TaskModel (state, messages, etc.)
+│   │   │   ├── task-model/
+│   │   │   │   ├── TaskModel.ts
+│   │   │   │   ├── actions/
+│   │   │   │   │   ├── task-model-actions-lifecycle.ts
+│   │   │   │   │   ├── task-model-actions-stream.ts
+│   │   │   │   │   └── index.ts
+│   │   │   │   └── views/
+│   │   │   └── ...
+│   │   ├── handlers/
+│   │   │   ├── on-task-created.ts
+│   │   │   ├── on-task-cancelled.ts
+│   │   │   ├── on-task-goal-add.ts
+│   │   │   ├── on-task-goal-remove.ts
+│   │   │   ├── on-task-goal-update.ts
+│   │   │   ├── on-task-goal-reorder.ts
+│   │   │   ├── on-task-resume.ts
+│   │   │   ├── on-task-clear.ts
+│   │   │   ├── on-task-completion.ts
+│   │   │   └── index.ts
+│   │   ├── actions/
+│   │   │   ├── startTask/
+│   │   │   │   ├── start-task.ts     # Creates UserMessageReceived intent
+│   │   │   │   └── index.ts
+│   │   │   ├── abortTask.ts          # Global abort (sets task._state.abort + store.chat.abort)
+│   │   │   └── index.ts
+│   │   ├── messages/
+│   │   │   ├── store.ts
+│   │   │   ├── index.ts
+│   │   │   ├── events/
+│   │   │   │   ├── actions/
+│   │   │   │   │   ├── sendChatTreePatch.ts
+│   │   │   │   │   └── index.ts
+│   │   │   │   └── handlers/
+│   │   │   │       ├── on-chat-tree-patch-received.ts
+│   │   │   │       ├── on-chat-tree-snapshot-received.ts
+│   │   │   │       └── index.ts
+│   │   │   ├── actions/
+│   │   │   │   ├── say/                  # 4 specialized broadcasts
+│   │   │   │   │   ├── agentBroadcast.ts
+│   │   │   │   │   ├── systemBroadcast.ts
+│   │   │   │   │   ├── mcpBroadcast.ts
+│   │   │   │   │   ├── userBroadcast.ts
+│   │   │   │   │   └── index.ts
+│   │   │   │   └── index.ts
+│   │   │   └── handlers/
+│   │   │       ├── user/
+│   │   │       │   ├── on-message-received.ts    # Guard → process/abort
+│   │   │       │   └── index.ts
+│   │   │       ├── on-agent-broadcast.ts
+│   │   │       ├── on-system-broadcast.ts
+│   │   │       ├── on-mcp-broadcast.ts
+│   │   │       ├── on-user-broadcast.ts
+│   │   │       ├── on-message-delete-requested.ts
+│   │   │       ├── on-message-delete-confirmed.ts
+│   │   │       ├── on-message-edit-requested.ts
+│   │   │       ├── on-message-edit-confirmed.ts
+│   │   │       └── index.ts
+│   │   ├── notifications/
+│   │   │   ├── store.ts
+│   │   │   ├── index.ts
+│   │   │   ├── actions/
+│   │   │   │   ├── askToolApproval.ts
+│   │   │   │   ├── askFollowUp.ts
+│   │   │   │   ├── askSubTask.ts
 │   │   │   │   └── index.ts
 │   │   │   ├── handlers/
+│   │   │   │   ├── on-notification-persist.ts
+│   │   │   │   ├── on-ask-response-received.ts
 │   │   │   │   └── index.ts
-│   │   │   └── index.ts
-│   │   ├── index.ts
-│   │   └── file-context/
-│   │       ├── store.ts                           FileContextTrackerModel MST — REWRITTEN from class
-│   │       ├── events/
-│   │       │   ├── constants.ts                           Feature-specific event key constants — NEW
-│   │       │   ├── actions/
-│   │       │   │   └── index.ts
-│   │       │   ├── handlers/
-│   │       │   │   └── index.ts
+│   │   │   └── components/
+│   │   ├── condense/
+│   │   │   ├── store.ts
+│   │   │   ├── index.ts
+│   │   │   ├── actions/
+│   │   │   │   └── condenseContext.ts
+│   │   │   └── handlers/
+│   │   │       ├── on-context-condense.ts
+│   │   │       └── index.ts
+│   │   └── events/
+│   │       ├── actions/
+│   │       │   ├── sendTaskAction.ts      # For task-level events
+│   │       │   ├── sendTaskState.ts
 │   │       │   └── index.ts
-│   │       └── index.ts
-│   │
-│   └── window-manager/
-│       ├── store.ts                               WindowManagerModel MST — stays
-│       ├── events/                                NEW — events folder (was events.ts)
-│       │   ├── constants.ts                       Feature-specific event key constants — NEW
-│       │   ├── actions/
-│       │   │   └── index.ts
-│       │   ├── handlers/
-│       │   │   ├── on-window-state-received.ts    receives "windowState" → creates Intent
-│       │   │   ├── ... (9 window manager event handlers)
-│       │   │   └── index.ts
-│       │   └── index.ts
-│       ├── index.ts                               stays
+│   │       └── handlers/
+│   │           ├── on-action-received.ts   # Creates UserMessageReceived intent
+│   │           ├── on-state-received.ts
+│   │           └── index.ts
+│   └── tools/
+│       ├── store.ts
+│       ├── index.ts
+│       ├── actions/
+│       │   └── executeTools.ts
 │       └── handlers/
-│           └── index.ts                           stays
-│
-└── events.ts                                      Kept for type-only re-exports (BackendToWebview, etc.)
-                                                   Feature event registrations moved to extension.ts
+│           └── on-tool-execution-required.ts
+
+├── api/
+│   ├── store.ts
+│   ├── index.ts
+│   ├── events/
+│   │   ├── actions/
+│   │   │   ├── sendApiRequest.ts
+│   │   │   ├── sendStreamChunk.ts         # ⚠️ EXCEPTION — direct webview.postMessage
+│   │   │   └── index.ts
+│   │   └── handlers/
+│   │       ├── on-api-request-started.ts   # Handles streaming start
+│   │       └── index.ts
+│   ├── handlers/
+│   │   ├── on-api-start-streaming.ts
+│   │   ├── on-api-end-streaming.ts
+│   │   └── index.ts
+│   └── streaming/
+│       └── ...                             # Streaming utilities
+
+├── mcp/
+│   ├── store.ts
+│   ├── index.ts
+│   ├── events/
+│   │   ├── actions/
+│   │   │   └── ...
+│   │   └── handlers/
+│   │       └── ...
+│   ├── actions/
+│   └── handlers/
+
+└── integrations/
+    ├── terminal/
+    ├── file-system/
+    └── vscode-commands/
 ```
 
 ---
@@ -1435,570 +1093,376 @@ src/features/
 
 ```
 webview-ui/src/features/
-│
-├── intents/                                       ← 🎯 INTENT — NEW (frontend event-reactive layer)
-│   ├── store.ts                                   IntentStoreModel MST — NEW (mirrors backend)
-│   ├── bus.ts                                     IntentBus — NEW (mirrors backend)
-│   ├── context.ts                                 IntentHandlerContext — NEW
-│   ├── constants.ts                               IntentConstants — NEW (intent type constants per-side)
-│   └── index.ts                                   setupIntents() — NEW
-│
-├── api/                                           ← 🔌 EXTERNAL API — connection/streaming/error UI state
-│   │                                                NEW — frontend counterpart to backend features/api/
-│   │                                                Includes streaming/ sub-feature (non-MST exception)
-│   ├── store.ts                                   ApiModel MST — NEW (connection state, error state, streaming state)
-│   ├── streaming/                                 ← 📡 STREAMING EXCEPTION — non-MST reactive store
-│   │   │                                            Ephemeral store outside MST
-│   │   │                                            Not part of MST because:
-│   │   │                                            1. Receives 1000+ updates per second
-│   │   │                                            2. State is ephemeral (only during active stream)
-│   │   │                                            3. Only one stream active at a time
-│   │   ├── store.ts                               StreamingStore class (non-MST reactive) — NEW
-│   │   ├── hooks/
-│   │   │   └── useStreamingStore.ts               React hook — NEW
-│   │   └── index.ts                               barrel — NEW
-│   ├── events/                                    NEW — events folder
-│   │   ├── constants.ts                           Feature-specific event key constants — NEW
-│   │   ├── actions/                               Send events TO backend
+├── intents/                          # Intent system layer
+│   ├── IntentConstants.ts            # Frontend IntentConstants + INTENT_PRIORITY map
+│   ├── store.ts                      # IntentStoreModel MST (frontend)
+│   ├── bus.ts                        # IntentBus with Fiber scheduler (frontend)
+│   └── context.ts                    # IntentHandlerContext type (frontend)
+
+├── foundation/
+│   ├── store.ts
+│   ├── index.ts
+│   ├── events/
+│   │   ├── actions/
+│   │   │   ├── sendActivePage.ts
+│   │   │   ├── sendFocusPanel.ts
+│   │   │   ├── sendTabSwitch.ts
+│   │   │   ├── sendTaskCosts.ts
 │   │   │   └── index.ts
-│   │   ├── handlers/                              Handle events FROM backend
-│   │   │   └── index.ts
-│   │   └── index.ts
-│   ├── index.ts                                   barrel
+│   │   └── handlers/
+│   │       ├── on-active-page-received.ts
+│   │       ├── on-focus-panel-received.ts
+│   │       ├── on-tab-switch-received.ts
+│   │       ├── on-state-requested-received.ts
+│   │       ├── on-task-aggregated-costs-received.ts
+│   │       ├── on-task-show-received.ts
+│   │       ├── on-task-delete-received.ts
+│   │       ├── on-task-export-received.ts
+│   │       └── index.ts
 │   ├── actions/
+│   │   ├── focusPanel.ts
+│   │   ├── switchTab.ts
+│   │   ├── stateRequested.ts
 │   │   └── index.ts
 │   ├── handlers/
+│   │   ├── on-foundation-focus-panel-requested.ts
+│   │   ├── on-foundation-tab-switch.ts
+│   │   ├── on-foundation-active-page-response.ts
+│   │   ├── on-foundation-state-requested.ts
+│   │   ├── on-foundation-task-aggregated-costs.ts
+│   │   ├── on-foundation-task-show.ts
+│   │   ├── on-foundation-task-delete.ts
+│   │   ├── on-foundation-task-export.ts
+│   │   └── index.ts
+
+├── settings/
+│   ├── store.ts
+│   ├── index.ts
+│   ├── types.ts
+│   ├── events/
+│   │   ├── actions/
+│   │   │   ├── sendSettingsUpdate.ts
+│   │   │   ├── sendApiConfigSave.ts
+│   │   │   └── index.ts
+│   │   └── handlers/
+│   │       ├── on-theme-received.ts
+│   │       ├── on-config-updated-received.ts
+│   │       ├── on-list-api-config-received.ts
+│   │       ├── on-router-models-received.ts
+│   │       ├── on-mcp-servers-received.ts
+│   │       ├── on-skills-received.ts
+│   │       └── index.ts
+│   ├── actions/
+│   │   ├── updateSetting.ts
+│   │   ├── openKeyboardShortcuts.ts
+│   │   ├── openMarkdownPreview.ts
+│   │   ├── setTelemetry.ts
+│   │   ├── saveApiConfig.ts
+│   │   └── index.ts
+│   ├── handlers/
+│   │   ├── on-settings-update.ts
+│   │   ├── on-settings-api-config-save.ts
 │   │   └── index.ts
 │   └── components/
-│       └── index.ts
-│
-├── chat/                                          ← 💬 MESSAGE — chat container
-│   ├── store.ts                                   ChatModel MST — stays
-│   ├── events/                                    NEW — events folder (was events.ts)
-│   │   ├── constants.ts                           Feature-specific event key constants — NEW
-│   │   ├── actions/                               Send events TO backend
-│   │   │   ├── sendChatTreeSnapshot.ts            export function sendChatTreeSnapshot(eb, payload)
-│   │   │   ├── sendChatTreePatch.ts               export function sendChatTreePatch(eb, payload)
-│   │   │   ├── sendMessageUpdated.ts              export function sendMessageUpdated(eb, payload)
-│   │   │   ├── sendShowEditDialog.ts              export function sendShowEditDialog(eb, payload)
-│   │   │   ├── sendShowDeleteDialog.ts            export function sendShowDeleteDialog(eb, payload)
-│   │   │   └── index.ts
-│   │   ├── handlers/                              Handle events FROM backend
-│   │   │   ├── on-chat-tree-snapshot-received.ts  receives "chatTreeSnapshot" → creates Intent
-│   │   │   ├── on-chat-tree-patch-received.ts     receives "chat.tree.patch" → creates Intent
-│   │   │   ├── on-message-updated-received.ts     receives "messageUpdated" → creates Intent
-│   │   │   ├── on-edit-dialog-received.ts         receives "showEditMessageDialog" → creates Intent
-│   │   │   ├── on-delete-dialog-received.ts       receives "showDeleteMessageDialog" → creates Intent
-│   │   │   └── index.ts                           registerChatEvents()
-│   │   └── index.ts                               barrel
-│   ├── index.ts                                   stays
-│   ├── actions/                                   NEW barrel (empty or with action creators)
-│   │   └── index.ts
-│   ├── handlers/                                  NEW barrel (empty or with intent handlers)
-│   │   └── index.ts
-│   │
-│   ├── task/                                      ← 🎯 INTENT — task lifecycle
-│   │   ├── store.ts                               TaskModel MST — stays
-│   │   ├── events/
-│   │   │   ├── constants.ts                       Feature-specific event key constants — NEW
-│   │   │   ├── actions/                           Send events TO backend
-│   │   │   │   └── index.ts
-│   │   │   ├── handlers/                          Handle events FROM backend
-│   │   │   │   ├── on-action-received.ts          receives "action" → creates Intent
-│   │   │   │   ├── on-state-received.ts           receives "state" → creates Intent
-│   │   │   │   ├── on-condense-started-received.ts receives "condenseTaskContextStarted" → creates Intent
-│   │   │   │   ├── on-condense-response-received.ts receives "condenseTaskContextResponse" → creates Intent
-│   │   │   │   ├── on-accept-input-received.ts    receives "acceptInput" → creates Intent
-│   │   │   │   └── index.ts
-│   │   │   └── index.ts
-│   │   ├── index.ts
-│   │   ├── actions/
-│   │   │   └── index.ts
-│   │   └── handlers/
-│   │       └── index.ts
-│   │
-│   ├── messages/                                  ← 💬 MESSAGE — renamed from messages-list/
-│   │   ├── store.tsx                              MessagesModel MST — MOVED from messages-list/
-│   │   ├── events/
-│   │   │   ├── constants.ts                           Feature-specific event key constants — NEW
-│   │   │   ├── actions/
-│   │   │   │   └── index.ts
-│   │   │   ├── handlers/
-│   │   │   │   └── index.ts
-│   │   │   └── index.ts
-│   │   ├── index.ts                               barrel
-│   │   ├── actions/
-│   │   │   └── index.ts
-│   │   ├── handlers/
-│   │   │   └── index.ts
-│   │   └── components/
-│   │       ├── MessageArea.tsx                    MOVED from messages-list/message-area.tsx
-│   │       ├── AskResponder.tsx                   MOVED from messages-list/ask-responder.tsx
-│   │       ├── AssistantMessage.tsx               MOVED from messages-list/assistant-message.tsx
-│   │       ├── HomeScreen.tsx                     MOVED from messages-list/home-screen.tsx
-│   │       ├── UserMessage.tsx                    MOVED from messages-list/user-message.tsx
-│   │       ├── Sidebar.tsx                        MOVED from messages-list/sidebar.tsx
-│   │       ├── row/
-│   │       │   └── View.tsx
-│   │       ├── command/
-│   │       ├── context-management/
-│   │       ├── hooks/
-│   │       ├── tool/
-│   │       ├── utils/
-│   │       └── index.ts
-│   │
-│   ├── notifications/                             ← 📣 NOTIFICATION
-│   │   ├── store.tsx                              NotificationsModel MST — stays
-│   │   ├── events/
-│   │   │   ├── constants.ts                       Feature-specific event key constants — NEW
-│   │   │   ├── actions/                           Send events TO backend
-│   │   │   │   ├── sendCheckpointDiff.ts          export function sendCheckpointDiff(eb, payload)
-│   │   │   │   ├── sendCheckpointRestore.ts       export function sendCheckpointRestore(eb, payload)
-│   │   │   │   ├── sendPlaySound.ts               export function sendPlaySound(eb, payload)
-│   │   │   │   ├── sendTtsPlay.ts                 export function sendTtsPlay(eb, payload)
-│   │   │   │   ├── sendTtsStop.ts                 export function sendTtsStop(eb, payload)
-│   │   │   │   ├── sendTtsEnabled.ts              export function sendTtsEnabled(eb, payload)
-│   │   │   │   ├── sendTtsSpeed.ts                export function sendTtsSpeed(eb, payload)
-│   │   │   │   ├── sendQueueMessage.ts            export function sendQueueMessage(eb, payload)
-│   │   │   │   ├── sendRemoveQueued.ts            export function sendRemoveQueued(eb, payload)
-│   │   │   │   ├── sendEditQueued.ts              export function sendEditQueued(eb, payload)
-│   │   │   │   └── index.ts
-│   │   │   ├── handlers/                          Handle events FROM backend
-│   │   │   │   ├── on-checkpoint-updated-received.ts receives "currentCheckpointUpdated" → creates Intent
-│   │   │   │   ├── on-checkpoint-warning-received.ts receives "checkpointInitWarning" → creates Intent
-│   │   │   │   ├── on-tts-start-received.ts       receives "ttsStart" → creates Intent
-│   │   │   │   ├── on-tts-stop-received.ts        receives "ttsStop" → creates Intent
-│   │   │   │   ├── on-command-status-received.ts  receives "commandExecutionStatus" → creates Intent
-│   │   │   │   ├── on-mcp-status-received.ts      receives "mcpExecutionStatus" → creates Intent
-│   │   │   │   └── index.ts
-│   │   │   └── index.ts
-│   │   ├── index.ts
-│   │   ├── actions/
-│   │   │   └── index.ts
-│   │   ├── handlers/
-│   │   │   └── index.ts
-│   │   └── components/
-│   │       ├── ask/
-│   │       ├── batch/
-│   │       ├── checkpoint/
-│   │       ├── mcp/
-│   │       └── index.ts
-│   │
-│   ├── text-area/
-│   │   ├── store.ts
-│   │   ├── events/
-│   │   │   ├── constants.ts                           Feature-specific event key constants — NEW
-│   │   │   ├── actions/
-│   │   │   │   └── index.ts
-│   │   │   ├── handlers/
-│   │   │   │   ├── on-enhanced-prompt-received.ts receives "enhancedPrompt" → creates Intent
-│   │   │   │   ├── on-file-search-received.ts     receives "fileSearchResults" → creates Intent
-│   │   │   │   ├── on-insert-text-received.ts     receives "insertTextIntoTextarea" → creates Intent
-│   │   │   │   └── index.ts
-│   │   │   └── index.ts
-│   │   ├── index.ts
-│   │   ├── actions/
-│   │   │   └── index.ts
-│   │   └── handlers/
-│   │       └── index.ts
-│   │
-│   ├── topic/
-│   │   ├── store.ts
-│   │   ├── events/
-│   │   │   ├── constants.ts                           Feature-specific event key constants — NEW
-│   │   │   ├── actions/
-│   │   │   │   └── index.ts
-│   │   │   ├── handlers/
-│   │   │   │   ├── on-task-history-updated-received.ts receives "taskHistoryUpdated" → creates Intent
-│   │   │   │   ├── on-history-item-received.ts     receives "taskHistoryItemUpdated" → creates Intent
-│   │   │   │   ├── on-commands-received.ts         receives "commands" → creates Intent
-│   │   │   │   ├── on-modes-received.ts            receives "modes" → creates Intent
-│   │   │   │   └── index.ts
-│   │   │   └── index.ts
-│   │   ├── index.ts
-│   │   ├── actions/
-│   │   │   └── index.ts
-│   │   └── handlers/
-│   │       └── index.ts
-│   │
-│   ├── message-handler/
-│   │   ├── store.ts
-│   │   ├── events/
-│   │   │   ├── constants.ts                           Feature-specific event key constants — NEW
-│   │   │   ├── actions/
-│   │   │   │   └── index.ts
-│   │   │   ├── handlers/
-│   │   │   │   └── index.ts
-│   │   │   └── index.ts
-│   │   ├── index.ts
-│   │   ├── actions/
-│   │   │   └── index.ts
-│   │   └── handlers/
-│   │       └── index.ts
-│   │
-│   └── extension-state/
-│       ├── store.ts
-│       ├── events/
-│       │   ├── constants.ts                           Feature-specific event key constants — NEW
-│       │   ├── actions/
-│       │   │   └── index.ts
-│       │   ├── handlers/
-│       │   │   └── index.ts
-│       │   └── index.ts
-│       ├── index.ts
-│       ├── actions/
-│       │   └── index.ts
-│       └── handlers/
-│           └── index.ts
-│
-├── settings/
-│   ├── store.ts                                   SettingsModel MST — stays
-│   ├── events/                                    NEW — events folder (was events.ts)
-│   │   ├── constants.ts                           Feature-specific event key constants — NEW
-│   │   ├── actions/                               Send events TO backend
-│   │   │   ├── sendApiConfig.ts                   export function sendApiConfig(eb, payload)
-│   │   │   ├── sendCodeIndex.ts                   export function sendCodeIndex(eb, payload)
-│   │   │   ├── ... (50+ send* functions matching event-registry.ts)
-│   │   │   └── index.ts
-│   │   ├── handlers/                              Handle events FROM backend
-│   │   │   ├── on-settings-changed-received.ts    receives settings backend events → creates Intent
-│   │   │   └── index.ts
-│   │   └── index.ts
-│   ├── index.ts
-│   ├── actions/
-│   │   └── index.ts
-│   ├── handlers/
-│   │   └── index.ts
-│   │
-│   ├── mcp/
-│   ├── mcp-servers/
-│   ├── models/
-│   ├── skills/
-│   └── ... (other settings sub-features follow same pattern)
-│
-├── cloud/
-├── diagnostics/
+│       ├── ApiConfigList.tsx
+│       ├── KeyboardShortcuts.tsx
+│       └── ...
+
 ├── history/
+│   ├── store.ts
+│   ├── index.ts
+│   ├── events/
+│   │   ├── actions/
+│   │   │   ├── sendHistoryRequest.ts
+│   │   │   └── index.ts
+│   │   └── handlers/
+│   │       ├── on-history-updated-received.ts
+│   │       ├── on-history-item-updated-received.ts
+│   │       └── index.ts
+│   ├── handlers/
+│   │   ├── on-history-updated.ts
+│   │   ├── on-history-item-updated.ts
+│   │   └── index.ts
+│   └── components/
+
+├── diagnostics/
+│   ├── store.ts
+│   ├── index.ts
+│   ├── events/
+│   │   ├── actions/
+│   │   │   └── ...
+│   │   └── handlers/
+│   │       ├── on-diagnostics-received.ts
+│   │       └── index.ts
+│   ├── handlers/
+│   │   ├── on-diagnostics-received.ts
+│   │   └── index.ts
+│   └── components/
+
 ├── marketplace/
-│
-└── foundation/
-    ├── events/
-    │   ├── constants.ts                       Feature-specific event key constants — NEW
-    │   ├── actions/
-    │   │   └── index.ts
-    │   ├── handlers/
-    │   │   └── index.ts
-    │   └── index.ts
-    │
-    ├── agent-state/
-    │   ├── store.ts
-    │   ├── events/
-    │   │   ├── actions/                           Send events TO backend
-    │   │   │   ├── sendAgentState.ts
-    │   │   │   └── index.ts
-    │   │   ├── handlers/                          Handle events FROM backend
-    │   │   │   └── index.ts
-    │   │   └── index.ts
-    │   ├── index.ts
-    │   ├── actions/
-    │   │   └── index.ts
-    │   └── handlers/
-    │       └── index.ts
-    │
-    ├── mst-bridge/
-    │   ├── store.ts
-    │   ├── events/
-    │   │   ├── handlers/
-    │   │   │   ├── on-mst-snapshot-received.ts    receives "mstSnapshotBatch" → creates Intent
-    │   │   │   └── index.ts
-    │   │   └── index.ts
-    │   └── index.ts
-    │
-    └── window-manager/
-        ├── store.ts
-        ├── events/
-        │   ├── actions/                           Send events TO backend
-        │   │   ├── sendWindowStateChanged.ts
-        │   │   └── index.ts
-        │   ├── handlers/                          Handle events FROM backend
-        │   │   └── index.ts
-        │   └── index.ts
-        └── index.ts
+│   ├── store.ts
+│   ├── index.ts
+│   ├── events/
+│   │   ├── actions/
+│   │   │   └── ...
+│   │   └── handlers/
+│   │       ├── on-marketplace-data-received.ts
+│   │       └── index.ts
+│   ├── handlers/
+│   │   ├── on-marketplace-items-filter.ts
+│   │   ├── on-marketplace-item-install.ts
+│   │   ├── on-marketplace-item-remove.ts
+│   │   ├── on-marketplace-data-fetch.ts
+│   │   ├── on-marketplace-tools-refresh.ts
+│   │   └── index.ts
+│   └── components/
+
+├── cloud/
+│   ├── store.ts
+│   ├── index.ts
+│   ├── events/
+│   │   ├── actions/
+│   │   │   └── ...
+│   │   └── handlers/
+│   │       ├── on-cloud-auth-changed-received.ts
+│   │       └── index.ts
+│   ├── handlers/
+│   │   ├── on-cloud-button-clicked.ts
+│   │   ├── on-cloud-sign-in.ts
+│   │   ├── on-cloud-sign-out.ts
+│   │   ├── on-cloud-switch-organization.ts
+│   │   └── index.ts
+│   └── components/
+
+├── chat/
+│   ├── store.ts                    # Frontend ChatStore
+│   ├── index.ts
+│   ├── events/
+│   │   ├── actions/
+│   │   │   ├── sendAskResponse.ts  # User clicks Approve/Reject in UI
+│   │   │   └── index.ts
+│   │   └── handlers/
+│   │       ├── on-ask-response-received.ts
+│   │       ├── on-task-state-received.ts
+│   │       ├── on-messages-updated-received.ts
+│   │       ├── on-invoke-received.ts
+│   │       ├── on-interaction-required-received.ts
+│   │       └── index.ts
+│   ├── task/
+│   │   ├── store.ts                 # Frontend TaskStore
+│   │   ├── index.ts
+│   │   ├── events/
+│   │   │   ├── actions/
+│   │   │   │   ├── sendNewTask.ts
+│   │   │   │   ├── sendClearTask.ts
+│   │   │   │   └── index.ts
+│   │   │   └── handlers/
+│   │   │       ├── on-state-received.ts
+│   │   │       ├── on-action-received.ts
+│   │   │       ├── on-messages-updated-received.ts
+│   │   │       ├── on-checkpoint-updated-received.ts
+│   │   │       ├── on-checkpoint-init-warning-received.ts
+│   │   │       ├── on-condense-started-received.ts
+│   │   │       ├── on-condense-response-received.ts
+│   │   │       ├── on-selected-images-received.ts
+│   │   │       └── index.ts
+│   │   ├── actions/
+│   │   │   ├── newTask.ts
+│   │   │   ├── clearTask.ts
+│   │   │   ├── cancelTask.ts
+│   │   │   ├── resumeTask.ts
+│   │   │   ├── setSyncEnabled.ts
+│   │   │   └── index.ts
+│   │   ├── handlers/
+│   │   │   ├── on-task-new-requested.ts
+│   │   │   ├── on-task-cancel-requested.ts
+│   │   │   ├── on-task-clear-requested.ts
+│   │   │   ├── on-task-resume-requested.ts
+│   │   │   ├── on-task-sync-enabled-set.ts
+│   │   │   ├── on-task-condense-context-requested.ts
+│   │   │   ├── on-task-completion-requested.ts
+│   │   │   └── index.ts
+│   │   ├── messages/
+│   │   │   ├── store.ts
+│   │   │   ├── index.ts
+│   │   │   ├── events/
+│   │   │   │   ├── actions/
+│   │   │   │   │   └── ...
+│   │   │   │   └── handlers/
+│   │   │   │       ├── on-chat-tree-patch-received.ts
+│   │   │   │       ├── on-chat-tree-snapshot-received.ts
+│   │   │   │       └── index.ts
+│   │   │   ├── actions/
+│   │   │   │   └── ...
+│   │   │   ├── handlers/
+│   │   │   │   └── ...
+│   │   │   └── components/
+│   │   └── components/
+│   │       ├── ChatTree.tsx
+│   │       └── ...
+│   ├── notifications/
+│   │   ├── store.ts
+│   │   ├── index.ts
+│   │   ├── events/
+│   │   │   └── handlers/
+│   │   │       ├── on-tts-play-received.ts
+│   │   │       ├── on-tts-stop-received.ts
+│   │   │       └── index.ts
+│   │   ├── actions/
+│   │   │   ├── respondToAsk.ts
+│   │   │   └── index.ts
+│   │   ├── handlers/
+│   │   │   ├── on-ask-notification.ts
+│   │   │   ├── on-notification-add.ts
+│   │   │   ├── on-notification-tts-play.ts
+│   │   │   ├── on-notification-tts-stop.ts
+│   │   │   └── index.ts
+│   │   └── components/
+│   │       ├── AskDialog.tsx
+│   │       ├── PermissionRequest.tsx
+│   │       └── ...
+│   └── components/
+│       ├── ChatView.tsx
+│       └── ...
+
+├── api/
+│   └── streaming/
+│       ├── StreamingStore.ts         # Non-MST reactive store
+│       ├── useStreamingStore.ts      # React hook
+│       └── index.ts
+
+└── messaging/
+    └── ... (non-MST messaging utilities)
 ```
 
 ---
 
 ## WHAT MUST BE DELETED
 
-The following files and directories currently exist but are NOT in the target structure above.
-
 ### Phase 0 — Safe Deletions (backup-free)
 
-| #    | Path                                                 | Reason                                                                |
-| ---- | ---------------------------------------------------- | --------------------------------------------------------------------- |
-| 0.1  | `src/features/ipc/handlers/index.ts`                 | EventBridge is sole channel. DELETE entirely.                         |
-| 0.2  | `src/features/chat/actions/runtime.ts`               | Module-level state violation (4 vars). All state → TaskModel. DELETE. |
-| 0.3  | `src/features/chat/actions/metrics.ts`               | Not proper actions. Migrate to TaskModel store actions. DELETE.       |
-| 0.4  | `src/features/chat/actions/getEnvironmentDetails.ts` | Already planned deletion. Inline in consumers. DELETE.                |
-| 0.5  | `src/features/chat/actions/types.ts`                 | Legacy callback types. Replaced by Intent patterns. DELETE.           |
-| 0.6  | `src/features/chat/actions/index.ts`                 | Barrel for deleted files. DELETE.                                     |
-| 0.7  | `src/features/chat/actions/foldedFileContext.ts`     | MOVED to `foundation/time-machine/file-context/`. DELETE old.         |
-| 0.8  | `src/features/foundation/timer-queue/` entire dir    | Singleton + empty MST model. DELETE.                                  |
-| 0.9  | `plans/migration-plan-v3.md`                         | Outdated. DELETE.                                                     |
-| 0.10 | `plans/migration-v4-comprehensive-audit-and-plan.md` | Outdated. DELETE.                                                     |
-| 0.11 | `plans/audit-and-migration-v5.md`                    | Outdated. DELETE.                                                     |
+These are already migrated or dead code:
+
+1. `src/features/ipc/handlers/` — EventBridge is sole channel
+2. `chat/actions/runtime.ts` — state migrated to TaskModel
+3. `chat/actions/metrics.ts` — tool tracking in store actions
+4. `chat/actions/getEnvironmentDetails.ts` — inlined in consumers
+5. `chat/events/webview-message-router.ts` — all message routing through EventBridge webview handler
+6. `foundation/timer-queue/` — replaced by scheduler microtask loop
+7. Old `webview-ui/src/utils/` utils already absorbed into features
+8. `ChatActionsProvider.tsx` — actions go through IntentBus, not React context
+9. `webview-ui/src/features/chat/context-management/` — migrated to foundation
 
 ### Phase 1 — Delete After Migration
 
-| #    | Path                                                   | Action                                                                                      |
-| ---- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
-| 1.1  | `src/features/chat/context-management/` entire dir     | Contents → `foundation/time-machine/file-context/`. DELETE old.                             |
-| 1.2  | `src/features/chat/notifications/` entire dir          | Contents → `chat/task/notifications/`. DELETE old.                                          |
-| 1.3  | `src/features/chat/messages/` entire dir               | Contents → `chat/task/messages/`. DELETE old.                                               |
-| 1.4  | `src/features/chat/messages/actions/agent/` entire dir | Files → `messages/handlers/agent/` (as handlers or helpers). DELETE old.                    |
-| 1.5  | `src/features/foundation/agent-state/` entire dir      | Contents → `settings/agents/`. DELETE old.                                                  |
-| 1.6  | `src/features/settings/settingsService.ts`             | 535-line singleton. ALL state → MST SettingsModel. DELETE after migration.                  |
-| 1.7  | `src/features/settings/code-index/store.ts`            | DELETE entirely. Migrate to MST or Intent pattern.                                          |
-| 1.8  | `src/features/chat/actions/condenseContext.ts`         | → `task/condense/actions/condenseContext.ts`. DELETE old.                                   |
-| 1.9  | `src/features/chat/actions/summarizeConversation.ts`   | → `task/condense/handlers/on-context-condense.ts`. DELETE old.                              |
-| 1.10 | `src/features/chat/store.ts`                           | Stays in place. NOT moved.                                                                  |
-| 1.11 | `src/features/settings/ignore/ignore.ts`               | Re-created under `settings/ignore/handlers/ignore.ts`. DELETE old.                          |
-| 1.12 | `src/features/settings/protect/protection.ts`          | Re-created under `settings/protect/handlers/protection.ts`. DELETE old.                     |
-| 1.13 | ALL `src/features/**/events.ts` files                  | Replaced by `events/` folders. DELETE each old events.ts after creating the events/ folder. |
+1. `chat/actions/` directory — all actions refactored into individual `actions/` files
+2. `chat/notifications/` — merged into `chat/task/notifications/`
+3. `chat/messages/` — merged into `chat/task/messages/`
+4. `chat/messages-list/` — renamed to `chat/task/messages/`
+5. `foundation/agent-state/` — merged into `settings/agents/`
+6. `settings/settingsService.ts` — all state in MST SettingsModel
+7. `settings/code-index/store.ts` — all state in `settings/code-index/store.ts` MST
+8. Old `actions/agent/attemptApiRequest.ts` — migrated to `features/api/handlers/`
+9. Old `actions/agent/streamChunkHandlers.ts` — migrated to `features/api/handlers/stream/`
 
 ### Frontend deletions (after migration)
 
-| #   | Path                                                         | Action                                                                                        |
-| --- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
-| F.1 | `webview-ui/src/features/chat/messages-list/` entire dir     | Renamed to `messages/`. DELETE old.                                                           |
-| F.2 | `webview-ui/src/features/chat/notifications/store.tsx`       | → `notifications/store.tsx`. Stays, just path same.                                           |
-| F.3 | `webview-ui/src/features/foundation/agent-state/`            | Mirrors backend. Stays as-is (but events.ts → events/ folder).                                |
-| F.4 | ALL `webview-ui/src/features/**/events.ts` files             | Replaced by `events/` folders. DELETE each old events.ts after creating the events/ folder.   |
-| F.5 | `webview-ui/src/features/chat/notifications/components/say/` | Content migrated to `messages/components/`. DELETE old `say/` dir.                            |
-| F.6 | `src/features/chat/task/notifications/actions/say.ts`        | Split into `messages/actions/say/` (4 files). DELETE old say-related code from notifications. |
-
-> **NOTE**: `api/streaming/store.ts` is NON-MST and lives outside the `events/` folder pattern intentionally. It is NOT deletable — it is the NEW exception store nested inside the `api/` feature. Do NOT add `events/` folder to `api/streaming/` sub-feature.
+1. Old `webview-ui/src/features/chat/task/*` files outside the new structure
+2. `webview-ui/src/core/messageBus.ts` — migrated to IntentBus-based routing
+3. Legacy `webview-ui/src/features/chat/context-management/` files
 
 ---
 
 ## MIGRATION PHASES (Dependency-Safe Order)
 
-```mermaid
-flowchart TD
-    P0["Phase 0: Safe deletions\nipc/handlers/, runtime.ts, metrics.ts,\ngetEnvironmentDetails.ts, types.ts,\nfoldedFileContext.ts, timer-queue/,\nold plan files"]
+### Phase 0 — Fiber IntentBus [CRITICAL — DO FIRST]
 
-    P1["Phase 1: Frontend Intents Layer\nCREATE frontend IntentBus + IntentStore\nstore.ts, bus.ts, context.ts, index.ts"]
+This phase is the foundation for everything else. The FIFO-blocking IntentBus must be replaced with the fiber-style priority dispatch BEFORE any other migration, because the synchronous bypass workaround for Stop/Cancel depends on the blocking behavior.
 
-    P2["Phase 2: Convert ALL backend events.ts → events/ folders\nCREATE events/actions/ + events/handlers/\nCREATE send* + on-*-received files\nREFACTOR webviewMessageHandler.ts to registration system\nUPDATE extension.ts to call register*Events()"]
+1. **Add `IntentStatus.Suspended` to shared types** (`packages/types/src/intents/types.ts`):
 
-    P3["Phase 3: Create ALL frontend events/ folders\nCREATE events/actions/ + events/handlers/ for frontend\nCREATE send* + on-*-received files\nREFACTOR messageBus.ts to route through events/handlers/"]
+    ```typescript
+    export enum IntentStatus {
+    	Queued = "queued",
+    	Processing = "processing",
+    	Suspended = "suspended", // NEW
+    	Success = "success",
+    	Failed = "failed",
+    }
+    ```
 
-    P4["Phase 4: Fix module-level state violations\nmcpExecutionStore, skillsStore,\nmcpServersStore, agentStateStore:\n.create{} → attach to RootStore"]
+2. **Add priority to IntentModel** — add optional `priority` field to IntentModel in both frontend and backend `store.ts`:
 
-    P5["Phase 5: Migrate actions/agent/ → handlers/agent/\nRENAME attemptApiRequest → on-api-request-started\nRENAME streamChunkHandlers → on-stream-chunk-received\nMOVE helpers/ alongside"]
+    ```typescript
+    priority: types.maybe(types.number),  // 0=Critical, 1=High, 2=Normal, 3=Low
+    ```
 
-    P6["Phase 6: Rename messages-list/ → messages/ (frontend)\nMOVE all files, flatten components/\nUPDATE all imports"]
+3. **Add MST actions** to both frontend and backend `IntentStoreModel`:
 
-    P7["Phase 7: FileContextTracker class → MST store\nREWRITE class as MST store actions\nCREATE handlers for context events"]
+    - `dispatchIntent(id)` — sets status to Processing (replaces `setProcessing` for scheduler use)
+    - `suspendIntent(id)` — sets status to Suspended
+    - `resumeIntent(id)` — sets status back to Processing
 
-    P8["Phase 8: Fix 3 as unknown casts in modesFileService.ts"]
+4. **Rewrite `bus.ts`** — replace the blocking `processQueue()` with:
 
-    P9["Phase 9: Standard feature pattern compliance\nAdd actions/ + handlers/ barrels to ALL frontend features\nFlatten nested components/ dirs\nMerge chat/notifications/ → chat/task/notifications/\nMerge chat/messages/ → chat/task/messages/\nMerge foundation/agent-state/ → settings/agents/\nRestructure chat/actions/ → task/condense/"]
+    - MobX `reaction()` that only feeds the priority queue (non-blocking, no `await`)
+    - `PriorityQueue` class (simple array-based, sorted by priority on enqueue)
+    - `FiberScheduler` — microtask-based loop that dequeues from priority queue, calls `dispatchIntent()`, runs handler, yields at yield points, checks for preemption, suspends/resumes as needed
+    - `yield()` method on scheduler — handlers call `await scheduler.yield()` at safe points
 
-    P10["Phase 10: Replace messageBus.ts pipeline\nRefactor from channel-based pipeline to IntentBus\nRoute extension messages through events/handlers/"]
+5. **Add `INTENT_PRIORITY` map** to both frontend and backend `IntentConstants.ts`
 
-    P11["Phase 11: Backend settings compliance\nsettingsService.ts → MST\nDelete code-index/store.ts\nprotect/ + ignore/ → standard pattern"]
+6. **Add `priority` to `createIntent()` call signature** — `createIntent()` assigns priority from the map based on intent type
 
-    P12["Phase 12: Cleanup & verification\nUpdate all imports\nDelete orphaned directories\npnpm check-types\nFinal audit"]
+7. **Remove synchronous bypass** for Stop/Cancel — the Stop handler now creates a `Critical`-priority `task.cancel.requested` intent instead of directly mutating store state
 
-    P0 --> P1
-    P1 --> P2
-    P2 --> P3
-    P3 --> P4
-    P4 --> P5
-    P5 --> P6
-    P6 --> P7
-    P7 --> P8
-    P8 --> P9
-    P9 --> P10
-    P10 --> P11
-    P11 --> P12
-```
+8. **Update `abortTask.ts`** — keep task-level abort (`task._state.setAbort(true)` + `abortController.abort()`), but remove `store.chat.setAbort(true)` — the store-level abort flag is no longer needed because cancel intents always preempt via priority
 
----
+9. **Add yield points to long-running handlers** — `on-user-message-received.ts` adds `await scheduler.yield()` before `executeTools()` and before each tool execution loop iteration
 
-## DETAILED MIGRATION STEPS
+10. **Update StoreModel** — add `IntentStatus.Suspended` to the MST enum in both frontend and backend `store.ts`:
+    ```typescript
+    status: types.enumeration("IntentStatus", [
+      IntentStatus.Queued,
+      IntentStatus.Processing,
+      IntentStatus.Suspended,  // NEW
+      IntentStatus.Success,
+      IntentStatus.Failed,
+    ]),
+    ```
 
 ### Phase 1 — Frontend Intents Layer + IntentConstants [CRITICAL]
 
-Frontend MUST have its own `IntentBus` + `IntentStore` before any events/ folders can be created.
-
-1. CREATE `webview-ui/src/features/intents/store.ts` — `IntentStoreModel` MST (mirrors backend)
-2. CREATE `webview-ui/src/features/intents/bus.ts` — `IntentBus` with MobX reaction (mirrors backend)
-3. CREATE `webview-ui/src/features/intents/context.ts` — `IntentHandlerContext` type
-4. CREATE `webview-ui/src/features/intents/constants.ts` — `IntentConstants` (intent type constants, UNIQUE to frontend)
-5. CREATE `webview-ui/src/features/intents/index.ts` — `setupIntents()` for frontend
-6. WIRE into frontend root store (attach IntentStore to root MST)
+1. CREATE `webview-ui/src/features/intents/IntentConstants.ts` with INTENT_PRIORITY map
+2. CREATE `webview-ui/src/features/intents/store.ts` (IntentStoreModel) with priority field + new actions
+3. CREATE `webview-ui/src/features/intents/bus.ts` (Fiber IntentBus)
+4. CREATE `webview-ui/src/features/intents/context.ts` (IntentHandlerContext)
+5. REGISTER frontend IntentBus in webview entry point
 
 ### Phase 2 — Convert ALL Backend `events.ts` → `events/` Folders + EventConstants [CRITICAL]
 
-Every feature's `events.ts` becomes an `events/` directory with:
-
-- `events/constants.ts` — Feature-specific event key constants (imported by EventConstants)
-- `events/actions/` — `send*()` functions that call `EventBridge.postMessage()` to send events TO the frontend
-- `events/handlers/` — `on-*-received.ts` files that subscribe to `EventBridge.on()` to receive events FROM the frontend
-- `events/index.ts` — barrel re-exporting constants, actions + registration function
-
-**Event handler pattern** (receives event, creates Intent — uses constants):
-
-```typescript
-// events/handlers/on-ask-response-received.ts
-import type { EventBridge } from "../../../foundation/webview/EventBridge"
-import type { IntentBus } from "../../../intents/bus"
-import { EventConstants } from "@jabberwock/types" // ← shared EventConstants
-import { IntentConstants } from "../../../intents/constants" // ← backend IntentConstants
-
-export function onAskResponseReceived(eventBridge: EventBridge, bus: IntentBus): void {
-	eventBridge.on(EventConstants.chat.ASK_RESPONSE, (msg) => {
-		// Create primary intent — uses IntentConstants
-		bus.createIntent({ type: IntentConstants.chat.ASK_RESPONSE_RECEIVED, payload: msg })
-
-		// Can create additional intents based on payload
-		if (msg.text) {
-			bus.createIntent({ type: IntentConstants.messages.DISPLAY, payload: { text: msg.text } })
-		}
-	})
-}
-```
-
-**Event action pattern** (sends event to other side — uses EventConstants):
-
-```typescript
-// events/actions/sendChatTreePatch.ts
-import type { EventBridge } from "../../../foundation/webview/EventBridge"
-import type { MstPatch } from "@jabberwock/types"
-import { EventConstants } from "@jabberwock/types" // ← shared EventConstants
-
-export function sendChatTreePatch(eventBridge: EventBridge, patch: { snapshot?: unknown; patch?: MstPatch[] }): void {
-	eventBridge.postMessage({ type: EventConstants.chat.messages.CHAT_TREE_PATCH, ...patch })
-}
-```
-
-**Registration barrel pattern** (unifies all on-\* handlers, NO duplication):
-
-```typescript
-// events/handlers/index.ts
-import type { EventBridge } from "../../../foundation/webview/EventBridge"
-import type { IntentBus } from "../../../intents/bus"
-
-export function registerChatEvents(eventBridge: EventBridge, bus: IntentBus): void {
-	onAskResponseReceived(eventBridge, bus)
-	onDeleteMessageReceived(eventBridge, bus)
-	onDeleteConfirmReceived(eventBridge, bus)
-	onEditSubmitReceived(eventBridge, bus)
-	onEditConfirmReceived(eventBridge, bus)
-}
-```
-
-**Per-feature breakdown:**
-
-| #    | Feature                             | Events TO Frontend (actions/)                                                                                 | Events FROM Frontend (handlers/)                                                                                                                                                                                                                                                                                       |
-| ---- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2.1  | `chat/events/`                      | Chat-level events                                                                                             | Chat-level frontend events                                                                                                                                                                                                                                                                                             |
-| 2.2  | `chat/task/events/`                 | `sendState`, `sendAction`                                                                                     | `on-new-task-received`, `on-cancel-task-received`, `on-clear-task-received`, `on-task-sync-enabled-received`, `on-condense-context-received`, `on-webview-launched-received`                                                                                                                                           |
-| 2.3  | `chat/task/messages/events/`        | `sendChatTreePatch`, `sendMessageUpdated`, `sendShowEditDialog`, `sendShowDeleteDialog`                       | `on-ask-response-received`, `on-delete-message-received`, `on-delete-confirm-received`, `on-edit-submit-received`, `on-edit-confirm-received`                                                                                                                                                                          |
-| 2.4  | `chat/task/notifications/events/`   | `sendTtsStart`, `sendTtsStop`, `sendCheckpointUpdated`, `sendMcpExecutionStatus`                              | `on-checkpoint-diff-received`, `on-checkpoint-restore-received`, `on-play-sound-received`, `on-tts-play-received`, `on-tts-stop-received`, `on-tts-enabled-received`, `on-tts-speed-received`, `on-queue-message-received`, `on-remove-queued-received`, `on-edit-queued-received`, `on-elicitation-response-received` |
-| 2.5  | `settings/events/`                  | `sendSettingsChanged`, `sendTheme`                                                                            | 50+ settings event handlers                                                                                                                                                                                                                                                                                            |
-| 2.6  | `settings/agents/events/`           | Agent state changes                                                                                           | 40+ agent state event handlers                                                                                                                                                                                                                                                                                         |
-| 2.7  | `cloud/events/`                     | —                                                                                                             | 9 cloud event handlers                                                                                                                                                                                                                                                                                                 |
-| 2.8  | `marketplace/events/`               | —                                                                                                             | 14 marketplace event handlers                                                                                                                                                                                                                                                                                          |
-| 2.9  | `history/events/`                   | `sendSearchCommits`, `sendImportSettings`, `sendExportSettings`, `sendResetState`, `sendHistoryButtonClicked` | 5 history event handlers                                                                                                                                                                                                                                                                                               |
-| 2.10 | `foundation/events/`                | Foundation-level events                                                                                       | Foundation-level event handlers                                                                                                                                                                                                                                                                                        |
-| 2.11 | `foundation/window-manager/events/` | Window state events                                                                                           | 9 window manager event handlers                                                                                                                                                                                                                                                                                        |
-| 2.12 | `chat/text-area/events/`            | —                                                                                                             | 4 text area event handlers                                                                                                                                                                                                                                                                                             |
-| 2.13 | `chat/topic/events/`                | —                                                                                                             | 4 topic event handlers                                                                                                                                                                                                                                                                                                 |
-
-2.14 **REFACTOR** `webviewMessageHandler.ts`:
-
-- Replace the monolithic `WEBVIEW_TO_INTENT` Record (120+ entries) with a registration-based system
-- Add `onWebviewMessage(type, handler)` export that features call during registration
-- The handler function subscribes to `EventBridge.on()` and calls each feature's `register*Events(eventBridge, bus)` during init
-- No more one big switch/map — features self-register their slices
-
-    2.15 **UPDATE** `extension.ts`:
-
-- After `initFeatures()`, call each `register*Events(eventBridge, intentBus)` function
-- Remove legacy IPC handler registration
-
-    2.16 **UPDATE** root `src/features/events/` — re-export from all feature events/ folders
+1. ADD EventConstants for every un-constant literal event type
+2. CONVERT each `events.ts` → `events/actions/send*.ts` + `events/handlers/on-*.ts`
+3. REGISTER each event handler in `events/handlers/index.ts`
+4. BROADCAST intent from each event handler
 
 ### Phase 3 — Create Frontend `events/` Folders [CRITICAL]
 
-Frontend events/ folders mirror the backend pattern but in reverse direction:
-
-- `events/actions/send*()` — send events TO the backend via `EventBridge.postMessage()`
-- `events/handlers/on-*-received()` — receive events FROM the backend via `EventBridge.on()`
-
-**Per-feature breakdown (14 features):**
-
-| #    | Feature                             | Events TO Backend (actions/)                                                                                                                                                             | Events FROM Backend (handlers/)                                                                                                                                             |
-| ---- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 3.1  | `chat/events/`                      | —                                                                                                                                                                                        | `on-chat-tree-snapshot-received`, `on-chat-tree-patch-received`, `on-message-updated-received`, `on-edit-dialog-received`, `on-delete-dialog-received`                      |
-| 3.2  | `chat/task/events/`                 | —                                                                                                                                                                                        | `on-action-received`, `on-state-received`, `on-condense-started-received`, `on-condense-response-received`, `on-accept-input-received`                                      |
-| 3.3  | `chat/messages/events/`             | —                                                                                                                                                                                        | (handlers in 3.1 cover message events)                                                                                                                                      |
-| 3.4  | `chat/notifications/events/`        | `sendCheckpointDiff`, `sendCheckpointRestore`, `sendPlaySound`, `sendTtsPlay`, `sendTtsStop`, `sendTtsEnabled`, `sendTtsSpeed`, `sendQueueMessage`, `sendRemoveQueued`, `sendEditQueued` | `on-checkpoint-updated-received`, `on-checkpoint-warning-received`, `on-tts-start-received`, `on-tts-stop-received`, `on-command-status-received`, `on-mcp-status-received` |
-| 3.5  | `chat/text-area/events/`            | —                                                                                                                                                                                        | `on-enhanced-prompt-received`, `on-file-search-received`, `on-insert-text-received`                                                                                         |
-| 3.6  | `chat/topic/events/`                | —                                                                                                                                                                                        | `on-task-history-updated-received`, `on-history-item-received`, `on-commands-received`, `on-modes-received`                                                                 |
-| 3.7  | `foundation/agent-state/events/`    | `sendAgentState`                                                                                                                                                                         | 20+ agent state backend events                                                                                                                                              |
-| 3.8  | `foundation/window-manager/events/` | `sendWindowStateChanged`                                                                                                                                                                 | 4 window manager backend events                                                                                                                                             |
-| 3.9  | `foundation/mst-bridge/events/`     | —                                                                                                                                                                                        | `on-mst-snapshot-received`                                                                                                                                                  |
-| 3.10 | `settings/events/`                  | `sendApiConfig`, `sendCodeIndex`, `sendFiles`, ... (50+ send\* functions)                                                                                                                | `on-settings-changed-received`                                                                                                                                              |
-| 3.11 | `cloud/events/`                     | —                                                                                                                                                                                        | 4 cloud backend events                                                                                                                                                      |
-| 3.12 | `diagnostics/events/`               | —                                                                                                                                                                                        | `on-diagnostics-received`                                                                                                                                                   |
-| 3.13 | `history/events/`                   | —                                                                                                                                                                                        | `on-commit-search-received`, `on-workspace-updated-received`                                                                                                                |
-| 3.14 | `marketplace/events/`               | —                                                                                                                                                                                        | 5 marketplace backend events                                                                                                                                                |
+1. CREATE `events/actions/send*.ts` for every Event the frontend sends
+2. CREATE `events/handlers/on-*.ts` for every Event the frontend receives
+3. REGISTER each in `events/handlers/index.ts`
+4. BROADCAST intent from each event handler
 
 ### Phase 4 — Fix Module-Level State Violations [CRITICAL]
 
-Convert 4 module-level `.create({})` singletons to proper MST composition:
-
-1. `mcpExecutionStore` — singleton `.create({})` → attach to RootStore
-2. `skillsStore` — singleton `.create({})` → attach to RootStore
-3. `mcpServersStore` — singleton `.create({})` → attach to RootStore
-4. `agentStateStore` — singleton `.create({})` → attach to RootStore
-
-Each: Remove `create({})` call at module level, add to RootStore model, update all imports and consumers.
+1. `rawChunkProcessor.ts` — `rawChunkTracker = new Map<>()` at line 23 → MST store
 
 ### Phase 5 — Create `features/api/` (Backend) + Migrate `actions/agent/` Into It
 
-The `actions/agent/` directory contains API-calling logic (handlers, not action creators). It moves into the new `features/api/` feature which wraps `src/api/providers/` + `src/api/transform/` with intent-based orchestration.
-
-**Streaming architecture uses the EXCEPTION PATTERN** (see Streaming Architecture section):
-
-- Only 2 intents: `STREAMING_STARTED` (creates AgentMessage with text="") + `STREAMING_ENDED` (finalizes text + finishReason)
-- Between them, chunks go through `events/actions/sendStreamChunk.ts` → direct `webview.postMessage()`
-- Frontend `StreamingStore` (non-MST) receives chunks, bypasses IntentBus and MST
-- `sendStreamChunk.ts` is the SINGLE documented exception — it calls `webview.postMessage()` directly, NOT through EventConstants
-
-1. CREATE `src/features/api/` — new feature with standard pattern:
-    - `store.ts` — `ApiModel` MST with error counters (timeout, rate_limited, auth_failed, etc.)
-    - `events/` — standard actions|handlers sub-pattern
-    - `actions/` — `requestApi.ts` action creator
-    - `handlers/` — intent handlers for API lifecycle
-2. MOVE + RENAME `attemptApiRequest.ts` → `handlers/on-api-request-started.ts`
-3. MOVE + RENAME `streamChunkHandlers.ts` → `handlers/stream/streamChunkHandlers.ts`
-4. MOVE helpers to `handlers/helpers/`: `backoff.ts`, `contextWindow.ts`, `handleStream.ts`, `mergeConsecutiveApiMessages.ts`, `prepareApiRequest.ts`, `rateLimit.ts`, `rawChunkProcessor.ts`, `requestAbortManager.ts`, `streaming.ts`
-5. MOVE `store.ts` (StreamingStoreModel) → `handlers/helpers/store.ts`
-6. CREATE `events/actions/sendStreamChunk.ts` — STREAMING EXCEPTION:
-    - Wraps `webview.webview.postMessage()` directly with `{type: "streamChunk", taskId, text}`
-    - Uses hardcoded `"streamChunk"` type string (NOT EventConstants — intentional exception)
-    - This is the ONLY file in the entire codebase that calls `postMessage()` from handler context
-7. REFACTOR `handleStream.ts`:
-    - On stream start: dispatch Intent `STREAMING_STARTED` → handler creates AgentMessage(text: "") + MST snapshot
-    - During stream: accumulate chunks in local buffer, call `sendStreamChunk(webview, ...)` for UI updates
-    - On stream end: dispatch Intent `STREAMING_ENDED` → handler sets final text + finishReason + MST snapshot
-8. UPDATE `handlers/index.ts` barrel
-9. DELETE old `actions/agent/` directory
+1. CREATE `features/api/` with standard feature pattern
+2. MOVE `attemptApiRequest.ts` → `api/handlers/on-api-request-started.ts`
+3. MOVE `streamChunkHandlers.ts` → `api/handlers/stream/on-stream-chunk-received.ts`
+4. DELETE old `actions/agent/` directory
 
 ### Phase 6 — Rename `messages-list/` → `messages/` (Frontend)
 
@@ -2078,26 +1542,28 @@ The `actions/agent/` directory contains API-calling logic (handlers, not action 
 
 ## CORRECT INTENT FLOWS (WITH EXAMPLES)
 
-### Flow 1: User clicks "new task" \(Frontend → Backend\) - uses constants
+### Flow 1: User clicks "new task" (Frontend → Backend) — uses constants
 
 ```
 FRONTEND:
 User clicks "new task" button
   → Action creator (actions/) calls intentStore.createIntent({type: IntentConstants.task.UI_NEW_CLICKED})
-    → Frontend IntentBus dispatches to frontend handler (handlers/)
-      → Handler calls events/actions/sendAction(eb, {taskId, text, ...})
-        → EventBridge.postMessage({type: EventConstants.chat.NEW_TASK, taskId, text, ...})
+    → Frontend IntentBus reaction (non-blocking) feeds priority queue
+      → Scheduler: Normal priority, dispatches to frontend handler (handlers/)
+        → Handler calls events/actions/sendAction(eb, {taskId, text, ...})
+          → EventBridge.postMessage({type: EventConstants.chat.NEW_TASK, taskId, text, ...})
 
 BACKEND:
   → EventBridge receives EVENT {type: EventConstants.chat.NEW_TASK}
     → chat/task/events/handlers/on-new-task-received.ts  (receives event, creates Intent)
-      → bus.createIntent({type: IntentConstants.task.NEW_REQUESTED})
-        → Backend IntentBus → chat/task/handlers/on-task-created.ts
-          → Handler creates TaskModel in MST
-            → Handler calls events/actions/sendState(eb, {taskId, state})
-              → EventBridge.postMessage({type: EventConstants.task.STATE, taskId, state})
-                → Frontend receives Event → frontend chat/task/events/handlers/on-state-received.ts
-                  → creates Intent → IntentBus → handler → re-renders UI
+      → bus.createIntent({type: IntentConstants.task.NEW_REQUESTED, priority: IntentPriority.High})
+        → Backend IntentBus reaction (non-blocking) → priority queue
+          → Scheduler: High priority, dispatches → chat/task/handlers/on-task-created.ts
+            → Handler creates TaskModel in MST
+              → Handler calls events/actions/sendState(eb, {taskId, state})
+                → EventBridge.postMessage({type: EventConstants.task.STATE, taskId, state})
+                  → Frontend receives Event → frontend chat/task/events/handlers/on-state-received.ts
+                    → creates Intent → IntentBus reaction → priority queue → scheduler → handler → re-renders UI
 ```
 
 KEY RULE: The backend handler never calls EventBridge.postMessage directly. It calls `events/actions/sendState()`.
@@ -2115,13 +1581,13 @@ askToolApproval("Approve read File X?", details)
 askToolApproval() ACTION CREATOR (notifications/actions/):
   │  (pure function, no callbacks)
   │
-  ├─► intentStore.createIntent({type: IntentConstants.notifications.ASK_TOOL_APPROVAL, payload: {taskId, text, ...}})
+  ├─► intentStore.createIntent({type: IntentConstants.notifications.ASK_TOOL_APPROVAL, priority: Normal, ...})
   │     → IntentBus → task/notifications/handlers/on-notification-persist.ts
   │       → adds to task.notifications store (type: "ask" for tool approval)
   │       → calls events/actions/sendMcpExecutionStatus(eb, ...)
   │         → EventBridge.postMessage({type: EventConstants.notifications.MCP_EXECUTION_STATUS, ...})
   │
-  └─► intentStore.createIntent({type: IntentConstants.messages.MCP_BROADCAST, payload: {taskId, serverName, toolName, input, ...}})
+  └─► intentStore.createIntent({type: IntentConstants.messages.MCP_BROADCAST, priority: Normal, ...})
         → IntentBus → task/messages/handlers/on-mcp-broadcast.ts
           → creates McpToolMessage (type: "mcp_tool") in task.messages store
           → calls events/actions/sendChatTreePatch(eb, {patch})
@@ -2133,13 +1599,13 @@ askFollowUp("What's your goal?", details)
 
 askFollowUp() ACTION CREATOR (notifications/actions/):
   │
-  ├─► intentStore.createIntent({type: IntentConstants.notifications.ASK_FOLLOW_UP, payload: {taskId, question, ...}})
+  ├─► intentStore.createIntent({type: IntentConstants.notifications.ASK_FOLLOW_UP, priority: Normal, ...})
   │     → IntentBus → task/notifications/handlers/on-notification-persist.ts
   │       → adds to task.notifications store (type: "ask" for follow-up)
   │       → calls events/actions/sendTtsStart(eb, ...)
   │         → EventBridge.postMessage({type: EventConstants.notifications.PLAY_TTS, ...})
   │
-  └─► intentStore.createIntent({type: IntentConstants.messages.AGENT_BROADCAST, payload: {taskId, text: question, ...}})
+  └─► intentStore.createIntent({type: IntentConstants.messages.AGENT_BROADCAST, priority: Normal, ...})
         → IntentBus → task/messages/handlers/on-agent-broadcast.ts
           → creates AgentMessage (type: "agent") in task.messages store
           → calls events/actions/sendChatTreePatch(eb, {patch})
@@ -2151,11 +1617,11 @@ askSubTask("Approve sub-task result?", result)
 
 askSubTask() ACTION CREATOR (notifications/actions/):
   │
-  ├─► intentStore.createIntent({type: IntentConstants.notifications.ASK_SUB_TASK, payload: {taskId, result, ...}})
+  ├─► intentStore.createIntent({type: IntentConstants.notifications.ASK_SUB_TASK, priority: Normal, ...})
   │     → IntentBus → task/notifications/handlers/on-notification-persist.ts
   │       → adds to task.notifications store (type: "ask" for sub-task)
   │
-  └─► intentStore.createIntent({type: IntentConstants.messages.AGENT_BROADCAST, payload: {taskId, text: result, ...}})
+  └─► intentStore.createIntent({type: IntentConstants.messages.AGENT_BROADCAST, priority: Normal, ...})
         → IntentBus → task/messages/handlers/on-agent-broadcast.ts
           → creates AgentMessage (type: "agent") in task.messages store
           → calls events/actions/sendChatTreePatch(eb, {patch})
@@ -2175,20 +1641,22 @@ KEY RULE: Each `ask*`() specialization creates 2 Intents (notification + message
 ```
 FRONTEND:
 User clicks "Approve"
-  → Local action creator (actions/respondToAsk.ts) creates Intent({type: IntentConstants.chat.ASK_USER_APPROVED})
-    → Frontend IntentBus dispatches to local handler
-      → Handler calls events/actions/sendAskResponse(eb, {askResponse: "yesButtonClicked"})
-        → EventBridge.postMessage({type: EventConstants.chat.ASK_RESPONSE, askResponse: "yesButtonClicked"})
+  → Local action creator (actions/respondToAsk.ts) creates Intent({type: IntentConstants.chat.ASK_USER_APPROVED, priority: High})
+    → Frontend IntentBus reaction (non-blocking) → priority queue
+      → Scheduler: High priority, dispatches to local handler
+        → Handler calls events/actions/sendAskResponse(eb, {askResponse: "yesButtonClicked"})
+          → EventBridge.postMessage({type: EventConstants.chat.ASK_RESPONSE, askResponse: "yesButtonClicked"})
 
 BACKEND:
   → EventBridge receives EVENT {type: EventConstants.chat.ASK_RESPONSE}
     → chat/task/messages/events/handlers/on-ask-response-received.ts  (receives event)
-      → bus.createIntent({type: IntentConstants.chat.ASK_RESPONSE_RECEIVED, payload: {askResponse: "yesButtonClicked"}})
-        → Backend IntentBus → task/notifications/handlers/on-ask-response-received.ts
-          → Updates ask notification status
-          → Creates next Intent({type: IntentConstants.task.TOOL_EXECUTION_CONTINUE})
-            → IntentBus → task/handlers/on-tool-execution-required.ts
-              → Continues execution
+      → bus.createIntent({type: IntentConstants.chat.ASK_RESPONSE_RECEIVED, priority: High, ...})
+        → Backend IntentBus reaction → priority queue
+          → Scheduler: High priority, dispatches → task/notifications/handlers/on-ask-response-received.ts
+            → Updates ask notification status
+            → Creates next Intent({type: IntentConstants.task.TOOL_EXECUTION_CONTINUE, priority: High})
+              → IntentBus → task/handlers/on-tool-execution-required.ts
+                → Continues execution
 ```
 
 ### Flow 4: Stream/API flow — EXCEPTION PATTERN (Backend)
@@ -2198,7 +1666,7 @@ Uses the streaming exception pattern (see Streaming Architecture section). Only 
 ```
 A backend handler (e.g., on-api-request-started) needs to stream an API response:
 
-  → Creates Intent({type: IntentConstants.api.STREAMING_STARTED, payload: {taskId, text: ""}})
+  → Creates Intent({type: IntentConstants.api.STREAMING_STARTED, priority: Normal, payload: {taskId, text: ""}})
     → IntentBus → features/api/handlers/on-api-request-started.ts  (HANDLER)
       → Creates AgentMessage(type: "agent", text: "", finishReason: undefined) in task.messages MST store
       → calls events/actions/sendChatTreePatch(eb, {patch})
@@ -2214,9 +1682,15 @@ A backend handler (e.g., on-api-request-started) needs to stream an API response
             → streamingStore.appendChunk(text) — non-MST, bypasses IntentBus
               → React component re-renders streaming text from StreamingStore
 
+    → Handler YIELDS via await scheduler.yield():
+      → Scheduler checks: any Critical/High priority intent pending?
+        → YES (e.g., task.cancel.requested):
+          → suspendIntent(currentId) → dispatchIntent(cancelId) → markSuccess(cancelId) → resumeIntent(currentId)
+        → NO: continue streaming
+
   → Stream completes or errors:
     → Handler finalizes accumulated text
-    → Creates Intent({type: IntentConstants.api.STREAMING_ENDED, payload: {taskId, text: finalText, finishReason}})
+    → Creates Intent({type: IntentConstants.api.STREAMING_ENDED, priority: Normal, payload: {taskId, text: finalText, finishReason}})
       → IntentBus → features/api/handlers/on-stream-completed.ts
         → Updates AgentMessage(text: finalText, finishReason: "completed"|"error"|"cancelled") in MST
         → calls events/actions/sendChatTreePatch(eb, {patch})
@@ -2232,7 +1706,7 @@ Shows the complete end-to-end flow: user sends a message, agent decides to use M
 
 ```
 USER sends a message in the text area:
-  → Frontend action creator creates Intent({type: IntentConstants.messages.USER_BROADCAST, payload: {text, images?}})
+  → Frontend action creator creates Intent({type: IntentConstants.messages.USER_BROADCAST, priority: Normal})
     → Frontend IntentBus → task/messages/handlers/on-user-broadcast.ts
       → Creates UserMessage(type: "user", text, images) in frontend task.messages MST store
       → calls events/actions/sendChatTreePatch(eb, {patch})
@@ -2243,10 +1717,10 @@ USER sends a message in the text area:
   → Frontend also calls events/actions/sendAction(eb, {taskId, text, actionType: "message"})
     → EventBridge.postMessage({type: EventConstants.task.ACTION, taskId, text, ...})
       → BACKEND: chat/task/events/handlers/on-action-received.ts
-        → Creates Intent({type: IntentConstants.task.MESSAGE_RECEIVED, payload: {taskId, text}})
+        → Creates Intent({type: IntentConstants.task.MESSAGE_RECEIVED, priority: High, payload: {taskId, text}})
           → Backend IntentBus → task/handlers/on-user-message-received.ts
             → Agent processes message and decides to call an MCP tool
-            → Creates Intent({type: IntentConstants.messages.MCP_BROADCAST, payload: {serverName, toolName, input}})
+            → Creates Intent({type: IntentConstants.messages.MCP_BROADCAST, priority: Normal, payload: {serverName, toolName, input}})
               → IntentBus → task/messages/handlers/on-mcp-broadcast.ts
                 → Creates McpToolMessage(type: "mcp_tool", serverName, toolName, input, isError: false) in MST
                 → calls events/actions/sendChatTreePatch(eb, {patch})
@@ -2261,7 +1735,7 @@ USER sends a message in the text area:
     → Backend executes MCP tool via McpServerManager
     → Tool result arrives
 
-    → Creates Intent({type: IntentConstants.messages.MCP_BROADCAST, payload: {serverName, toolName, output, isError}})
+    → Creates Intent({type: IntentConstants.messages.MCP_BROADCAST, priority: Normal, payload: {serverName, toolName, output, isError}})
       → IntentBus → task/messages/handlers/on-mcp-broadcast.ts
         → Creates McpToolMessage(type: "mcp_tool", output, isError) in MST
         → calls events/actions/sendChatTreePatch(eb, {patch})
@@ -2269,7 +1743,7 @@ USER sends a message in the text area:
             → FRONTEND: MST shows MCP tool result in chat feed
 
   → Agent processes tool result and generates a response:
-    → Creates Intent({type: IntentConstants.messages.AGENT_BROADCAST, payload: {text: response, toolCalls, toolResults, ...}})
+    → Creates Intent({type: IntentConstants.messages.AGENT_BROADCAST, priority: Normal, payload: {text: response, toolCalls, toolResults, ...}})
       → IntentBus → task/messages/handlers/on-agent-broadcast.ts
         → Creates AgentMessage(type: "agent", text, toolCalls, toolResults, finishReason: "completed") in MST
         → calls events/actions/sendChatTreePatch(eb, {patch})
@@ -2286,7 +1760,42 @@ FRONTEND CHAT FEED (renders all messages from task.messages MST store):
 
 KEY RULE: The MCP flow uses `mcpBroadcast()` → `McpToolMessage` for both tool calls AND tool results. The `isError` boolean differentiates success vs failure. All messages live in the same `task.messages` MST collection — no separate "tool" or "MCP" collection.
 
-### Flow 6: Backend sends snapshot to frontend (Backend → Frontend)
+### Flow 6: Cancel/Stop — Priority Preemption (Frontend → Backend)
+
+```
+FRONTEND:
+User clicks Stop button
+  → Action creator (actions/cancelTask.ts) creates Intent({type: IntentConstants.task.TASK_CANCEL_REQUESTED, priority: Critical})
+    → Frontend IntentBus reaction (non-blocking) → priority queue
+      → Scheduler: Critical priority — jumps to front of queue
+        → Dispatches to frontend handler → calls sendCancelTask(eb, {taskId})
+          → EventBridge.postMessage({type: EventConstants.task.CANCEL, taskId})
+
+BACKEND:
+  → EventBridge receives EVENT {type: EventConstants.task.CANCEL}
+    → chat/task/events/handlers/on-cancel-received.ts
+      → bus.createIntent({type: IntentConstants.task.TASK_CANCEL_REQUESTED, priority: Critical})
+
+  → Backend IntentBus reaction (non-blocking) → priority queue (Critical):
+    → Scheduler: Critical intent in queue. Current fiber (on-user-message-received) running.
+    → At next yield point (await scheduler.yield()):
+      → Scheduler checks queue → Critical priority found → PREEMPTS
+      → suspendIntent(userMsgId)        [MST snapshot: userMsg → Suspended]
+      → dispatchIntent(cancelId)        [MST snapshot: cancel → Processing]
+        → Handler: abortTask() — sets task._state.abort = true, calls abortController.abort()
+        → markSuccess(cancelId)         [MST snapshot: cancel → Success]
+      → resumeIntent(userMsgId)         [MST snapshot: userMsg → Processing]
+        → Handler resumes → checks intentStore.getById(userMsgId)?.status
+          → Status is Processing (resumed, not cancelled)
+          → Handler continues: checks taskModel?._state.abort === true
+            → Abort branch: taskModel.setIsProcessing(false)
+            → Return (no new UserMessageReceived intents created)
+        → markSuccess(userMsgId)        [MST snapshot: userMsg → Success]
+```
+
+KEY RULE: Cancel goes through IntentBus with Critical priority. The synchronous bypass workaround is eliminated. The store-level `store.chat.abort` flag is no longer needed for the cancel flow — task-level `_state.abort` and the `AbortController` handle the actual cancellation.
+
+### Flow 7: Backend sends snapshot to frontend (Backend → Frontend)
 
 ```
 BACKEND:
@@ -2299,7 +1808,7 @@ FRONTEND:
   → EventBridge receives EVENT {type: EventConstants.settings.THEME}
     → messageBus.ts routes to
       → settings/events/handlers/on-settings-changed-received.ts  (receives event)
-        → bus.createIntent({type: IntentConstants.settings.THEME_UPDATED, payload: {text: "dark"}})
+        → bus.createIntent({type: IntentConstants.settings.THEME_UPDATED, priority: Normal, ...})
           → Frontend IntentBus → settings/handlers/on-settings-changed.ts
             → Updates frontend SettingsModel
               → React re-renders with new theme
@@ -2309,42 +1818,60 @@ FRONTEND:
 
 ## SUCCESS CRITERIA
 
-1. `pnpm check-types` exits with 0 — zero TypeScript compilation errors
-2. Zero `as unknown` casts in `src/`
-3. `src/features/ipc/handlers/` deleted — EventBridge is sole channel
-4. `chat/actions/runtime.ts` deleted — state migrated to TaskModel
-5. `chat/actions/metrics.ts` deleted — tool tracking in store actions
-6. `chat/actions/getEnvironmentDetails.ts` deleted — inlined in consumers
-7. `chat/actions/` directory deleted entirely
-8. `chat/context-management/` deleted — migrated to `foundation/time-machine/file-context/`
-9. `chat/notifications/` deleted — all contents in `chat/task/notifications/`
-10. `chat/messages/` deleted — all contents in `chat/task/messages/`
-11. `foundation/timer-queue/` deleted
-12. `foundation/agent-state/` deleted — merged into `settings/agents/`
-13. `settings/settingsService.ts` deleted — all state in MST SettingsModel
-14. `settings/code-index/store.ts` deleted
-15. `AutoApprovalHandler` class → MST model (zero class mutable state)
-16. Empty model stubs (CommandsModel, DebugModel, VscodeModel, WorktreeModel) resolved
-17. IPC imports removed from `extension.ts` — EventBridge is sole channel
-18. Frontend has its own `IntentBus` + `IntentStore` (NEW)
-19. **Every backend feature has `events/` folder** with `actions/|handlers/` sub-pattern — no `events.ts` files remain anywhere in `src/features/`
-20. **Every frontend feature has `events/` folder** with `actions/|handlers/` sub-pattern — no `events.ts` files remain anywhere in `webview-ui/src/features/`
-21. `webviewMessageHandler.ts` uses registration-based dispatch, not monolithic `WEBVIEW_TO_INTENT` map
-22. **No file outside target structure** in `src/features/` or `webview-ui/src/features/`
-23. `chat/messages-list/` → `chat/messages/` with standard feature pattern
-24. Every frontend feature follows standard pattern (store, events/actions/, events/handlers/, index, actions/, handlers/, components/)
-25. **`say.ts` deleted from notifications — replaced by 4 action creators** in `messages/actions/say/`: `agentBroadcast`, `systemBroadcast`, `mcpBroadcast`, `userBroadcast`
-26. **`ask.ts` refactored into 3 specializations** in `notifications/actions/`: `askToolApproval`, `askFollowUp`, `askSubTask`
-27. **Notification type ONLY has `"ask"`** — no `"say"` type exists. All previous "say" content uses Messages with appropriate discriminators.
-28. **Messages use discriminated union types**: `UserMessage | AgentMessage | McpToolMessage | SystemMessage` — each with type-specific fields, all in single `task.messages` MST collection
-29. **`streamingStore` (in `api/streaming/`) is non-MST reactive store** — NOT an MST model. Exists only during active streaming. Garbage collected when streaming ends. Nested inside `api/` for naming consistency with backend.
-30. **`sendStreamChunk.ts` is the SINGLE documented exception** to rule #5 — calls `webview.postMessage()` directly from handler context. Uses hardcoded `"streamChunk"` type (NOT EventConstants).
-31. **Frontend `routeExtensionMessage()` has early-return for `streamChunk`** — bypasses IntentBus and MST entirely, routes to StreamingStore.
-32. `actions/agent/attemptApiRequest.ts` → `features/api/handlers/on-api-request-started.ts` (properly named handler)
-33. `actions/agent/streamChunkHandlers.ts` → `features/api/handlers/stream/on-stream-chunk-received.ts` (properly named handler)
-34. **STREAMING EXCEPTION** (criteria #30) is the ONLY place where `EventBridge.postMessage` is called from handler context — zero other violations
-35. **All `events/handlers/on-*-received.ts` follow naming convention**: `on-<event-name>-received.ts` matching `event-constants.ts` values
-36. **All `events/actions/send*()` follow naming convention**: `send<EventName>.ts` matching `event-constants.ts` values
-37. **Event action creators can create multiple Intents** documented and implemented — not limited to 1:1 mapping
-38. **Registration pattern has NO duplication** — each `events/handlers/index.ts` calls individual `on-*-received.ts` setup functions, no duplicate registration logic
-39. **Frontend `api/streaming/` sub-feature exists** with non-MST `StreamingStore` class + `useStreamingStore` hook + barrel — nested inside `api/` for consistency, no `events/` folder inside it
+### Fiber IntentBus Criteria
+
+1. `IntentStatus.Suspended` exists in `@jabberwock/types` and is recognized by both MST models
+2. Both frontend and backend `IntentStoreModel` have `dispatchIntent()`, `suspendIntent()`, `resumeIntent()` actions
+3. Both `IntentModel` definitions include optional `priority: number` field
+4. Both `IntentConstants.ts` files export `INTENT_PRIORITY` map covering all intent types
+5. `bus.ts` on both sides uses non-blocking MobX reaction (feeds queue, no `await` in reaction callback)
+6. `bus.ts` has a `PriorityQueue` class that sorts by priority on enqueue
+7. `bus.ts` scheduler runs as microtask loop (not blocking the main thread)
+8. Cancel intents (`task.cancel.requested`) have `Critical` priority (0)
+9. `abortTask.ts` no longer sets `store.chat.abort` — task-level abort + AbortController suffice
+10. Stop handler creates a `Critical`-priority cancel intent instead of directly mutating store state
+11. Long-running handlers (`on-user-message-received.ts`) call `await scheduler.yield()` at safe points
+12. Handlers after yield check `intentStore.getById(id)?.status` to detect suspension/cancellation
+13. `pnpm check-types` exits with 0
+
+### Architecture Compliance Criteria
+
+14. `pnpm check-types` exits with 0 — zero TypeScript compilation errors
+15. Zero `as unknown` casts in `src/`
+16. `src/features/ipc/handlers/` deleted — EventBridge is sole channel
+17. `chat/actions/runtime.ts` deleted — state migrated to TaskModel
+18. `chat/actions/metrics.ts` deleted — tool tracking in store actions
+19. `chat/actions/getEnvironmentDetails.ts` deleted — inlined in consumers
+20. `chat/actions/` directory deleted entirely
+21. `chat/context-management/` deleted — migrated to `foundation/time-machine/file-context/`
+22. `chat/notifications/` deleted — all contents in `chat/task/notifications/`
+23. `chat/messages/` deleted — all contents in `chat/task/messages/`
+24. `foundation/timer-queue/` deleted
+25. `foundation/agent-state/` deleted — merged into `settings/agents/`
+26. `settings/settingsService.ts` deleted — all state in MST SettingsModel
+27. `settings/code-index/store.ts` deleted
+28. `AutoApprovalHandler` class → MST model (zero class mutable state)
+29. Empty model stubs (CommandsModel, DebugModel, VscodeModel, WorktreeModel) resolved
+30. IPC imports removed from `extension.ts` — EventBridge is sole channel
+31. Frontend has its own `IntentBus` + `IntentStore` (NEW)
+32. **Every backend feature has `events/` folder** with `actions/|handlers/` sub-pattern — no `events.ts` files remain anywhere in `src/features/`
+33. **Every frontend feature has `events/` folder** with `actions/|handlers/` sub-pattern — no `events.ts` files remain anywhere in `webview-ui/src/features/`
+34. `webviewMessageHandler.ts` uses registration-based dispatch, not monolithic `WEBVIEW_TO_INTENT` map
+35. **No file outside target structure** in `src/features/` or `webview-ui/src/features/`
+36. `chat/messages-list/` → `chat/messages/` with standard feature pattern
+37. Every frontend feature follows standard pattern (store, events/actions/, events/handlers/, index, actions/, handlers/, components/)
+38. **`say.ts` deleted from notifications — replaced by 4 action creators** in `messages/actions/say/`: `agentBroadcast`, `systemBroadcast`, `mcpBroadcast`, `userBroadcast`
+39. **`ask.ts` refactored into 3 specializations** in `notifications/actions/`: `askToolApproval`, `askFollowUp`, `askSubTask`
+40. **Notification type ONLY has `"ask"`** — no `"say"` type exists. All previous "say" content uses Messages with appropriate discriminators.
+41. **Messages use discriminated union types**: `UserMessage | AgentMessage | McpToolMessage | SystemMessage` — each with type-specific fields, all in single `task.messages` MST collection
+42. **`streamingStore` (in `api/streaming/`) is non-MST reactive store** — NOT an MST model. Exists only during active streaming. Garbage collected when streaming ends. Nested inside `api/` for naming consistency with backend.
+43. **`sendStreamChunk.ts` is the SINGLE documented exception** to rule #5 — calls `webview.postMessage()` directly from handler context. Uses hardcoded `"streamChunk"` type (NOT EventConstants).
+44. **Frontend `routeExtensionMessage()` has early-return for `streamChunk`** — bypasses IntentBus and MST entirely, routes to StreamingStore.
+45. `actions/agent/attemptApiRequest.ts` → `features/api/handlers/on-api-request-started.ts` (properly named handler)
+46. `actions/agent/streamChunkHandlers.ts` → `features/api/handlers/stream/on-stream-chunk-received.ts` (properly named handler)
+47. **STREAMING EXCEPTION** (criteria #43) is the ONLY place where `EventBridge.postMessage` is called from handler context — zero other violations
+48. **All `events/handlers/on-*-received.ts` follow naming convention**: `on-<event-name>-received.ts` matching `event-constants.ts` values
+49. **All `events/actions/send*()` follow naming convention**: `send<EventName>.ts` matching `event-constants.ts` values
+50. **Event action creators can create multiple Intents** documented and implemented — not limited to 1:1 mapping
+51. **Registration pattern has NO duplication** — each `events/handlers/index.ts` calls individual `on-*-received.ts` setup functions, no duplicate registration logic
+52. **Frontend `api/streaming/` sub-feature exists** with non-MST `StreamingStore` class + `useStreamingStore` hook + barrel — nested inside `api/` for consistency, no `events/` folder inside it

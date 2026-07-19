@@ -5,7 +5,10 @@ export function hasOrphanApiRequest(messages: Notification[]): boolean {
 	const lastApiReqStarted = findLast(messages, (message: Notification) => message.say === "api_req_started")
 	if (!lastApiReqStarted || lastApiReqStarted.text === null || lastApiReqStarted.text === undefined) return false
 	try {
-		return JSON.parse(lastApiReqStarted.text).cost === undefined
+		const data = JSON.parse(lastApiReqStarted.text) as { cost?: number; cancelReason?: string }
+		// A request is orphaned only if it has neither cost nor cancelReason.
+		// If cancelReason is set, the request was intentionally cancelled (not orphaned).
+		return data.cost === undefined && data.cancelReason === undefined
 	} catch {
 		return true
 	}

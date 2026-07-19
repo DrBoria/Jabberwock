@@ -21,10 +21,13 @@ export type McpServerType = z.infer<typeof mcpServerTypeSchema>
  * Extended MCP Server Configuration Schema for Jabberwock
  */
 export const mcpServerConfigSchema = z.object({
-	command: z.string(),
+	command: z.string().optional(),
 	args: z.array(z.string()).optional(),
 	env: z.record(z.string()).optional(),
-	type: mcpServerTypeSchema.optional().default("tool"),
+	type: z
+		.union([mcpServerTypeSchema, z.enum(["stdio", "sse", "websocket", "streamable-http"])])
+		.optional()
+		.default("tool"),
 	requiresUserInteraction: z.boolean().optional(),
 	autoApproveExcluded: z.boolean().optional(),
 	allowedContext: z.array(z.string()).optional(),

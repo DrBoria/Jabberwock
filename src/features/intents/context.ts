@@ -17,4 +17,8 @@ export interface IntentHandlerContext {
 	intentStore: IIntentStore
 	/** EventBridge provider instance, set after IntentBus initialization. */
 	provider?: import("@features/foundation/webview/EventBridge").EventBridge
+	/** Fiber scheduler yield — handlers call this at safe preemption points. */
+	scheduler?: {
+		yield(): Promise<void>
+	}
 }

@@ -1,7 +1,7 @@
 import { types, Instance } from "mobx-state-tree"
 import { vscode } from "@jabberwock/devtool/webview"
-import type { WebviewMessage, ExtensionMessage, ExtensionState, Command } from "@jabberwock/types"
-import { eventConstants } from "@jabberwock/types"
+import type { WebviewMessage, ExtensionMessage, ExtensionState, Command, ModeConfig } from "@jabberwock/types"
+import { eventConstants, DEFAULT_MODES } from "@jabberwock/types"
 
 import { extStateDefaults } from "./defaults"
 import {
@@ -25,6 +25,66 @@ import { SkillsStore } from "../settings/skills/store"
 import { AgentStateStore } from "../settings/agents/store"
 
 const postMsg = (msg: WebviewMessage) => vscode.postMessage(msg)
+
+/**
+ * When the task is cancelled (isRunning transitions true→false),
+ * finalize the last partial message so isStreaming is recomputed correctly.
+ * Without this, computeIsStreaming sees partial===true and keeps isStreaming=true,
+ * preventing the Stop→Send button toggle and chat input unlock.
+ */
+/**
+ * If the last api_req_started notification has no cost and no cancelReason,
+ * inject cancelReason:"user_cancelled" so hasOrphanApiRequest() returns false
+ * and computeIsStreaming doesn't keep isStreaming=true on cancel.
+ */
+function finalizeOrphanApiReqs<T extends { text?: string }>(messages: T[]): boolean {
+	const lastApiReqIndex = [...messages]
+		.reverse()
+		.findIndex((m) => (m as Record<string, unknown>).say === "api_req_started")
+	if (lastApiReqIndex === -1) return false
+
+	const idx = messages.length - 1 - lastApiReqIndex
+	const msg = messages[idx]
+	if (!msg?.text) return false
+
+	try {
+		const parsed = JSON.parse(msg.text) as { cost?: number; cancelReason?: string }
+		if (parsed.cost !== undefined || parsed.cancelReason !== undefined) return false
+
+		messages[idx] = { ...msg, text: JSON.stringify({ ...parsed, cancelReason: "user_cancelled" }) } as T
+		return true
+	} catch {
+		return false
+	}
+}
+
+function finalizePartialOnCancel<T extends { partial?: boolean }>(
+	newState: { isRunning?: boolean },
+	_prev: { isRunning?: boolean },
+	messages: T[] | undefined,
+): T[] {
+	if (!(newState.isRunning === false && messages?.length)) return messages ?? ([] as T[])
+
+	const newMessages = [...messages]
+	let modified = false
+
+	// Finalize last partial message
+	const lastMessage = newMessages[newMessages.length - 1] as Record<string, unknown>
+	if (lastMessage.partial === true) {
+		newMessages[newMessages.length - 1] = { ...lastMessage, partial: false } as T
+		modified = true
+	}
+
+	// Finalize orphan API requests so hasOrphanApiRequest() doesn't
+	// keep isStreaming=true after the user cancels during tool phase
+	// when no API stream was actively running (so updateApiReqMsg
+	// never ran on the backend).
+	if (finalizeOrphanApiReqs(newMessages as { text?: string }[])) {
+		modified = true
+	}
+
+	return modified ? newMessages : (messages ?? ([] as T[]))
+}
 
 export const RootStore = types
 	.model("RootStore", {
@@ -100,13 +160,17 @@ export const RootStore = types
 				experiments: newExperiments = {},
 				...newRest
 			} = newState
-			const customModePrompts = { ...prevCustomModePrompts, ...newCustomModePrompts },
-				experiments = { ...prevExperiments, ...newExperiments },
-				rest = { ...prevRest, ...newRest }
+			const customModePrompts = { ...prevCustomModePrompts, ...newCustomModePrompts }
+			const experiments = { ...prevExperiments, ...newExperiments }
+			const rest = { ...prevRest, ...newRest }
+
 			if (shouldProtectStaleMessages(newState.messagesSeq, prev.messagesSeq, newState.messages)) {
 				rest.messages = prev.messages
 				rest.messagesSeq = prev.messagesSeq
 			}
+
+			rest.messages = finalizePartialOnCancel(newState, prev, rest.messages)
+
 			self.extensionState = {
 				...rest,
 				apiConfiguration: apiConfiguration || prev.apiConfiguration,
@@ -114,6 +178,15 @@ export const RootStore = types
 				customSupportPrompts: customSupportPrompts || prev.customSupportPrompts,
 				experiments,
 			} as ExtensionState
+
+			// Hydrate agentState.modeSelector from extensionState
+			// (modeSelector is registered with MstBridge but never receives snapshots)
+			const mode = self.extensionState.mode
+			const customModes = (self.extensionState.customModes ?? []) as ModeConfig[]
+			const allModes = [...DEFAULT_MODES, ...customModes]
+			self.agentState.modeSelector.setCurrentMode(mode)
+			self.agentState.modeSelector.setAllModes(allModes as Record<string, unknown>[])
+			self.agentState.modeSelector.setCustomModes(customModes as Record<string, unknown>[])
 		},
 		updateDevtoolState() {
 			if (self.extensionState.devtoolEnabled)
@@ -130,7 +203,7 @@ export const RootStore = types
 		handleExtensionMessage(event: MessageEvent) {
 			const message: ExtensionMessage = event.data
 			if (handleDomAction(message, self.chat)) return
-			if (handleStreamChunk(message)) return
+			if (handleStreamChunk(message, self.chat)) return
 			const intentType = handleExtensionMessageDispatchMap[message.type]
 			if (intentType)
 				self.intentStore.createIntent({
@@ -142,6 +215,13 @@ export const RootStore = types
 		},
 		initMessageListener() {
 			window.addEventListener("message", (event: MessageEvent) => this.handleExtensionMessage(event))
+		},
+		/**
+		 * Run a function inside this RootStore's MST action context.
+		 * Allows handlers to modify RootStore properties safely.
+		 */
+		runHandler<T>(fn: () => T): T {
+			return fn()
 		},
 	}))
 	.actions((self) => ({

@@ -22,7 +22,7 @@ export function setupIntents(rootStore: IBackendRootStore): {
 	const bus = new IntentBus()
 	const ctx = { rootStore, intentStore }
 
-	bus.start(intentStore, ctx)
+	bus.start(intentStore, ctx, rootStore.runHandler.bind(rootStore))
 
 	return {
 		bus,

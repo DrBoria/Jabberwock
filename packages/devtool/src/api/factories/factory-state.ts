@@ -58,13 +58,11 @@ export function createStateMethods(
 				return JSON.stringify({
 					name: "Jabberwock DevTools",
 					version: ext?.packageJSON?.version ?? "dev",
-					stores: ["chat", "settings", "foundation"],
 				})
 			} catch {
 				return JSON.stringify({
 					name: "Jabberwock DevTools",
 					version: "dev",
-					stores: ["chat", "settings", "foundation"],
 				})
 			}
 		},

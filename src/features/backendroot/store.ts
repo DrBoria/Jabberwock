@@ -69,6 +69,9 @@ export const BackendRootModel = types
 				self.eventLog.splice(0, self.eventLog.length - 1000)
 			}
 		},
+		runHandler<T>(fn: () => T): T {
+			return fn()
+		},
 	}))
 
 export type IBackendRootStore = Instance<typeof BackendRootModel>

@@ -1,8 +1,27 @@
+import type { ITaskModel } from "@features/chat/task/store"
 import { IntentType } from "@jabberwock/types"
 import type { IntentBus } from "@features/intents/bus"
 import { postStateToWebview } from "@features/foundation/window-manager/store"
 import { unregisterTask } from "@features/chat/task/actions/taskRegistry"
 import { clearTimeMachineState } from "@features/foundation/time-machine/actions/getTimeMachine"
+
+function abortActiveTask(activeTask: ITaskModel | undefined): void {
+	activeTask?.abortTask?.()
+	if (activeTask) {
+		unregisterTask(activeTask.taskId)
+	}
+}
+
+function collectCancelMessages(activeTask: ITaskModel | undefined): Array<{ partial?: boolean }> | undefined {
+	const notificationItems = activeTask?.notifications?.items
+	const messages = notificationItems?.length ? notificationItems.map((n) => ({ ...n })) : undefined
+	if (!messages?.length) return messages
+	const last = messages[messages.length - 1]
+	if (last.partial === true) {
+		messages[messages.length - 1] = { ...last, partial: false }
+	}
+	return messages
+}
 
 /**
  * Handles task.cancel.requested intent — cancels the active task.
@@ -17,12 +36,7 @@ export function registerOnTaskCancelRequested(bus: IntentBus): void {
 		}
 
 		const activeTask = ctx.rootStore.chat.activeTask
-		activeTask?.abortTask?.()
-
-		// Clean up module-level registry
-		if (activeTask) {
-			unregisterTask(activeTask.taskId)
-		}
+		abortActiveTask(activeTask)
 
 		// Clean up time-machine state
 		clearTimeMachineState()
@@ -30,8 +44,11 @@ export function registerOnTaskCancelRequested(bus: IntentBus): void {
 		ctx.rootStore.foundation.windowManager.clearPendingPushTimers()
 		ctx.rootStore.chat.setIsRunning(false)
 
-		// Post current state with isRunning=false — preserves messages in the UI
-		// instead of clearing them (old behavior that closed the task window)
-		await postStateToWebview(provider)
+		const messages = collectCancelMessages(activeTask)
+
+		await postStateToWebview(provider, {
+			messages,
+			isRunning: false,
+		} as { [key: string]: unknown })
 	})
 }

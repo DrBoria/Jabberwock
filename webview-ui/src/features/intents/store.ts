@@ -24,9 +24,11 @@ export const IntentModel = types.model("Intent", {
 	status: types.enumeration("IntentStatus", [
 		IntentStatus.Queued,
 		IntentStatus.Processing,
+		IntentStatus.Suspended,
 		IntentStatus.Success,
 		IntentStatus.Failed,
 	]),
+	priority: types.maybe(types.number),
 	createdAt: types.number,
 	traceId: types.maybe(types.string),
 	parentId: types.maybe(types.string),
@@ -54,6 +56,7 @@ export const IntentStoreModel = types
 			type: string
 			payload: IIntentPayload
 			status?: IntentStatus
+			priority?: number
 			createdAt: number
 			traceId?: string
 			parentId?: string
@@ -62,6 +65,21 @@ export const IntentStoreModel = types
 				...intent,
 				status: intent.status ?? IntentStatus.Queued,
 			})
+		},
+
+		dispatchIntent(id: string) {
+			const intent = self.intents.find((i) => i.id === id)
+			if (intent) intent.status = IntentStatus.Processing
+		},
+
+		suspendIntent(id: string) {
+			const intent = self.intents.find((i) => i.id === id)
+			if (intent) intent.status = IntentStatus.Suspended
+		},
+
+		resumeIntent(id: string) {
+			const intent = self.intents.find((i) => i.id === id)
+			if (intent) intent.status = IntentStatus.Processing
 		},
 
 		markSuccess(id: string) {
@@ -94,6 +112,10 @@ export const IntentStoreModel = types
 
 		clearAll() {
 			self.intents.clear()
+		},
+
+		runHandler<T>(fn: () => T): T {
+			return fn()
 		},
 	}))
 	.views((self) => ({

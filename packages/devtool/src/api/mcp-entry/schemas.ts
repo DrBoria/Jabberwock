@@ -1,10 +1,56 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
+import { z } from "zod"
 
 export type ProxyToolCall = (name: string, params: Record<string, unknown>) => Promise<string>
 
+/**
+ * Convert a flat JSON Schema property descriptor to a Zod schema.
+ * Handles type mapping, optional, default, and description.
+ */
+function propToZod(prop: Record<string, unknown>): z.ZodType {
+	const type = prop.type as string
+	let zType: z.ZodType
+	switch (type) {
+		case "string":
+			zType = z.string()
+			break
+		case "number":
+			zType = z.number()
+			break
+		case "boolean":
+			zType = z.boolean()
+			break
+		case "any":
+		case "unknown":
+			zType = z.any()
+			break
+		default:
+			zType = z.any()
+			break
+	}
+	if (typeof prop.description === "string") {
+		zType = zType.describe(prop.description)
+	}
+	if (prop.optional) {
+		zType = zType.optional()
+	}
+	if (prop.defaultValue !== undefined) {
+		zType = zType.default(prop.defaultValue)
+	}
+	return zType
+}
+
 export function registerAllTools(server: McpServer, proxyToolCall: ProxyToolCall): void {
 	function registerTool(server: McpServer, name: string, description: string, schema: Record<string, unknown>) {
-		server.tool(name, description, schema, async (params) => {
+		// Convert flat JSON Schema properties to Zod schemas so the MCP SDK's
+		// isZodRawShape() check passes (it requires ZodTypeLike values).
+		// Without this, all parameterized tools appear parameterless to the client.
+		const zodShape: Record<string, z.ZodType> = {}
+		for (const [key, value] of Object.entries(schema)) {
+			zodShape[key] = propToZod(value as Record<string, unknown>)
+		}
+
+		server.tool(name, description, zodShape, async (params) => {
 			try {
 				const result = await proxyToolCall(name, (params ?? {}) as Record<string, unknown>)
 				return { content: [{ type: "text", text: result }] }
@@ -151,4 +197,76 @@ export function registerAllTools(server: McpServer, proxyToolCall: ProxyToolCall
 		limit: { type: "number" as const, description: "Items per page", defaultValue: 10 },
 		cursor: { type: "number" as const, description: "Pagination cursor", defaultValue: 0 },
 	})
+
+	// ── State undo/redo tools ──
+
+	registerTool(server, "apply_previous_state", "Undo to previous store state snapshot", {
+		env: { type: "string" as const, description: "'backend' or 'frontend'" },
+	})
+
+	registerTool(server, "apply_next_state", "Redo to next store state snapshot", {
+		env: { type: "string" as const, description: "'backend' or 'frontend'" },
+	})
+
+	// ── Advanced DOM interaction tools ──
+
+	registerTool(server, "drag_element", "Drag a DOM element in a direction by pixels", {
+		selector: { type: "string" as const, description: "CSS selector of element to drag" },
+		direction: { type: "string" as const, description: "Direction: l=left, r=right, t=up, b=down" },
+		pixels: { type: "number" as const, description: "Pixels to drag" },
+	})
+
+	registerTool(server, "drag_from_to", "Drag from one set of coordinates to another", {
+		from: {
+			type: "object" as const,
+			description: "Start {l,t,r,b}",
+			properties: {
+				l: { type: "number" as const, optional: true },
+				t: { type: "number" as const, optional: true },
+				r: { type: "number" as const, optional: true },
+				b: { type: "number" as const, optional: true },
+			},
+		},
+		to: {
+			type: "object" as const,
+			description: "End {l,t,r,b}",
+			properties: {
+				l: { type: "number" as const, optional: true },
+				t: { type: "number" as const, optional: true },
+				r: { type: "number" as const, optional: true },
+				b: { type: "number" as const, optional: true },
+			},
+		},
+	})
+
+	// ── Event bus / messaging tools ──
+
+	registerTool(server, "send_message_to_webview", "Send a message to the extension's webview", {
+		type: { type: "string" as const, description: "Message type (e.g. 'action', 'command')" },
+		action: { type: "string" as const, description: "Action/command name (e.g. 'chatButtonClicked')" },
+		payload: { type: "any" as const, description: "Optional payload", optional: true },
+	})
+
+	registerTool(server, "set_message_interceptor", "Set a mock response interceptor for webview messages", {
+		direction: { type: "string" as const, description: "Direction: 'backend→webview' or 'webview→backend'" },
+		type: { type: "string" as const, description: "Message type to match" },
+		action: { type: "string" as const, description: "Optional action name to match", optional: true },
+		response: { type: "any" as const, description: "Mock response to return when intercepted" },
+	})
+
+	registerTool(server, "remove_message_interceptor", "Remove a message interceptor by direction/type/action", {
+		direction: { type: "string" as const, description: "Direction of the interceptor to remove" },
+		type: { type: "string" as const, description: "Message type of the interceptor to remove" },
+		action: { type: "string" as const, description: "Optional action name", optional: true },
+	})
+
+	registerTool(server, "get_active_interceptors", "Get all active message interceptors", {})
+
+	registerTool(server, "get_message_trace", "Get recent intercepted message trace", {
+		direction: { type: "string" as const, description: "Filter by direction", optional: true },
+		type: { type: "string" as const, description: "Filter by message type", optional: true },
+		action: { type: "string" as const, description: "Filter by action name", optional: true },
+	})
+
+	registerTool(server, "clear_message_trace", "Clear the message trace log", {})
 }

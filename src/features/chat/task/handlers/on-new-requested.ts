@@ -1,5 +1,6 @@
+import { getSnapshot } from "mobx-state-tree"
 import { IntentType } from "@jabberwock/types"
-import type { Goal } from "@jabberwock/types"
+import type { Goal, Notification } from "@jabberwock/types"
 import type { IntentBus } from "@features/intents/bus"
 import { resolveImageMentions } from "@features/chat/task/messages/actions/mentions/resolveImageMentions"
 import { createTask } from "@features/chat/task/actions/startTask"
@@ -51,6 +52,7 @@ async function handleNewTaskIntent(
 		taskId?: string
 		taskConfiguration?: unknown
 		goals?: Goal[]
+		mode?: string
 	},
 ): Promise<void> {
 	const activeTask = ctx.rootStore.chat.activeTask
@@ -71,20 +73,22 @@ async function handleNewTaskIntent(
 		undefined,
 		payload.taskConfiguration,
 		payload.goals,
+		payload.mode,
 	)
 
 	ctx.rootStore.chat.setIsRunning(true)
 
-	if (task && task.messages) {
-		await postTaskCreatedState(provider, task as never, resolved.text)
+	if (task) {
+		const messages = getSnapshot(task.notifications.items) as Notification[]
+		await postTaskCreatedState(provider, messages, task as never, resolved.text)
 	}
 }
 
 async function postTaskCreatedState(
 	provider: { postMessageToWebview: (msg: unknown) => Promise<void> },
+	messages: Notification[],
 	task: {
 		taskId: string
-		messages: { ts: number }[]
 		goals?: Goal[]
 		goalsHistory?: Goal[]
 		metadata?: { task?: string }
@@ -94,16 +98,16 @@ async function postTaskCreatedState(
 	const goals = task.goals ?? []
 	const goalsHistory = task.goalsHistory ?? []
 	console.log(
-		`[on-new-requested] posting state to webview: taskId=${task.taskId}, goals count=${goals.length}, goals:`,
+		`[on-new-requested] posting state to webview: taskId=${task.taskId}, goals count=${goals.length}, messages count=${messages.length}, goals:`,
 		JSON.stringify(goals.map((g: Goal) => g.text)),
 	)
 	await postStateToWebview(
 		provider as never,
 		{
-			messages: task.messages,
+			messages,
 			currentTaskItem: {
 				id: task.taskId,
-				ts: task.messages[0]?.ts ?? Date.now(),
+				ts: messages[0]?.ts ?? Date.now(),
 				task: task.metadata?.task ?? resolvedText,
 				goals,
 				goalsHistory,

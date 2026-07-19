@@ -7,6 +7,7 @@
 		"csstools.postcss",
 		"bradlc.vscode-tailwindcss",
 		"connor4312.esbuild-problem-matchers",
-		"yoavbls.pretty-ts-errors"
+		"yoavbls.pretty-ts-errors",
+		"ozzafar.debugmcpextension"
 	]
 }

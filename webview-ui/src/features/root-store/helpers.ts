@@ -33,10 +33,26 @@ export const handleDomAction = (
 	}
 	return false
 }
-export const handleStreamChunk = (message: ExtensionMessage) => {
+export const handleStreamChunk = (message: ExtensionMessage, chat?: { setIsStreaming: (v: boolean) => void }) => {
 	if (message.type !== "streamChunk") return false
-	const { taskId, text } = message as { type: string; taskId: string; text: string }
-	if (!streamingStore.getSnapshot().isActive) streamingStore.start(taskId)
+	const { taskId, text, reset } = message as {
+		type: string
+		taskId: string
+		text: string
+		reset?: boolean
+	}
+	// Reset signal from the backend: clear the streaming store before a new
+	// stream attempt (e.g. on retry). Without this, new chunks are appended
+	// to the previous failed attempt's text, causing visible stuttering.
+	if (reset) {
+		streamingStore.start(taskId)
+		chat?.setIsStreaming(true)
+		return true
+	}
+	if (!streamingStore.getSnapshot().isActive) {
+		streamingStore.start(taskId)
+		chat?.setIsStreaming(true)
+	}
 	streamingStore.appendChunk(text)
 	return true
 }

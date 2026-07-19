@@ -12,5 +12,7 @@
 	"typescript.tsc.autoDetect": "off",
 	"vitest.disableWorkspaceWarning": true,
 	"mdSearch.prettier": true,
-	"jabberwock.devtool": true
+	"jabberwock.devtool": true,
+	"debugmcp.serverPort": 54321,
+	"debugmcp.timeoutInSeconds": 400
 }

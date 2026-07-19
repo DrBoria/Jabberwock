@@ -10,4 +10,8 @@ import type { IIntentStore } from "./store"
 export interface IntentHandlerContext {
 	rootStore: IRootStore
 	intentStore: IIntentStore
+	/** Fiber scheduler yield — handlers call this at safe preemption points. */
+	scheduler?: {
+		yield(): Promise<void>
+	}
 }

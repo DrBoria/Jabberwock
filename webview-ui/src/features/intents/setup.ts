@@ -25,7 +25,7 @@ export function setupIntents(rootStore: IRootStore): {
 
 	registerAllFrontendIntents(bus)
 
-	bus.start(intentStore, ctx)
+	bus.start(intentStore, ctx, rootStore.runHandler.bind(rootStore))
 
 	return {
 		bus,

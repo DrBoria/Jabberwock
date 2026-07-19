@@ -11,6 +11,10 @@ function handleNewChat(): void {
 	const store = getRootStore()
 	store.chat.textArea.clearInput()
 	store.chat.textArea.setSendingDisabled(false)
+	store.chat.setCurrentAsk("")
+	store.chat.setEnableButtons(false)
+	store.chat.setPrimaryButtonText("")
+	store.chat.setSecondaryButtonText("")
 	store.mergeExtensionState({ currentTaskItem: undefined })
 }
 

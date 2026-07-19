@@ -1,7 +1,7 @@
 import { createRoot } from "react-dom/client"
 import { StrictMode } from "react"
 
-import { initWebviewConsoleBridge } from "@jabberwock/devtool/webview"
+import { createWebviewStoreBridge, initWebviewConsoleBridge, vscode } from "@jabberwock/devtool/webview"
 
 // Must be called before any other code to capture all console output
 initWebviewConsoleBridge()
@@ -28,6 +28,12 @@ function boot(): void {
 	try {
 		// Create root store first so all sub-stores are available
 		const root = createRootStore()
+
+		// Initialize webview store bridge: handles devtool console/store queries
+		// from the extension (getConsoleLogs, searchConsole, getRootSnapshot, etc.)
+		createWebviewStoreBridge(root, (msg: unknown) => {
+			vscode.postMessage(msg as never)
+		})
 
 		// Wire up MstBridge: receives snapshot batches from the extension and applies
 		// them to registered webview MST stores via applySnapshot.

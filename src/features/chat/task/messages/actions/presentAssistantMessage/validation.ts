@@ -77,7 +77,11 @@ async function checkToolRepetition(
 	block: ToolUse,
 	pushResult: (content: ToolResponse) => void,
 ): Promise<boolean> {
-	const repetitionCheck = task.toolRepetitionDetector!.check(block)
+	if (!task.toolRepetitionDetector) {
+		return true
+	}
+
+	const repetitionCheck = task.toolRepetitionDetector.check(block)
 
 	if (!repetitionCheck.allowExecution && repetitionCheck.askUser) {
 		const { response, text, images } = await ask(

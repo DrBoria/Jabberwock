@@ -48,7 +48,7 @@ export async function startNewTask(
 		consecutiveMistakeLimit: Number.MAX_SAFE_INTEGER,
 	}
 
-	const task = await createTask(targetProvider, text, images, configuration ?? taskOptions, undefined)
+	const task = await createTask(targetProvider, text, images, { ...configuration, ...taskOptions }, undefined)
 
 	if (!task) {
 		throw new Error("Failed to create task due to policy restrictions")

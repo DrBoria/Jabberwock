@@ -92,7 +92,7 @@ function applyFinalToolUse(
 	if (toolUseIndex !== undefined) {
 		assistantMsgContentFinal[toolUseIndex] = finalToolUse as AssistantMessageContent
 	}
-	delete streamingToolCallIndices[event.id]
+	task._state.deleteStreamingToolCallIndex(event.id)
 	task._state.setUserMessageContentReady(true)
 	presentAssistantMessage(task)
 }
@@ -110,7 +110,7 @@ function applyFallbackToolUse(
 		existingToolUse.partial = false
 		;(existingToolUse as { id: string }).id = event.id
 	}
-	delete streamingToolCallIndices[event.id]
+	task._state.deleteStreamingToolCallIndex(event.id)
 	task._state.setUserMessageContentReady(true)
 	presentAssistantMessage(task)
 }

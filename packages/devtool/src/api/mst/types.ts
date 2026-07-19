@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 
 export interface FrontendBridge {
 	readonly getRootSnapshot: () => Promise<Record<string, unknown>>
+	readonly getNestedStoreState: (store: string, path?: string) => Promise<Record<string, unknown>>
 	readonly getActionBuffer: () => Promise<unknown[]>
 	readonly applySnapshot: (snapshot: Record<string, unknown>) => Promise<void>
 	readonly getConsoleLogs: (params: {

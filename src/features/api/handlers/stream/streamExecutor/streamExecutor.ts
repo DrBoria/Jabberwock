@@ -14,7 +14,7 @@ import { handleStreamError } from "@features/api/handlers/stream/streamErrorHand
 import { type StreamResult, type TokenState, toStreamHandle } from "@features/api/handlers/stream/types"
 import { createUpdateApiReqMsg, processApiResponse } from "./stream-executor-utils"
 import { dispatchStreamingStarted, dispatchStreamingEnded } from "./stream-executor-events"
-
+import { sendStreamChunk } from "@features/api/events/actions"
 export async function executeApiStream(
 	ctx: ApiRequestContext,
 	rawChunkTracker: RawChunkTracker,
@@ -34,6 +34,10 @@ export async function executeApiStream(
 	const makeUpdateFn = createUpdateApiReqMsg(sh, tokenState, store, ctx.taskId, delegate)
 
 	resetStreamingState(sh, store, rawChunkTracker)
+	// Reset streaming store in webview before starting a new stream attempt
+	// (e.g. on retry). Without this, new chunks append to the previous failed
+	// attempt's text, causing visible stuttering/duplication.
+	sendStreamChunk({ taskId: ctx.taskId, text: "", reset: true })
 	await getDiffViewProvider().reset()
 
 	if (!delegate.api) {

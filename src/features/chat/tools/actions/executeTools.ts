@@ -43,6 +43,9 @@ export async function executeTools(
 		const nextUserContent = await waitForToolExecutionAndPrepareNextContent(task, assistantMessage)
 
 		if (nextUserContent) {
+			// ── YIELD POINT: before creating next UserMessageReceived ──
+			await new Promise((resolve) => setImmediate(resolve))
+
 			// Create a UserMessageReceived intent for the next iteration.
 			// Pass the content blocks directly so the handler can use them
 			// without reading from the notification cursor.
@@ -56,9 +59,6 @@ export async function executeTools(
 				status: IntentStatus.Queued,
 				createdAt: Date.now(),
 			})
-
-			// Add periodic yielding to prevent blocking
-			await new Promise((resolve) => setImmediate(resolve))
 		}
 
 		return nextUserContent

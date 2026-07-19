@@ -5,14 +5,19 @@
 {
 	"version": "0.2.0",
 	"configurations": [
+		// ─── Backend (Extension Host) ───────────────────────────────────────
 		{
 			"name": "Run Extension",
 			"type": "extensionHost",
 			"request": "launch",
 			"runtimeExecutable": "${execPath}",
-			"args": ["--extensionDevelopmentPath=${workspaceFolder}/src"],
+			"args": [
+				"--extensionDevelopmentPath=${workspaceFolder}/src",
+				"--disable-extension",
+				"ozzafar.debugmcpextension"
+			],
 			"sourceMaps": true,
-			"outFiles": ["${workspaceFolder}/src/dist/**/*.js"],
+			"outFiles": ["${workspaceFolder}/src/dist/**/*.js", "${workspaceFolder}/packages/*/dist/**/*.js"],
 			"preLaunchTask": "${defaultBuildTask}",
 			"env": {
 				"NODE_ENV": "development",
@@ -20,10 +25,46 @@
 			},
 			"resolveSourceMapLocations": ["${workspaceFolder}/**", "!**/node_modules/**"],
 			"presentation": {
-				"hidden": false,
-				"group": "tasks",
+				"group": "backend",
 				"order": 1
 			}
+		},
+		{
+			"name": "Attach to Extension Host",
+			"type": "extensionHost",
+			"request": "attach",
+			"port": 9229,
+			"sourceMaps": true,
+			"outFiles": ["${workspaceFolder}/src/dist/**/*.js", "${workspaceFolder}/packages/*/dist/**/*.js"],
+			"resolveSourceMapLocations": ["${workspaceFolder}/**", "!**/node_modules/**"],
+			"presentation": {
+				"group": "backend",
+				"order": 2
+			}
+		},
+
+		// ─── Webview UI (Chrome DevTools) ──────────────────────────────────
+		{
+			"name": "Debug Webview",
+			"type": "chrome",
+			"request": "attach",
+			"port": 5173,
+			"url": "http://localhost:5173",
+			"webRoot": "${workspaceFolder}/webview-ui/src",
+			"sourceMaps": true,
+			"trace": true,
+			"presentation": {
+				"group": "webview",
+				"order": 1
+			}
+		}
+	],
+	"compounds": [
+		{
+			"name": "Debug All",
+			"configurations": ["Run Extension", "Debug Webview"],
+			"preLaunchTask": "${defaultBuildTask}",
+			"stopAll": true
 		}
 	]
 }

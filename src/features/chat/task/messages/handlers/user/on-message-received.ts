@@ -61,51 +61,72 @@ function handleProcessingError(ctx: { intentStore: IIntentStore }, taskId: strin
 	}
 }
 
+async function yieldAndProceed(
+	scheduler: { yield(): Promise<void> } | undefined,
+	intentStore: IIntentStore,
+	intentId: string,
+): Promise<boolean> {
+	await scheduler?.yield()
+	return intentStore.getById(intentId)?.status === IntentStatus.Processing
+}
+
+async function processUserMessage(
+	intent: { id: string; payload: Record<string, unknown> },
+	ctx: { scheduler?: { yield(): Promise<void> }; intentStore: IIntentStore },
+): Promise<void> {
+	const { taskId, text, images, content, retryAttempt } = intent.payload as {
+		taskId: string
+		text?: string
+		images?: string[]
+		content?: Anthropic.Messages.ContentBlockParam[]
+		retryAttempt?: number
+	}
+
+	const store = getBackendRootStore()
+	const taskModel = store.chat.tasks.get(taskId)
+	const task = getTask(taskId)
+
+	if (!taskModel || taskModel.isProcessing || store.chat.abort || !task) {
+		return
+	}
+
+	taskModel.setIsProcessing(true)
+
+	const userContent = buildUserContent(content, text, images)
+
+	if (!userContent) {
+		taskModel.setIsProcessing(false)
+		return
+	}
+
+	// ── YIELD POINT #1: before prepareApiRequest ──
+	if (!(await yieldAndProceed(ctx.scheduler, ctx.intentStore, intent.id))) return
+
+	const apiCtx = await prepareApiRequest(task.taskId, userContent, true, retryAttempt, false)
+
+	// ── YIELD POINT #2: before handleStream ──
+	if (!(await yieldAndProceed(ctx.scheduler, ctx.intentStore, intent.id))) return
+
+	const result = await handleStream(apiCtx)
+	if (!result) {
+		taskModel.setIsProcessing(false)
+		return
+	}
+
+	// ── YIELD POINT #3: after stream, before finalize ──
+	if (!(await yieldAndProceed(ctx.scheduler, ctx.intentStore, intent.id))) return
+
+	await finalizeToolCalls(apiCtx.taskId, result)
+	await executeTools(apiCtx.taskId, result.assistantMessage)
+	taskModel.setIsProcessing(false)
+}
+
 export function registerOnUserMessageReceived(bus: IntentBus): void {
 	bus.register(IntentType.UserMessageReceived, async (intent, ctx) => {
-		const { taskId, text, images, content } = intent.payload as {
-			taskId: string
-			text?: string
-			images?: string[]
-			content?: Anthropic.Messages.ContentBlockParam[]
-		}
-
 		try {
-			const task = getTask(taskId)
-			if (!task) {
-				console.error(`[UserMessageReceived] Task ${taskId} not found in registry`)
-				return
-			}
-
-			const store = getBackendRootStore()
-			const taskModel = store.chat.tasks.get(taskId)
-
-			if (!taskModel || taskModel.isProcessing || store.chat.abort) {
-				return
-			}
-
-			taskModel.setIsProcessing(true)
-
-			const userContent = buildUserContent(content, text, images)
-
-			if (!userContent) {
-				taskModel.setIsProcessing(false)
-				return
-			}
-
-			const apiCtx = await prepareApiRequest(task.taskId, userContent, true, 0, false)
-
-			const result = await handleStream(apiCtx)
-			if (!result) {
-				taskModel.setIsProcessing(false)
-				return
-			}
-
-			await finalizeToolCalls(apiCtx.taskId, result)
-			await executeTools(apiCtx.taskId, result.assistantMessage)
-
-			taskModel.setIsProcessing(false)
+			await processUserMessage(intent, ctx)
 		} catch (err) {
+			const { taskId } = intent.payload as { taskId: string }
 			handleProcessingError(ctx, taskId, err)
 		}
 	})
