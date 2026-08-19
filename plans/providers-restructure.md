@@ -1,5 +1,7 @@
 # План: Реструктуризация `src/api/providers/` (строгий)
 
+> **Примечание (v4):** этот план описывает целевое состояние LLM model providers и термином «provider» не пересекается с connector'ами v4. Единственное физическое изменение в v4 — `vscode-lm` provider переезжает в `connectors/vscode/backend/model-providers/` (импорт `vscode` запрещён в `backend/`), оставаясь «model provider» по смыслу и имени (см. [`plans/architecture-v4-connector-abstraction.md`](plans/architecture-v4-connector-abstraction.md) §1.3(a), §10.2 L10).
+
 ## ⚠️ ЖЁСТКИЕ ПРАВИЛА
 
 1. **После реструктуризации в `src/api/providers/` должны существовать ТОЛЬКО те файлы/папки, что указаны в этом плане.** Всё остальное должно быть либо перемещено, либо удалено.

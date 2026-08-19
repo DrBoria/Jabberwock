@@ -1,4 +1,6 @@
-# Architectural Restructure v2 — Events Action Creators Architecture with Fiber Priority Dispatch (Revised 2026-07-14)
+# Architectural Restructure v2 — Events Action Creators Architecture with Fiber Priority Dispatch
+
+> **STATUS:** IMPLEMENTED. The fiber IntentBus, EventBridge-as-sole-IPC, action-creator/handler conventions, and the 4-entity model described below are live at HEAD (`src/features/intents/bus.ts` PriorityQueue + fiber scheduler, `INTENT_PRIORITY` buckets, `suspendIntent`/`resumeIntent`). This document is retained as the canonical conventions reference; the migration phases and success criteria are historical. The streaming exception is re-expressed through the connector surface in [`plans/architecture-v4-connector-abstraction.md`](plans/architecture-v4-connector-abstraction.md) (criterion C-4).
 
 ---
 
