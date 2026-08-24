@@ -12,12 +12,12 @@
 			"request": "launch",
 			"runtimeExecutable": "${execPath}",
 			"args": [
-				"--extensionDevelopmentPath=${workspaceFolder}/src",
+			"--extensionDevelopmentPath=${workspaceFolder}/backend",
 				"--disable-extension",
 				"ozzafar.debugmcpextension"
 			],
 			"sourceMaps": true,
-			"outFiles": ["${workspaceFolder}/src/dist/**/*.js", "${workspaceFolder}/packages/*/dist/**/*.js"],
+			"outFiles": ["${workspaceFolder}/backend/dist/**/*.js", "${workspaceFolder}/packages/*/dist/**/*.js"],
 			"preLaunchTask": "${defaultBuildTask}",
 			"env": {
 				"NODE_ENV": "development",
@@ -35,7 +35,7 @@
 			"request": "attach",
 			"port": 9229,
 			"sourceMaps": true,
-			"outFiles": ["${workspaceFolder}/src/dist/**/*.js", "${workspaceFolder}/packages/*/dist/**/*.js"],
+			"outFiles": ["${workspaceFolder}/backend/dist/**/*.js", "${workspaceFolder}/packages/*/dist/**/*.js"],
 			"resolveSourceMapLocations": ["${workspaceFolder}/**", "!**/node_modules/**"],
 			"presentation": {
 				"group": "backend",
@@ -50,7 +50,7 @@
 			"request": "attach",
 			"port": 5173,
 			"url": "http://localhost:5173",
-			"webRoot": "${workspaceFolder}/webview-ui/src",
+			"webRoot": "${workspaceFolder}/frontend/src",
 			"sourceMaps": true,
 			"trace": true,
 			"presentation": {

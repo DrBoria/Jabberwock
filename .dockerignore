@@ -7,7 +7,7 @@ dist/
 **/dist/
 out/
 **/out/
-src/webview-ui/
+frontend/build/
 
 # dependencies
 node_modules/
@@ -65,8 +65,8 @@ __tests__
 # Ignore most directories except what we need for the build
 apps/
 evals/
-webview-ui/node_modules
-src/node_modules
+frontend/node_modules
+backend/node_modules
 
 # Keep essential files for the build
 !README.md
@@ -77,8 +77,8 @@ src/node_modules
 !scripts/bootstrap.mjs
 !apps/web-evals/
 !apps/cli/
-!src/
-!webview-ui/
+!backend/
+!frontend/
 !packages/evals/.docker/entrypoints/runner.sh
 !packages/build/
 !packages/config-eslint/

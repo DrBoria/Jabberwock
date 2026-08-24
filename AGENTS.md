@@ -185,3 +185,15 @@ Violation pattern:
 ## Commands
 
 - `pnpm lint` / `pnpm check-types` / `pnpm test` / `pnpm format` / `pnpm build`
+
+---
+
+## Glossary (v4 architecture — [`plans/architecture-v4-connector-abstraction.md`](plans/architecture-v4-connector-abstraction.md) §10.3)
+
+- **Connector / host adapter** — реализация `IBackendConnector`/`IFrontendConnector`; топ-level папка `connectors/`, пакеты `@jabberwock/connector-vscode`, `@jabberwock/connector-web`. Внутри каждого пакета стороны `backend/` (Node runtime, единственное место импорта "vscode" для vscode-пакета) и `frontend/` (browser-safe bundle). Стороны не импортируют друг друга.
+- **Model provider** — LLM API хендлер; `backend/src/api/providers/` (+ vscode-lm физически в connectors/vscode/backend). Не путать с connector'ом (§1.3(a)).
+- **Webview session (бывш. ProviderHandle)** — инстанс webview'а в vscode mode; rename отложен на E+ (§1.3(c)).
+- **IConnectorEventBus** — инжектируемый event emitter frontend app-level кода: `publish(msg)` / `subscribe(filter, handler)`. Реализация = window (vscode connector) или websocket + in-process loopback для DOM-local трафика (web connector). Приложение не знает разницы (§4.5).
+- **Fiber IntentBus** — ядро коммуникации обеих сторон: priority buckets Critical=0/High=1/Normal=2/Low=3, preemption в yield points (`ctx.scheduler?.yield()`), MST snapshots на dispatchIntent/suspendIntent/resumeIntent; abort/cancel = Critical intent (глава 5).
+- **NetBird mesh** — self-hosted WireGuard-based trust boundary для remote access'а: backend слушает только loopback или TUN-IP пиров (§9.5); LAN/5G/другой город — first-class сценарии.
+- **Purity rules** — G6/G7 §8: ноль vscode в `backend/**` и app-level frontend'е; механизмы принуждения ESLint no-restricted-imports + `pnpm audit:platform` (включая динамические require) + esbuild server bundle без vscode external'а.

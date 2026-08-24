@@ -3,22 +3,26 @@
 	"ignore": [
 		"**/__tests__/**",
 		"apps/vscode-e2e/**",
-		"src/extension/api.ts",
-		"src/activate/**",
-		"src/workers/countTokens.ts",
-		"src/extension.ts",
+		"backend/extension/api.ts",
+		"backend/activate/**",
+		"backend/workers/countTokens.ts",
+		"backend/extension.ts",
 		"scripts/**",
 		"apps/cli/scripts/**",
 		"apps/web-roo-code/next-sitemap.config.cjs"
 	],
 	"workspaces": {
-		"src": {
+		"backend": {
 			"entry": ["extension.ts"],
 			"project": ["**/*.ts"]
 		},
-		"webview-ui": {
+		"frontend": {
 			"entry": ["src/index.tsx"],
-			"project": ["src/**/*.{ts,tsx}", "../src/shared/*.ts"]
+			"project": ["src/**/*.{ts,tsx}", "../backend/shared/*.ts"]
+		},
+		"connectors/*": {
+			"entry": ["backend/main.ts"],
+			"project": ["**/*.ts"]
 		},
 		"packages/{build,cloud,evals,ipc,telemetry,types}": {
 			"project": ["src/**/*.ts"]

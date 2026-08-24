@@ -1,5 +1,6 @@
 packages:
-    - "src" # Should be apps/vscode
-    - "webview-ui" # Should be apps/vscode-webview
+    - "backend" # v4 layout: backend core (package name stays "jabberwock", do not rename — plan §3.1); see plans/architecture-v4-connector-abstraction.md
+    - "frontend" # v4 layout: browser frontend bundle (@jabberwock/frontend)
+    - "connectors/*"
     - "apps/*"
     - "packages/*"

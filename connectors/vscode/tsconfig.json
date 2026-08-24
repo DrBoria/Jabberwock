@@ -1,0 +1,20 @@
+{
+	"compilerOptions": {
+		"target": "ES2022",
+		"module": "esnext",
+		"moduleResolution": "bundler",
+		"lib": ["dom", "dom.iterable", "esnext"],
+		"strict": true,
+		"skipLibCheck": true,
+		"esModuleInterop": true,
+		"allowSyntheticDefaultImports": true,
+		"forceConsistentCasingInFileNames": true,
+		"resolveJsonModule": true,
+		"isolatedModules": true,
+		"noEmit": true,
+		"useDefineForClassFields": true,
+		"types": ["node"]
+	},
+	// Skeleton for Phase A1 (plan §3.1). Real sources land in B4: backend/main.ts = VSIX entry (was src/extension.ts + activate/**), frontend/connector.ts = VscodeWebviewFrontendConnector over acquireVsCodeApi().
+	"include": ["backend/**/*.ts", "frontend/**/*.ts"]
+}

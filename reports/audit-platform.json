@@ -1,0 +1,1395 @@
+{
+	"note": "v4 platform-purity baseline artifact — committed at every phase step; git history must show monotonic decrease. Plan §8.2/§11 A0.",
+	"generatedAt": "2026-08-20T21:37:59.577Z",
+	"commit": "2574bd28058b",
+	"backendDir": "backend",
+	"frontendSrcDir": "frontend/src",
+	"summary": {
+		"backendFiles": 169,
+		"backendViolations": 173,
+		"frontendFiles": 56,
+		"frontendUsages": 131
+	},
+	"entries": [
+		{
+			"side": "backend",
+			"file": "backend/activate/CodeActionProvider.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/activate/handleTask.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/activate/handleUri.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/activate/registerCodeActions.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/activate/registerCommands/open-in-new-tab.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/activate/registerCommands/panel-store.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/activate/registerCommands/register-commands-map.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/activate/registerCommands/register-commands.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/activate/registerCommands/visible-provider.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/activate/registerTerminalActions.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/api/providers/utils/timeout-config.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/api/providers/vscode-lm/handler.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/api/providers/vscode-lm/stream.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/api/providers/vscode-lm/token-count.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/api/providers/vscode-lm/tools.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/api/transform/format/vscode-lm-format.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/extension-activation/modules/core/api.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/extension-activation/modules/core/core.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/extension-activation/modules/core/devtool.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/extension-activation/modules/core/intents.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/extension-activation/modules/services/agents.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/extension-activation/modules/services/cloud.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/extension-activation/modules/services/ipc.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/extension-activation/modules/services/worktree.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/extension.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/chat/task/actions/startTask/start-new-task.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/chat/task/condense/actions/condenseContext.helpers.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/chat/task/handlers/on-new-requested.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/chat/task/handlers/textarea/on-textarea-enhance-requested.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/chat/task/messages/actions/mentions/mentionHelpers.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/chat/task/messages/actions/mentions/parseMentions.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/chat/task/messages/handlers/helpers/deleteOperations.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/chat/task/messages/handlers/helpers/editOperations/edit-operations-private.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/chat/task/messages/handlers/helpers/editOperations/edit-operations.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/chat/task/notifications/handlers/checkpoint/checkpointRestoreHandler.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/chat/task/notifications/handlers/checkpoint/on-checkpoint-restore-requested.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/chat/tools/c-l/CodebaseSearchTool.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/chat/tools/c-l/ExecuteCommandTool.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/chat/tools/helpers/generate-image/io.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/chat/tools/helpers/lifecycle/attemptCompletionHelpers.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/cloud/handlers/on-cloud.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/foundation/time-machine/actions/checkpoints.git.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/foundation/time-machine/actions/checkpoints.helpers.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/foundation/time-machine/actions/checkpoints.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/foundation/time-machine/file-context/FileContextTracker.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/foundation/vscode/context.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/foundation/webview/EventBridge.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/foundation/window-manager/handlers/ui/on-focus-panel-requested.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/foundation/window-manager/store.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/foundation/window-manager/store/html-utils.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/foundation/window-manager/store/messaging.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/foundation/window-manager/store/webview-setup.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/hist/handlers/on-history.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/marketplace/handlers/on-marketplace.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/mst-custom-types.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/actions/export.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/actions/importSettings.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/actions/runMigrations.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/agents/modes-file-service/crud.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/agents/modes-file-service/file-ops.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/agents/modes-file-service/mock.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/agents/modes-file-service/yaml.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/context/generateSystemPrompt.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/context/sections/system/modes.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/context/system.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/context/systemPrompt.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/handlers/agents/on-settings-agents.handlers.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/handlers/agents/on-settings-agents.helpers.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/handlers/lifecycle/on-diagnostics.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/handlers/on-settings-api-config/delete-config.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/handlers/on-settings-api-config/handlers.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/handlers/on-settings-api-config/upsert-config.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/handlers/on-settings-core/commands-utils.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/handlers/on-settings-core/debug-utils.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/handlers/on-settings-core/register-settings-commands.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/handlers/on-settings-core/register-settings-debug.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/handlers/on-settings-core/register-settings-updates.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/handlers/on-settings-core/setting-handlers.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/handlers/on-settings-worktree/crud-registrations.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/handlers/on-settings-worktree/handlers.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/handlers/on-settings-worktree/list-handlers.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/handlers/settings/on-settings-context.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/handlers/settings/on-settings-files.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/handlers/settings/on-settings-mcp.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/handlers/ui/on-settings-skills.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/handlers/ui/on-settings-vscode.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/handlers/ui/on-settings-webview.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/mcp/mcpIntegration.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/models/provider-settings-manager/operations/ProviderSettingsManager-initialize.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/models/provider-settings-manager/operations/ProviderSettingsManager-migrations.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/models/provider-settings-manager/operations/ProviderSettingsManager-persistence.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/features/settings/models/provider-settings-manager/ProviderSettingsManager.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/integrations/diagnostics/diagnostics.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/integrations/editor/DecorationController.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/integrations/editor/diffViewEditorOps.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/integrations/editor/diffViewHelpers.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/integrations/editor/DiffViewProvider.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/integrations/editor/diffViewSave.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/integrations/editor/EditorUtils.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/integrations/misc/export-markdown.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/integrations/misc/image-handler.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/integrations/misc/open-file.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/integrations/misc/process-images.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/integrations/openai-codex/oauth.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/integrations/openai-codex/oauthTokenManager.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/integrations/terminal/execute-shell-command.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/integrations/terminal/ShellIntegrationManager.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/integrations/terminal/terminal-core/Terminal.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/integrations/terminal/TerminalRegistry/terminal-registry-init.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/integrations/terminal/TerminalRegistry/terminal-registry.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/integrations/theme/getTheme.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/integrations/workspace/WorkspaceTracker.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/checkpoints/ShadowCheckpointService.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/code-index/cache-manager.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/code-index/interfaces/file-processor.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/code-index/interfaces/manager.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/code-index/manager/manager.factory.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/code-index/manager/manager.services.ts",
+			"kind": "dynamic-import",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/code-index/manager/manager.settings.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/code-index/manager/manager.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/code-index/manager/manager.workspace.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/code-index/orchestrator/orchestrator.helpers.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/code-index/orchestrator/orchestrator.scan.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/code-index/orchestrator/orchestrator.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/code-index/processors/file-watcher/batch/file-watcher.batch.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/code-index/processors/file-watcher/batch/helpers.deletions.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/code-index/processors/file-watcher/batch/helpers.processing.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/code-index/processors/file-watcher/batch/helpers.types.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/code-index/processors/file-watcher/file-watcher.process.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/code-index/processors/file-watcher/file-watcher.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/code-index/processors/scanner.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/code-index/processors/scannerProcessing/scanner-file-utils.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/code-index/service-factory/service-factory.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/code-index/state-manager.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/glob/list-files-ripgrep.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/marketplace/installation-meta.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/marketplace/installation-operations.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/marketplace/MarketplaceManager.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/marketplace/SimpleInstaller/path-utils.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/marketplace/SimpleInstaller/simple-installer.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/mcp/config/file.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/mcp/core/McpHub.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/mcp/core/McpServerManager.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/mcp/core/types.ts",
+			"kind": "dynamic-import",
+			"count": 4
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/mcp/mcp-hub/connection/lifecycle.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/mcp/mcp-hub/connection/manager.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/mcp/mcp-hub/init/init.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/mcp/mcp-hub/notifications.ts",
+			"kind": "dynamic-import",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/mcp/mcp-hub/notifications.ts",
+			"kind": "require",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/mcp/mcp-hub/server/refresh.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/mcp/mcp-hub/watchers.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/ripgrep/ripgrep/ripgrep.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/services/search/file-search.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/shared/modes/extension.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/shared/vsCodeSelectorUtils.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/utils/git/git.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/utils/globalContext.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/utils/io/export.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/utils/io/path.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/utils/io/pathUtils.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/utils/io/storage.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/utils/logger/outputChannelLogger.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/utils/network-proxy/networkProxy.config.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/utils/network-proxy/networkProxy.state.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/utils/network-proxy/networkProxy.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/utils/settings/autoImportSettings.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/utils/settings/migrateSettings.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/utils/shell/config.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/utils/ui/focusPanel.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "backend",
+			"file": "backend/utils/ui/getUri.ts",
+			"kind": "static",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/app-shell/App.tsx",
+			"kind": "postMessage",
+			"count": 2
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/app-shell/App.tsx",
+			"kind": "window-listener",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/bootstrap.tsx",
+			"kind": "postMessage",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/bootstrap.tsx",
+			"kind": "window-listener",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/chat/events/handlers/chat-received.ts",
+			"kind": "postMessage",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/chat/notifications/store.ts",
+			"kind": "postMessage",
+			"count": 11
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/chat/task/actions/condenseContext.ts",
+			"kind": "postMessage",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/chat/task/actions/summarizeConversation.ts",
+			"kind": "postMessage",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/chat/task/components/task-header/header.tsx",
+			"kind": "postMessage",
+			"count": 3
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/chat/task/events/actions/register.ts",
+			"kind": "postMessage",
+			"count": 5
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/chat/task/messages/components/chat-area/message-area.tsx",
+			"kind": "postMessage",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/chat/task/messages/components/command/execution-error.tsx",
+			"kind": "postMessage",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/chat/task/messages/components/displays/file-changes-panel.tsx",
+			"kind": "window-listener",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/chat/task/messages/components/hooks/useRowDisplay.tsx",
+			"kind": "window-listener",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/chat/task/messages/components/row/content.tsx",
+			"kind": "window-listener",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/chat/task/messages/components/row/context-rows/too-many-tools-warning.tsx",
+			"kind": "postMessage",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/chat/task/messages/components/say/feedback-say.tsx",
+			"kind": "window-listener",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/chat/task/messages/components/say/misc-say.tsx",
+			"kind": "postMessage",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/chat/task/messages/events/actions/register.ts",
+			"kind": "postMessage",
+			"count": 6
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/chat/task/notifications/checkpoint/warning.tsx",
+			"kind": "postMessage",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/chat/task/store.ts",
+			"kind": "postMessage",
+			"count": 6
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/chat/topic/store.ts",
+			"kind": "postMessage",
+			"count": 2
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/chat/tree/store.tsx",
+			"kind": "postMessage",
+			"count": 6
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/cloud/components/OrganizationSwitcher.tsx",
+			"kind": "window-listener",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/cloud/store.ts",
+			"kind": "postMessage",
+			"count": 9
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/foundation/components/ui/display/DismissibleUpsell.tsx",
+			"kind": "window-listener",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/foundation/components/ui/display/TelemetryBanner.tsx",
+			"kind": "postMessage",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/foundation/events/handlers/foundation-received.ts",
+			"kind": "postMessage",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/foundation/ui/hooks/useJabberwock/useJabberwockCreditBalance.ts",
+			"kind": "window-listener",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/foundation/window-manager/store.tsx",
+			"kind": "postMessage",
+			"count": 7
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/history/store.ts",
+			"kind": "postMessage",
+			"count": 8
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/marketplace/components/install/MarketplaceInstallModal.tsx",
+			"kind": "window-listener",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/marketplace/components/item-card/MarketplaceItemCard.tsx",
+			"kind": "window-listener",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/marketplace/components/MarketplaceView.tsx",
+			"kind": "window-listener",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/marketplace/components/state/useStateManager.ts",
+			"kind": "window-listener",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/marketplace/store.ts",
+			"kind": "postMessage",
+			"count": 12
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/root-store/store.ts",
+			"kind": "postMessage",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/root-store/store.ts",
+			"kind": "window-listener",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/settings/agents/components/modes-view/hooks/useModesViewState-ui.ts",
+			"kind": "window-listener",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/settings/agents/components/modes-view/sections/header-section.tsx",
+			"kind": "postMessage",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/settings/agents/indexing/code-search/code-index-popover-logic/code-index-popover-hooks.ts",
+			"kind": "window-listener",
+			"count": 3
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/settings/agents/indexing/status-badge.tsx",
+			"kind": "window-listener",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/settings/agents/mode-selector/ModeSelector/ModeSelectorContent.tsx",
+			"kind": "postMessage",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/settings/components/CreateWorktreeModal/CreateWorktreeModalComponent.tsx",
+			"kind": "window-listener",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/settings/components/PromptsSettings/PromptsSettingsComponent.tsx",
+			"kind": "window-listener",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/settings/components/providers/LiteLLM/useLiteLLMMessageHandler.ts",
+			"kind": "window-listener",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/settings/components/providers/openai-codex/OpenAICodexRateLimitDashboard.tsx",
+			"kind": "window-listener",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/settings/components/SettingsView/hooks/useSettingsNavigation.ts",
+			"kind": "window-listener",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/settings/components/SkillsSettings/SkillsSettingsComponent.tsx",
+			"kind": "postMessage",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/settings/components/WorktreesView/DeleteWorktreeModal.tsx",
+			"kind": "window-listener",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/settings/components/WorktreesView/useWorktreesView.ts",
+			"kind": "window-listener",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/settings/mcp/components/McpView.tsx",
+			"kind": "postMessage",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/settings/mcp/McpIframeRenderer.tsx",
+			"kind": "postMessage",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/settings/mcp/McpIframeRenderer.tsx",
+			"kind": "window-listener",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/features/settings/settings-store/actions.ts",
+			"kind": "postMessage",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/sections/dndTextArea/share-button.tsx",
+			"kind": "window-listener",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/sections/dndTextArea/store.ts",
+			"kind": "postMessage",
+			"count": 5
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/sections/dndTextArea/view/hooks/useMessageHandlers.ts",
+			"kind": "window-listener",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/sections/dndTextArea/worktree-selector.tsx",
+			"kind": "window-listener",
+			"count": 1
+		},
+		{
+			"side": "frontend",
+			"file": "frontend/src/shared/ui/selects/select-dropdown.tsx",
+			"kind": "postMessage",
+			"count": 1
+		}
+	]
+}

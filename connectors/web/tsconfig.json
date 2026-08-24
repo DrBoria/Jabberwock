@@ -1,0 +1,20 @@
+{
+	"compilerOptions": {
+		"target": "ES2022",
+		"module": "esnext",
+		"moduleResolution": "bundler",
+		"lib": ["dom", "dom.iterable", "esnext"],
+		"strict": true,
+		"skipLibCheck": true,
+		"esModuleInterop": true,
+		"allowSyntheticDefaultImports": true,
+		"forceConsistentCasingInFileNames": true,
+		"resolveJsonModule": true,
+		"isolatedModules": true,
+		"noEmit": true,
+		"useDefineForClassFields": true,
+		"types": ["node"]
+	},
+	// Skeleton for Phase A1 (plan §3.1). Real sources land in C1/C2: backend/main.ts = WS server entry (`pnpm start:server`), frontend/connector.ts = BrowserWsFrontendConnector.
+	"include": ["backend/**/*.ts", "frontend/**/*.ts"]
+}

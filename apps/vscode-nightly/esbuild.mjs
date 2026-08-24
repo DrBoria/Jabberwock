@@ -40,7 +40,7 @@ async function main() {
 		},
 	}
 
-	const srcDir = path.join(__dirname, "..", "..", "src")
+	const srcDir = path.join(__dirname, "..", "..", "backend")
 	const buildDir = path.join(__dirname, "build")
 	const distDir = path.join(buildDir, "dist")
 
@@ -71,7 +71,7 @@ async function main() {
 							["assets", "assets"],
 							["integrations", "integrations"],
 							["node_modules/vscode-material-icons/generated", "assets/vscode-material-icons", { optional: true }],
-							["../webview-ui/audio", "webview-ui/audio"],
+							["../frontend/audio", "frontend/audio"],
 						],
 						srcDir,
 						buildDir,

@@ -55,8 +55,8 @@ Options:
   --locale=<locale>   Only check a specific locale (e.g. --locale=fr)
   --file=<file>       Only check a specific file (e.g. --file=chat.json)
   --area=<area>       Only check a specific area (core, webview, package-nls, or all)
-                      'core' = Backend (src/i18n/locales)
-                      'webview' = Frontend UI (webview-ui/src/i18n/locales)
+                      'core' = Backend (backend/i18n/locales)
+                      'webview' = Frontend UI (frontend/src/i18n/locales)
                       'package-nls' = VSCode package.nls.json files
                       'all' = Check all areas (default)
   --help              Show this help message
@@ -69,8 +69,8 @@ Output:
 
 // Paths to the locales directories
 const LOCALES_DIRS = {
-	core: path.join(__dirname, "../src/i18n/locales"),
-	webview: path.join(__dirname, "../webview-ui/src/i18n/locales"),
+	core: path.join(__dirname, "../backend/i18n/locales"),
+	webview: path.join(__dirname, "../frontend/src/i18n/locales"),
 }
 
 // Determine which areas to check based on args

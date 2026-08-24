@@ -3,7 +3,7 @@
 	"extends": ["//"],
 	"tasks": {
 		"bundle:nightly": {
-			"dependsOn": ["^build", "@jabberwock/vscode-webview#build:nightly"],
+			"dependsOn": ["^build", "@jabberwock/frontend#build:nightly"],
 			"outputs": ["build/**"]
 		},
 		"vsix:nightly": {

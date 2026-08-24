@@ -1,0 +1,12 @@
+{
+	"name": "@jabberwock/connector-vscode",
+	"version": "0.0.0",
+	"description": "v4 host adapter for the VSCode extension (IBackendConnector + IFrontendConnector). The ONLY place in the repo allowed to import \"vscode\" on its backend side — plan §3.1, G6.",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"lint": "echo 'connector-vscode: skeleton (Phase A1), no sources yet'",
+		"check-types": "echo 'connector-vscode: skeleton (Phase A1), nothing to type-check'",
+		"test": "echo 'connector-vscode: skeleton (Phase A1), no tests yet'"
+	}
+}

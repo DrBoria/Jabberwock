@@ -57,13 +57,13 @@ export const config = [
 			"local/no-misplaced-concern": [
 				"error",
 				{
-					includes: ["src/", "webview-ui/src/"],
+					includes: ["backend/", "frontend/src/"],
 				},
 			],
 			"local/no-state-outside-mobx": [
 				"error",
 				{
-					includes: ["src/", "webview-ui/src/", "apps/cli/"],
+					includes: ["backend/", "frontend/src/", "apps/cli/"],
 					excludedFiles: ["useRootStore\\.ts$", "TerminalSizeContext\\.tsx$", "form\\.tsx$", "context\\.ts$"],
 				},
 			],

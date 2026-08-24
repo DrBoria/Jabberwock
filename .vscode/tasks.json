@@ -15,7 +15,7 @@
 		{
 			"label": "build:webview",
 			"type": "shell",
-			"command": "pnpm --filter @jabberwock/vscode-webview build",
+			"command": "pnpm --filter @jabberwock/frontend build",
 			"group": "build",
 			"presentation": {
 				"reveal": "always"
@@ -33,7 +33,7 @@
 		{
 			"label": "watch:webview",
 			"type": "shell",
-			"command": "cd webview-ui && pnpm dev",
+			"command": "cd frontend && pnpm dev",
 			"isBackground": true,
 			"problemMatcher": {
 				"owner": "webview",

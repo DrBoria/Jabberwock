@@ -1,0 +1,12 @@
+{
+	"name": "@jabberwock/connector-web",
+	"version": "0.0.0",
+	"description": "v4 host adapter for standalone server mode: WebSocket-only transport (backend) + browser WS client connector (frontend). Plan §3.1, Phase C.",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"lint": "echo 'connector-web: skeleton (Phase A1), no sources yet'",
+		"check-types": "echo 'connector-web: skeleton (Phase A1), nothing to type-check'",
+		"test": "echo 'connector-web: skeleton (Phase A1), no tests yet'"
+	}
+}

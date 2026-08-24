@@ -8,5 +8,5 @@ node_modules
 .changeset
 bin
 releases
-webview-ui/node_modules
-webview-ui/.turbo
+frontend/node_modules
+frontend/.turbo
