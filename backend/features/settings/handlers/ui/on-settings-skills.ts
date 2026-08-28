@@ -1,12 +1,11 @@
 import { IntentType, type SkillMetadata } from "@jabberwock/types"
 import type { IntentBus } from "@features/intents/bus"
-import * as vscode from "vscode"
 import { openFile } from "@integrations/misc/open-file"
 import { t } from "@i18n"
 import { getSkillsManager } from "@features/settings/skills/store"
 import { getMstState } from "@features/foundation/mst/store"
 import type { IBackendRootStore } from "@features/store"
-import { EventBridge } from "@features/foundation/webview/EventBridge"
+import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
 
 type SkillSource = SkillMetadata["source"]
 
@@ -60,7 +59,7 @@ export function registerOnSettingsSkills(bus: IntentBus): void {
 				await postSkillsUpdate(provider, ctx.rootStore, [])
 			}
 		} catch (error) {
-			EventBridge.outputChannel?.appendLine(
+			backendLog.info(
 				`Error fetching skills: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 			)
 			await postSkillsUpdate(provider, ctx.rootStore, [])
@@ -99,8 +98,8 @@ export function registerOnSettingsSkills(bus: IntentBus): void {
 			await postSkillsUpdate(provider, ctx.rootStore, skills)
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
-			EventBridge.outputChannel?.appendLine(`Error creating skill: ${errorMessage}`)
-			vscode.window.showErrorMessage(`Failed to create skill: ${errorMessage}`)
+			backendLog.info(`Error creating skill: ${errorMessage}`)
+			publishNotificationError(`Failed to create skill: ${errorMessage}`)
 		}
 	})
 
@@ -132,8 +131,8 @@ export function registerOnSettingsSkills(bus: IntentBus): void {
 			await postSkillsUpdate(provider, ctx.rootStore, skills)
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
-			EventBridge.outputChannel?.appendLine(`Error deleting skill: ${errorMessage}`)
-			vscode.window.showErrorMessage(`Failed to delete skill: ${errorMessage}`)
+			backendLog.info(`Error deleting skill: ${errorMessage}`)
+			publishNotificationError(`Failed to delete skill: ${errorMessage}`)
 		}
 	})
 
@@ -166,8 +165,8 @@ export function registerOnSettingsSkills(bus: IntentBus): void {
 			await postSkillsUpdate(provider, ctx.rootStore, skills)
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
-			EventBridge.outputChannel?.appendLine(`Error moving skill: ${errorMessage}`)
-			vscode.window.showErrorMessage(`Failed to move skill: ${errorMessage}`)
+			backendLog.info(`Error moving skill: ${errorMessage}`)
+			publishNotificationError(`Failed to move skill: ${errorMessage}`)
 		}
 	})
 
@@ -198,8 +197,8 @@ export function registerOnSettingsSkills(bus: IntentBus): void {
 			await postSkillsUpdate(provider, ctx.rootStore, skills)
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
-			EventBridge.outputChannel?.appendLine(`Error updating skill modes: ${errorMessage}`)
-			vscode.window.showErrorMessage(`Failed to update skill modes: ${errorMessage}`)
+			backendLog.info(`Error updating skill modes: ${errorMessage}`)
+			publishNotificationError(`Failed to update skill modes: ${errorMessage}`)
 		}
 	})
 
@@ -230,8 +229,10 @@ export function registerOnSettingsSkills(bus: IntentBus): void {
 			openFile(skill.path)
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
-			EventBridge.outputChannel?.appendLine(`Error opening skill file: ${errorMessage}`)
-			vscode.window.showErrorMessage(`Failed to open skill file: ${errorMessage}`)
+			backendLog.info(`Error opening skill file: ${errorMessage}`)
+			publishNotificationError(`Failed to open skill file: ${errorMessage}`)
 		}
 	})
 }
+
+import { publishNotificationError } from "@features/foundation/capabilities/notifications"

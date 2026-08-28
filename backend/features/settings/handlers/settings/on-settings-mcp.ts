@@ -1,6 +1,7 @@
 import { IntentType } from "@jabberwock/types"
 import type { IntentBus } from "@features/intents/bus"
-import * as vscode from "vscode"
+// v4 B2 (L4): workspace roots come from the host context DI slot, not vscode directly.
+import { getWorkspaceRoots } from "@features/foundation/vscode/context"
 import * as path from "path"
 import * as fs from "fs/promises"
 import { t } from "@i18n"
@@ -9,7 +10,7 @@ import { fileExistsAtPath } from "@utils/io/fs"
 import { safeWriteJson } from "@utils/io"
 import { postStateToWebview } from "@features/foundation/window-manager/store"
 import { getMcpServerManager } from "@services/mcp/core/McpServerManager"
-import { EventBridge } from "@features/foundation/webview/EventBridge"
+import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
 
 /**
  * Register all MCP settings intent handlers.
@@ -27,8 +28,8 @@ export function registerOnSettingsMcp(bus: IntentBus): void {
 
 	// ── openProjectMcpSettings ────────────────────────────────────────
 	bus.register(IntentType.SettingsMcpProjectSettingsOpen, async (_intent, ctx) => {
-		if (!vscode.workspace.workspaceFolders?.length) {
-			vscode.window.showErrorMessage(t("common:errors.no_workspace"))
+		if (getWorkspaceRoots().length === 0) {
+			publishNotificationError(t("common:errors.no_workspace"))
 			return
 		}
 
@@ -49,7 +50,7 @@ export function registerOnSettingsMcp(bus: IntentBus): void {
 
 			await openFile(mcpPath)
 		} catch (error) {
-			vscode.window.showErrorMessage(t("mcp:errors.create_json", { error: `${error}` }))
+			publishNotificationError(t("mcp:errors.create_json", { error: `${error}` }))
 		}
 	})
 
@@ -62,15 +63,15 @@ export function registerOnSettingsMcp(bus: IntentBus): void {
 		if (!payload.serverName) return
 
 		try {
-			EventBridge.outputChannel?.appendLine(`Attempting to delete MCP server: ${payload.serverName}`)
+			backendLog.info(`Attempting to delete MCP server: ${payload.serverName}`)
 			const deleteMcpHub = await getMcpServerManager().getMcpHub()
 			await deleteMcpHub?.deleteServer(payload.serverName, payload.source as "global" | "project")
-			EventBridge.outputChannel?.appendLine(`Successfully deleted MCP server: ${payload.serverName}`)
+			backendLog.info(`Successfully deleted MCP server: ${payload.serverName}`)
 
 			await postStateToWebview(provider)
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
-			EventBridge.outputChannel?.appendLine(`Failed to delete MCP server: ${errorMessage}`)
+			backendLog.info(`Failed to delete MCP server: ${errorMessage}`)
 		}
 	})
 
@@ -82,7 +83,7 @@ export function registerOnSettingsMcp(bus: IntentBus): void {
 			const restartMcpHub = await getMcpServerManager().getMcpHub()
 			await restartMcpHub?.restartConnection(payload.text, payload.source as "global" | "project")
 		} catch (error) {
-			EventBridge.outputChannel?.appendLine(
+			backendLog.info(
 				`Failed to retry connection for ${payload.text}: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 			)
 		}
@@ -106,7 +107,7 @@ export function registerOnSettingsMcp(bus: IntentBus): void {
 				payload.source as "global" | "project",
 			)
 		} catch (error) {
-			EventBridge.outputChannel?.appendLine(
+			backendLog.info(
 				`Failed to toggle auto-approve for tool ${payload.toolName}: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 			)
 		}
@@ -130,7 +131,7 @@ export function registerOnSettingsMcp(bus: IntentBus): void {
 				payload.source as "global" | "project",
 			)
 		} catch (error) {
-			EventBridge.outputChannel?.appendLine(
+			backendLog.info(
 				`Failed to toggle enabled for prompt for tool ${payload.toolName}: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 			)
 		}
@@ -152,7 +153,7 @@ export function registerOnSettingsMcp(bus: IntentBus): void {
 				payload.source as "global" | "project",
 			)
 		} catch (error) {
-			EventBridge.outputChannel?.appendLine(
+			backendLog.info(
 				`Failed to toggle MCP server ${payload.serverName}: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 			)
 		}
@@ -171,7 +172,7 @@ export function registerOnSettingsMcp(bus: IntentBus): void {
 			const mcpHub = await getMcpServerManager().getMcpHub()
 			await mcpHub?.updateServerTimeout(payload.serverName, timeout, payload.source as "global" | "project")
 		} catch (error) {
-			EventBridge.outputChannel?.appendLine(
+			backendLog.info(
 				`Failed to update MCP timeout for ${payload.serverName}: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 			)
 		}
@@ -186,3 +187,5 @@ export function registerOnSettingsMcp(bus: IntentBus): void {
 		}
 	})
 }
+
+import { publishNotificationError } from "@features/foundation/capabilities/notifications"

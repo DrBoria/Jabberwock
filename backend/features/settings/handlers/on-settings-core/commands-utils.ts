@@ -1,4 +1,5 @@
-import * as vscode from "vscode"
+// v4 B2 (L4): workspace roots come from the host context DI slot, not vscode directly.
+import { getWorkspaceRoots } from "@features/foundation/vscode/context"
 import * as os from "os"
 import * as path from "path"
 import * as fs from "fs/promises"
@@ -8,7 +9,7 @@ import { t } from "@i18n"
 import { getCommands } from "@services/command/commands"
 import { openFile } from "@integrations/misc/open-file"
 import { getMstState } from "@features/foundation/mst/store"
-import { EventBridge } from "@features/foundation/webview/EventBridge"
+import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
 
 export function sanitizeCommandName(fileName: string): string {
 	if (!fileName || !fileName.trim()) {
@@ -43,15 +44,15 @@ export async function resolveCommandsDir(source: string, ctx: IntentHandlerConte
 		return path.join(globalConfigDir, "commands")
 	}
 
-	if (!vscode.workspace.workspaceFolders?.length) {
-		vscode.window.showErrorMessage(t("common:errors.no_workspace"))
+	if (getWorkspaceRoots().length === 0) {
+		publishNotificationError(t("common:errors.no_workspace"))
 		return null
 	}
 
 	const rootStore = ctx.rootStore as IBackendRootStore
 	const workspaceRoot = rootStore.chat.activeTask?.cwd
 	if (!workspaceRoot) {
-		vscode.window.showErrorMessage(t("common:errors.no_workspace_for_project_command"))
+		publishNotificationError(t("common:errors.no_workspace_for_project_command"))
 		return null
 	}
 
@@ -103,7 +104,7 @@ export async function createCommandFile(
 ): Promise<void> {
 	const source = payload.values?.source
 	if (!source) {
-		EventBridge.outputChannel?.appendLine("Missing source for createCommand")
+		backendLog.info("Missing source for createCommand")
 		return
 	}
 
@@ -119,16 +120,18 @@ export async function createCommandFile(
 	const filePath = path.join(commandsDir, `${commandName}.md`)
 
 	if (await filePathExists(filePath)) {
-		vscode.window.showErrorMessage(t("common:errors.command_already_exists", { commandName }))
+		publishNotificationError(t("common:errors.command_already_exists", { commandName }))
 		return
 	}
 
 	const templateContent = t("common:errors.command_template_content")
 	await fs.writeFile(filePath, templateContent, "utf8")
-	EventBridge.outputChannel?.appendLine(`Created new command file: ${filePath}`)
+	backendLog.info(`Created new command file: ${filePath}`)
 
 	openFile(filePath)
 
 	const cwd = rootStore.chat.activeTask?.cwd ?? ""
 	await postCommandsUpdate(provider, rootStore, cwd)
 }
+
+import { publishNotificationError } from "@features/foundation/capabilities/notifications"

@@ -1,13 +1,12 @@
 import { ProviderSettings } from "@jabberwock/types"
 import type { IntentHandlerContext as IntentBusCtx } from "@features/intents/context"
-import * as vscode from "vscode"
 import { t } from "@i18n"
 import { getVscodeContext } from "@features/foundation/vscode/context"
 import { getProviderSettingsManager } from "@features/settings/models/provider-settings-manager/ProviderSettingsManager"
 import { activateProviderProfile } from "@features/settings/models/api-config-store.profiles"
 import { postStateToWebview } from "@features/foundation/window-manager/store"
 import { getMstState } from "@features/foundation/mst/store"
-import { EventBridge } from "@features/foundation/webview/EventBridge"
+import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
 
 export async function handleSettingsApiConfigSave(
 	intent: { id: string; type: string; payload: unknown },
@@ -24,10 +23,10 @@ export async function handleSettingsApiConfigSave(
 		const listApiConfig = await getProviderSettingsManager()!.listConfig()
 		await getVscodeContext().updateGlobalState("listApiConfigMeta", listApiConfig)
 	} catch (error) {
-		EventBridge.outputChannel?.appendLine(
+		backendLog.info(
 			`Error save api configuration: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 		)
-		vscode.window.showErrorMessage(t("common:errors.save_api_config"))
+		publishNotificationError(t("common:errors.save_api_config"))
 	}
 }
 
@@ -57,10 +56,10 @@ export async function handleSettingsApiConfigRename(
 
 		await activateProviderProfile(provider, { name: newName })
 	} catch (error) {
-		EventBridge.outputChannel?.appendLine(
+		backendLog.info(
 			`Error rename api configuration: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 		)
-		vscode.window.showErrorMessage(t("common:errors.rename_api_config"))
+		publishNotificationError(t("common:errors.rename_api_config"))
 	}
 }
 
@@ -81,10 +80,10 @@ export async function handleSettingsApiConfigLoad(
 		}
 		await postStateToWebview(provider)
 	} catch (error) {
-		EventBridge.outputChannel?.appendLine(
+		backendLog.info(
 			`Error load api configuration: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 		)
-		vscode.window.showErrorMessage(t("common:errors.load_api_config"))
+		publishNotificationError(t("common:errors.load_api_config"))
 	}
 }
 
@@ -106,10 +105,10 @@ export async function handleSettingsApiConfigLoadById(
 		}
 		await postStateToWebview(provider)
 	} catch (error) {
-		EventBridge.outputChannel?.appendLine(
+		backendLog.info(
 			`Error load api configuration by ID: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 		)
-		vscode.window.showErrorMessage(t("common:errors.load_api_config"))
+		publishNotificationError(t("common:errors.load_api_config"))
 	}
 }
 
@@ -126,10 +125,10 @@ export async function handleSettingsApiConfigList(
 		provider.postMessageToWebview({ type: "listApiConfig", listApiConfig })
 		getMstState(ctx.rootStore).listApiConfigStore?.setListApiConfig(listApiConfig)
 	} catch (error) {
-		EventBridge.outputChannel?.appendLine(
+		backendLog.info(
 			`Error get list api configuration: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 		)
-		vscode.window.showErrorMessage(t("common:errors.list_api_config"))
+		publishNotificationError(t("common:errors.list_api_config"))
 	}
 }
 
@@ -182,3 +181,5 @@ export async function handleSettingsApiConfigEnhancementId(
 	await getVscodeContext().updateGlobalState("enhancementApiConfigId", payload.text)
 	await postStateToWebview(provider)
 }
+
+import { publishNotificationError } from "@features/foundation/capabilities/notifications"

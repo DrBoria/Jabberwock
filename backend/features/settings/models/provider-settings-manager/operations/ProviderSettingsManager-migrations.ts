@@ -1,4 +1,5 @@
-import { ExtensionContext } from "vscode"
+// v4 B2 (L14): structural host-context view instead of the vscode type.
+import type { IExtensionContextView } from "@features/foundation/vscode/context"
 
 import { DEFAULT_CONSECUTIVE_MISTAKE_LIMIT } from "@jabberwock/types"
 
@@ -8,7 +9,7 @@ import {
 } from "@features/settings/models/provider-settings-manager/ProviderSettingsManager-types"
 
 export async function migrateRateLimitSeconds(
-	context: ExtensionContext,
+	context: IExtensionContextView,
 	providerProfiles: ProviderProfiles,
 ): Promise<void> {
 	try {
@@ -97,7 +98,7 @@ export async function migrateClaudeCodeLegacySettings(providerProfiles: Provider
 
 export function buildMigrationPlan(
 	providerProfiles: ProviderProfiles,
-	context: ExtensionContext,
+	context: IExtensionContextView,
 ): { flag: MigrationFlag; migrate: () => Promise<void> }[] {
 	return [
 		{

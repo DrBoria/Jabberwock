@@ -1,18 +1,10 @@
 import EventEmitter from "events"
-import * as vscode from "vscode"
 import type { TaskProviderEvents } from "@jabberwock/types"
+import type { BackendCapabilities, ClientTarget, IBackendConnector } from "@jabberwock/types"
 
 import { Package } from "@shared/package"
-import type { MdmService } from "@services/mdm/MdmService"
 import { getBackendRootStore } from "@features/storeSingleton"
-
-import {
-	resolveWebviewView as resolveWindowManagerView,
-	postMessageToWebview as postMessageToWebviewStore,
-	getWindowManagerState,
-	WebviewOutboundMessage,
-} from "@features/foundation/window-manager/store"
-import { webviewMessageHandler } from "./events/handlers/on-webview-message"
+import { getProvider } from "./providerRegistry"
 
 /**
  * Narrow provider handle for use by action creators.
@@ -24,92 +16,84 @@ export interface ProviderHandle {
 	context: { globalStorageUri: { fsPath: string } }
 }
 
-export class EventBridge extends EventEmitter<TaskProviderEvents> implements vscode.WebviewViewProvider {
-	readonly mdmService?: MdmService
+/**
+ * v4 Phase B3 (§4.2): transport-agnostic webview bridge.
+ *
+ * The ONLY source of knowledge about the host is the injected connector surface
+ * (`IBackendConnector`) + capabilities (`BackendCapabilities`) — this file contains
+ * ZERO vscode types (purity rule G6). The vscode webview lifecycle (resolveWebviewView,
+ * html, localResourceRoots) lives in `connectors/vscode/backend/connector.ts`.
+ *
+ * - OUTBOUND: `postMessageToWebview` → `connector.sendOutbound(...)`.
+ * - INBOUND: subscribed at bootstrap via `connector.onInbound(...) → capabilities.queue`;
+ *   the queue drain consumer calls the existing `webviewMessageHandler` resolver (§4.6).
+ */
+export class EventBridge extends EventEmitter<TaskProviderEvents> {
 	static readonly sideBarId = `${Package.name}.SidebarProvider`
-	private static activeInstances: Set<EventBridge> = new Set()
-	static outputChannel: vscode.OutputChannel | undefined
+	static readonly tabPanelId = `${Package.name}.TabPanel`
 
 	constructor(
-		readonly context: vscode.ExtensionContext,
-		private readonly _outputChannel: vscode.OutputChannel,
-		public readonly renderContext: "sidebar" | "editor" = "sidebar",
-		mdmService?: MdmService,
+		readonly connector: IBackendConnector,
+		readonly caps: BackendCapabilities,
 	) {
 		super()
-		EventBridge.activeInstances.add(this)
-		EventBridge.outputChannel = _outputChannel
-		this.mdmService = mdmService
 	}
 
 	/**
-	 * Find a visible EventBridge instance (sidebar or editor).
-	 * Used by extension activation code to get the active webview provider.
+	 * ProviderHandle-compatible context surface — sourced from the injected hostContext
+	 * capability (storageDir), never from a vscode type.
 	 */
-	static getVisibleInstance(): EventBridge | undefined {
-		return Array.from(EventBridge.activeInstances).find((i) => {
-			try {
-				return i.renderContext === "sidebar" || i.renderContext === "editor"
-			} catch {
-				return false
-			}
-		})
+	get context(): { globalStorageUri: { fsPath: string } } {
+		return { globalStorageUri: { fsPath: this.caps.hostContext.storageDir } }
 	}
 
-	/**
-	 * Get the first available EventBridge instance.
-	 * Used by extension activation code when any provider instance will do.
-	 */
-	static getFirstAvailableInstance(): EventBridge | undefined {
-		return Array.from(EventBridge.activeInstances)[0]
-	}
-
-	/**
-	 * Initialize all feature states asynchronously.
-	 * Must be called AFTER createBackendRootStore() so stores are available.
-	 */
-	async initFeatures(): Promise<void> {
-		// Feature initialization moved to extension.ts or individual store setup
-		// in Phase 2 refactoring — EventBridge no longer orchestrates feature init.
-	}
-
-	// ─── WebviewViewProvider interface (MANDATORY — vscode API) ──────
-	async resolveWebviewView(webviewView: vscode.WebviewView | vscode.WebviewPanel) {
-		return resolveWindowManagerView(this, webviewView, webviewMessageHandler)
-	}
-
-	// ─── Public API — pure IPC ─────────────────────────────
-	async postMessageToWebview(message: WebviewOutboundMessage): Promise<boolean> {
-		// Log to MST store for debug visibility via devtool MCP
+	// ─── Public API — pure IPC over the connector ─────────────────────
+	async postMessageToWebview(
+		message: { type: string; [key: string]: unknown },
+		target?: ClientTarget,
+	): Promise<boolean> {
+		// Log to MST store for debug visibility via devtool MCP.
 		try {
 			const store = getBackendRootStore()
-			if (store) {
-				store.logEvent({
-					type: message.type ?? "unknown",
-					ts: Date.now(),
-					direction: "outgoing",
-					payload: message,
-				})
-			}
+			store.logEvent({
+				type: message.type,
+				ts: Date.now(),
+				direction: "outgoing",
+				payload: message,
+			})
 		} catch {
-			// Store may not be initialized yet during early startup
+			// Store may not be initialized yet during early startup.
 		}
-		return postMessageToWebviewStore(this, message)
+		this.connector.sendOutbound(message, target)
+		return true
 	}
 
 	// ─── Lifecycle ──────────────────────────────────────────────────
 	dispose(): void {
-		try {
-			const state = getWindowManagerState(this)
-			if (state) {
-				state.disposables.forEach((d: vscode.Disposable) => d.dispose())
-			}
-		} catch {
-			// State may not be available during dispose
-		}
-		EventBridge.activeInstances.delete(this)
+		// Transport/lifecycle ownership moved to the connector (§4.2) — nothing to release here.
 	}
 
-	// ─── Tab panel identifier ──────────────────────────────────────
-	static readonly tabPanelId = `${Package.name}.TabPanel`
+	/**
+	 * @deprecated v4 §4.2 — kept until Phase E as a thin wrapper over the active connector
+	 * registered in providerRegistry, to minimize the ~58-file diff.
+	 */
+	static getVisibleInstance(): EventBridge | undefined {
+		try {
+			return getProvider() as EventBridge
+		} catch {
+			return undefined
+		}
+	}
+
+	/**
+	 * @deprecated v4 §4.2 — kept until Phase E as a thin wrapper over the active connector
+	 * registered in providerRegistry, to minimize the ~58-file diff.
+	 */
+	static getFirstAvailableInstance(): EventBridge | undefined {
+		try {
+			return getProvider() as EventBridge
+		} catch {
+			return undefined
+		}
+	}
 }

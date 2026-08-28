@@ -9,7 +9,7 @@ import type { ITaskModel } from "@features/chat/task/store"
 import { sendCancelTask } from "@features/chat/task/events/actions/sendTaskEvent"
 import { sendCurrentCheckpointUpdated } from "@features/foundation/time-machine/events/actions/sendCheckpointEvent"
 import { systemBroadcast } from "@features/chat/task/messages/actions/say"
-import { EventBridge } from "@features/foundation/webview/EventBridge"
+import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
 import { getMstState } from "@features/foundation/mst/store"
 import { getBackendRootStore } from "@features/storeSingleton"
 
@@ -84,7 +84,7 @@ export async function checkpointRestore(
 
 		sendCancelTask()
 	} catch (_err) {
-		EventBridge.outputChannel?.appendLine("[checkpointRestore] disabling checkpoints for this task")
+		backendLog.info("[checkpointRestore] disabling checkpoints for this task")
 		task._state.setEnableCheckpoints(false)
 	}
 }
@@ -117,7 +117,7 @@ export async function checkpointDiff(task: ITaskModel, { commitHash, mode }: Che
 	try {
 		await showDiff(service, diffConfig, checkpoints)
 	} catch (_err) {
-		EventBridge.outputChannel?.appendLine("[checkpointDiff] disabling checkpoints for this task")
+		backendLog.info("[checkpointDiff] disabling checkpoints for this task")
 		task._state.setEnableCheckpoints(false)
 	}
 }

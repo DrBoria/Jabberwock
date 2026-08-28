@@ -1,4 +1,4 @@
-import * as vscode from "vscode"
+import type { IExtensionContextView } from "@features/foundation/vscode/context"
 
 import { CacheManager } from "@services/code-index/cache-manager"
 import type { CodeIndexConfigManager } from "@services/code-index/config/manager"
@@ -21,7 +21,8 @@ type ServiceSetters = {
 async function recreateOnSettingsChange(
 	configManager: CodeIndexConfigManager,
 	stateManager: CodeIndexStateManager,
-	context: vscode.ExtensionContext,
+	/** v4 B2 (L3): structural context view — real host contexts satisfy it structurally. */
+	context: IExtensionContextView,
 	workspacePath: string,
 	orchestrator: CodeIndexOrchestrator | undefined,
 	cacheManager: CacheManager | undefined,
@@ -67,7 +68,8 @@ async function recreateOnSettingsChange(
 export async function handleSettingsChange(
 	configManager: CodeIndexConfigManager | undefined,
 	stateManager: CodeIndexStateManager,
-	context: vscode.ExtensionContext,
+	/** v4 B2 (L3): structural context view — real host contexts satisfy it structurally. */
+	context: IExtensionContextView,
 	workspacePath: string,
 	_serviceFactory: CodeIndexServiceFactory | undefined,
 	orchestrator: CodeIndexOrchestrator | undefined,

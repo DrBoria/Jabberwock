@@ -1,4 +1,6 @@
 import { EventBridge } from "@features/foundation/webview/EventBridge"
+import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
+import { getBackendCapabilities } from "@features/foundation/capabilities/registry"
 import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
 import { getTelemetryService } from "@jabberwock/telemetry"
 import { IntentType, TelemetryEventName } from "@jabberwock/types"
@@ -27,8 +29,8 @@ export function registerOnCloud(bus: IntentBus): void {
 			getTelemetryService().captureEvent(TelemetryEventName.AUTHENTICATION_INITIATED)
 			await getCloudService().login(undefined, payload.useProviderSignup ?? false)
 		} catch (error) {
-			EventBridge.outputChannel?.appendLine(`AuthService#login failed: ${error}`)
-			vscode.window.showErrorMessage("Sign in failed.")
+			backendLog.info(`AuthService#login failed: ${error}`)
+			publishNotificationError("Sign in failed.")
 		}
 	})
 
@@ -39,8 +41,8 @@ export function registerOnCloud(bus: IntentBus): void {
 			getTelemetryService().captureEvent(TelemetryEventName.AUTHENTICATION_INITIATED)
 			await getCloudService().login(landingPageSlug)
 		} catch (error) {
-			EventBridge.outputChannel?.appendLine(`CloudService#login failed: ${error}`)
-			vscode.window.showErrorMessage("Sign in failed.")
+			backendLog.info(`CloudService#login failed: ${error}`)
+			publishNotificationError("Sign in failed.")
 		}
 	})
 
@@ -53,8 +55,8 @@ export function registerOnCloud(bus: IntentBus): void {
 			await postStateToWebview(provider)
 			provider.postMessageToWebview({ type: "authenticatedUser", userInfo: undefined })
 		} catch (error) {
-			EventBridge.outputChannel?.appendLine(`AuthService#logout failed: ${error}`)
-			vscode.window.showErrorMessage("Sign out failed.")
+			backendLog.info(`AuthService#logout failed: ${error}`)
+			publishNotificationError("Sign out failed.")
 		}
 	})
 
@@ -76,16 +78,16 @@ export function registerOnCloud(bus: IntentBus): void {
 					await postStateToWebview(provider)
 				})
 				.catch((error: unknown) => {
-					EventBridge.outputChannel?.appendLine(`OpenAI Codex OAuth callback failed: ${error}`)
+					backendLog.info(`OpenAI Codex OAuth callback failed: ${error}`)
 					if (!String(error).includes("timed out")) {
-						vscode.window.showErrorMessage(
+						publishNotificationError(
 							`OpenAI Codex sign in failed: ${(error as { message?: string }).message || error}`,
 						)
 					}
 				})
 		} catch (error) {
-			EventBridge.outputChannel?.appendLine(`OpenAI Codex OAuth failed: ${error}`)
-			vscode.window.showErrorMessage("OpenAI Codex sign in failed.")
+			backendLog.info(`OpenAI Codex OAuth failed: ${error}`)
+			publishNotificationError("OpenAI Codex sign in failed.")
 		}
 	})
 
@@ -98,8 +100,8 @@ export function registerOnCloud(bus: IntentBus): void {
 			vscode.window.showInformationMessage("Signed out from OpenAI Codex")
 			await postStateToWebview(provider)
 		} catch (error) {
-			EventBridge.outputChannel?.appendLine(`OpenAI Codex sign out failed: ${error}`)
-			vscode.window.showErrorMessage("OpenAI Codex sign out failed.")
+			backendLog.info(`OpenAI Codex sign out failed: ${error}`)
+			publishNotificationError("OpenAI Codex sign out failed.")
 		}
 	})
 
@@ -121,7 +123,7 @@ export function registerOnCloud(bus: IntentBus): void {
 				organizationId,
 			})
 		} catch (error) {
-			EventBridge.outputChannel?.appendLine(`Organization switch failed: ${error}`)
+			backendLog.info(`Organization switch failed: ${error}`)
 			const errorMessage = error instanceof Error ? error.message : String(error)
 			const payload = intent.payload as { organizationId?: string | null }
 
@@ -132,7 +134,7 @@ export function registerOnCloud(bus: IntentBus): void {
 				organizationId: payload.organizationId ?? null,
 			})
 
-			vscode.window.showErrorMessage(`Failed to switch organization: ${errorMessage}`)
+			publishNotificationError(`Failed to switch organization: ${errorMessage}`)
 		}
 	})
 
@@ -140,7 +142,8 @@ export function registerOnCloud(bus: IntentBus): void {
 		const provider = ctx.provider
 		if (!provider) return
 
-		await provider.context.globalState.update("jabberwock-auth-skip-model", undefined)
+		// v4 B3: auth-skip flag now cleared via the injected hashmapMemory capability (§4.3) instead of provider.context.
+		await getBackendCapabilities().hashmapMemory.delete("jabberwock-auth-skip-model")
 		await postStateToWebview(provider)
 	})
 }
@@ -155,17 +158,17 @@ async function handleCloudManualUrl(
 	try {
 		await processCloudManualUrl(intent as { payload: { text?: string } }, provider)
 	} catch (error) {
-		EventBridge.outputChannel?.appendLine(`ManualUrl#handleAuthCallback failed: ${error}`)
+		backendLog.info(`ManualUrl#handleAuthCallback failed: ${error}`)
 		const errorMessage = error instanceof Error ? error.message : t("common:errors.manual_url_auth_failed")
 
-		vscode.window.showErrorMessage(`${t("common:errors.manual_url_error")}: ${errorMessage}`)
+		publishNotificationError(`${t("common:errors.manual_url_error")}: ${errorMessage}`)
 	}
 }
 
 async function processCloudManualUrl(intent: { payload: { text?: string } }, provider: ProviderHandle): Promise<void> {
 	const payload = intent.payload as { text?: string }
 	if (!payload.text) {
-		vscode.window.showErrorMessage(t("common:errors.manual_url_empty"))
+		publishNotificationError(t("common:errors.manual_url_empty"))
 		return
 	}
 
@@ -190,3 +193,5 @@ async function processCloudManualUrl(intent: { payload: { text?: string } }, pro
 
 	await postStateToWebview(provider)
 }
+
+import { publishNotificationError } from "@features/foundation/capabilities/notifications"

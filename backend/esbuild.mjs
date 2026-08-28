@@ -28,6 +28,10 @@ async function main() {
 		format: "cjs",
 		sourcesContent: false,
 		platform: "node",
+		// v4 B4: resolve aliases (@features/*, @shared/*, ...) from backend/tsconfig.json for the whole
+		// bundle — esbuild otherwise discovers connectors/vscode/tsconfig.json (skeleton, no paths) from
+		// the connector entry point and the extension build fails to resolve backend code.
+		tsconfig: path.resolve(__dirname, "tsconfig.json"),
 	}
 
 	const srcDir = __dirname
@@ -100,7 +104,7 @@ async function main() {
 	const extensionConfig = {
 		...buildOptions,
 		plugins,
-		entryPoints: ["extension.ts"],
+		entryPoints: ["../connectors/vscode/backend/main.ts"],
 		outfile: "dist/extension.js",
 		// global-agent must be external because it dynamically patches Node.js http/https modules
 		// which breaks when bundled. It needs access to the actual Node.js module instances.

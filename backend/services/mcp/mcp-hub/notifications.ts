@@ -1,6 +1,9 @@
 import * as fs from "fs/promises"
 
-import { McpHubState } from "@services/mcp/core/types"
+// v4 B2 (L11): workspace root via the host-context DI slot — no dynamic require("vscode").
+import { getWorkspaceRoot } from "@features/foundation/vscode/context"
+
+import type { McpHubState } from "@services/mcp/core/types"
 
 // ─── Notify webview of server changes ────────────────────────────────
 
@@ -116,6 +119,6 @@ export function readProviderContext(
 // ─── Get workspace path ──────────────────────────────────────────────
 
 export function getWorkspacePathValue(): string {
-	const vscode = require("vscode") as typeof import("vscode")
-	return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || ""
+	// v4 B2 (L11): dynamic require("vscode") replaced by the host-context DI slot — same value, zero host import.
+	return getWorkspaceRoot() || ""
 }

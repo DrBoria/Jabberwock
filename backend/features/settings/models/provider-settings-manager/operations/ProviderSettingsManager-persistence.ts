@@ -1,4 +1,5 @@
-import { type SecretStorage } from "vscode"
+// v4 B2 (L14): structural secrets view instead of the vscode type.
+import type { ISecretsView } from "@features/foundation/vscode/context"
 import { z, ZodError } from "zod"
 
 import { providerSettingsWithIdSchema, isProviderName, isRetiredProvider } from "@jabberwock/types"
@@ -40,7 +41,7 @@ export function sanitizeProviderConfig(apiConfig: unknown): unknown {
 }
 
 export async function loadProviderProfiles(
-	secrets: SecretStorage,
+	secrets: ISecretsView,
 	defaultProviderProfiles: ProviderProfiles,
 ): Promise<ProviderProfiles> {
 	try {
@@ -100,7 +101,7 @@ export async function loadProviderProfiles(
 	}
 }
 
-export async function storeProviderProfiles(secrets: SecretStorage, providerProfiles: ProviderProfiles): Promise<void> {
+export async function storeProviderProfiles(secrets: ISecretsView, providerProfiles: ProviderProfiles): Promise<void> {
 	try {
 		await secrets.store(secretsKey(), JSON.stringify(providerProfiles, null, 2))
 	} catch (error) {

@@ -1,6 +1,7 @@
 import * as vscode from "vscode"
 import * as path from "path"
 import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
+import type { WebviewMessage } from "@jabberwock/types"
 import type { IWindowManagerModel, WebviewStatePayload } from "@features/foundation/window-manager/store"
 import { getWindowManagerState } from "./state-utils"
 import { getHtmlContent, getHMRHtmlContent, getErrorHtml } from "./html-utils"
@@ -12,7 +13,7 @@ import { setupSyncer } from "@features/foundation/window-manager/syncer"
 import { getTheme } from "@integrations/theme/getTheme"
 import { WEBVIEW_BUILD_DIR } from "@shared/webviewBuildDir"
 
-export type WebviewMessageHandler = (provider: ProviderHandle, message: { [key: string]: unknown }) => Promise<void>
+export type WebviewMessageHandler = (provider: ProviderHandle, message: WebviewMessage) => Promise<void>
 
 export async function resolveWebviewView(
 	provider: ProviderHandle,
@@ -81,7 +82,7 @@ function setupWebviewMessageListener(
 		})
 	const messageDisposable = webview.onDidReceiveMessage(async (message: { [key: string]: unknown }) => {
 		try {
-			await handler(provider, message)
+			await handler(provider, message as never as WebviewMessage)
 		} catch (error) {
 			console.error(
 				`[jabberwock] [resolveWebviewView] Unhandled error processing message:`,
@@ -99,7 +100,7 @@ function setupWebviewDisposalHandler(
 ): void {
 	state.addWebviewDisposable(
 		webviewView.onDidDispose(() => {
-			state.webviewDisposables.forEach((d: vscode.Disposable) => d.dispose())
+			state.webviewDisposables.forEach((d) => d.dispose()) // v4 B2 (L14): protocol DisposableLike — no vscode annotation needed
 			state.clearWebviewDisposables()
 			if (state.view === webviewView) {
 				state.setView(null)

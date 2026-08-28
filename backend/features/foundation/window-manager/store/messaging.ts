@@ -1,5 +1,6 @@
 import * as vscode from "vscode"
 import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
+import { hasConnector, getConnector } from "@features/foundation/webview/providerRegistry"
 import type { IWindowManagerModel, WebviewStatePayload } from "@features/foundation/window-manager/store"
 import { PUSH_DEBOUNCE_MS } from "@features/foundation/window-manager/store"
 import { getWindowManagerState, buildEnrichedState, logStateMessages } from "./state-utils"
@@ -26,7 +27,12 @@ export type WebviewOutboundMessage =
 	| { type: "taskHistoryUpdated"; taskHistory: unknown }
 	| { type: string; [key: string]: unknown }
 
-export function postMessageToWebview(
+/**
+ * v4 B2 (plan §10.2): outbound delivery now routes through the active IBackendConnector —
+ * in extension mode that is a wrapper over exactly this webview postMessage channel, so behavior
+ * is byte-identical to before; server mode will deliver over WS without touching any call site.
+ */
+export function sendViaView(
 	provider: ProviderHandle,
 	message: WebviewOutboundMessage | { [key: string]: unknown },
 ): boolean {
@@ -37,6 +43,18 @@ export function postMessageToWebview(
 	}
 	console.warn(`[jabberwock] [DEBUG:POSTMSG] postMessageToWebview SKIPPED - no provider.view! type=${message.type}`)
 	return false
+}
+
+export function postMessageToWebview(
+	provider: ProviderHandle,
+	message: WebviewOutboundMessage | { [key: string]: unknown },
+): boolean {
+	if (hasConnector()) {
+		getConnector().sendOutbound(message as { type: string; [key: string]: unknown })
+		return true
+	}
+	// Fallback for early startup before the connector is registered — identical delivery path.
+	return sendViaView(provider, message)
 }
 
 export async function postStateToWebview(

@@ -12,6 +12,7 @@ import { CodeIndexServiceFactory } from "@services/code-index/service-factory"
 import { CodeIndexSearchService } from "@services/code-index/search-service"
 import { CodeIndexOrchestrator } from "@services/code-index/orchestrator/orchestrator"
 import { CacheManager } from "@services/code-index/cache-manager"
+import type { IExtensionContextView } from "@features/foundation/vscode/context"
 import type { CodeIndexStateManager } from "@services/code-index/state-manager"
 
 export type RecreatedServices = {
@@ -25,7 +26,8 @@ export async function recreateManagerServices(
 	stateManager: CodeIndexStateManager,
 	cacheManager: CacheManager,
 	workspacePath: string,
-	context: import("vscode").ExtensionContext,
+	/** v4 B2 (L3/L11): structural context view replaces the type-only dynamic vscode import. */
+	context: IExtensionContextView,
 	onStopWatcher: () => void,
 ): Promise<RecreatedServices> {
 	onStopWatcher()

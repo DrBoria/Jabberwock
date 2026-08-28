@@ -40,10 +40,11 @@
 			"@features/*": ["../backend/features/*"],
 			"@foundation/*": ["../backend/foundation/*"],
 			"@services/*": ["../backend/services/*"],
-			"@activate/*": ["../backend/activate/*"],
+			"@activate/*": ["../connectors/vscode/backend/activation/*"],
 			"@integrations/*": ["../backend/integrations/*"],
 			"@workers/types": ["../backend/workers/types.ts"],
-			"@packages/types/src/mcp": ["../packages/types/src/mcp/mcp.ts"]
+			"@packages/types/src/mcp": ["../packages/types/src/mcp/mcp.ts"],
+			"@connectors/*": ["../connectors/*"]
 		}
 	},
 	"include": ["src", "../backend/types", "../backend/package.json", "vitest.setup.ts"],

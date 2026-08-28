@@ -1,4 +1,4 @@
-import * as vscode from "vscode"
+
 
 import * as yaml from "yaml"
 import stripBom from "strip-bom"
@@ -55,7 +55,7 @@ export function parseYamlSafely(content: string, filePath: string): unknown {
 
 				const lineMatch = errorMsg.match(/at line (\d+)/)
 				const line = lineMatch ? lineMatch[1] : "unknown"
-				vscode.window.showErrorMessage(t("common:customModes.errors.yamlParseError", { line }))
+				publishNotificationError(t("common:customModes.errors.yamlParseError", { line }))
 
 				return {}
 			}
@@ -66,3 +66,5 @@ export function parseYamlSafely(content: string, filePath: string): unknown {
 		return {}
 	}
 }
+
+import { publishNotificationError } from "@features/foundation/capabilities/notifications"

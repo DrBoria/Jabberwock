@@ -1,12 +1,11 @@
 import { ProviderSettings } from "@jabberwock/types"
 import type { IntentHandlerContext as IntentBusCtx } from "@features/intents/context"
-import * as vscode from "vscode"
 import { t } from "@i18n"
 import { getVscodeContext } from "@features/foundation/vscode/context"
 import { getProviderSettingsManager } from "@features/settings/models/provider-settings-manager/ProviderSettingsManager"
 import { upsertProviderProfile } from "@features/settings/models/api-config-store.profiles"
 import { postStateToWebview } from "@features/foundation/window-manager/store"
-import { EventBridge } from "@features/foundation/webview/EventBridge"
+import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
 
 export async function handleSettingsApiConfigUpsert(
 	intent: { id: string; type: string; payload: unknown },
@@ -32,7 +31,7 @@ export async function handleSettingsApiConfigUpsert(
 			console.log(
 				`[handlers/upsertApiConfiguration] ERROR: providerSettingsManager is undefined - config will NOT be persisted!`,
 			)
-			vscode.window.showErrorMessage("API config persistence not available. Please reload VS Code.")
+			publishNotificationError("API config persistence not available. Please reload VS Code.")
 			return
 		}
 
@@ -49,9 +48,11 @@ export async function handleSettingsApiConfigUpsert(
 		console.log(
 			`[handlers/upsertApiConfiguration] ERROR: ${error instanceof Error ? error.message : String(error)}`,
 		)
-		EventBridge.outputChannel?.appendLine(
+		backendLog.info(
 			`Error create new api configuration: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 		)
-		vscode.window.showErrorMessage(t("common:errors.save_api_config"))
+		publishNotificationError(t("common:errors.save_api_config"))
 	}
 }
+
+import { publishNotificationError } from "@features/foundation/capabilities/notifications"

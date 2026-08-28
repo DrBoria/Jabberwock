@@ -1,6 +1,7 @@
 import * as path from "path"
 import os from "os"
-import * as vscode from "vscode"
+
+import { getWorkspaceRoots } from "@features/foundation/vscode/context"
 
 /*
 The Node.js 'path' module resolves and normalizes paths differently depending on the platform:
@@ -111,22 +112,32 @@ export const toRelativePath = (filePath: string, cwd: string) => {
 	return filePath.endsWith("/") ? relativePath + "/" : relativePath
 }
 
-export const getWorkspacePath = (defaultCwdPath = "") => {
-	const cwdPath = vscode.workspace.workspaceFolders?.map((folder) => folder.uri.fsPath).at(0) || defaultCwdPath
-	const currentFileUri = vscode.window.activeTextEditor?.document.uri
-	if (currentFileUri) {
-		const workspaceFolder = vscode.workspace.getWorkspaceFolder(currentFileUri)
-		return workspaceFolder?.uri.fsPath || cwdPath
+/** Whether `filePath` equals or lies inside the folder at `folderPath`, with platform-correct separator and case semantics (mirrors vscode.workspace.getWorkspaceFolder containment). */
+export function isPathWithinFolder(filePath: string, folderPath: string): boolean {
+	const stripTrailing = (p: string) => p.replace(/[/\\]+$/, "")
+	let resolved = normalizePath(stripTrailing(filePath))
+	if (!path.isAbsolute(resolved)) {
+		resolved = path.resolve(process.cwd(), filePath)
 	}
+	const root = stripTrailing(normalizePath(folderPath))
+	if (!root) return false
+	const lower = process.platform === "win32" ? (s: string): string => s.toLowerCase() : (s: string): string => s
+	const r = lower(resolved)
+	const f = lower(root)
+	return r === f || r.startsWith(f + "/") || r.startsWith(f + "\\")
+}
+
+export const getWorkspacePath = (defaultCwdPath = "") => {
+	// v4 B2 (L4): first workspace root from the host-context DI slot. The active-editor heuristic was a vscode-only convenience and is out of scope for v1 (plan §2.3 L4).
+	const cwdPath = getWorkspaceRoots()[0] || defaultCwdPath
 	return cwdPath
 }
 
 export const getWorkspacePathForContext = (contextPath?: string): string => {
-	// If context path provided, find its workspace
+	// If context path provided, find its workspace among the host-context roots.
 	if (contextPath) {
-		const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(contextPath))
-		if (workspaceFolder) {
-			return workspaceFolder.uri.fsPath
+		for (const root of getWorkspaceRoots()) {
+			if (isPathWithinFolder(contextPath, root)) return root
 		}
 		// Debug logging when falling back
 		console.debug(`[CodeIndex] No workspace found for context path: ${contextPath}, falling back to default`)

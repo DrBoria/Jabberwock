@@ -1,109 +1,19 @@
 {
 	"note": "v4 platform-purity baseline artifact — committed at every phase step; git history must show monotonic decrease. Plan §8.2/§11 A0.",
-	"generatedAt": "2026-08-20T21:37:59.577Z",
-	"commit": "2574bd28058b",
+	"generatedAt": "2026-08-28T16:23:52.987Z",
+	"commit": "087ca9acb55d",
 	"backendDir": "backend",
 	"frontendSrcDir": "frontend/src",
 	"summary": {
-		"backendFiles": 169,
-		"backendViolations": 173,
+		"backendFiles": 100,
+		"backendViolations": 100,
 		"frontendFiles": 56,
 		"frontendUsages": 131
 	},
 	"entries": [
 		{
 			"side": "backend",
-			"file": "backend/activate/CodeActionProvider.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/activate/handleTask.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/activate/handleUri.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/activate/registerCodeActions.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/activate/registerCommands/open-in-new-tab.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/activate/registerCommands/panel-store.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/activate/registerCommands/register-commands-map.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/activate/registerCommands/register-commands.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/activate/registerCommands/visible-provider.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/activate/registerTerminalActions.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
 			"file": "backend/api/providers/utils/timeout-config.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/api/providers/vscode-lm/handler.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/api/providers/vscode-lm/stream.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/api/providers/vscode-lm/token-count.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/api/providers/vscode-lm/tools.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/api/transform/format/vscode-lm-format.ts",
 			"kind": "static",
 			"count": 1
 		},
@@ -157,12 +67,6 @@
 		},
 		{
 			"side": "backend",
-			"file": "backend/extension.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
 			"file": "backend/features/chat/task/actions/startTask/start-new-task.ts",
 			"kind": "static",
 			"count": 1
@@ -170,18 +74,6 @@
 		{
 			"side": "backend",
 			"file": "backend/features/chat/task/condense/actions/condenseContext.helpers.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/features/chat/task/handlers/on-new-requested.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/features/chat/task/handlers/textarea/on-textarea-enhance-requested.ts",
 			"kind": "static",
 			"count": 1
 		},
@@ -206,30 +98,6 @@
 		{
 			"side": "backend",
 			"file": "backend/features/chat/task/messages/handlers/helpers/editOperations/edit-operations-private.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/features/chat/task/messages/handlers/helpers/editOperations/edit-operations.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/features/chat/task/notifications/handlers/checkpoint/checkpointRestoreHandler.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/features/chat/task/notifications/handlers/checkpoint/on-checkpoint-restore-requested.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/features/chat/tools/c-l/CodebaseSearchTool.ts",
 			"kind": "static",
 			"count": 1
 		},
@@ -283,25 +151,7 @@
 		},
 		{
 			"side": "backend",
-			"file": "backend/features/foundation/vscode/context.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/features/foundation/webview/EventBridge.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
 			"file": "backend/features/foundation/window-manager/handlers/ui/on-focus-panel-requested.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/features/foundation/window-manager/store.ts",
 			"kind": "static",
 			"count": 1
 		},
@@ -331,18 +181,6 @@
 		},
 		{
 			"side": "backend",
-			"file": "backend/features/marketplace/handlers/on-marketplace.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/features/mst-custom-types.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
 			"file": "backend/features/settings/actions/export.ts",
 			"kind": "static",
 			"count": 1
@@ -361,37 +199,7 @@
 		},
 		{
 			"side": "backend",
-			"file": "backend/features/settings/agents/modes-file-service/crud.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/features/settings/agents/modes-file-service/file-ops.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/features/settings/agents/modes-file-service/mock.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/features/settings/agents/modes-file-service/yaml.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
 			"file": "backend/features/settings/context/generateSystemPrompt.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/features/settings/context/sections/system/modes.ts",
 			"kind": "static",
 			"count": 1
 		},
@@ -433,24 +241,6 @@
 		},
 		{
 			"side": "backend",
-			"file": "backend/features/settings/handlers/on-settings-api-config/handlers.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/features/settings/handlers/on-settings-api-config/upsert-config.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/features/settings/handlers/on-settings-core/commands-utils.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
 			"file": "backend/features/settings/handlers/on-settings-core/debug-utils.ts",
 			"kind": "static",
 			"count": 1
@@ -458,12 +248,6 @@
 		{
 			"side": "backend",
 			"file": "backend/features/settings/handlers/on-settings-core/register-settings-commands.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/features/settings/handlers/on-settings-core/register-settings-debug.ts",
 			"kind": "static",
 			"count": 1
 		},
@@ -493,12 +277,6 @@
 		},
 		{
 			"side": "backend",
-			"file": "backend/features/settings/handlers/on-settings-worktree/list-handlers.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
 			"file": "backend/features/settings/handlers/settings/on-settings-context.ts",
 			"kind": "static",
 			"count": 1
@@ -506,18 +284,6 @@
 		{
 			"side": "backend",
 			"file": "backend/features/settings/handlers/settings/on-settings-files.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/features/settings/handlers/settings/on-settings-mcp.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/features/settings/handlers/ui/on-settings-skills.ts",
 			"kind": "static",
 			"count": 1
 		},
@@ -536,30 +302,6 @@
 		{
 			"side": "backend",
 			"file": "backend/features/settings/mcp/mcpIntegration.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/features/settings/models/provider-settings-manager/operations/ProviderSettingsManager-initialize.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/features/settings/models/provider-settings-manager/operations/ProviderSettingsManager-migrations.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/features/settings/models/provider-settings-manager/operations/ProviderSettingsManager-persistence.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/features/settings/models/provider-settings-manager/ProviderSettingsManager.ts",
 			"kind": "static",
 			"count": 1
 		},
@@ -685,18 +427,6 @@
 		},
 		{
 			"side": "backend",
-			"file": "backend/services/checkpoints/ShadowCheckpointService.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/services/code-index/cache-manager.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
 			"file": "backend/services/code-index/interfaces/file-processor.ts",
 			"kind": "static",
 			"count": 1
@@ -704,42 +434,6 @@
 		{
 			"side": "backend",
 			"file": "backend/services/code-index/interfaces/manager.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/services/code-index/manager/manager.factory.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/services/code-index/manager/manager.services.ts",
-			"kind": "dynamic-import",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/services/code-index/manager/manager.settings.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/services/code-index/manager/manager.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/services/code-index/manager/manager.workspace.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/services/code-index/orchestrator/orchestrator.helpers.ts",
 			"kind": "static",
 			"count": 1
 		},
@@ -781,12 +475,6 @@
 		},
 		{
 			"side": "backend",
-			"file": "backend/services/code-index/processors/file-watcher/file-watcher.process.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
 			"file": "backend/services/code-index/processors/file-watcher/file-watcher.ts",
 			"kind": "static",
 			"count": 1
@@ -794,12 +482,6 @@
 		{
 			"side": "backend",
 			"file": "backend/services/code-index/processors/scanner.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/services/code-index/processors/scannerProcessing/scanner-file-utils.ts",
 			"kind": "static",
 			"count": 1
 		},
@@ -823,67 +505,7 @@
 		},
 		{
 			"side": "backend",
-			"file": "backend/services/marketplace/installation-meta.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
 			"file": "backend/services/marketplace/installation-operations.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/services/marketplace/MarketplaceManager.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/services/marketplace/SimpleInstaller/path-utils.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/services/marketplace/SimpleInstaller/simple-installer.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/services/mcp/config/file.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/services/mcp/core/McpHub.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/services/mcp/core/McpServerManager.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/services/mcp/core/types.ts",
-			"kind": "dynamic-import",
-			"count": 4
-		},
-		{
-			"side": "backend",
-			"file": "backend/services/mcp/mcp-hub/connection/lifecycle.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/services/mcp/mcp-hub/connection/manager.ts",
 			"kind": "static",
 			"count": 1
 		},
@@ -891,18 +513,6 @@
 			"side": "backend",
 			"file": "backend/services/mcp/mcp-hub/init/init.ts",
 			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/services/mcp/mcp-hub/notifications.ts",
-			"kind": "dynamic-import",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/services/mcp/mcp-hub/notifications.ts",
-			"kind": "require",
 			"count": 1
 		},
 		{
@@ -931,43 +541,13 @@
 		},
 		{
 			"side": "backend",
-			"file": "backend/shared/modes/extension.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
 			"file": "backend/shared/vsCodeSelectorUtils.ts",
 			"kind": "static",
 			"count": 1
 		},
 		{
 			"side": "backend",
-			"file": "backend/utils/git/git.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/utils/globalContext.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
 			"file": "backend/utils/io/export.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/utils/io/path.ts",
-			"kind": "static",
-			"count": 1
-		},
-		{
-			"side": "backend",
-			"file": "backend/utils/io/pathUtils.ts",
 			"kind": "static",
 			"count": 1
 		},

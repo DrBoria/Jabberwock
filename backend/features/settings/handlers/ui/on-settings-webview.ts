@@ -55,7 +55,7 @@ export function registerOnSettingsWebview(bus: IntentBus): void {
 		const payload = intent.payload as { text: string }
 		if (payload.text) {
 			diagnosticsManager.log(`[WEBVIEW_ERROR] ${payload.text}`, "error")
-			vscode.window.showErrorMessage(`Webview Error: ${payload.text}`)
+			publishNotificationError(`Webview Error: ${payload.text}`)
 		}
 	})
 
@@ -120,7 +120,7 @@ export function registerOnSettingsWebview(bus: IntentBus): void {
 				await vscode.env.openExternal(uri)
 			} catch (error) {
 				console.error("[jabberwock] LocatorJS Bridge Error:", error)
-				vscode.window.showErrorMessage(
+				publishNotificationError(
 					`LocatorJS: Failed to open file using protocol ${locatorPrefix}: ${error}`,
 				)
 			}
@@ -139,3 +139,5 @@ export function registerOnSettingsWebview(bus: IntentBus): void {
 		}
 	})
 }
+
+import { publishNotificationError } from "@features/foundation/capabilities/notifications"

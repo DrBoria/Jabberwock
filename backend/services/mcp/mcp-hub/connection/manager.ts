@@ -1,7 +1,8 @@
-import * as vscode from "vscode"
-
+// v4 B2 (L14): workspace root via the host-context DI slot — no vscode import in this file.
 import type { McpErrorEntry } from "@jabberwock/types"
 import { sanitizeMcpName, toolNamesMatch } from "@utils/mcp"
+
+import { getWorkspaceRoot } from "@features/foundation/vscode/context"
 
 import type { McpConnection } from "@services/mcp/core/types"
 import type { McpHubState } from "@services/mcp/core/types"
@@ -120,7 +121,8 @@ export function createPlaceholderConnection(
 			status: "disconnected",
 			disabled,
 			source,
-			projectPath: source === "project" ? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath : undefined,
+			// v4 B2 (L14): workspace root via the host-context DI slot — no vscode import in this file.
+			projectPath: source === "project" ? getWorkspaceRoot() || undefined : undefined,
 			errorHistory: [],
 		},
 		client: null,

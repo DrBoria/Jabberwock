@@ -1,7 +1,6 @@
 import type { ITaskModel } from "@features/chat/task/store"
 import { EventBridge } from "@features/foundation/webview/EventBridge"
 import { saveTaskMessages } from "@features/chat/task/messages/actions"
-import * as vscode from "vscode"
 import { when } from "mobx"
 import { t } from "@i18n"
 import { getBackendRootStore } from "@features/storeSingleton"
@@ -87,7 +86,7 @@ export async function handleCheckpointRestoreOperation(config: CheckpointRestore
 		// will trigger reinitialization, which will process pendingEditAfterRestore
 	} catch (_error) {
 		console.error(`[jabberwock] Error in checkpoint restore (${operation}):`, _error)
-		vscode.window.showErrorMessage(
+		publishNotificationError(
 			`Error during checkpoint restore: ${_error instanceof Error ? _error.message : String(_error)}`,
 		)
 		throw _error
@@ -108,7 +107,9 @@ export async function waitForClineInitialization(
 		})
 		return true
 	} catch (_error) {
-		vscode.window.showErrorMessage(t("common:errors.checkpoint_timeout"))
+		publishNotificationError(t("common:errors.checkpoint_timeout"))
 		return false
 	}
 }
+
+import { publishNotificationError } from "@features/foundation/capabilities/notifications"

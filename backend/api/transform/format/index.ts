@@ -4,4 +4,4 @@ export { convertAnthropicMessageToGemini as geminiTransform } from "./gemini-for
 export { extractEnvironmentDetailsForMiniMax as minimaxTransform } from "./minimax-format"
 export { convertToMistralMessages as mistralTransform } from "./mistral-format"
 export { convertToOpenAiMessages as openaiTransform } from "./openai-format"
-export { convertToVsCodeLmMessages as vscodeLmTransform } from "./vscode-lm-format"
+export { convertToVsCodeLmMessages as vscodeLmTransform } from "@connectors/vscode/backend/model-providers/vscode-lm/vscode-lm-format"

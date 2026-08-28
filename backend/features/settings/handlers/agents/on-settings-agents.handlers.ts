@@ -18,7 +18,7 @@ import {
 	importModeWithRules,
 } from "@features/settings/agents"
 import type { IntentHandlerContext as IntentBusCtx } from "@features/intents/context"
-import { EventBridge } from "@features/foundation/webview/EventBridge"
+import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
 import {
 	getCustomModeRulesFolderPath,
 	deleteRulesFolder,
@@ -140,7 +140,7 @@ export async function handleExportMode(
 		vscode.window.showInformationMessage(t("common:info.mode_exported", { mode: payload.slug }))
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error)
-		EventBridge.outputChannel?.appendLine(`Failed to export mode ${payload.slug}: ${errorMessage}`)
+		backendLog.info(`Failed to export mode ${payload.slug}: ${errorMessage}`)
 		postExportResult(provider, payload.slug, false, errorMessage)
 	}
 }
@@ -171,7 +171,7 @@ export async function handleImportMode(
 		const result = await importModeWithRules(yamlContent, (payload.source || "project") as "global" | "project")
 		if (!result.success) {
 			provider.postMessageToWebview({ type: "importModeResult", success: false, error: result.error })
-			vscode.window.showErrorMessage(t("common:errors.mode_import_failed", { error: result.error }))
+			publishNotificationError(t("common:errors.mode_import_failed", { error: result.error }))
 			return
 		}
 		const customModes = await loadAndMergeModes(requireContext())
@@ -181,8 +181,10 @@ export async function handleImportMode(
 		vscode.window.showInformationMessage(t("common:info.mode_imported"))
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error)
-		EventBridge.outputChannel?.appendLine(`Failed to import mode: ${errorMessage}`)
+		backendLog.info(`Failed to import mode: ${errorMessage}`)
 		provider.postMessageToWebview({ type: "importModeResult", success: false, error: errorMessage })
-		vscode.window.showErrorMessage(t("common:errors.mode_import_failed", { error: errorMessage }))
+		publishNotificationError(t("common:errors.mode_import_failed", { error: errorMessage }))
 	}
 }
+
+import { publishNotificationError } from "@features/foundation/capabilities/notifications"

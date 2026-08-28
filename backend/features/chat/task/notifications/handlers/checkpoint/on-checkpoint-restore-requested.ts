@@ -1,7 +1,6 @@
 import { IntentType } from "@jabberwock/types"
 import type { IntentBus } from "@features/intents/bus"
 import { checkoutRestorePayloadSchema } from "@jabberwock/types"
-import * as vscode from "vscode"
 import { when } from "mobx"
 import { t } from "@i18n"
 import { checkpointRestore } from "@features/foundation/time-machine/actions/checkpoints"
@@ -21,7 +20,7 @@ export function registerOnCheckpointRestoreRequested(bus: IntentBus): void {
 			try {
 				await when(() => ctx.rootStore.chat.activeTask?.isInitialized === true, { timeout: 3_000 })
 			} catch (_error) {
-				vscode.window.showErrorMessage(t("common:errors.checkpoint_timeout"))
+				publishNotificationError(t("common:errors.checkpoint_timeout"))
 			}
 
 			try {
@@ -31,8 +30,10 @@ export function registerOnCheckpointRestoreRequested(bus: IntentBus): void {
 					commitHash: result.data.commitHash,
 				})
 			} catch (_error) {
-				vscode.window.showErrorMessage(t("common:errors.checkpoint_failed"))
+				publishNotificationError(t("common:errors.checkpoint_failed"))
 			}
 		}
 	})
 }
+
+import { publishNotificationError } from "@features/foundation/capabilities/notifications"

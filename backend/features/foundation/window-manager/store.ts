@@ -1,5 +1,5 @@
-import * as vscode from "vscode"
 import { types, Instance } from "mobx-state-tree"
+import type { DisposableLike } from "@jabberwock/types"
 import WorkspaceTracker from "@integrations/workspace/WorkspaceTracker"
 import {
 	WebviewViewType,
@@ -8,6 +8,7 @@ import {
 	PendingActivePageRequestsType,
 	PendingPushTimersType,
 	StoreRefType,
+	type HostWebViewRef,
 } from "@features/mst-custom-types"
 
 export const WindowManagerModel = types
@@ -23,7 +24,7 @@ export const WindowManagerModel = types
 		pendingPushTimers: PendingPushTimersType,
 	})
 	.actions((self) => ({
-		setView(view: vscode.WebviewView | vscode.WebviewPanel | null) {
+		setView(view: HostWebViewRef) {
 			self.view = view
 		},
 		setViewLaunched(val: boolean) {
@@ -35,10 +36,10 @@ export const WindowManagerModel = types
 		setWorkspaceTracker(tracker: WorkspaceStoreData) {
 			self.workspaceTracker = tracker
 		},
-		addDisposable(d: vscode.Disposable) {
+		addDisposable(d: DisposableLike) {
 			self.disposables.push(d)
 		},
-		addWebviewDisposable(d: vscode.Disposable) {
+		addWebviewDisposable(d: DisposableLike) {
 			self.webviewDisposables.push(d)
 		},
 		clearWebviewDisposables() {
@@ -97,9 +98,10 @@ export type WorkspaceStoreData = { [key: string]: unknown } | null
 export type WebviewStatePayload = { [key: string]: unknown }
 
 export interface WindowManagerState {
-	view: vscode.WebviewView | vscode.WebviewPanel | null
-	disposables: vscode.Disposable[]
-	webviewDisposables: vscode.Disposable[]
+	// v4 B2 (L14): structural host-view/disposable shapes — no vscode types in the state surface.
+	view: HostWebViewRef
+	disposables: DisposableLike[]
+	webviewDisposables: DisposableLike[]
 	viewLaunched: boolean
 	workspaceStore: WorkspaceStoreData
 	workspaceTracker: WorkspaceTracker | null

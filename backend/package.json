@@ -446,6 +446,7 @@
 	"scripts": {
 		"check-types": "tsc --noEmit",
 		"lint": "eslint . --ext=ts --max-warnings=0",
+		"test": "vitest run",
 		"build": "pnpm bundle",
 		"format": "prettier --write .",
 		"bundle": "node esbuild.mjs",

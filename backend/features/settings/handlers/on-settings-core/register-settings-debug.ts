@@ -1,9 +1,8 @@
 import { IntentType } from "@jabberwock/types"
 import type { IntentBus } from "@features/intents/bus"
-import * as vscode from "vscode"
 import type { IBackendRootStore } from "@features/store"
 import { getVscodeContext } from "@features/foundation/vscode/context"
-import { EventBridge } from "@features/foundation/webview/EventBridge"
+import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
 import { openAiCodexOAuthManager } from "@integrations/openai-codex/oauth"
 import { fetchOpenAiCodexRateLimitInfo } from "@integrations/openai-codex/rate-limits"
 import { generateErrorDiagnostics } from "@features/settings/handlers/lifecycle/on-diagnostics"
@@ -50,7 +49,7 @@ export function registerSettingsDebug(bus: IntentBus): void {
 			})
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
-			EventBridge.outputChannel?.appendLine(`Error fetching OpenAI Codex rate limits: ${errorMessage}`)
+			backendLog.info(`Error fetching OpenAI Codex rate limits: ${errorMessage}`)
 			provider.postMessageToWebview({
 				type: "openAiCodexRateLimits",
 				error: errorMessage,
@@ -65,7 +64,7 @@ export function registerSettingsDebug(bus: IntentBus): void {
 		}
 		const currentTask = (ctx.rootStore as IBackendRootStore).chat.activeTask
 		if (!currentTask) {
-			vscode.window.showErrorMessage("No active task to view history for")
+			publishNotificationError("No active task to view history for")
 			return
 		}
 
@@ -79,8 +78,8 @@ export function registerSettingsDebug(bus: IntentBus): void {
 			)
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
-			EventBridge.outputChannel?.appendLine(`Error opening debug history: ${errorMessage}`)
-			vscode.window.showErrorMessage(`Failed to open debug history: ${errorMessage}`)
+			backendLog.info(`Error opening debug history: ${errorMessage}`)
+			publishNotificationError(`Failed to open debug history: ${errorMessage}`)
 		}
 	})
 
@@ -91,7 +90,7 @@ export function registerSettingsDebug(bus: IntentBus): void {
 		}
 		const currentTask = (ctx.rootStore as IBackendRootStore).chat.activeTask
 		if (!currentTask) {
-			vscode.window.showErrorMessage("No active task to view history for")
+			publishNotificationError("No active task to view history for")
 			return
 		}
 
@@ -100,8 +99,8 @@ export function registerSettingsDebug(bus: IntentBus): void {
 			await openDebugHistoryFile(currentTask.taskId, globalStoragePath, "ui_messages.json", "debug-ui")
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
-			EventBridge.outputChannel?.appendLine(`Error opening debug history: ${errorMessage}`)
-			vscode.window.showErrorMessage(`Failed to open debug history: ${errorMessage}`)
+			backendLog.info(`Error opening debug history: ${errorMessage}`)
+			publishNotificationError(`Failed to open debug history: ${errorMessage}`)
 		}
 	})
 
@@ -113,7 +112,7 @@ export function registerSettingsDebug(bus: IntentBus): void {
 		const payload = intent.payload as { values: unknown }
 		const currentTask = (ctx.rootStore as IBackendRootStore).chat.activeTask
 		if (!currentTask) {
-			vscode.window.showErrorMessage("No active task to generate diagnostics for")
+			publishNotificationError("No active task to generate diagnostics for")
 			return
 		}
 
@@ -121,7 +120,9 @@ export function registerSettingsDebug(bus: IntentBus): void {
 			taskId: currentTask.taskId,
 			globalStoragePath: getVscodeContext().globalStorageUri.fsPath,
 			values: payload.values as ErrorDiagnosticsValues | undefined,
-			log: (msg: string) => EventBridge.outputChannel?.appendLine(msg),
+			log: (msg: string) => backendLog.info(msg),
 		})
 	})
 }
+
+import { publishNotificationError } from "@features/foundation/capabilities/notifications"

@@ -1,4 +1,5 @@
 import * as vscode from "vscode"
+import type { IExtensionContextView } from "@features/foundation/vscode/context"
 import { Ignore } from "ignore"
 
 import { getTelemetryService } from "@jabberwock/telemetry"
@@ -103,7 +104,8 @@ export class CodeIndexServiceFactory {
 	}
 
 	public createFileWatcher(
-		context: vscode.ExtensionContext,
+		/** v4 B2 (L3): structural context view — real host contexts satisfy it structurally. */
+		context: IExtensionContextView,
 		embedder: IEmbedder,
 		vectorStore: IVectorStore,
 		cacheManager: CacheManager,
@@ -131,7 +133,8 @@ export class CodeIndexServiceFactory {
 	}
 
 	public createServices(
-		context: vscode.ExtensionContext,
+		/** v4 B2 (L3): structural context view — real host contexts satisfy it structurally. */
+		context: IExtensionContextView,
 		cacheManager: CacheManager,
 		ignoreInstance: Ignore,
 		ignorePatterns?: string,

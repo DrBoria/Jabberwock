@@ -3,7 +3,6 @@ import * as path from "path"
 import os from "os"
 import EventEmitter from "events"
 
-import * as vscode from "vscode"
 
 import { fileExistsAtPath } from "@utils/io/fs"
 import { arePathsEqual } from "@utils/io/path"
@@ -83,7 +82,7 @@ export abstract class ShadowCheckpointService extends EventEmitter {
 		if (nestedGitPath) {
 			const relativePath = path.relative(this.workspaceDir, nestedGitPath)
 			const message = t("common:errors.nested_git_repos_warning", { path: relativePath })
-			vscode.window.showErrorMessage(message)
+			publishNotificationError(message)
 			throw new Error(
 				`Checkpoints are disabled because a nested git repository was detected at: ${relativePath}. ` +
 					"Please remove or relocate nested git repositories to use the checkpoints feature.",
@@ -217,3 +216,5 @@ export abstract class ShadowCheckpointService extends EventEmitter {
 	static deleteTask = deleteTask
 	static deleteBranch = deleteBranch
 }
+
+import { publishNotificationError } from "@features/foundation/capabilities/notifications"

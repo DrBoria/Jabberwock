@@ -34,7 +34,7 @@ export async function openDebugHistoryFile(
 	const sourceFilePath = path.join(taskDirPath, fileName)
 
 	if (!(await fileExistsAtPath(sourceFilePath))) {
-		vscode.window.showErrorMessage(`File not found: ${fileName}`)
+		publishNotificationError(`File not found: ${fileName}`)
 		return
 	}
 
@@ -44,7 +44,7 @@ export async function openDebugHistoryFile(
 	try {
 		jsonContent = JSON.parse(content)
 	} catch {
-		vscode.window.showErrorMessage(`Failed to parse ${fileName}`)
+		publishNotificationError(`Failed to parse ${fileName}`)
 		return
 	}
 
@@ -60,3 +60,5 @@ export async function openDebugHistoryFile(
 	const doc = await vscode.workspace.openTextDocument(tempFilePath)
 	await vscode.window.showTextDocument(doc, { preview: true })
 }
+
+import { publishNotificationError } from "@features/foundation/capabilities/notifications"

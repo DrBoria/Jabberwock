@@ -50,7 +50,7 @@ async function loadApiConversationHistory(taskDirPath: string): Promise<unknown[
 		const content = await fs.readFile(apiHistoryPath, "utf8")
 		return JSON.parse(content) as unknown[]
 	} catch {
-		vscode.window.showErrorMessage("Failed to parse api_conversation_history.json")
+		publishNotificationError("Failed to parse api_conversation_history.json")
 		return []
 	}
 }
@@ -110,7 +110,7 @@ export async function generateErrorDiagnostics(params: GenerateDiagnosticsParams
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error)
 		params.log(`Error generating diagnostics: ${errorMessage}`)
-		vscode.window.showErrorMessage(`Failed to generate diagnostics: ${errorMessage}`)
+		publishNotificationError(`Failed to generate diagnostics: ${errorMessage}`)
 		return { success: false, error: errorMessage }
 	}
 }
@@ -127,3 +127,5 @@ export function registerOnSettingsDiagnostics(bus: IntentBus): void {
 		await postStateToWebview(provider)
 	})
 }
+
+import { publishNotificationError } from "@features/foundation/capabilities/notifications"

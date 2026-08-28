@@ -1,6 +1,5 @@
 import * as path from "path"
-import * as vscode from "vscode"
-import { stat } from "fs/promises"
+import { readFile, stat } from "fs/promises"
 import { createHash } from "crypto"
 import { Ignore } from "ignore"
 
@@ -42,9 +41,8 @@ export async function readAndParseFile(
 	if (stats.size > MAX_FILE_SIZE_BYTES) {
 		return null
 	}
-	const content = await vscode.workspace.fs
-		.readFile(vscode.Uri.file(filePath))
-		.then((buffer) => Buffer.from(buffer).toString("utf-8"))
+	// v4 B2 (L5): node:fs — identical bytes to workspace.fs.readFile for file:// paths.
+	const content = await readFile(filePath, "utf-8")
 	const currentFileHash = createHash("sha256").update(content).digest("hex")
 	const cachedFileHash = cacheManager.getHash(filePath)
 	const isNewFile = !cachedFileHash

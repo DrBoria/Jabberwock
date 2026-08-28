@@ -4,7 +4,7 @@ import * as vscode from "vscode"
 import * as fs from "fs/promises"
 import type { IBackendRootStore } from "@features/store"
 import { getVscodeContext } from "@features/foundation/vscode/context"
-import { EventBridge } from "@features/foundation/webview/EventBridge"
+import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
 import { t } from "@i18n"
 import { Package } from "@shared/package"
 import { getCommand } from "@services/command/commands"
@@ -64,13 +64,13 @@ export function registerSettingsCommands(bus: IntentBus): void {
 			if (command?.filePath) {
 				openFile(command.filePath)
 			} else {
-				vscode.window.showErrorMessage(t("common:errors.command_not_found", { name: payload.text }))
+				publishNotificationError(t("common:errors.command_not_found", { name: payload.text }))
 			}
 		} catch (error) {
-			EventBridge.outputChannel?.appendLine(
+			backendLog.info(
 				`Error opening command file: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 			)
-			vscode.window.showErrorMessage(t("common:errors.open_command_file"))
+			publishNotificationError(t("common:errors.open_command_file"))
 		}
 	})
 
@@ -88,16 +88,16 @@ export function registerSettingsCommands(bus: IntentBus): void {
 			const cwd = (ctx.rootStore as IBackendRootStore).chat.activeTask?.cwd ?? ""
 			const command = await getCommand(cwd, payload.text)
 			if (!command?.filePath) {
-				vscode.window.showErrorMessage(t("common:errors.command_not_found", { name: payload.text }))
+				publishNotificationError(t("common:errors.command_not_found", { name: payload.text }))
 				return
 			}
 			await fs.unlink(command.filePath)
-			EventBridge.outputChannel?.appendLine(`Deleted command file: ${command.filePath}`)
+			backendLog.info(`Deleted command file: ${command.filePath}`)
 		} catch (error) {
-			EventBridge.outputChannel?.appendLine(
+			backendLog.info(
 				`Error deleting command: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 			)
-			vscode.window.showErrorMessage(t("common:errors.delete_command"))
+			publishNotificationError(t("common:errors.delete_command"))
 		}
 	})
 
@@ -111,10 +111,12 @@ export function registerSettingsCommands(bus: IntentBus): void {
 		try {
 			await createCommandFile(provider, ctx.rootStore as IBackendRootStore, payload, ctx)
 		} catch (error) {
-			EventBridge.outputChannel?.appendLine(
+			backendLog.info(
 				`Error creating command: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 			)
-			vscode.window.showErrorMessage(t("common:errors.create_command_failed"))
+			publishNotificationError(t("common:errors.create_command_failed"))
 		}
 	})
 }
+
+import { publishNotificationError } from "@features/foundation/capabilities/notifications"

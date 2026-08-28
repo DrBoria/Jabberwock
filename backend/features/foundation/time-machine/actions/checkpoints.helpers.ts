@@ -6,7 +6,7 @@ import { t } from "@i18n"
 import { getWorkspacePath } from "@utils/io/path"
 
 import { CheckpointServiceOptions, RepoPerTaskCheckpointService, type CheckpointService } from "@services/checkpoints"
-import { EventBridge } from "@features/foundation/webview/EventBridge"
+import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
 import { getProvider } from "@features/foundation/webview/providerRegistry"
 import { DIFF_VIEW_URI_SCHEME_JABBERWOCK } from "@integrations/editor/DiffViewProvider"
 
@@ -28,7 +28,7 @@ export async function getCheckpointService(task: ITaskModel, { interval = 250 }:
 
 	const log = (message: string) => {
 		try {
-			EventBridge.outputChannel?.appendLine(message)
+			backendLog.info(message)
 		} catch (_err) {
 			// NO-OP
 		}

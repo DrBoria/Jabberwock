@@ -1,10 +1,9 @@
 import { IntentType } from "@jabberwock/types"
 import type { ProviderSettings } from "@jabberwock/types"
 import type { IntentBus } from "@features/intents/bus"
-import { EventBridge } from "@features/foundation/webview/EventBridge"
+import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
 import { MessageEnhancer } from "@features/chat/task/handlers/messageEnhancer"
 import { getProviderSettingsManager } from "@features/settings/models/provider-settings-manager/ProviderSettingsManager"
-import * as vscode from "vscode"
 import { t } from "@i18n"
 
 /**
@@ -13,11 +12,11 @@ import { t } from "@i18n"
 export function registerOnTextareaEnhanceRequested(bus: IntentBus): void {
 	bus.register(IntentType.TextareaEnhanceRequested, async (intent, ctx) => {
 		handleEnhanceRequested(intent as { payload: { text: string } }, ctx as never).catch((error) => {
-			EventBridge.outputChannel?.appendLine(
+			backendLog.info(
 				`Error enhancing prompt: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`,
 			)
 
-			vscode.window.showErrorMessage(t("common:errors.enhance_prompt"))
+			publishNotificationError(t("common:errors.enhance_prompt"))
 			ctx.provider?.postMessageToWebview({ type: "enhancedPrompt" })
 		})
 	})
@@ -70,3 +69,5 @@ async function handleEnhanceRequested(
 		throw new Error(result.error || "Unknown error")
 	}
 }
+
+import { publishNotificationError } from "@features/foundation/capabilities/notifications"

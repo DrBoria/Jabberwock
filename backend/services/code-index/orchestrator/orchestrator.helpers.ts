@@ -1,5 +1,4 @@
-import * as vscode from "vscode"
-
+import { getWorkspaceRoots } from "@features/foundation/vscode/context"
 import type { IFileWatcher, IVectorStore } from "@services/code-index/interfaces"
 import type { CodeIndexConfigManager } from "@services/code-index/config/manager"
 import type { CodeIndexStateManager } from "@services/code-index/state-manager"
@@ -22,7 +21,7 @@ export function canStartIndexing(
 	stateManager: CodeIndexStateManager,
 	isProcessing: boolean,
 ): boolean {
-	if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
+	if (getWorkspaceRoots().length === 0) {
 		stateManager.setSystemState("Error", t("embeddings:orchestrator.indexingRequiresWorkspace"))
 		console.warn("[jabberwock] [CodeIndexOrchestrator] Start rejected: No workspace folder open.")
 		return false

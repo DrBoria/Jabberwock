@@ -1,4 +1,5 @@
 import { EventBridge, type ProviderHandle } from "@features/foundation/webview/EventBridge"
+import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
 import { getBackendRootStore } from "@features/storeSingleton"
 import { getProviderSettingsManager, ProviderSettingsManager } from "./provider-settings-manager"
 
@@ -23,7 +24,7 @@ function notifyTaskOfApiUpdate(id: string | undefined, profile: { [key: string]:
 function logUpsertError(error: unknown): void {
 	const message = error instanceof Error ? error.message : String(error)
 	console.log(`[store/upsertProviderProfile] ERROR: ${message}`)
-	EventBridge.outputChannel?.appendLine(`Error upserting provider profile: ${message}`)
+	backendLog.info(`Error upserting provider profile: ${message}`)
 }
 
 /**
@@ -91,7 +92,7 @@ export async function activateProviderProfile(
 
 		return profile
 	} catch (error) {
-		EventBridge.outputChannel?.appendLine(
+		backendLog.info(
 			`Error activating provider profile: ${error instanceof Error ? error.message : String(error)}`,
 		)
 		return undefined
@@ -109,7 +110,7 @@ export async function deleteProviderProfile(provider: EventBridge, entry: string
 			getBackendRootStore().settings.apiConfig.clear()
 		}
 	} catch (error) {
-		EventBridge.outputChannel?.appendLine(
+		backendLog.info(
 			`Error deleting provider profile: ${error instanceof Error ? error.message : String(error)}`,
 		)
 	}

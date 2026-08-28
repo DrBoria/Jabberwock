@@ -1,4 +1,7 @@
-import * as vscode from "vscode"
+// v4 B2 (L3/L14): structural host-context view instead of the vscode ExtensionContext type.
+import type { IExtensionContextView } from "@features/foundation/vscode/context"
+// v4 B2 (L4): workspace roots come from the host context DI slot, not vscode directly.
+import { getWorkspaceRoots } from "@features/foundation/vscode/context"
 import * as path from "path"
 import * as fs from "fs/promises"
 
@@ -38,7 +41,7 @@ export async function loadModesFromFile(filePath: string): Promise<ModeConfig[]>
 					.map((issue) => `• ${issue.path.join(".")}: ${issue.message}`)
 					.join("\n")
 
-				vscode.window.showErrorMessage(t("common:customModes.errors.schemaValidationError", { issues }))
+				publishNotificationError(t("common:customModes.errors.schemaValidationError", { issues }))
 			}
 
 			return []
@@ -84,7 +87,7 @@ export function mergeCustomModes(projectModes: ModeConfig[], globalModes: ModeCo
 /**
  * Get or create the custom modes settings file path
  */
-export async function getCustomModesFilePath(context: vscode.ExtensionContext): Promise<string> {
+export async function getCustomModesFilePath(context: IExtensionContextView): Promise<string> {
 	const settingsDir = await ensureSettingsDirectoryExists(context)
 	const filePath = path.join(settingsDir, GlobalFileNames.customModes)
 	const fileExists = await fileExistsAtPath(filePath)
@@ -100,9 +103,9 @@ export async function getCustomModesFilePath(context: vscode.ExtensionContext): 
  * Get the path to the workspace-level .jabberwockmodes file, if it exists
  */
 export async function getWorkspaceRoomodes(): Promise<string | undefined> {
-	const workspaceFolders = vscode.workspace.workspaceFolders
+	const workspaceRoots = getWorkspaceRoots()
 
-	if (!workspaceFolders || workspaceFolders.length === 0) {
+	if (workspaceRoots.length === 0) {
 		return undefined
 	}
 
@@ -151,7 +154,7 @@ export async function updateModesInFile(
  * Load custom modes from both global settings file and workspace .jabberwockmodes,
  * merge them (project takes precedence), and persist to globalState.
  */
-export async function loadAndMergeModes(context: vscode.ExtensionContext): Promise<ModeConfig[]> {
+export async function loadAndMergeModes(context: IExtensionContextView): Promise<ModeConfig[]> {
 	const settingsPath = await getCustomModesFilePath(context)
 	const settingsModes = settingsPath ? await loadModesFromFile(settingsPath) : []
 
@@ -179,3 +182,5 @@ export async function loadAndMergeModes(context: vscode.ExtensionContext): Promi
 
 	return mergedModes
 }
+
+import { publishNotificationError } from "@features/foundation/capabilities/notifications"

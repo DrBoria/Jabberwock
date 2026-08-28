@@ -1,4 +1,5 @@
-import { ExtensionContext } from "vscode"
+// v4 B2 (L14): structural host-context view instead of the vscode type.
+import type { IExtensionContextView, ISecretsView } from "@features/foundation/vscode/context"
 
 import { type ProviderSettingsWithId, ProviderSettingsEntry } from "@jabberwock/types"
 
@@ -49,9 +50,18 @@ export class ProviderSettingsManager {
 		},
 	}
 
-	private readonly context: ExtensionContext
+	private readonly context: IExtensionContextView
+	/**
+	 * Secret storage is mandatory for provider profiles (host contexts always provide it;
+	 * server mode must install a secrets slot before constructing this manager).
+	 */
+	private get secrets(): ISecretsView {
+		const secrets = this.context.secrets
+		if (!secrets) throw new Error("ProviderSettingsManager requires secret storage — no secrets slot installed")
+		return secrets
+	}
 
-	constructor(context: ExtensionContext) {
+	constructor(context: IExtensionContextView) {
 		this.context = context
 		this.initialize().catch(console.error)
 	}
@@ -94,7 +104,7 @@ export class ProviderSettingsManager {
 
 	private async loadRaw(): Promise<ProviderProfiles | null> {
 		try {
-			const profiles = await loadProviderProfiles(this.context.secrets, this.defaultProviderProfiles)
+			const profiles = await loadProviderProfiles(this.secrets, this.defaultProviderProfiles)
 			return profiles === this.defaultProviderProfiles ? null : profiles
 		} catch {
 			return null
@@ -102,11 +112,11 @@ export class ProviderSettingsManager {
 	}
 
 	private async load(): Promise<ProviderProfiles> {
-		return loadProviderProfiles(this.context.secrets, this.defaultProviderProfiles)
+		return loadProviderProfiles(this.secrets, this.defaultProviderProfiles)
 	}
 
 	private async store(providerProfiles: ProviderProfiles): Promise<void> {
-		return storeProviderProfiles(this.context.secrets, providerProfiles)
+		return storeProviderProfiles(this.secrets, providerProfiles)
 	}
 
 	public async listConfig(): Promise<ProviderSettingsEntry[]> {
@@ -155,7 +165,7 @@ export class ProviderSettingsManager {
 
 	public async resetAllConfigs(): Promise<void> {
 		const key = secretsKey()
-		await this.context.secrets.delete(key)
+		await this.secrets.delete(key)
 	}
 
 	public async syncCloudProfiles(

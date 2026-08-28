@@ -31,13 +31,15 @@
 			"@api": ["./api/index.ts"],
 			"@api/*": ["./api/*"],
 			"@foundation/*": ["./foundation/*"],
-			"@activate/*": ["./activate/*"],
+			"@activate/*": ["../connectors/vscode/backend/activation/*"],
+			"@extension-activation/*": ["./extension-activation/*"],
 			"@integrations/*": ["./integrations/*"],
 			"@workers/types": ["./workers/types.ts"],
 			"@packages/types/src/mcp": ["../packages/types/src/mcp/mcp.ts"],
 			"@eventConstants": ["../packages/types/src/events/constants.ts"],
 			"@packageJson": ["./package.json"],
-			"@intentConstants": ["./features/intents/IntentConstants"]
+			"@intentConstants": ["./features/intents/IntentConstants"],
+			"@connectors/*": ["../connectors/*"]
 		}
 	},
 	"include": ["."],

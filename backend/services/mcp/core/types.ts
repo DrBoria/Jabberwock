@@ -5,6 +5,10 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 
 import type { McpErrorEntry, McpResource, McpResourceTemplate, McpServer, McpTool } from "@jabberwock/types"
 
+import type { DisposableLike, IFileWatcher } from "@jabberwock/types"
+
+import type { IExtensionContextView } from "@features/foundation/vscode/context"
+
 import { WebSocketClientTransport } from "@services/mcp/features/websocket-transport"
 
 // ─── Connection types ────────────────────────────────────────────────
@@ -64,11 +68,14 @@ export interface McpHubState {
 	isConnecting: boolean
 	isDisposed: boolean
 	providerRef: WeakRef<import("@features/foundation/webview/EventBridge").ProviderHandle>
-	_context: import("vscode").ExtensionContext
+	/** v4 B2 (L14): structural context view — host contexts satisfy it structurally; no vscode types in serializable state. */
+	_context: IExtensionContextView
 	refCount: number
-	settingsWatcher?: import("vscode").FileSystemWatcher
-	projectMcpWatcher?: import("vscode").FileSystemWatcher
-	disposables: import("vscode").Disposable[]
+	// v4 B2 (L6/L14): protocol file-watcher shape instead of the host FileSystemWatcher type —
+	// vscode watchers are adapted into this interface by mcp-hub/watchers.ts.
+	settingsWatcher?: IFileWatcher | undefined
+	projectMcpWatcher?: IFileWatcher | undefined
+	disposables: DisposableLike[]
 }
 
 export { McpErrorEntry, McpResource, McpResourceTemplate, McpServer, McpTool }

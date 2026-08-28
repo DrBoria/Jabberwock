@@ -103,7 +103,7 @@ export async function handleDeleteMessageConfirm(
 	}
 
 	if (messageIndex === -1) {
-		await vscode.window.showErrorMessage(t("common:errors.message.message_not_found", { messageTs }))
+		await publishNotificationError(t("common:errors.message.message_not_found", { messageTs }))
 		return
 	}
 
@@ -123,10 +123,12 @@ export async function handleDeleteMessageConfirm(
 		}
 	} catch (error) {
 		console.error("[jabberwock] Error in delete message:", error)
-		vscode.window.showErrorMessage(
+		publishNotificationError(
 			t("common:errors.message.error_deleting_message", {
 				error: error instanceof Error ? error.message : String(error),
 			}),
 		)
 	}
 }
+
+import { publishNotificationError } from "@features/foundation/capabilities/notifications"

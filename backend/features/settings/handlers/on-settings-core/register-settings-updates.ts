@@ -9,7 +9,7 @@ import * as fs from "fs/promises"
 import type { IBackendRootStore } from "@features/store"
 import { getVscodeContext } from "@features/foundation/vscode/context"
 import { postStateToWebview, WebviewStatePayload } from "@features/foundation/window-manager/store"
-import { EventBridge } from "@features/foundation/webview/EventBridge"
+import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
 import { t } from "@i18n"
 import { getSettingsAccess } from "@utils/settings"
 import { SETTING_HANDLERS } from "./setting-handlers"
@@ -97,7 +97,7 @@ export function registerSettingsUpdates(bus: IntentBus): void {
 				list: updatedList,
 			})
 		} catch (error) {
-			EventBridge.outputChannel?.appendLine(
+			backendLog.info(
 				`Failed to dismiss upsell: ${error instanceof Error ? error.message : String(error)}`,
 			)
 		}
@@ -135,8 +135,8 @@ export function registerSettingsUpdates(bus: IntentBus): void {
 			await vscode.commands.executeCommand("markdown.showPreview", doc.uri)
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
-			EventBridge.outputChannel?.appendLine(`Error opening markdown preview: ${errorMessage}`)
-			vscode.window.showErrorMessage(`Failed to open markdown preview: ${errorMessage}`)
+			backendLog.info(`Error opening markdown preview: ${errorMessage}`)
+			publishNotificationError(`Failed to open markdown preview: ${errorMessage}`)
 		}
 	})
 
@@ -173,3 +173,5 @@ export function registerSettingsUpdates(bus: IntentBus): void {
 		vscode.window.showWarningMessage(t("common:mdm.info.organization_requires_auth"))
 	})
 }
+
+import { publishNotificationError } from "@features/foundation/capabilities/notifications"

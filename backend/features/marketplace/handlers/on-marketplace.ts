@@ -2,7 +2,6 @@ import type { EventBridge, ProviderHandle } from "@features/foundation/webview/E
 import { IntentType } from "@jabberwock/types"
 import type { MarketplaceItem } from "@jabberwock/types"
 import { MarketplaceManager, MarketplaceItemType } from "@services/marketplace"
-import * as vscode from "vscode"
 import * as path from "path"
 
 import type { IntentBus } from "@features/intents/bus.js"
@@ -34,7 +33,7 @@ export function registerOnMarketplace(bus: IntentBus): void {
 				await postStateToWebview(provider)
 			} catch (error) {
 				console.error("[jabberwock] Marketplace: Error filtering items:", error)
-				vscode.window.showErrorMessage("Failed to filter marketplace items")
+				publishNotificationError("Failed to filter marketplace items")
 			}
 		}
 	})
@@ -95,7 +94,7 @@ export function registerOnMarketplace(bus: IntentBus): void {
 				console.log(`Marketplace item with parameters installed and config file opened`)
 			} catch (error) {
 				console.error(`[jabberwock] Error installing marketplace item with parameters: ${error}`)
-				vscode.window.showErrorMessage(
+				publishNotificationError(
 					`Failed to install marketplace item: ${error instanceof Error ? error.message : String(error)}`,
 				)
 			}
@@ -185,7 +184,7 @@ async function removeMarketplaceItem(
 		})
 	} catch (error) {
 		console.error(`[jabberwock] Error removing marketplace item: ${error}`)
-		vscode.window.showErrorMessage(
+		publishNotificationError(
 			`Failed to remove marketplace item: ${error instanceof Error ? error.message : String(error)}`,
 		)
 		provider.postMessageToWebview({
@@ -206,7 +205,7 @@ async function handleMarketplaceRemoveError(
 		? "Marketplace manager is not available"
 		: "Missing required parameters for marketplace item removal"
 	console.error(`[jabberwock] ${errorMessage}`)
-	vscode.window.showErrorMessage(errorMessage)
+	publishNotificationError(errorMessage)
 
 	if (mpItem?.id) {
 		provider.postMessageToWebview({
@@ -217,3 +216,5 @@ async function handleMarketplaceRemoveError(
 		})
 	}
 }
+
+import { publishNotificationError } from "@features/foundation/capabilities/notifications"

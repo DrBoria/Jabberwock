@@ -1,5 +1,4 @@
-import * as vscode from "vscode"
-
+// v4 B2 (L14): no host import — version + workspace root come from the capability DI slots.
 import { z } from "zod"
 import type { InjectableConfigType } from "@utils/config"
 
@@ -14,6 +13,9 @@ import { findConnection, deleteConnection, createPlaceholderConnection } from ".
 import { isMcpEnabled, getProjectMcpPath, showErrorMessage } from "@services/mcp/mcp-hub/init"
 import { createAndConfigureTransport, createTransportErrorHandlers } from "@services/mcp/mcp-hub/transports"
 import { setupStdioStderr, setupElicitationHandler } from "@services/mcp/mcp-hub/transport-handlers"
+// v4 B2 (L14): workspace root via the host-context DI slot — no vscode import in this file.
+import { getWorkspaceRoot, getHostContext } from "@features/foundation/vscode/context"
+
 import { sanitizeMcpName } from "@utils/mcp"
 import { getMcpSettingsFilePath as getMcpSettingsFilePathFromConfig } from "@services/mcp"
 import { Client } from "@modelcontextprotocol/sdk/client/index.js"
@@ -93,7 +95,8 @@ async function connectToServerInner(
 	const client = new Client(
 		{
 			name: "Jabberwock",
-			version: state._context.extension?.packageJSON?.version ?? "1.0.0",
+			// v4 B2 (L14): extension version via the host-context capability slot — no vscode types in state.
+			version: getHostContext()?.extensionVersion ?? "1.0.0",
 		},
 		{
 			capabilities: {
@@ -109,7 +112,8 @@ async function connectToServerInner(
 
 	const configInjected = (await injectVariables(config as InjectableConfigType, {
 		env: process.env,
-		workspaceFolder: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? "",
+			// v4 B2 (L14): workspace root via the host-context DI slot — no vscode import in this file.
+		workspaceFolder: getWorkspaceRoot(),
 	})) as typeof config
 
 	const { onerror, onclose } = createTransportErrorHandlers(state, name, source)
@@ -173,7 +177,8 @@ function buildServerConnection(
 			status: "connecting",
 			disabled: configInjected.disabled,
 			source,
-			projectPath: source === "project" ? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath : undefined,
+			// v4 B2 (L14): workspace root via the host-context DI slot — no vscode import in this file.
+			projectPath: source === "project" ? getWorkspaceRoot() || undefined : undefined,
 			errorHistory: [],
 		},
 		client,

@@ -1,11 +1,12 @@
-import * as vscode from "vscode"
+import type { IExtensionContextView } from "@features/foundation/vscode/context"
 
 import type { ModeConfig } from "@jabberwock/types"
 
 import { getAllModesWithPrompts } from "@shared/modes/extension"
 import { ensureSettingsDirectoryExists } from "@utils/globalContext"
 
-export async function getModesSection(context: vscode.ExtensionContext): Promise<string> {
+/** v4 B2 (L3): structural context view — real host contexts satisfy it structurally. */
+export async function getModesSection(context: IExtensionContextView): Promise<string> {
 	// Make sure path gets created
 	await ensureSettingsDirectoryExists(context)
 

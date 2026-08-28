@@ -1,4 +1,5 @@
-import { ExtensionContext } from "vscode"
+// v4 B2 (L14): structural host-context view instead of the vscode type.
+import type { IExtensionContextView } from "@features/foundation/vscode/context"
 
 import { type ProviderName } from "@jabberwock/types"
 
@@ -65,7 +66,7 @@ export function cleanModelId(modelId: string | undefined): string | undefined {
 }
 
 export async function initializeCore(
-	context: ExtensionContext,
+	context: IExtensionContextView,
 	load: () => Promise<ProviderProfiles | null>,
 	store: (profiles: ProviderProfiles) => Promise<void>,
 	generateId: () => string,

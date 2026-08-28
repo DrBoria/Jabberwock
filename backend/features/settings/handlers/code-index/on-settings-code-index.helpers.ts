@@ -2,7 +2,7 @@ import type { CodebaseIndexConfig, CodebaseIndexProvider } from "@jabberwock/typ
 import { getSettingsAccess } from "@utils/settings"
 import { getVscodeContext } from "@features/foundation/vscode/context"
 import { CodeIndexManager } from "@services/code-index/manager/manager"
-import { EventBridge } from "@features/foundation/webview/EventBridge"
+import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
 import { getCodeIndexManager } from "@services/code-index/manager/manager.factory"
 import { t } from "@i18n"
 
@@ -73,7 +73,7 @@ export async function handleEmbedderChange(
 	try {
 		await manager.handleSettingsChange()
 	} catch (error) {
-		EventBridge.outputChannel?.appendLine(
+		backendLog.info(
 			`Embedder validation failed after provider change: ${error instanceof Error ? error.message : String(error)}`,
 		)
 		await provider.postMessageToWebview({
@@ -95,9 +95,9 @@ export async function initializeManagerIfReady(
 	}
 	try {
 		await manager.initialize(getVscodeContext())
-		EventBridge.outputChannel?.appendLine("Code index manager initialized after settings save")
+		backendLog.info("Code index manager initialized after settings save")
 	} catch (error) {
-		EventBridge.outputChannel?.appendLine(
+		backendLog.info(
 			`Code index initialization failed: ${error instanceof Error ? error.message : String(error)}`,
 		)
 		await provider.postMessageToWebview({
@@ -118,7 +118,7 @@ export async function handleManagerAfterSettingsSave(
 		try {
 			await manager.handleSettingsChange()
 		} catch (error) {
-			EventBridge.outputChannel?.appendLine(
+			backendLog.info(
 				`Settings change handling error: ${error instanceof Error ? error.message : String(error)}`,
 			)
 		}
@@ -144,7 +144,7 @@ export async function sendNoWorkspaceResponse(provider: import("@jabberwock/type
 export async function startCodeIndexing(provider: import("@jabberwock/types").WebviewProvider): Promise<void> {
 	const manager = getCodeIndexManager(getVscodeContext().extensionContext)
 	if (!manager) {
-		EventBridge.outputChannel?.appendLine("Cannot start indexing: No workspace folder open")
+		backendLog.info("Cannot start indexing: No workspace folder open")
 		await sendNoWorkspaceResponse(provider)
 		return
 	}
@@ -180,7 +180,7 @@ export async function toggleWorkspaceIndexing(
 ): Promise<void> {
 	const manager = getCodeIndexManager(getVscodeContext().extensionContext)
 	if (!manager) {
-		EventBridge.outputChannel?.appendLine("Cannot toggle workspace indexing: No workspace folder open")
+		backendLog.info("Cannot toggle workspace indexing: No workspace folder open")
 		return
 	}
 

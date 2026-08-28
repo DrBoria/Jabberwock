@@ -35,7 +35,7 @@ async function handleFilePathImage(dataUriOrPath: string, options?: { values?: {
 		}
 		await vscode.commands.executeCommand("vscode.open", vscode.Uri.file(filePath))
 	} catch (error) {
-		vscode.window.showErrorMessage(t("common:errors.error_opening_image", { error }))
+		publishNotificationError(t("common:errors.error_opening_image", { error }))
 	}
 }
 
@@ -48,7 +48,7 @@ async function copyDataUriToClipboard(tempFilePath: string, format: string): Pro
 		vscode.window.showInformationMessage(t("common:info.image_copied_to_clipboard"))
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error)
-		vscode.window.showErrorMessage(t("common:errors.error_copying_image", { errorMessage }))
+		publishNotificationError(t("common:errors.error_copying_image", { errorMessage }))
 	} finally {
 		try {
 			await vscode.workspace.fs.delete(vscode.Uri.file(tempFilePath))
@@ -61,7 +61,7 @@ async function copyDataUriToClipboard(tempFilePath: string, format: string): Pro
 async function handleDataUriImage(dataUriOrPath: string, options?: { values?: { action?: string } }): Promise<void> {
 	const matches = dataUriOrPath.match(/^data:image\/([a-zA-Z]+);base64,(.+)$/)
 	if (!matches) {
-		vscode.window.showErrorMessage(t("common:errors.invalid_data_uri"))
+		publishNotificationError(t("common:errors.invalid_data_uri"))
 		return
 	}
 	const [, format, base64Data] = matches
@@ -76,7 +76,7 @@ async function handleDataUriImage(dataUriOrPath: string, options?: { values?: { 
 		}
 		await vscode.commands.executeCommand("vscode.open", vscode.Uri.file(tempFilePath))
 	} catch (error) {
-		vscode.window.showErrorMessage(t("common:errors.error_opening_image", { error }))
+		publishNotificationError(t("common:errors.error_opening_image", { error }))
 	}
 }
 
@@ -91,7 +91,7 @@ export async function openImage(dataUriOrPath: string, options?: { values?: { ac
 export async function saveImage(dataUri: string, defaultUri: vscode.Uri): Promise<vscode.Uri | undefined> {
 	const matches = dataUri.match(/^data:image\/([a-zA-Z]+);base64,(.+)$/)
 	if (!matches) {
-		vscode.window.showErrorMessage(t("common:errors.invalid_data_uri"))
+		publishNotificationError(t("common:errors.invalid_data_uri"))
 		return undefined
 	}
 	const [, format, base64Data] = matches
@@ -118,7 +118,9 @@ export async function saveImage(dataUri: string, defaultUri: vscode.Uri): Promis
 		return saveUri
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error)
-		vscode.window.showErrorMessage(t("common:errors.error_saving_image", { errorMessage }))
+		publishNotificationError(t("common:errors.error_saving_image", { errorMessage }))
 		return undefined
 	}
 }
+
+import { publishNotificationError } from "@features/foundation/capabilities/notifications"

@@ -1,7 +1,10 @@
 import * as fs from "fs/promises"
 import * as path from "path"
 
-import * as vscode from "vscode"
+// v4 B2 (L3/L14): structural host-context view instead of the vscode ExtensionContext type.
+import type { IExtensionContextView } from "@features/foundation/vscode/context"
+// v4 B2 (L4): workspace roots come from the host context DI slot, not vscode directly.
+import { getWorkspaceRoots } from "@features/foundation/vscode/context"
 import * as yaml from "yaml"
 
 import { GlobalFileNames } from "@shared/globalFileNames"
@@ -43,15 +46,15 @@ async function checkMcpsInFile(filePath: string, metadata: Record<string, { type
 
 async function checkProjectInstallations(metadata: Record<string, { type: string }>): Promise<void> {
 	try {
-		const workspaceFolder = vscode.workspace.workspaceFolders?.[0]
-		if (!workspaceFolder) {
+		const workspaceRoot = getWorkspaceRoots()[0]
+		if (!workspaceRoot) {
 			return
 		}
 
-		const projectModesPath = path.join(workspaceFolder.uri.fsPath, ".jabberwockmodes")
+		const projectModesPath = path.join(workspaceRoot, ".jabberwockmodes")
 		await checkModesInFile(projectModesPath, metadata)
 
-		const projectMcpPath = path.join(workspaceFolder.uri.fsPath, ".jabberwock", "mcp.json")
+		const projectMcpPath = path.join(workspaceRoot, ".jabberwock", "mcp.json")
 		await checkMcpsInFile(projectMcpPath, metadata)
 	} catch (error) {
 		console.error("[jabberwock] Error checking project installations:", error)
@@ -59,7 +62,7 @@ async function checkProjectInstallations(metadata: Record<string, { type: string
 }
 
 async function checkGlobalInstallations(
-	context: vscode.ExtensionContext,
+	context: IExtensionContextView,
 	metadata: Record<string, { type: string }>,
 ): Promise<void> {
 	try {
@@ -75,7 +78,7 @@ async function checkGlobalInstallations(
 	}
 }
 
-export async function getInstallationMetadata(context: vscode.ExtensionContext): Promise<{
+export async function getInstallationMetadata(context: IExtensionContextView): Promise<{
 	project: Record<string, { type: string }>
 	global: Record<string, { type: string }>
 }> {

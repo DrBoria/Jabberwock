@@ -1,7 +1,7 @@
-import * as vscode from "vscode"
 import * as path from "path"
 import { promises as fs } from "fs"
 
+import { getWorkspaceRoots } from "@features/foundation/vscode/context"
 import { truncateOutput } from "@integrations/misc/extract-text/helpers"
 import { execAsync, GIT_OUTPUT_LINE_LIMIT } from "./git.helpers"
 import { checkGitRepo } from "./git.helpers"
@@ -42,13 +42,13 @@ export async function getGitRepositoryInfo(workspaceRoot: string): Promise<GitRe
  * @returns Git repository information or empty object if not available
  */
 export async function getWorkspaceGitInfo(): Promise<GitRepositoryInfo> {
-	const workspaceFolders = vscode.workspace.workspaceFolders
-	if (!workspaceFolders || workspaceFolders.length === 0) {
+	// v4 B2 (L4): first workspace folder from the host-context DI slot.
+	const workspaceRoot = getWorkspaceRoots()[0]
+	if (!workspaceRoot) {
 		return {}
 	}
 
 	// Use the first workspace folder.
-	const workspaceRoot = workspaceFolders[0].uri.fsPath
 	return getGitRepositoryInfo(workspaceRoot)
 }
 

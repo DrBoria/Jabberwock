@@ -1,5 +1,5 @@
 import * as vscode from "vscode"
-import { extractTextCountFromMessage } from "@api/transform/format/vscode-lm-format"
+import { extractTextCountFromMessage } from "./vscode-lm-format"
 
 /**
  * Creates or reuses a cancellation token for token counting operations.

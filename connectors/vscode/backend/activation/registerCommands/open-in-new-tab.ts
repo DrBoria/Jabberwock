@@ -2,9 +2,11 @@ import * as vscode from "vscode"
 import delay from "delay"
 
 import { initVscodeContext } from "@features/foundation/vscode/context"
+import { getBackendCapabilities } from "@features/foundation/capabilities/registry"
 import { EventBridge } from "@features/foundation/webview/EventBridge"
-import { MdmService, getMdmService } from "@services/mdm/MdmService"
+import { wireInboundToQueue } from "@features/foundation/webview/inbound-wiring"
 import { setPanel } from "./panel-store"
+import { VscodeWebviewBackendConnector } from "@connectors/vscode/backend/connector"
 
 export const openClineInNewTab = async ({
 	context,
@@ -14,14 +16,14 @@ export const openClineInNewTab = async ({
 	outputChannel: vscode.OutputChannel
 }) => {
 	initVscodeContext(context)
-	let mdmService: MdmService | undefined
-	try {
-		mdmService = getMdmService()
-	} catch (_error) {
-		mdmService = undefined
-	}
 
-	const tabProvider = new EventBridge(context, outputChannel, "editor", mdmService)
+	// v4 B3 (§4.2): the editor tab gets its own connector instance (mirroring the old per-panel
+	// EventBridge); inbound is wired to the shared capabilities.queue so the extension-level drain
+	// consumer feeds webviewMessageHandler for the tab too.
+	const tabConnector = new VscodeWebviewBackendConnector(context, outputChannel)
+	const capabilities = getBackendCapabilities()
+	await tabConnector.start(capabilities)
+	wireInboundToQueue(tabConnector, capabilities.queue)
 	const lastCol = Math.max(...vscode.window.visibleTextEditors.map((editor) => editor.viewColumn || 0))
 
 	const hasVisibleEditors = vscode.window.visibleTextEditors.length > 0
@@ -45,7 +47,7 @@ export const openClineInNewTab = async ({
 		dark: vscode.Uri.joinPath(context.extensionUri, "assets", "icons", "panel_dark.png"),
 	}
 
-	await tabProvider.resolveWebviewView(newPanel)
+	await tabConnector.resolveWebviewView(newPanel)
 
 	newPanel.onDidChangeViewState(
 		(e) => {
@@ -69,5 +71,5 @@ export const openClineInNewTab = async ({
 	await delay(100)
 	await vscode.commands.executeCommand("workbench.action.lockEditorGroup")
 
-	return tabProvider
+	return tabConnector
 }

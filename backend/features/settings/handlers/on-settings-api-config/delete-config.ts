@@ -3,7 +3,7 @@ import * as vscode from "vscode"
 import { t } from "@i18n"
 import { getProviderSettingsManager } from "@features/settings/models/provider-settings-manager/ProviderSettingsManager"
 import { activateProviderProfile } from "@features/settings/models/api-config-store.profiles"
-import { EventBridge } from "@features/foundation/webview/EventBridge"
+import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
 
 export async function handleSettingsApiConfigDelete(
 	intent: { id: string; type: string; payload: unknown },
@@ -27,7 +27,7 @@ export async function handleSettingsApiConfigDelete(
 	const newName = (await getProviderSettingsManager()!.listConfig()).filter((c) => c.name !== oldName)[0]?.name
 
 	if (!newName) {
-		vscode.window.showErrorMessage(t("common:errors.delete_api_config"))
+		publishNotificationError(t("common:errors.delete_api_config"))
 		return
 	}
 
@@ -35,9 +35,11 @@ export async function handleSettingsApiConfigDelete(
 		await getProviderSettingsManager()!.deleteConfig(oldName)
 		await activateProviderProfile(provider, { name: newName })
 	} catch (error) {
-		EventBridge.outputChannel?.appendLine(
+		backendLog.info(
 			`Error delete api configuration: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 		)
-		vscode.window.showErrorMessage(t("common:errors.delete_api_config"))
+		publishNotificationError(t("common:errors.delete_api_config"))
 	}
 }
+
+import { publishNotificationError } from "@features/foundation/capabilities/notifications"

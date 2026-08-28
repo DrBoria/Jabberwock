@@ -46,7 +46,7 @@ export async function getStorageBasePath(defaultPath: string): Promise<string> {
 			`[jabberwock] Custom storage path is unusable: ${error instanceof Error ? error.message : String(error)}`,
 		)
 		if (vscode.window) {
-			vscode.window.showErrorMessage(t("common:errors.custom_storage_path_unusable", { path: customStoragePath }))
+			publishNotificationError(t("common:errors.custom_storage_path_unusable", { path: customStoragePath }))
 		}
 		return defaultPath
 	}
@@ -144,7 +144,7 @@ export async function promptForCustomStoragePath(): Promise<void> {
 					)
 					vscode.window.showInformationMessage(t("common:info.custom_storage_path_set", { path: result }))
 				} catch (error) {
-					vscode.window.showErrorMessage(
+					publishNotificationError(
 						t("common:errors.cannot_access_path", {
 							path: result,
 							error: error instanceof Error ? error.message : String(error),
@@ -159,3 +159,5 @@ export async function promptForCustomStoragePath(): Promise<void> {
 		}
 	}
 }
+
+import { publishNotificationError } from "@features/foundation/capabilities/notifications"

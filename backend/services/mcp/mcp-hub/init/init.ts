@@ -5,6 +5,8 @@ import * as path from "path"
 import { McpSettingsSchema } from "@services/mcp/config/schemas"
 import { t } from "@i18n"
 import { getWorkspacePath } from "@utils/io/path"
+// v4 B2 (L12): error toasts publish through the pubsub notification stream; host sink renders them.
+import { publishNotificationError } from "@features/foundation/capabilities/notifications"
 
 import type { McpHubState } from "@services/mcp/core/types"
 
@@ -62,7 +64,7 @@ export async function handleConfigFileChange(
 		} catch (parseError) {
 			const errorMessage = t("mcp:errors.invalid_settings_syntax")
 			console.error(errorMessage, parseError)
-			vscode.window.showErrorMessage(errorMessage)
+			publishNotificationError(errorMessage, parseError) // v4 B2 (L12): pubsub notification stream instead of vscode.window
 			return
 		}
 
@@ -70,7 +72,7 @@ export async function handleConfigFileChange(
 
 		if (!result.success) {
 			const errorMessages = result.error.errors.map((err) => `${err.path.join(".")}: ${err.message}`).join("\n")
-			vscode.window.showErrorMessage(t("mcp:errors.invalid_settings_validation", { errorMessages }))
+			publishNotificationError(t("mcp:errors.invalid_settings_validation", { errorMessages })) // v4 B2 (L12)
 			return
 		}
 
@@ -148,7 +150,7 @@ export async function initializeMcpServers(
 		} else {
 			const errorMessages = result.error.errors.map((err) => `${err.path.join(".")}: ${err.message}`).join("\n")
 			console.error(`[jabberwock] Invalid ${source} MCP settings format:`, errorMessages)
-			vscode.window.showErrorMessage(t("mcp:errors.invalid_settings_validation", { errorMessages }))
+			publishNotificationError(t("mcp:errors.invalid_settings_validation", { errorMessages })) // v4 B2 (L12)
 
 			if (source === "global") {
 				try {
@@ -162,7 +164,7 @@ export async function initializeMcpServers(
 		if (error instanceof SyntaxError) {
 			const errorMessage = t("mcp:errors.invalid_settings_syntax")
 			console.error(errorMessage, error)
-			vscode.window.showErrorMessage(errorMessage)
+			publishNotificationError(errorMessage, error) // v4 B2 (L12): pubsub notification stream instead of vscode.window
 		} else {
 			showErrorMessage(`Failed to initialize ${source} MCP servers`, error)
 		}

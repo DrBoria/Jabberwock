@@ -1,9 +1,11 @@
-import * as vscode from "vscode"
+import * as vscode from "vscode" // v4 B2 (L6): kept for the showWarningMessage site — outside L12 error scope, moves with the connector in B3/B4
 import delay from "delay"
 
 import { t } from "@i18n"
 import { fetchToolsList } from "@services/mcp/features/tools"
 import { fetchResourcesList, fetchResourceTemplatesList } from "@services/mcp/features/resources"
+// v4 B2 (L12): error toasts publish through the pubsub notification stream; host sink renders them.
+import { publishNotificationError } from "@features/foundation/capabilities/notifications"
 
 import type { McpHubState } from "@services/mcp/core/types"
 import { findConnection, deleteConnection } from "@services/mcp/mcp-hub/connection/manager"
@@ -48,14 +50,14 @@ export async function handleMcpEnabledChange(
 			await refreshAllConnectionsFn()
 		} catch (error) {
 			console.error(`[jabberwock] Failed to refresh MCP connections after disabling: ${error}`)
-			vscode.window.showErrorMessage(t("mcp:errors.refresh_after_disable"))
+			publishNotificationError(t("mcp:errors.refresh_after_disable"), error) // v4 B2 (L12): pubsub notification stream instead of vscode.window
 		}
 	} else {
 		try {
 			await refreshAllConnectionsFn()
 		} catch (error) {
 			console.error(`[jabberwock] Failed to refresh MCP connections after enabling: ${error}`)
-			vscode.window.showErrorMessage(t("mcp:errors.refresh_after_enable"))
+			publishNotificationError(t("mcp:errors.refresh_after_enable"), error) // v4 B2 (L12): pubsub notification stream instead of vscode.window
 		}
 	}
 }

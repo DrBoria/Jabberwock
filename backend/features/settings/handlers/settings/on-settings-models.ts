@@ -4,12 +4,12 @@ import { getOpenAiModels } from "@api/providers/openai/models"
 import { getOllamaModels } from "@api/providers/fetchers/providers/ollama"
 import { getLMStudioModels } from "@api/providers/fetchers/providers/lmstudio"
 import { getRooModels } from "@api/providers/fetchers/providers/jabberwock"
-import { getVsCodeLmModels } from "@api/providers/vscode-lm/tools"
+import { getVsCodeLmModels } from "@connectors/vscode/backend/model-providers/vscode-lm/tools"
 import { getModels, flushModels } from "@api/providers/fetchers/modelCache"
 import { toRouterName } from "@shared/api"
 import type { GetModelsOptions } from "@shared/api"
 import { getCloudService, hasCloudService } from "@jabberwock/cloud"
-import { EventBridge } from "@features/foundation/webview/EventBridge"
+import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
 
 /**
  * Register all models settings intent handlers.
@@ -35,7 +35,7 @@ export function registerOnSettingsModels(bus: IntentBus): void {
 					} as GetModelsOptions)
 					return result
 				} catch (error) {
-					EventBridge.outputChannel?.appendLine(
+					backendLog.info(
 						`Error fetching router models: ${error instanceof Error ? error.message : String(error)}`,
 					)
 					return {}
@@ -69,7 +69,7 @@ export function registerOnSettingsModels(bus: IntentBus): void {
 				models: aggregatedModels.routerModels,
 			})
 		} catch (error) {
-			EventBridge.outputChannel?.appendLine(
+			backendLog.info(
 				`Error in requestRouterModels: ${error instanceof Error ? error.message : String(error)}`,
 			)
 		}
@@ -96,7 +96,7 @@ export function registerOnSettingsModels(bus: IntentBus): void {
 				baseUrl: payload.values.baseUrl,
 			})
 		} catch (error) {
-			EventBridge.outputChannel?.appendLine(
+			backendLog.info(
 				`Error fetching OpenAI models: ${error instanceof Error ? error.message : String(error)}`,
 			)
 			await provider.postMessageToWebview({
@@ -117,7 +117,7 @@ export function registerOnSettingsModels(bus: IntentBus): void {
 			const models = await getOllamaModels()
 			await provider.postMessageToWebview({ type: "ollamaModels", models })
 		} catch (error) {
-			EventBridge.outputChannel?.appendLine(
+			backendLog.info(
 				`Error fetching Ollama models: ${error instanceof Error ? error.message : String(error)}`,
 			)
 			await provider.postMessageToWebview({ type: "ollamaModels", models: [] })
@@ -133,7 +133,7 @@ export function registerOnSettingsModels(bus: IntentBus): void {
 			const models = await getLMStudioModels()
 			await provider.postMessageToWebview({ type: "lmStudioModels", models })
 		} catch (error) {
-			EventBridge.outputChannel?.appendLine(
+			backendLog.info(
 				`Error fetching LM Studio models: ${error instanceof Error ? error.message : String(error)}`,
 			)
 			await provider.postMessageToWebview({ type: "lmStudioModels", models: [] })
@@ -149,7 +149,7 @@ export function registerOnSettingsModels(bus: IntentBus): void {
 			const models = await getRooModels("", "")
 			await provider.postMessageToWebview({ type: "rooModels", models })
 		} catch (error) {
-			EventBridge.outputChannel?.appendLine(
+			backendLog.info(
 				`Error fetching Roo models: ${error instanceof Error ? error.message : String(error)}`,
 			)
 			await provider.postMessageToWebview({ type: "rooModels", models: [] })
@@ -180,7 +180,7 @@ export function registerOnSettingsModels(bus: IntentBus): void {
 				values: { balance },
 			})
 		} catch (error) {
-			EventBridge.outputChannel?.appendLine(
+			backendLog.info(
 				`Error fetching Roo credit balance: ${error instanceof Error ? error.message : String(error)}`,
 			)
 			await provider.postMessageToWebview({
@@ -200,7 +200,7 @@ export function registerOnSettingsModels(bus: IntentBus): void {
 			const models = await getVsCodeLmModels()
 			await provider.postMessageToWebview({ type: "vsCodeLmModels", models })
 		} catch (error) {
-			EventBridge.outputChannel?.appendLine(
+			backendLog.info(
 				`Error fetching VS Code LM models: ${error instanceof Error ? error.message : String(error)}`,
 			)
 			await provider.postMessageToWebview({ type: "vsCodeLmModels", models: [] })

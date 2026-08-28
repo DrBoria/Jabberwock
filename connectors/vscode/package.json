@@ -4,6 +4,15 @@
 	"description": "v4 host adapter for the VSCode extension (IBackendConnector + IFrontendConnector). The ONLY place in the repo allowed to import \"vscode\" on its backend side — plan §3.1, G6.",
 	"private": true,
 	"type": "module",
+	"dependencies": {
+		"@anthropic-ai/sdk": "^0.37.0",
+		"@dotenvx/dotenvx": "^1.34.0",
+		"@jabberwock/cloud": "workspace:^",
+		"@jabberwock/telemetry": "workspace:^",
+		"@jabberwock/types": "workspace:^",
+		"delay": "^6.0.0",
+		"openai": "^5.12.2"
+	},
 	"scripts": {
 		"lint": "echo 'connector-vscode: skeleton (Phase A1), no sources yet'",
 		"check-types": "echo 'connector-vscode: skeleton (Phase A1), nothing to type-check'",

@@ -1,16 +1,16 @@
-import vscode from "vscode"
-
 import type { WorktreeListResponse } from "@jabberwock/types"
 import { worktreeService } from "@jabberwock/core"
 
+// v4 B2 (L4): workspace roots come from the host context DI slot, not vscode directly.
+import { getWorkspaceRoots } from "@features/foundation/vscode/context"
 import { getWorkspacePath } from "@utils/io/path"
 import { isWorkspaceSubfolder } from "./handlers"
 
 export async function handleListWorktrees(): Promise<WorktreeListResponse> {
-	const workspaceFolders = vscode.workspace.workspaceFolders
-	const isMultiRoot = workspaceFolders ? workspaceFolders.length > 1 : false
+	const workspaceRoots = getWorkspaceRoots()
+	const isMultiRoot = workspaceRoots.length > 1
 
-	if (!workspaceFolders || workspaceFolders.length === 0) {
+	if (workspaceRoots.length === 0) {
 		return {
 			worktrees: [],
 			isGitRepo: false,

@@ -169,8 +169,10 @@ function showOpenFileError(error: unknown): void {
 		return
 	}
 	if (error instanceof Error) {
-		vscode.window.showErrorMessage(t("common:errors.could_not_open_file", { errorMessage: error.message }))
+		publishNotificationError(t("common:errors.could_not_open_file", { errorMessage: error.message }))
 	} else {
-		vscode.window.showErrorMessage(t("common:errors.could_not_open_file_generic"))
+		publishNotificationError(t("common:errors.could_not_open_file_generic"))
 	}
 }
+
+import { publishNotificationError } from "@features/foundation/capabilities/notifications"

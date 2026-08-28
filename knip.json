@@ -4,7 +4,7 @@
 		"**/__tests__/**",
 		"apps/vscode-e2e/**",
 		"backend/extension/api.ts",
-		"backend/activate/**",
+		"connectors/vscode/backend/activation/**",
 		"backend/workers/countTokens.ts",
 		"backend/extension.ts",
 		"scripts/**",

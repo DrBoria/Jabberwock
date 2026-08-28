@@ -19,7 +19,7 @@ export function registerOnSettingsVscode(bus: IntentBus): void {
 			if (ALLOWED_VSCODE_SETTINGS.has(setting)) {
 				await vscode.workspace.getConfiguration().update(setting, value, true)
 			} else {
-				vscode.window.showErrorMessage(`Cannot update restricted VSCode setting: ${setting}`)
+				publishNotificationError(`Cannot update restricted VSCode setting: ${setting}`)
 			}
 		}
 	})
@@ -67,3 +67,5 @@ export function registerOnSettingsVscode(bus: IntentBus): void {
 		await getVscodeContext().extensionContext.globalState.update("debugSetting", bool)
 	})
 }
+
+import { publishNotificationError } from "@features/foundation/capabilities/notifications"

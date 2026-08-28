@@ -1,6 +1,6 @@
 import type { IntentHandlerContext as IntentBusCtx } from "@features/intents/context"
 import type { CodebaseIndexConfig, CodebaseIndexProvider } from "@jabberwock/types"
-import { EventBridge } from "@features/foundation/webview/EventBridge"
+import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
 import { getVscodeContext } from "@features/foundation/vscode/context"
 import { postStateToWebview } from "@features/foundation/window-manager/store"
 import { getCodeIndexManager } from "@services/code-index/manager/manager.factory"
@@ -58,12 +58,12 @@ export async function handleSaveSettings(
 		if (currentCodeIndexManager) {
 			await handleManagerAfterSettingsSave(provider, currentCodeIndexManager, embedderProviderChanged)
 		} else {
-			EventBridge.outputChannel?.appendLine("Cannot save code index settings: No workspace folder open")
+			backendLog.info("Cannot save code index settings: No workspace folder open")
 			await sendNoWorkspaceResponse(provider)
 		}
 	} catch (error) {
 		const errMsg = error instanceof Error ? error.message : String(error)
-		EventBridge.outputChannel?.appendLine(`Error saving code index settings: ${errMsg}`)
+		backendLog.info(`Error saving code index settings: ${errMsg}`)
 		await provider.postMessageToWebview({
 			type: "codeIndexSettingsSaved",
 			success: false,

@@ -1,4 +1,4 @@
-import * as vscode from "vscode"
+import { readFile, stat } from "fs/promises"
 import { createHash } from "crypto"
 import { v5 as uuidv5 } from "uuid"
 import { Ignore } from "ignore"
@@ -40,7 +40,8 @@ export async function processFile(
 			}
 		}
 
-		const fileStat = await vscode.workspace.fs.stat(vscode.Uri.file(filePath))
+		// v4 B2 (L5): node:fs — same size semantics as workspace.fs.stat for regular files.
+		const fileStat = await stat(filePath)
 		if (fileStat.size > MAX_FILE_SIZE_BYTES) {
 			return {
 				path: filePath,
@@ -49,8 +50,8 @@ export async function processFile(
 			}
 		}
 
-		const fileContent = await vscode.workspace.fs.readFile(vscode.Uri.file(filePath))
-		const content = fileContent.toString()
+		// v4 B2 (L5): node:fs — Buffer#toString defaults to utf-8, same as before.
+		const content = await readFile(filePath, "utf-8")
 
 		const newHash = createHash("sha256").update(content).digest("hex")
 

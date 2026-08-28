@@ -8,7 +8,7 @@ import { getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 import { t } from "@i18n"
 import * as vscode from "vscode"
 import type { WebviewStatePayload } from "@features/foundation/window-manager/store"
-import { EventBridge } from "@features/foundation/webview/EventBridge"
+import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
 
 /**
  * Register all context/prompt settings intent handlers.
@@ -103,10 +103,10 @@ export function registerOnSettingsContext(bus: IntentBus): void {
 				mode: payload.mode,
 			})
 		} catch (error) {
-			EventBridge.outputChannel?.appendLine(
+			backendLog.info(
 				`Error getting system prompt: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 			)
-			vscode.window.showErrorMessage(t("common:errors.get_system_prompt"))
+			publishNotificationError(t("common:errors.get_system_prompt"))
 		}
 	})
 
@@ -123,10 +123,10 @@ export function registerOnSettingsContext(bus: IntentBus): void {
 			await vscode.env.clipboard.writeText(systemPrompt)
 			await vscode.window.showInformationMessage(t("common:info.clipboard_copy"))
 		} catch (error) {
-			EventBridge.outputChannel?.appendLine(
+			backendLog.info(
 				`Error getting system prompt: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
 			)
-			vscode.window.showErrorMessage(t("common:errors.get_system_prompt"))
+			publishNotificationError(t("common:errors.get_system_prompt"))
 		}
 	})
 
@@ -136,3 +136,5 @@ export function registerOnSettingsContext(bus: IntentBus): void {
 		await getVscodeContext().updateGlobalState("customInstructions", payload.text)
 	})
 }
+
+import { publishNotificationError } from "@features/foundation/capabilities/notifications"

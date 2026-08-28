@@ -1,5 +1,5 @@
 import type { GlobalState } from "@jabberwock/types"
-import { EventBridge } from "@features/foundation/webview/EventBridge"
+import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
 import { IntentType } from "@jabberwock/types"
 import { searchCommits } from "@utils/git"
 import { exportSettings } from "@features/settings/actions/export"
@@ -38,10 +38,10 @@ export function registerOnHistory(bus: IntentBus): void {
 					commits,
 				})
 			} catch (error) {
-				EventBridge.outputChannel?.appendLine(
+				backendLog.info(
 					`Error searching commits: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`,
 				)
-				vscode.window.showErrorMessage(t("common:errors.search_commits"))
+				publishNotificationError(t("common:errors.search_commits"))
 			}
 		}
 	})
@@ -106,3 +106,5 @@ export function registerOnHistory(bus: IntentBus): void {
 		provider.postMessageToWebview({ type: "action", action: "historyButtonClicked" })
 	})
 }
+
+import { publishNotificationError } from "@features/foundation/capabilities/notifications"

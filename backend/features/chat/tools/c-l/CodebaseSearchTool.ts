@@ -1,9 +1,8 @@
-import * as vscode from "vscode"
-
 import type { ITaskModel } from "@features/chat/task/store"
 import { CodeIndexManager } from "@services/code-index/manager/manager"
 import { getCodeIndexManager } from "@services/code-index/manager/manager.factory"
-import { getWorkspacePath } from "@utils/io/path"
+import { getVscodeContext, getWorkspaceRoots } from "@features/foundation/vscode/context"
+import { normalizePath, toRelativePath, getWorkspacePath } from "@utils/io/path"
 import { formatResponse } from "@features/settings/context/responses"
 import { VectorStoreSearchResult } from "@services/code-index/interfaces"
 import type { ToolUse } from "@shared/tools"
@@ -12,7 +11,6 @@ import { BaseTool, ToolCallbacks } from "@features/chat/tools/a-b/BaseTool"
 import { ask } from "@features/chat/task/notifications/actions/ask"
 import { systemBroadcast } from "@features/chat/task/messages/actions/say"
 import { sayAndCreateMissingParamError } from "@features/chat/task/messages/actions/command/sayAndCreateMissingParamError"
-import { getProvider } from "@features/foundation/webview/providerRegistry"
 
 interface CodebaseSearchParams {
 	query: string
@@ -23,8 +21,8 @@ interface CodebaseSearchParams {
  * Resolves and validates the CodeIndexManager, throwing if unavailable.
  */
 function resolveCodeIndexManager(): CodeIndexManager {
-	const context = getProvider().context as vscode.ExtensionContext
-	const manager = getCodeIndexManager(context as vscode.ExtensionContext)
+	// v4 B2 (L3): the structural context view — no cast needed.
+	const manager = getCodeIndexManager(getVscodeContext().extensionContext)
 
 	if (!manager) {
 		throw new Error("CodeIndexManager is not available.")
@@ -70,7 +68,16 @@ function processSearchResults(
 		if (!result.payload) return
 		if (!("filePath" in result.payload)) return
 
-		const relativePath = vscode.workspace.asRelativePath(result.payload.filePath, false)
+		// v4 B2 (L4): multi-root-aware equivalent of workspace.asRelativePath over the host-context roots.
+		const filePath = normalizePath(String(result.payload.filePath))
+		let relativePath: string | undefined
+		for (const root of getWorkspaceRoots()) {
+			if (filePath === root || filePath.startsWith(root + "/")) {
+				relativePath = toRelativePath(filePath, root)
+				break
+			}
+		}
+		if (!relativePath) relativePath = normalizePath(String(result.payload.filePath)).toPosix()
 		jsonResult.results.push({
 			filePath: relativePath,
 			score: result.score,

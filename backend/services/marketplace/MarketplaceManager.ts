@@ -1,5 +1,5 @@
-import * as vscode from "vscode"
-
+// v4 B2 (L3/L14): structural host-context view instead of the vscode ExtensionContext type.
+import type { IExtensionContextView } from "@features/foundation/vscode/context"
 import type { MarketplaceItem, MarketplaceItemType } from "@jabberwock/types"
 
 import { RemoteConfigLoader } from "./RemoteConfigLoader"
@@ -16,7 +16,7 @@ export class MarketplaceManager {
 	private configLoader: RemoteConfigLoader
 	private installer: SimpleInstaller
 
-	constructor(private readonly context: vscode.ExtensionContext) {
+	constructor(private readonly context: IExtensionContextView) {
 		this.configLoader = new RemoteConfigLoader()
 		this.installer = new SimpleInstaller(context)
 	}

@@ -23,7 +23,7 @@ async function handleWebviewLaunched(ctx: never): Promise<void> {
 		return
 	}
 
-	const rootStore = ctx as never
+	const rootStore = (ctx as {rootStore: never}).rootStore
 
 	// 1. Custom Modes
 	const customModes = (rootStore as never as { settings: { modes: { customModes: never } } }).settings.modes

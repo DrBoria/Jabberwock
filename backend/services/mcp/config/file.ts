@@ -1,9 +1,9 @@
-import * as vscode from "vscode"
 import * as path from "path"
 import * as fs from "fs/promises"
 
 import { z } from "zod"
 
+import type { IExtensionContextView } from "@features/foundation/vscode/context"
 import { fileExistsAtPath } from "@utils/io/fs"
 import { safeWriteJson } from "@utils/io"
 import { getSettingsDirectoryPath } from "@utils/io"
@@ -163,7 +163,8 @@ export async function updateServerConfig(
 	}
 }
 
-export async function getMcpSettingsFilePath(context: vscode.ExtensionContext): Promise<string> {
+// v4 B2 (L14): widened to the structural context view — only globalStorageUri is consumed via ensureSettingsDirectoryExists.
+export async function getMcpSettingsFilePath(context: IExtensionContextView): Promise<string> {
 	const mcpSettingsFilePath = path.join(await ensureSettingsDirectoryExists(context), GlobalFileNames.mcpSettings)
 	const fileExists = await fileExistsAtPath(mcpSettingsFilePath)
 	if (!fileExists) {

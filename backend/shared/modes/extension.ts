@@ -1,10 +1,11 @@
-import * as vscode from "vscode"
+import type { IExtensionContextView } from "@features/foundation/vscode/context"
 import { type ModeConfig, type CustomModePrompts } from "@jabberwock/types"
 import { addCustomInstructions } from "@features/settings/context/sections/custom-instructions"
 import { modes, getAllModes, getModeBySlug } from "./modes"
 
 // Helper function to get all modes with their prompt overrides from extension state
-export async function getAllModesWithPrompts(context: vscode.ExtensionContext): Promise<ModeConfig[]> {
+/** v4 B2 (L3/L7): widened to the structural context view — real host contexts satisfy it structurally. */
+export async function getAllModesWithPrompts(context: IExtensionContextView): Promise<ModeConfig[]> {
 	const customModes = (await context.globalState.get<ModeConfig[]>("customModes")) || []
 	const customModePrompts = (await context.globalState.get<CustomModePrompts>("customModePrompts")) || {}
 

@@ -40,10 +40,13 @@ export async function saveConfig(
 			const existingId = providerProfiles.apiConfigs[name]?.id
 			const id = config.id || existingId || deps.generateId()
 
+			// Normalize an empty-string apiProvider to "no provider" for the discriminated union.
+			const normalizedConfig =
+				config.apiProvider?.length === 0 ? { ...config, apiProvider: undefined } : config
 			const filteredConfig =
-				typeof config.apiProvider === "string" && isRetiredProvider(config.apiProvider)
-					? providerSettingsWithIdSchema.passthrough().parse(config)
-					: discriminatedProviderSettingsWithIdSchema.parse(config)
+				typeof normalizedConfig.apiProvider === "string" && isRetiredProvider(normalizedConfig.apiProvider)
+					? providerSettingsWithIdSchema.passthrough().parse(normalizedConfig)
+					: discriminatedProviderSettingsWithIdSchema.parse(normalizedConfig)
 			providerProfiles.apiConfigs[name] = { ...filteredConfig, id }
 			await deps.store(providerProfiles)
 			return id

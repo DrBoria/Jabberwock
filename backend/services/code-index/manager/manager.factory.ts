@@ -1,37 +1,24 @@
-import * as vscode from "vscode"
+import type { IExtensionContextView } from "@features/foundation/vscode/context"
+import { getWorkspaceRoots } from "@features/foundation/vscode/context"
 
 import { CodeIndexManager } from "./manager"
 
 const _instances = new Map<string, CodeIndexManager>()
 
+/** v4 B2 (L3): widened to the structural context view — real host contexts satisfy it structurally. */
 export function getCodeIndexManager(
-	context: vscode.ExtensionContext,
+	context: IExtensionContextView,
 	workspacePath?: string,
 ): CodeIndexManager | undefined {
-	let folder: vscode.WorkspaceFolder | undefined
+	// v4 B2 (L4): workspace roots come from the host-context DI slot; an explicit path is trusted as-is.
+	// The active-editor heuristic was a vscode-only convenience and is out of scope for v1 (plan §2.3 L4).
+	const resolvedPath = workspacePath ?? getWorkspaceRoots()[0]
+	if (!resolvedPath) return undefined
 
-	if (workspacePath) {
-		folder = vscode.workspace.workspaceFolders?.find((f) => f.uri.fsPath === workspacePath)
-	} else {
-		const activeEditor = vscode.window.activeTextEditor
-		if (activeEditor) {
-			folder = vscode.workspace.getWorkspaceFolder(activeEditor.document.uri)
-		}
-		if (!folder) {
-			const workspaceFolders = vscode.workspace.workspaceFolders
-			if (!workspaceFolders || workspaceFolders.length === 0) {
-				return undefined
-			}
-			folder = workspaceFolders[0]
-		}
-		workspacePath = folder.uri.fsPath
+	if (!_instances.has(resolvedPath)) {
+		_instances.set(resolvedPath, new CodeIndexManager(resolvedPath, context))
 	}
-
-	if (!_instances.has(workspacePath)) {
-		const folderUri = folder?.uri ?? vscode.Uri.file(workspacePath)
-		_instances.set(workspacePath, new CodeIndexManager(workspacePath, folderUri, context))
-	}
-	return _instances.get(workspacePath)!
+	return _instances.get(resolvedPath)!
 }
 
 export function getAllCodeIndexManagers(): CodeIndexManager[] {

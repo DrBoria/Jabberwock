@@ -1,7 +1,7 @@
 import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
 import { WebviewMessage } from "@jabberwock/types"
 
-type WebviewMessageHandler = (provider: ProviderHandle, message: { [key: string]: unknown }) => Promise<void>
+type WebviewMessageHandler = (provider: ProviderHandle, message: WebviewMessage) => Promise<void>
 
 /**
  * Registry of per-type webview message handlers.
@@ -41,12 +41,11 @@ export function onWebviewMessage(
  * the message type, a warning is emitted to help identify unhandled messages.
  */
 export const webviewMessageHandler: WebviewMessageHandler = async (provider, message) => {
-	const typedMessage = message as never as WebviewMessage
-	const type = typedMessage.type
+	const type = message.type
 
 	const handler = messageHandlers.get(type)
 	if (handler) {
-		handler(provider, typedMessage)
+		handler(provider, message)
 		return
 	}
 

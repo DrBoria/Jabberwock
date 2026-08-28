@@ -1,8 +1,9 @@
-import * as vscode from "vscode"
 import { EventEmitter } from "events"
 
-import type { McpResourceResponse, McpServer, McpToolCallResponse } from "@jabberwock/types"
+// v4 B2 (L14): protocol + structural types only — no host imports in the hub core.
+import type { DisposableLike, IFileWatcher, McpResourceResponse, McpServer, McpToolCallResponse } from "@jabberwock/types"
 import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
+import type { IExtensionContextView } from "@features/foundation/vscode/context"
 import type { McpHubState } from "./types"
 
 import { getMcpSettingsFilePath as getMcpSettingsFilePathHelper } from "@services/mcp/config"
@@ -32,11 +33,12 @@ export class McpHub extends EventEmitter {
 	connections: import("./types").McpConnection[] = []
 	isConnecting: boolean = false
 
-	private _context: vscode.ExtensionContext
-	private disposables: vscode.Disposable[] = []
-	private settingsWatcher?: vscode.FileSystemWatcher
+	// v4 B2 (L14): structural types — the host context satisfies IExtensionContextView structurally.
+	private _context: IExtensionContextView
+	private disposables: DisposableLike[] = []
+	private settingsWatcher?: IFileWatcher | undefined
 	private fileWatchers: Map<string, import("chokidar").FSWatcher[]> = new Map()
-	private projectMcpWatcher?: vscode.FileSystemWatcher
+	private projectMcpWatcher?: IFileWatcher | undefined
 	private isDisposed: boolean = false
 	private refCount: number = 0
 	private configChangeDebounceTimers: Map<string, NodeJS.Timeout> = new Map()
@@ -76,7 +78,8 @@ export class McpHub extends EventEmitter {
 		}
 	}
 
-	constructor(provider: ProviderHandle, context: vscode.ExtensionContext) {
+	// v4 B2 (L14): structural view — real host contexts satisfy it structurally.
+	constructor(provider: ProviderHandle, context: IExtensionContextView) {
 		super()
 		this.providerRef = new WeakRef(provider)
 		this._context = context

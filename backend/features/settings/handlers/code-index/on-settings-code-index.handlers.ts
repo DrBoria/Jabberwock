@@ -1,5 +1,6 @@
 import type { IntentHandlerContext as IntentBusCtx } from "@features/intents/context"
-import { EventBridge } from "@features/foundation/webview/EventBridge"
+import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
+import { getBackendCapabilities } from "@features/foundation/capabilities/registry"
 import { getVscodeContext } from "@features/foundation/vscode/context"
 import { getCodeIndexManager, getAllCodeIndexManagers } from "@services/code-index/manager/manager.factory"
 import { t } from "@i18n"
@@ -41,14 +42,15 @@ export async function handleSecretStatus(
 		return
 	}
 
-	const secrets = provider.context.secrets
-	const hasOpenAiKey = !!(await secrets.get("codeIndexOpenAiKey"))
-	const hasQdrantApiKey = !!(await secrets.get("codeIndexQdrantApiKey"))
-	const hasOpenAiCompatibleApiKey = !!(await secrets.get("codebaseIndexOpenAiCompatibleApiKey"))
-	const hasGeminiApiKey = !!(await secrets.get("codebaseIndexGeminiApiKey"))
-	const hasMistralApiKey = !!(await secrets.get("codebaseIndexMistralApiKey"))
-	const hasVercelAiGatewayApiKey = !!(await secrets.get("codebaseIndexVercelAiGatewayApiKey"))
-	const hasOpenRouterApiKey = !!(await secrets.get("codebaseIndexOpenRouterApiKey"))
+	// v4 B3: secrets now live on the injected hostContext capability (§4.3) instead of provider.context.
+	const secrets = getBackendCapabilities().hostContext.secrets
+	const hasOpenAiKey = !!(await secrets?.get("codeIndexOpenAiKey"))
+	const hasQdrantApiKey = !!(await secrets?.get("codeIndexQdrantApiKey"))
+	const hasOpenAiCompatibleApiKey = !!(await secrets?.get("codebaseIndexOpenAiCompatibleApiKey"))
+	const hasGeminiApiKey = !!(await secrets?.get("codebaseIndexGeminiApiKey"))
+	const hasMistralApiKey = !!(await secrets?.get("codebaseIndexMistralApiKey"))
+	const hasVercelAiGatewayApiKey = !!(await secrets?.get("codebaseIndexVercelAiGatewayApiKey"))
+	const hasOpenRouterApiKey = !!(await secrets?.get("codebaseIndexOpenRouterApiKey"))
 
 	provider.postMessageToWebview({
 		type: "codeIndexSecretStatus",
@@ -76,7 +78,7 @@ export async function handleStartIndexing(
 	try {
 		await startCodeIndexing(provider)
 	} catch (error) {
-		EventBridge.outputChannel?.appendLine(
+		backendLog.info(
 			`Error starting indexing: ${error instanceof Error ? error.message : String(error)}`,
 		)
 	}
@@ -94,7 +96,7 @@ export async function handleStopIndexing(
 	try {
 		const manager = getCodeIndexManager(getVscodeContext().extensionContext)
 		if (!manager) {
-			EventBridge.outputChannel?.appendLine("Cannot stop indexing: No workspace folder open")
+			backendLog.info("Cannot stop indexing: No workspace folder open")
 			return
 		}
 		manager.stopIndexing()
@@ -103,7 +105,7 @@ export async function handleStopIndexing(
 			values: manager.getCurrentStatus(),
 		})
 	} catch (error) {
-		EventBridge.outputChannel?.appendLine(
+		backendLog.info(
 			`Error stopping indexing: ${error instanceof Error ? error.message : String(error)}`,
 		)
 	}
@@ -123,7 +125,7 @@ export async function handleToggleWorkspaceIndexing(
 	try {
 		await toggleWorkspaceIndexing(provider, payload.bool)
 	} catch (error) {
-		EventBridge.outputChannel?.appendLine(
+		backendLog.info(
 			`Error toggling workspace indexing: ${error instanceof Error ? error.message : String(error)}`,
 		)
 	}
@@ -143,7 +145,7 @@ export async function handleAutoEnableDefault(
 	try {
 		const manager = getCodeIndexManager(getVscodeContext().extensionContext)
 		if (!manager) {
-			EventBridge.outputChannel?.appendLine("Cannot set auto-enable default: No workspace folder open")
+			backendLog.info("Cannot set auto-enable default: No workspace folder open")
 			return
 		}
 
@@ -158,7 +160,7 @@ export async function handleAutoEnableDefault(
 			values: manager.getCurrentStatus(),
 		})
 	} catch (error) {
-		EventBridge.outputChannel?.appendLine(
+		backendLog.info(
 			`Error setting auto-enable default: ${error instanceof Error ? error.message : String(error)}`,
 		)
 	}
@@ -176,7 +178,7 @@ export async function handleClearIndexData(
 	try {
 		const manager = getCodeIndexManager(getVscodeContext().extensionContext)
 		if (!manager) {
-			EventBridge.outputChannel?.appendLine("Cannot clear index data: No workspace folder open")
+			backendLog.info("Cannot clear index data: No workspace folder open")
 			provider.postMessageToWebview({
 				type: "indexCleared",
 				values: {
@@ -189,7 +191,7 @@ export async function handleClearIndexData(
 		await manager.clearIndexData()
 		provider.postMessageToWebview({ type: "indexCleared", values: { success: true } })
 	} catch (error) {
-		EventBridge.outputChannel?.appendLine(
+		backendLog.info(
 			`Error clearing index data: ${error instanceof Error ? error.message : String(error)}`,
 		)
 		provider.postMessageToWebview({

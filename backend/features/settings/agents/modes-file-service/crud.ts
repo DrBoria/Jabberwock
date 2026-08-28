@@ -1,4 +1,7 @@
-import * as vscode from "vscode"
+// v4 B2 (L3/L14): structural host-context view instead of the vscode ExtensionContext type.
+import type { IExtensionContextView } from "@features/foundation/vscode/context"
+// v4 B2 (L4): workspace roots come from the host context DI slot, not vscode directly.
+import { getWorkspaceRoots } from "@features/foundation/vscode/context"
 import * as path from "path"
 import * as fs from "fs/promises"
 
@@ -21,7 +24,7 @@ import { deleteRulesFolder } from "./rules/utils"
 export async function updateCustomModeInFile(
 	slug: string,
 	config: ModeConfig,
-	context: vscode.ExtensionContext,
+	context: IExtensionContextView,
 ): Promise<void> {
 	const validationResult = modeConfigSchema.safeParse(config)
 	if (!validationResult.success) {
@@ -30,7 +33,7 @@ export async function updateCustomModeInFile(
 			.join(", ")
 		const errorMessage = `Invalid mode configuration: ${errorMessages}`
 		logger.error("Mode validation failed", { slug, errors: validationResult.error.errors })
-		vscode.window.showErrorMessage(t("common:customModes.errors.updateFailed", { error: errorMessage }))
+		publishNotificationError(t("common:customModes.errors.updateFailed", { error: errorMessage }))
 		throw new Error(errorMessage)
 	}
 
@@ -38,9 +41,9 @@ export async function updateCustomModeInFile(
 	let targetPath: string
 
 	if (isProjectMode) {
-		const workspaceFolders = vscode.workspace.workspaceFolders
+		const workspaceRoots = getWorkspaceRoots()
 
-		if (!workspaceFolders || workspaceFolders.length === 0) {
+		if (workspaceRoots.length === 0) {
 			logger.error("Failed to update project mode: No workspace folder found", { slug })
 			throw new Error(t("common:customModes.errors.noWorkspaceForProject"))
 		}
@@ -68,7 +71,7 @@ export async function updateCustomModeInFile(
  */
 export async function deleteCustomModeFromFile(
 	slug: string,
-	context: vscode.ExtensionContext,
+	context: IExtensionContextView,
 	fromMarketplace = false,
 ): Promise<void> {
 	const settingsPath = await getCustomModesFilePath(context)
@@ -102,7 +105,7 @@ export async function deleteCustomModeFromFile(
 /**
  * Reset custom modes by clearing the settings file
  */
-export async function resetCustomModesInFile(context: vscode.ExtensionContext): Promise<void> {
+export async function resetCustomModesInFile(context: IExtensionContextView): Promise<void> {
 	const filePath = await getCustomModesFilePath(context)
 	await fs.writeFile(filePath, yaml.stringify({ customModes: [] }, { lineWidth: 0 }))
 	await context.globalState.update("customModes", [])
@@ -114,3 +117,5 @@ export async function resetCustomModesInFile(context: vscode.ExtensionContext): 
 	store.setCustomModes([])
 	store.setCachedAt(0)
 }
+
+import { publishNotificationError } from "@features/foundation/capabilities/notifications"

@@ -121,6 +121,22 @@ export interface ISecretStore {
  * host-агностичные значения; всё vscode-специфичное должно адаптироваться
  * коннектором в эти простые поля.
  */
+/**
+ * Minimal structural memento view (key/value state store). Host mementos satisfy it structurally;
+ * server mode adapts the hashmap-memory slot into this shape. Kept separate from `IHashmapMemory`
+ * because host mementos use synchronous reads + Thenable updates while the memory slot is fully async.
+ */
+export interface IMementoLike {
+	keys(): readonly string[]
+	get<T = unknown>(key: string): T | undefined
+	update(key: string, value: unknown): PromiseLike<void>
+}
+
+/**
+ * Host-provided context describing the runtime environment of the connector.
+ * Only host-agnostic values live here; anything vscode-specific must be adapted
+ * by the connector into these plain fields.
+ */
 export interface IHostContext {
 	readonly storageDir: string
 	readonly workspaceRoot: string
@@ -131,6 +147,18 @@ export interface IHostContext {
 		openExternal?(url: string): void
 	}
 	env?: Record<string, string | undefined>
+	/** Host extension version (`context.extension.packageJSON.version` in vscode mode); absent in server mode. */
+	extensionVersion?: string
+	/**
+	 * Optional host event: the workspace folder set changed. Extension mode adapts this from the
+	 * host's onDidChangeWorkspaceFolders; absent in server mode — consumers skip dependent behavior.
+	 * Audit-driven slot extension (plan §2.3 L6 / C-5 zero-host-API invariant, Phase B2).
+	 */
+	onWorkspaceFoldersChanged?: (handler: () => void) => DisposableLike
+	/** Key/value state store (host memento in extension mode; hashmap-memory adapter in server mode). */
+	memento?: IMementoLike
+	/** Workspace folder roots as plain paths. Extension mode = workspace folders of the host window. */
+	workspaceFolders?: readonly string[]
 }
 
 /**

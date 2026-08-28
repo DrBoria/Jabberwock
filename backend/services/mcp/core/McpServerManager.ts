@@ -1,4 +1,7 @@
-import * as vscode from "vscode"
+// v4 B2 (L14): structural context view instead of the host ExtensionContext — callers pass either a real
+// host context or the facade's synthesized view; both satisfy IExtensionContextView structurally.
+import type { IExtensionContextView } from "@features/foundation/vscode/context"
+
 import { McpHub } from "./McpHub"
 import { ProviderHandle } from "@features/foundation/webview/EventBridge"
 
@@ -17,7 +20,8 @@ export class McpServerManager {
 	 * Get (or create) the singleton McpHub instance.
 	 * Registers the provider for notifications.
 	 */
-	async getInstance(context: vscode.ExtensionContext, provider: ProviderHandle): Promise<McpHub> {
+	// v4 B2 (L14): widened to the structural view — only `globalState.update` is used below.
+	async getInstance(context: IExtensionContextView, provider: ProviderHandle): Promise<McpHub> {
 		// Register the provider
 		this.providers.add(provider)
 
@@ -82,7 +86,8 @@ export class McpServerManager {
 	/**
 	 * Clean up the instance and all its resources.
 	 */
-	async cleanup(context: vscode.ExtensionContext): Promise<void> {
+	// v4 B2 (L14): widened to the structural view — only `globalState.update` is used below.
+	async cleanup(context: IExtensionContextView): Promise<void> {
 		if (this._mcpHub) {
 			await this._mcpHub.dispose()
 			this._mcpHub = null

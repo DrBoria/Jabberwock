@@ -1,4 +1,4 @@
-import * as vscode from "vscode"
+
 
 import type { EventBridge } from "@features/foundation/webview/EventBridge"
 import type { ITaskModel } from "@features/chat/task/store"
@@ -55,7 +55,7 @@ export async function handleEditMessageConfirm(
 	if (messageIndex === -1) {
 		const errorMessage = t("common:errors.message.message_not_found", { messageTs })
 		console.error("[jabberwock] [handleEditMessageConfirm]", errorMessage)
-		await vscode.window.showErrorMessage(errorMessage)
+		await publishNotificationError(errorMessage)
 		return
 	}
 
@@ -86,7 +86,7 @@ export async function handleEditMessageConfirm(
 		)
 	} catch (error) {
 		console.error("[jabberwock] Error in edit message:", error)
-		vscode.window.showErrorMessage(
+		publishNotificationError(
 			t("common:errors.message.error_editing_message", {
 				error: error instanceof Error ? error.message : String(error),
 			}),
@@ -111,3 +111,5 @@ export async function handleMessageModificationsOperation(
 		await handleEditOperation(provider, store, messageTs, editedContent, images)
 	}
 }
+
+import { publishNotificationError } from "@features/foundation/capabilities/notifications"

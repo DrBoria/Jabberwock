@@ -58,7 +58,7 @@ export async function installMarketplaceItem(
 		return result.filePath
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error)
-		vscode.window.showErrorMessage(
+		publishNotificationError(
 			t("marketplace:installation.installError", { itemName: item.name, errorMessage }),
 		)
 		throw error
@@ -81,7 +81,9 @@ export async function removeInstalledMarketplaceItem(
 		getTelemetryService().captureMarketplaceItemRemoved(item.id, item.type, item.name, target)
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error)
-		vscode.window.showErrorMessage(t("marketplace:installation.removeError", { itemName: item.name, errorMessage }))
+		publishNotificationError(t("marketplace:installation.removeError", { itemName: item.name, errorMessage }))
 		throw error
 	}
 }
+
+import { publishNotificationError } from "@features/foundation/capabilities/notifications"

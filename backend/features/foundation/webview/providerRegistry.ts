@@ -1,3 +1,5 @@
+import type { IBackendConnector } from "@jabberwock/types"
+
 import type { ProviderHandle } from "./EventBridge"
 
 /**
@@ -42,4 +44,38 @@ export function hasProvider(): boolean {
 /** Clear the provider reference (called during deactivation). */
 export function clearProvider(): void {
 	_provider = undefined
+}
+
+// ─── v4 B2: active backend connector slot (§10.2 / §4.2) ──────────────
+// The registry now also holds the singleton active IBackendConnector so that
+// transport-agnostic code (window-manager messaging, L12 notification publishers)
+// can send outbound messages without importing host modules. Legacy ProviderHandle
+// accessors above stay until Phase E cleanup (§4.2: deprecated wrappers).
+
+let _connector: IBackendConnector | undefined
+
+/** Set the active backend connector (called once during bootstrap/activation). */
+export function setConnector(connector: IBackendConnector): void {
+	if (_connector) {
+		console.warn("[providerRegistry] Connector already set — overwriting")
+	}
+	_connector = connector
+}
+
+/** Get the active backend connector. Throws if not installed (bootstrap incomplete). */
+export function getConnector(): IBackendConnector {
+	if (!_connector) {
+		throw new Error("[providerRegistry] Backend connector not installed — bootstrap may not have completed")
+	}
+	return _connector
+}
+
+/** Check whether a backend connector has been registered. */
+export function hasConnector(): boolean {
+	return _connector !== undefined
+}
+
+/** Clear the connector reference (called during deactivation). */
+export function clearConnector(): void {
+	_connector = undefined
 }

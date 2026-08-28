@@ -1,5 +1,16 @@
 import { types } from "mobx-state-tree"
-import * as vscode from "vscode"
+import type { DisposableLike } from "@jabberwock/types"
+
+/** Structural webview surface — host Webviews satisfy it structurally (v4 B2 L14: no vscode types in serializable state). */
+export interface IWebviewLike {
+	postMessage(message: unknown): void
+}
+
+/**
+ * Structural host view/panel reference held by the window-manager store.
+ * `vscode.WebviewView` / `vscode.WebviewPanel` satisfy it structurally; server mode will provide its own ref shape (Phase B3+).
+ */
+export type HostWebViewRef = { readonly visible?: boolean; readonly webview: IWebviewLike } | null
 
 // ─── Non-serializable type aliases ──────────────────────────────────────────
 
@@ -14,18 +25,18 @@ export interface ChatNode {
 // ─── types.custom() wrappers ───────────────────────────────────────────────
 
 /**
- * Wraps a vscode.WebviewView or vscode.WebviewPanel reference.
+ * Wraps a host webview view/panel reference (structural — v4 B2 L14).
  * Snapshot is an empty string — the actual view cannot be serialized.
  */
-export const WebviewViewType = types.custom<string, vscode.WebviewView | vscode.WebviewPanel | null>({
+export const WebviewViewType = types.custom<string, HostWebViewRef>({
 	name: "WebviewView",
 	fromSnapshot(_snapshot: string) {
 		return null
 	},
-	toSnapshot(_value: vscode.WebviewView | vscode.WebviewPanel | null) {
+	toSnapshot(_value: HostWebViewRef) {
 		return ""
 	},
-	isTargetType(value: unknown): value is vscode.WebviewView | vscode.WebviewPanel {
+	isTargetType(value: unknown): value is NonNullable<HostWebViewRef> {
 		return value !== null && typeof value === "object" && "webview" in value
 	},
 	getValidationMessage() {
@@ -34,19 +45,19 @@ export const WebviewViewType = types.custom<string, vscode.WebviewView | vscode.
 })
 
 /**
- * Wraps an array of vscode.Disposable.
+ * Wraps an array of disposables (protocol DisposableLike — v4 B2 L14).
  * Snapshot is the count of disposables.
  */
-export const DisposablesType = types.custom<string, vscode.Disposable[]>({
+export const DisposablesType = types.custom<string, DisposableLike[]>({
 	name: "Disposables",
 	fromSnapshot(_snapshot: string) {
 		return []
 	},
-	toSnapshot(value: vscode.Disposable[]) {
+	toSnapshot(value: DisposableLike[]) {
 		return `disposables_${value.length}`
 	},
-	isTargetType(value: unknown): value is vscode.Disposable[] {
-		return Array.isArray(value)
+	isTargetType(value: unknown): value is DisposableLike[] {
+		return Array.isArray(value) && (value as unknown[]).every((d) => d !== null && typeof d === "object" && "dispose" in d)
 	},
 	getValidationMessage() {
 		return ""

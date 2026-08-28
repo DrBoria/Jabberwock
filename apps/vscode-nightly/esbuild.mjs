@@ -32,6 +32,9 @@ async function main() {
 		format: "cjs",
 		sourcesContent: false,
 		platform: "node",
+		// v4 B4: resolve backend aliases from backend/tsconfig.json — esbuild discovers the connector
+		// skeleton tsconfig (no paths) from the connector entry otherwise.
+		tsconfig: path.join(srcDir, "tsconfig.json"),
 		define: {
 			"process.env.PKG_NAME": '"jabberwock-nightly"',
 			"process.env.PKG_VERSION": `"${overrideJson.version}"`,
@@ -140,7 +143,7 @@ async function main() {
 	const extensionBuildOptions = {
 		...buildOptions,
 		plugins,
-		entryPoints: [path.join(srcDir, "extension.ts")],
+		entryPoints: [path.join(srcDir, "..", "connectors", "vscode", "backend", "main.ts")],
 		outfile: path.join(distDir, "extension.js"),
 		external: ["vscode"],
 	}

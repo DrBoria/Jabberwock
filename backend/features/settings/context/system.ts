@@ -1,4 +1,5 @@
 import * as vscode from "vscode"
+import type { IExtensionContextView } from "@features/foundation/vscode/context"
 
 import { type ModeConfig, type PromptComponent, type CustomModePrompts, type TodoItem } from "@jabberwock/types"
 
@@ -40,7 +41,8 @@ export function getPromptComponent(
 import { agentStore } from "@features/settings/agents/store/index"
 
 async function generatePrompt(
-	context: vscode.ExtensionContext,
+	/** v4 B2 (L3): structural context view — real host contexts satisfy it structurally. */
+	context: IExtensionContextView,
 	cwd: string,
 	supportsComputerUse: boolean,
 	mode: Mode,
@@ -164,7 +166,8 @@ ${await addCustomInstructions(baseInstructions, globalCustomInstructions, cwd, m
 }
 
 export const SYSTEM_PROMPT = async (
-	context: vscode.ExtensionContext,
+	/** v4 B2 (L3): structural context view — real host contexts satisfy it structurally. */
+	context: IExtensionContextView,
 	cwd: string,
 	supportsComputerUse: boolean,
 	mcpHub?: McpHub,

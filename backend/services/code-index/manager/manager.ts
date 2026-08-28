@@ -1,5 +1,4 @@
-import * as vscode from "vscode"
-import type { VscodeContextAccess } from "@features/foundation/vscode/context"
+import type { IExtensionContextView, VscodeContextAccess } from "@features/foundation/vscode/context"
 import { VectorStoreSearchResult } from "@services/code-index/interfaces"
 import { IndexingState } from "@services/code-index/interfaces/manager"
 import { CodeIndexConfigManager } from "@services/code-index/config/manager"
@@ -26,13 +25,15 @@ export class CodeIndexManager {
 	private _isRecoveringFromError = false
 
 	private readonly workspacePath: string
-	private readonly context: vscode.ExtensionContext
+	/** v4 B2 (L3): structural context view — real host contexts satisfy it structurally. */
+	private readonly context: IExtensionContextView
 
-	constructor(workspacePath: string, folderUri: vscode.Uri, context: vscode.ExtensionContext) {
+	constructor(workspacePath: string, context: IExtensionContextView) {
 		this.workspacePath = workspacePath
 		this.context = context
 		this._stateManager = new CodeIndexStateManager()
-		this._workspaceSettings = new WorkspaceSettings(folderUri, context)
+		// v4 B2 (L14): plain path instead of vscode.Uri — WorkspaceSettings replicates the Uri serialization for memento-key identity.
+		this._workspaceSettings = new WorkspaceSettings(workspacePath, context)
 	}
 
 	public get isWorkspaceEnabled(): boolean {

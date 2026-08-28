@@ -1,5 +1,8 @@
-import * as vscode from "vscode"
+import * as path from "path"
+import { promises as fsp } from "fs"
+
 import { createHash } from "crypto"
+import type { IExtensionContextView } from "@features/foundation/vscode/context"
 import { ICacheManager } from "./interfaces/cache"
 import debounce from "lodash.debounce"
 import { safeWriteJson } from "@utils/io"
@@ -10,7 +13,8 @@ import { TelemetryEventName } from "@jabberwock/types"
  * Manages the cache for code indexing
  */
 export class CacheManager implements ICacheManager {
-	private cachePath: vscode.Uri
+	/** v4 B2 (L5): plain path — node:fs replaces workspace.fs; the storage root comes from the structural context view. */
+	private cachePath: string
 	private fileHashes: Record<string, string> = {}
 	private _debouncedSaveCache: () => void
 
@@ -20,13 +24,12 @@ export class CacheManager implements ICacheManager {
 	 * @param workspacePath Path to the workspace
 	 */
 	constructor(
-		private context: vscode.ExtensionContext,
+		private context: IExtensionContextView,
 		private workspacePath: string,
 	) {
-		this.cachePath = vscode.Uri.joinPath(
-			context.globalStorageUri,
-			`jabberwock-index-cache-${createHash("sha256").update(workspacePath).digest("hex")}.json`,
-		)
+		// v4 B2 (L3/L5): the structural view exposes only fsPath — build the cache URI from an absolute path instead of Uri.joinPath on a host Uri. Resulting path is identical to before in extension mode.
+		const fileName = `jabberwock-index-cache-${createHash("sha256").update(workspacePath).digest("hex")}.json`
+		this.cachePath = path.join(context.globalStorageUri.fsPath, fileName)
 		this._debouncedSaveCache = debounce(async () => {
 			await this._performSave()
 		}, 1500)
@@ -37,8 +40,9 @@ export class CacheManager implements ICacheManager {
 	 */
 	async initialize(): Promise<void> {
 		try {
-			const cacheData = await vscode.workspace.fs.readFile(this.cachePath)
-			this.fileHashes = JSON.parse(cacheData.toString())
+			// v4 B2 (L5): node:fs — identical bytes to workspace.fs.readFile for file:// paths.
+			const cacheData = await fsp.readFile(this.cachePath, "utf-8")
+			this.fileHashes = JSON.parse(cacheData)
 		} catch (error) {
 			this.fileHashes = {}
 			getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
@@ -54,7 +58,7 @@ export class CacheManager implements ICacheManager {
 	 */
 	private async _performSave(): Promise<void> {
 		try {
-			await safeWriteJson(this.cachePath.fsPath, this.fileHashes)
+			await safeWriteJson(this.cachePath, this.fileHashes)
 		} catch (error) {
 			console.error("[jabberwock] Failed to save cache:", error)
 			getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
@@ -70,7 +74,7 @@ export class CacheManager implements ICacheManager {
 	 */
 	async clearCacheFile(): Promise<void> {
 		try {
-			await safeWriteJson(this.cachePath.fsPath, {})
+			await safeWriteJson(this.cachePath, {})
 			this.fileHashes = {}
 		} catch (error) {
 			console.error("[jabberwock] Failed to clear cache file:", error, this.cachePath)

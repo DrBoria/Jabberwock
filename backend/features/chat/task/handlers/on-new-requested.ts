@@ -5,7 +5,6 @@ import type { IntentBus } from "@features/intents/bus"
 import { resolveImageMentions } from "@features/chat/task/messages/actions/mentions/resolveImageMentions"
 import { createTask } from "@features/chat/task/actions/startTask"
 import { postStateToWebview } from "@features/foundation/window-manager/store"
-import * as vscode from "vscode"
 
 /**
  * Handles task.new.requested intent — creates a new task.
@@ -29,7 +28,7 @@ export function registerOnTaskNewRequested(bus: IntentBus): void {
 		handleNewTaskIntent(provider as never, ctx as never, payload).catch((error: unknown) => {
 			const errorMessage = error instanceof Error ? error.message : String(error)
 			console.error(`[jabberwock] [${new Date().toISOString()}] Failed to create task: ${errorMessage}`)
-			vscode.window.showErrorMessage(`Failed to create task: ${errorMessage}`)
+			publishNotificationError(`Failed to create task: ${errorMessage}`)
 			ctx.rootStore.chat.setIsRunning(false)
 			throw error
 		})
@@ -116,3 +115,5 @@ async function postTaskCreatedState(
 		} as { [key: string]: unknown },
 	)
 }
+
+import { publishNotificationError } from "@features/foundation/capabilities/notifications"

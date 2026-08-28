@@ -5,7 +5,7 @@ import * as fs from "fs/promises"
 import { t } from "@i18n"
 import { getWorkspacePath } from "@utils/io/path"
 import { getVscodeContext } from "@features/foundation/vscode/context"
-import { EventBridge } from "@features/foundation/webview/EventBridge"
+import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
 
 /** Resolve the rules folder path for a custom mode based on its scope */
 export function getCustomModeRulesFolderPath(slug: string, scope: string): string {
@@ -24,10 +24,10 @@ export function getCustomModeRulesFolderPath(slug: string, scope: string): strin
 export async function deleteRulesFolder(slug: string, rulesFolderPath: string): Promise<void> {
 	try {
 		await fs.rm(rulesFolderPath, { recursive: true, force: true })
-		EventBridge.outputChannel?.appendLine(`Deleted rules folder for mode ${slug}: ${rulesFolderPath}`)
+		backendLog.info(`Deleted rules folder for mode ${slug}: ${rulesFolderPath}`)
 	} catch (error) {
-		EventBridge.outputChannel?.appendLine(`Failed to delete rules folder for mode ${slug}: ${error}`)
-		vscode.window.showErrorMessage(
+		backendLog.info(`Failed to delete rules folder for mode ${slug}: ${error}`)
+		publishNotificationError(
 			t("common:errors.delete_rules_folder_failed", {
 				rulesFolderPath,
 				error: error instanceof Error ? error.message : String(error),
@@ -63,3 +63,5 @@ export function postExportResult(
 		slug,
 	})
 }
+
+import { publishNotificationError } from "@features/foundation/capabilities/notifications"

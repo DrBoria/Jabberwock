@@ -1,7 +1,8 @@
 import * as fs from "fs/promises"
 import * as path from "path"
 
-import * as vscode from "vscode"
+// v4 B2 (L3/L14): structural host-context view instead of the vscode ExtensionContext type.
+import type { IExtensionContextView } from "@features/foundation/vscode/context"
 import * as yaml from "yaml"
 
 import type { MarketplaceItem, InstallMarketplaceItemOptions } from "@jabberwock/types"
@@ -24,7 +25,7 @@ export interface InstallOptions extends InstallMarketplaceItemOptions {
 }
 
 export class SimpleInstaller {
-	constructor(private readonly context: vscode.ExtensionContext) {}
+	constructor(private readonly context: IExtensionContextView) {}
 
 	async installItem(item: MarketplaceItem, options: InstallOptions): Promise<{ filePath: string; line?: number }> {
 		const { target } = options

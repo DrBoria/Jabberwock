@@ -1,4 +1,5 @@
 import * as vscode from "vscode"
+import type { IExtensionContextView } from "@features/foundation/vscode/context"
 import { BATCH_SEGMENT_THRESHOLD } from "@services/code-index/constants"
 import { scannerExtensions } from "@services/code-index/shared/supported-extensions"
 import {
@@ -63,7 +64,8 @@ export class FileWatcher implements IFileWatcher {
 
 	constructor(
 		private workspacePath: string,
-		private context: vscode.ExtensionContext,
+		/** v4 B2 (L3): structural context view — real host contexts satisfy it structurally. */
+		private context: IExtensionContextView,
 		private readonly cacheManager: CacheManager,
 		private embedder?: IEmbedder,
 		private vectorStore?: IVectorStore,
