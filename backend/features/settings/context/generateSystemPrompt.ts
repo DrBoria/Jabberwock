@@ -10,7 +10,7 @@ import { Package } from "@shared/package"
 import { EventBridge } from "@features/foundation/webview/EventBridge"
 import { getSkillsManager } from "@features/settings/skills/store"
 import { getBackendRootStore } from "@features/storeSingleton"
-import { getVscodeContext } from "@features/foundation/vscode/context"
+import { getHostEnvironment } from "@features/foundation/host-context/context"
 import { getWorkspacePath } from "@utils/io/path"
 import { getSettingsAccess } from "@utils/settings"
 
@@ -37,7 +37,7 @@ export const generateSystemPrompt = async (provider: EventBridge, message: Webvi
 	const systemPromptSettings = buildSystemPromptSettings(apiConfiguration, enableSubfolderRules, modelInfo)
 
 	const systemPrompt = await SYSTEM_PROMPT(
-		getVscodeContext().extensionContext,
+		getHostEnvironment().extensionContext,
 		cwd,
 		false,
 		mcpEnabled ? (getMcpServerManager().getMcpHub() ?? undefined) : undefined,

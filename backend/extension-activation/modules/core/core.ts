@@ -7,7 +7,7 @@ import { customToolRegistry } from "@jabberwock/core"
 import { createOutputChannelLogger, createDualLogger } from "@utils/logger"
 import { initializeNetworkProxy } from "@utils/network-proxy"
 import { Package } from "@shared/package"
-import { initVscodeContext, getVscodeContext } from "@features/foundation/vscode/context"
+import { installBackendState, getHostEnvironment } from "@features/foundation/host-context/context"
 import { runSettingsMigrations } from "@features/settings/actions/runMigrations"
 import { TerminalRegistry } from "@integrations/terminal/TerminalRegistry"
 import { openAiCodexOAuthManager } from "@integrations/openai-codex/oauth"
@@ -52,7 +52,7 @@ export async function initializeCoreSetup(
 		context.globalState.update("allowedCommands", defaultCommands)
 	}
 
-	initVscodeContext(context)
+	installBackendState(context)
 	await runSettingsMigrations(context)
 
 	return { telemetryService, cloudLogger, mdmService }
@@ -68,7 +68,7 @@ export function initializeCodeIndexManagers(
 		const manager = getCodeIndexManager(context, folder.uri.fsPath)
 		if (!manager) continue
 
-		void manager.initialize(getVscodeContext()).catch((error) => {
+		void manager.initialize(getHostEnvironment()).catch((error) => {
 			const message = error instanceof Error ? error.message : String(error)
 			outputChannel.appendLine(
 				`[CodeIndexManager] Error during background CodeIndexManager configuration/indexing for ${folder.uri.fsPath}: ${message}`,

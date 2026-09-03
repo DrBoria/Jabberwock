@@ -2,7 +2,7 @@ import type { WorktreeListResponse } from "@jabberwock/types"
 import { worktreeService } from "@jabberwock/core"
 
 // v4 B2 (L4): workspace roots come from the host context DI slot, not vscode directly.
-import { getWorkspaceRoots } from "@features/foundation/vscode/context"
+import { getWorkspaceRoots } from "@features/foundation/host-context/context"
 import { getWorkspacePath } from "@utils/io/path"
 import { isWorkspaceSubfolder } from "./handlers"
 

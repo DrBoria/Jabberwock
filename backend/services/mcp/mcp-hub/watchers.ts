@@ -20,12 +20,12 @@ interface ProjectMcpFileWatcher extends McpFileSystemWatcher {
 	onDelete(handler: (path: string) => void): DisposableLike
 }
 
-import type { IHostUri } from "@features/foundation/vscode/context"
+import type { IHostUri } from "@features/foundation/host-context/context"
 
 import { McpSettingsSchema } from "@services/mcp/config/schemas"
 import { t } from "@i18n"
 import { getWorkspacePath } from "@utils/io/path"
-import { onWorkspaceFoldersChanged } from "@features/foundation/vscode/context"
+import { onWorkspaceFoldersChanged } from "@features/foundation/host-context/context"
 import { publishNotificationError } from "@features/foundation/capabilities/notifications"
 
 import type { McpHubState } from "@services/mcp/core/types"

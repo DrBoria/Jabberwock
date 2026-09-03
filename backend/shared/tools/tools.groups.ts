@@ -36,6 +36,8 @@ export const TOOL_DISPLAY_NAMES: Record<ToolName, string> = {
 	analyze_image: "analyze images via vision model",
 	custom_tool: "use custom tools",
 	think_tool: "reason through complex problems",
+	context_search: "search archived conversation context",
+	context_recall: "recall verbatim messages from archive",
 } as const
 
 export const TOOL_GROUPS: Record<ToolGroup, ToolGroupConfig> = {
@@ -67,6 +69,8 @@ export const ALWAYS_AVAILABLE_TOOLS: ToolName[] = [
 	"run_slash_command",
 	"skill",
 	"think_tool",
+	"context_search",
+	"context_recall",
 ] as const
 
 export const TOOL_ALIASES: Record<string, ToolName> = {

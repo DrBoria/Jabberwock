@@ -1,7 +1,11 @@
 import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
 import { WebviewMessage } from "@jabberwock/types"
 
-type WebviewMessageHandler = (provider: ProviderHandle, message: WebviewMessage) => Promise<void>
+type WebviewMessageHandler = (
+	provider: ProviderHandle,
+	message: WebviewMessage,
+	senderClientId?: string,
+) => Promise<void>
 
 /**
  * Registry of per-type webview message handlers.
@@ -11,7 +15,10 @@ type WebviewMessageHandler = (provider: ProviderHandle, message: WebviewMessage)
  * Each handler receives the full message and is responsible for creating
  * the appropriate intent(s) on the IntentBus.
  */
-const messageHandlers = new Map<string, (provider: ProviderHandle, message: WebviewMessage) => void>()
+const messageHandlers = new Map<
+	string,
+	(provider: ProviderHandle, message: WebviewMessage, senderClientId?: string) => void
+>()
 
 /**
  * Register a handler for a specific webview message type.
@@ -25,7 +32,7 @@ const messageHandlers = new Map<string, (provider: ProviderHandle, message: Webv
  */
 export function onWebviewMessage(
 	type: string,
-	handler: (provider: ProviderHandle, message: WebviewMessage) => void,
+	handler: (provider: ProviderHandle, message: WebviewMessage, senderClientId?: string) => void,
 ): void {
 	if (messageHandlers.has(type)) {
 		console.warn(`[jabberwock] [webviewMessageHandler] Overwriting existing handler for message type: "${type}"`)
@@ -40,12 +47,12 @@ export function onWebviewMessage(
  * `registerOn*Intents()` initialization. If no handler is registered for
  * the message type, a warning is emitted to help identify unhandled messages.
  */
-export const webviewMessageHandler: WebviewMessageHandler = async (provider, message) => {
+export const webviewMessageHandler: WebviewMessageHandler = async (provider, message, senderClientId) => {
 	const type = message.type
 
 	const handler = messageHandlers.get(type)
 	if (handler) {
-		handler(provider, message)
+		handler(provider, message, senderClientId)
 		return
 	}
 

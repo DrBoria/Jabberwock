@@ -3,7 +3,7 @@ import * as fs from "fs/promises"
 
 import { z } from "zod"
 
-import type { IExtensionContextView } from "@features/foundation/vscode/context"
+import type { IExtensionContextView } from "@features/foundation/host-context/context"
 import { fileExistsAtPath } from "@utils/io/fs"
 import { safeWriteJson } from "@utils/io"
 import { getSettingsDirectoryPath } from "@utils/io"

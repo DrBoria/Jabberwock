@@ -9,5 +9,11 @@ export type { IApiModel, IStreamingModel } from "./store"
 export { apiEventConstants } from "./events"
 export type { ApiEventKey } from "./events"
 export { sendStreamChunk } from "./events/actions"
+export {
+	dispatchTaskNewIntent,
+	dispatchTaskCancelIntent,
+	dispatchTaskResumeIntent,
+	dispatchSendMessageToAgent,
+} from "./events/actions/task-command-intents"
 export { registerApiHandlers } from "./handlers"
 export { requestApi } from "./actions"

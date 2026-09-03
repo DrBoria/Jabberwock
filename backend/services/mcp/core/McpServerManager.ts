@@ -1,6 +1,6 @@
 // v4 B2 (L14): structural context view instead of the host ExtensionContext — callers pass either a real
 // host context or the facade's synthesized view; both satisfy IExtensionContextView structurally.
-import type { IExtensionContextView } from "@features/foundation/vscode/context"
+import type { IExtensionContextView } from "@features/foundation/host-context/context"
 
 import { McpHub } from "./McpHub"
 import { ProviderHandle } from "@features/foundation/webview/EventBridge"

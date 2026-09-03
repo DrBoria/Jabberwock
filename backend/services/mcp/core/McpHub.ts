@@ -1,9 +1,15 @@
 import { EventEmitter } from "events"
 
 // v4 B2 (L14): protocol + structural types only — no host imports in the hub core.
-import type { DisposableLike, IFileWatcher, McpResourceResponse, McpServer, McpToolCallResponse } from "@jabberwock/types"
+import type {
+	DisposableLike,
+	IFileWatcher,
+	McpResourceResponse,
+	McpServer,
+	McpToolCallResponse,
+} from "@jabberwock/types"
 import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
-import type { IExtensionContextView } from "@features/foundation/vscode/context"
+import type { IExtensionContextView } from "@features/foundation/host-context/context"
 import type { McpHubState } from "./types"
 
 import { getMcpSettingsFilePath as getMcpSettingsFilePathHelper } from "@services/mcp/config"

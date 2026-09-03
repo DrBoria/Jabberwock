@@ -2,7 +2,7 @@ import { IntentType, type ModeConfig } from "@jabberwock/types"
 import type { IntentBus } from "@features/intents/bus"
 import { getAllModes } from "@shared/modes"
 import { postStateToWebview } from "@features/foundation/window-manager/store"
-import { getVscodeContext } from "@features/foundation/vscode/context"
+import { getHostEnvironment } from "@features/foundation/host-context/context"
 import { checkRulesDirectoryHasContent, getCustomModesFilePath, requireContext } from "@features/settings/agents"
 import { openFile } from "@integrations/misc/open-file"
 
@@ -46,7 +46,7 @@ export function registerOnSettingsAgents(bus: IntentBus): void {
 		}
 
 		const payload = intent.payload as { bool: boolean }
-		await getVscodeContext().updateGlobalState("hasOpenedModeSelector", payload.bool ?? true)
+		await getHostEnvironment().updateGlobalState("hasOpenedModeSelector", payload.bool ?? true)
 		await postStateToWebview(provider)
 	})
 

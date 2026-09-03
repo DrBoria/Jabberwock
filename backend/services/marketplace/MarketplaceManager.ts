@@ -1,5 +1,5 @@
 // v4 B2 (L3/L14): structural host-context view instead of the vscode ExtensionContext type.
-import type { IExtensionContextView } from "@features/foundation/vscode/context"
+import type { IExtensionContextView } from "@features/foundation/host-context/context"
 import type { MarketplaceItem, MarketplaceItemType } from "@jabberwock/types"
 
 import { RemoteConfigLoader } from "./RemoteConfigLoader"

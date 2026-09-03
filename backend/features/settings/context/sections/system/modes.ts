@@ -1,4 +1,4 @@
-import type { IExtensionContextView } from "@features/foundation/vscode/context"
+import type { IExtensionContextView } from "@features/foundation/host-context/context"
 
 import type { ModeConfig } from "@jabberwock/types"
 

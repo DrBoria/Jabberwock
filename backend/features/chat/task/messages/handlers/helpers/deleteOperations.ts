@@ -4,7 +4,7 @@ import type { ITaskModel } from "@features/chat/task/store"
 import type { Notification } from "@jabberwock/types"
 import { handleCheckpointRestoreOperation } from "@features/chat/task/notifications/handlers/checkpoint/checkpointRestoreHandler"
 import { saveTaskMessages } from "@features/chat/task/messages/actions/saveMessages"
-import { getVscodeContext } from "@features/foundation/vscode/context"
+import { getHostEnvironment } from "@features/foundation/host-context/context"
 import { postStateToWebview } from "@features/foundation/window-manager/store"
 import { t } from "@i18n"
 import { findMessageIndices, findFirstApiIndexAtOrAfter } from "./findMessageIndices"
@@ -117,7 +117,7 @@ export async function handleDeleteMessageConfirm(
 			await saveTaskMessages({
 				messages: store.messages,
 				taskId: store.taskId,
-				globalStoragePath: getVscodeContext().globalStorageUri.fsPath,
+				globalStoragePath: getHostEnvironment().globalStorageUri.fsPath,
 			})
 			await postStateToWebview(provider)
 		}

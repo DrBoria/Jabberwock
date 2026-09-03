@@ -3,7 +3,7 @@ import type { IntentBus } from "@features/intents/bus"
 import * as vscode from "vscode"
 import * as fs from "fs/promises"
 import type { IBackendRootStore } from "@features/store"
-import { getVscodeContext } from "@features/foundation/vscode/context"
+import { getHostEnvironment } from "@features/foundation/host-context/context"
 import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
 import { t } from "@i18n"
 import { Package } from "@shared/package"
@@ -23,7 +23,7 @@ export function registerSettingsCommands(bus: IntentBus): void {
 			? commands.filter((cmd) => typeof cmd === "string" && cmd.trim().length > 0)
 			: []
 
-		await getVscodeContext().updateGlobalState("allowedCommands", validCommands)
+		await getHostEnvironment().updateGlobalState("allowedCommands", validCommands)
 		await vscode.workspace
 			.getConfiguration(Package.name)
 			.update("allowedCommands", validCommands, vscode.ConfigurationTarget.Global)
@@ -40,7 +40,7 @@ export function registerSettingsCommands(bus: IntentBus): void {
 			? commands.filter((cmd) => typeof cmd === "string" && cmd.trim().length > 0)
 			: []
 
-		await getVscodeContext().updateGlobalState("deniedCommands", validCommands)
+		await getHostEnvironment().updateGlobalState("deniedCommands", validCommands)
 		await vscode.workspace
 			.getConfiguration(Package.name)
 			.update("deniedCommands", validCommands, vscode.ConfigurationTarget.Global)

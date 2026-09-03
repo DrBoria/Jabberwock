@@ -5,7 +5,7 @@ import type { IHashmapMemory, IMementoLike } from "@jabberwock/types"
  *
  * In extension mode the host globalState/workspaceState mementos ARE the persistent state backend;
  * routing `hashmapMemory` through them keeps every write visible to both the legacy facade
- * (`getVscodeContext()`) and capability consumers with zero data duplication (no split-brain store).
+ * (`getHostEnvironment()`) and capability consumers with zero data duplication (no split-brain store).
  * Server mode uses {@link FileHashmapMemory} instead — same interface, different backing.
  */
 export class MementoBackedMemory implements IHashmapMemory {

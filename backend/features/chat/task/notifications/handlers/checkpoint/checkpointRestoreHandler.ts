@@ -6,7 +6,7 @@ import { t } from "@i18n"
 import { getBackendRootStore } from "@features/storeSingleton"
 import { getTaskWithId } from "@features/hist/actions"
 import { createTaskWithHistoryItem } from "@features/chat/task/actions/startTask"
-import { getVscodeContext } from "@features/foundation/vscode/context"
+import { getHostEnvironment } from "@features/foundation/host-context/context"
 import { checkpointRestore as checkpointRestoreAction } from "@features/foundation/time-machine/actions/checkpoints"
 
 export interface CheckpointRestoreConfig {
@@ -75,7 +75,7 @@ export async function handleCheckpointRestoreOperation(config: CheckpointRestore
 			await saveTaskMessages({
 				messages: currentCline.messages,
 				taskId: currentCline.taskId,
-				globalStoragePath: getVscodeContext().globalStorageUri.fsPath,
+				globalStoragePath: getHostEnvironment().globalStorageUri.fsPath,
 			})
 
 			// Get the updated history item and reinitialize

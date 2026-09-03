@@ -6,8 +6,8 @@ import { getSettingsAccess } from "@utils/settings"
 import { sendShowInteractiveApp } from "@features/settings/events/actions/sendSettingsEvent"
 
 /** Typed helper to access Task-only `pendingElicitationResolve` on an ITaskModel. */
-import * as vscode from "vscode"
 import { getProvider } from "@features/foundation/webview/providerRegistry"
+import { getHostEnvironment } from "@features/foundation/host-context/context"
 
 function getTaskForElicitation(
 	task: ITaskModel,
@@ -29,7 +29,7 @@ export async function getEnabledMcpToolsCount(
 			return { enabledToolCount: 0, enabledServerCount: 0 }
 		}
 
-		const mcpHub = await getMcpServerManager().getInstance(provider.context as vscode.ExtensionContext, provider)
+		const mcpHub = await getMcpServerManager().getInstance(getHostEnvironment().extensionContext, provider) // v4 B2 fix: full DI-backed context view; ProviderHandle stub has no globalState
 		if (!mcpHub) {
 			return { enabledToolCount: 0, enabledServerCount: 0 }
 		}

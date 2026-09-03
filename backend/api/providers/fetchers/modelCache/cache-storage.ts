@@ -10,7 +10,7 @@ import { modelInfoSchema } from "@jabberwock/types"
 
 import { safeWriteJson } from "@utils/io"
 
-import { getVscodeContext } from "@features/foundation/vscode/context"
+import { getHostEnvironment } from "@features/foundation/host-context/context"
 import { getCacheDirectoryPath } from "@utils/io"
 import type { RouterName } from "@shared/api"
 import { fileExistsAtPath } from "@utils/io/fs"
@@ -23,13 +23,13 @@ const inFlightRefresh = new Map<RouterName, Promise<ModelRecord>>()
 
 async function writeModels(router: RouterName, data: ModelRecord) {
 	const filename = `${router}_models.json`
-	const cacheDir = await getCacheDirectoryPath(getVscodeContext().globalStorageUri.fsPath)
+	const cacheDir = await getCacheDirectoryPath(getHostEnvironment().globalStorageUri.fsPath)
 	await safeWriteJson(path.join(cacheDir, filename), data)
 }
 
 async function readModels(router: RouterName): Promise<ModelRecord | undefined> {
 	const filename = `${router}_models.json`
-	const cacheDir = await getCacheDirectoryPath(getVscodeContext().globalStorageUri.fsPath)
+	const cacheDir = await getCacheDirectoryPath(getHostEnvironment().globalStorageUri.fsPath)
 	const filePath = path.join(cacheDir, filename)
 	const exists = await fileExistsAtPath(filePath)
 	return exists ? JSON.parse(await fs.readFile(filePath, "utf8")) : undefined
@@ -37,7 +37,7 @@ async function readModels(router: RouterName): Promise<ModelRecord | undefined> 
 
 function getCacheDirectoryPathSync(): string | undefined {
 	try {
-		const globalStoragePath = getVscodeContext()?.globalStorageUri?.fsPath
+		const globalStoragePath = getHostEnvironment()?.globalStorageUri?.fsPath
 		if (!globalStoragePath) {
 			return undefined
 		}

@@ -1,5 +1,5 @@
 import * as path from "path"
-import type { IExtensionContextView } from "@features/foundation/vscode/context"
+import type { IExtensionContextView } from "@features/foundation/host-context/context"
 
 /**
  * v4 B2 (L14): replicates `vscode.Uri.file(folderPath).toString(true)` — `"file://"` + the absolute POSIX path, no percent-encoding.

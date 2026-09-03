@@ -1,4 +1,4 @@
-import type { VscodeContextAccess } from "@features/foundation/vscode/context"
+import type { IHostEnvironment } from "@features/foundation/host-context/context"
 import type { SecretState } from "@jabberwock/types"
 import { EmbedderProvider } from "@services/code-index/interfaces/manager"
 import type { PreviousConfigSnapshot } from "@services/code-index/interfaces/config"
@@ -48,12 +48,12 @@ export function strOrUndefined(val: string | undefined): string | undefined {
 	return undefined
 }
 
-export function readGlobalConfig(contextProxy: VscodeContextAccess | undefined): Record<string, unknown> | undefined {
+export function readGlobalConfig(contextProxy: IHostEnvironment | undefined): Record<string, unknown> | undefined {
 	if (!contextProxy) return undefined
 	return contextProxy.getGlobalState("codebaseIndexConfig") as Record<string, unknown> | undefined
 }
 
-export function readSecret(contextProxy: VscodeContextAccess | undefined, key: SecretStateKey): string | undefined {
+export function readSecret(contextProxy: IHostEnvironment | undefined, key: SecretStateKey): string | undefined {
 	if (!contextProxy) return undefined
 	return contextProxy.getSecret(key)
 }

@@ -1,7 +1,7 @@
 import type { IntentHandlerContext as IntentBusCtx } from "@features/intents/context"
 import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
 import { getBackendCapabilities } from "@features/foundation/capabilities/registry"
-import { getVscodeContext } from "@features/foundation/vscode/context"
+import { getHostEnvironment } from "@features/foundation/host-context/context"
 import { getCodeIndexManager, getAllCodeIndexManagers } from "@services/code-index/manager/manager.factory"
 import { t } from "@i18n"
 import {
@@ -20,7 +20,7 @@ export async function handleRequestStatus(
 		return
 	}
 
-	const manager = getCodeIndexManager(getVscodeContext().extensionContext)
+	const manager = getCodeIndexManager(getHostEnvironment().extensionContext)
 	if (!manager) {
 		await sendNoWorkspaceResponse(provider)
 		return
@@ -78,9 +78,7 @@ export async function handleStartIndexing(
 	try {
 		await startCodeIndexing(provider)
 	} catch (error) {
-		backendLog.info(
-			`Error starting indexing: ${error instanceof Error ? error.message : String(error)}`,
-		)
+		backendLog.info(`Error starting indexing: ${error instanceof Error ? error.message : String(error)}`)
 	}
 }
 
@@ -94,7 +92,7 @@ export async function handleStopIndexing(
 	}
 
 	try {
-		const manager = getCodeIndexManager(getVscodeContext().extensionContext)
+		const manager = getCodeIndexManager(getHostEnvironment().extensionContext)
 		if (!manager) {
 			backendLog.info("Cannot stop indexing: No workspace folder open")
 			return
@@ -105,9 +103,7 @@ export async function handleStopIndexing(
 			values: manager.getCurrentStatus(),
 		})
 	} catch (error) {
-		backendLog.info(
-			`Error stopping indexing: ${error instanceof Error ? error.message : String(error)}`,
-		)
+		backendLog.info(`Error stopping indexing: ${error instanceof Error ? error.message : String(error)}`)
 	}
 }
 
@@ -125,9 +121,7 @@ export async function handleToggleWorkspaceIndexing(
 	try {
 		await toggleWorkspaceIndexing(provider, payload.bool)
 	} catch (error) {
-		backendLog.info(
-			`Error toggling workspace indexing: ${error instanceof Error ? error.message : String(error)}`,
-		)
+		backendLog.info(`Error toggling workspace indexing: ${error instanceof Error ? error.message : String(error)}`)
 	}
 }
 
@@ -143,7 +137,7 @@ export async function handleAutoEnableDefault(
 	const payload = intent.payload as { bool: boolean }
 
 	try {
-		const manager = getCodeIndexManager(getVscodeContext().extensionContext)
+		const manager = getCodeIndexManager(getHostEnvironment().extensionContext)
 		if (!manager) {
 			backendLog.info("Cannot set auto-enable default: No workspace folder open")
 			return
@@ -160,9 +154,7 @@ export async function handleAutoEnableDefault(
 			values: manager.getCurrentStatus(),
 		})
 	} catch (error) {
-		backendLog.info(
-			`Error setting auto-enable default: ${error instanceof Error ? error.message : String(error)}`,
-		)
+		backendLog.info(`Error setting auto-enable default: ${error instanceof Error ? error.message : String(error)}`)
 	}
 }
 
@@ -176,7 +168,7 @@ export async function handleClearIndexData(
 	}
 
 	try {
-		const manager = getCodeIndexManager(getVscodeContext().extensionContext)
+		const manager = getCodeIndexManager(getHostEnvironment().extensionContext)
 		if (!manager) {
 			backendLog.info("Cannot clear index data: No workspace folder open")
 			provider.postMessageToWebview({
@@ -191,9 +183,7 @@ export async function handleClearIndexData(
 		await manager.clearIndexData()
 		provider.postMessageToWebview({ type: "indexCleared", values: { success: true } })
 	} catch (error) {
-		backendLog.info(
-			`Error clearing index data: ${error instanceof Error ? error.message : String(error)}`,
-		)
+		backendLog.info(`Error clearing index data: ${error instanceof Error ? error.message : String(error)}`)
 		provider.postMessageToWebview({
 			type: "indexCleared",
 			values: {

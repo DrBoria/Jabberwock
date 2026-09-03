@@ -1,11 +1,15 @@
 import * as vscode from "vscode"
-import { randomUUID } from "crypto"
 
-import { IpcMessageType, IntentType, IntentStatus, TaskCommandName } from "@jabberwock/types"
+import { IpcMessageType, TaskCommandName } from "@jabberwock/types"
 import type { TaskCommand } from "@jabberwock/types"
 import { IpcServer } from "@jabberwock/ipc"
 
-import { getBackendRootStore } from "@features/storeSingleton"
+import {
+	dispatchTaskCancelIntent,
+	dispatchSendMessageToAgent,
+	dispatchTaskResumeIntent,
+	dispatchTaskNewIntent,
+} from "@features/api/events/actions/task-command-intents"
 
 export function setupIpcServer(
 	socketPath: string | undefined,
@@ -30,55 +34,23 @@ export function setupIpcServer(
 		switch (command.commandName) {
 			case TaskCommandName.StartNewTask: {
 				const { text, images, configuration } = command.data
-				getBackendRootStore().intentStore.createIntent({
-					id: randomUUID(),
-					type: IntentType.TaskNewRequested,
-					payload: {
-						text: text ?? "",
-						images: images ?? undefined,
-						taskConfiguration: configuration as Record<string, unknown> | undefined,
-					},
-					status: IntentStatus.Queued,
-					createdAt: Date.now(),
-				})
+				const taskConfiguration = (configuration as Record<string, unknown> | undefined) ?? undefined
+				dispatchTaskNewIntent({ text, images, taskConfiguration })
 				break
 			}
 			case TaskCommandName.CancelTask:
-				getBackendRootStore().intentStore.createIntent({
-					id: randomUUID(),
-					type: IntentType.TaskCancelRequested,
-					payload: {},
-					status: IntentStatus.Queued,
-					createdAt: Date.now(),
-				})
+				dispatchTaskCancelIntent()
 				break
 			case TaskCommandName.CloseTask:
 				vscode.commands.executeCommand("workbench.action.files.saveFiles")
 				vscode.commands.executeCommand("workbench.action.closeWindow")
 				break
 			case TaskCommandName.ResumeTask:
-				getBackendRootStore().intentStore.createIntent({
-					id: randomUUID(),
-					type: IntentType.TaskResumeRequested,
-					payload: { taskId: command.data },
-					status: IntentStatus.Queued,
-					createdAt: Date.now(),
-				})
+				dispatchTaskResumeIntent(command.data)
 				break
 			case TaskCommandName.SendMessage: {
-				const activeTask = getBackendRootStore().chat.activeTask
-				if (activeTask) {
-					getBackendRootStore().intentStore.createIntent({
-						id: randomUUID(),
-						type: IntentType.SendMessageToAgentRequested,
-						payload: {
-							taskId: activeTask.taskId,
-							prompt: (command.data as { text?: string }).text ?? "",
-						},
-						status: IntentStatus.Queued,
-						createdAt: Date.now(),
-					})
-				}
+				const dispatched = dispatchSendMessageToAgent((command.data as { text?: string }).text ?? "")
+				if (!dispatched) ipcLog("[IPC] sendMessage: no active task to deliver the prompt")
 				break
 			}
 			default:

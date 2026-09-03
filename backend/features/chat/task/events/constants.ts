@@ -38,6 +38,8 @@ export const ChatTaskEventKeys = {
 
 export const CHAT_TASK_NEW_TASK = eventConstants.CHAT.TASK.NEW_TASK
 export const CHAT_TASK_CANCEL_TASK = eventConstants.CHAT.TASK.CANCEL_TASK
+export const CHAT_TASK_RESUME = eventConstants.CHAT.TASK.RESUME_TASK
+export const CHAT_TASK_SEND_MESSAGE = eventConstants.CHAT.TASK.SEND_MESSAGE
 export const CHAT_TASK_CLEAR_TASK = eventConstants.CHAT.TASK.CLEAR_TASK
 export const CHAT_TASK_TASK_SYNC_ENABLED = eventConstants.CHAT.TASK.TASK_SYNC_ENABLED
 export const CHAT_TASK_CONDENSE_TASK_CONTEXT_REQUEST = eventConstants.CHAT.TASK.CONDENSE_TASK_CONTEXT_REQUEST

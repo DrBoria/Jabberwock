@@ -10,9 +10,9 @@ function disposable() {
 }
 
 const handler = {
-	get(_target, prop) {
+	get(target, prop) {
 		if (prop === "ThemeIcon") return class ThemeIcon {}
-		return noop
+		return Object.hasOwn(target, prop) ? target[prop] : noop
 	},
 	getPrototypeOf() {
 		return null
@@ -21,10 +21,48 @@ const handler = {
 
 module.exports = new Proxy(
 	{
-		window: new Proxy({}, { get: () => disposable }),
-		workspace: new Proxy({}, { get: () => disposable }),
+		// window exposes real array shapes for the APIs production code maps over (condense context gathering); everything else keeps the legacy no-op fallback.
+		window: new Proxy(
+			{ visibleTextEditors: [], tabGroups: { all: [] } },
+			{
+				get(t, p) {
+					return Object.hasOwn(t, p) ? t[p] : disposable
+				},
+			},
+		),
+		// workspace exposes a minimal WorkspaceConfiguration shape for settings reads in system-prompt construction (get(key) / get(key, default)); everything else keeps the legacy no-op fallback.
+		workspace: new Proxy(
+			{
+				getConfiguration() {
+					return {
+						get(_key, defaultValue) {
+							return defaultValue
+						},
+						has() {
+							return false
+						},
+						update() {
+							return Promise.resolve()
+						},
+					}
+				},
+			},
+			{
+				get(t, p) {
+					return Object.hasOwn(t, p) ? t[p] : disposable
+				},
+			},
+		),
 		commands: new Proxy({}, { get: () => noop }),
-		env: new Proxy({}, { get: () => noop }),
+		// env exposes real string shapes for locale/appRoot reads in environment-details gathering (formatLanguage calls .replace on the locale); everything else keeps the legacy no-op fallback.
+		env: new Proxy(
+			{ language: "en", appRoot: "/tmp/jabberwock-mock" },
+			{
+				get(t, p) {
+					return Object.hasOwn(t, p) ? t[p] : noop
+				},
+			},
+		),
 		Uri: { joinPath: () => ({ fsPath: "" }), parse: () => ({ fsPath: "" }) },
 		Disposable: { from: () => disposable() },
 		EventEmitter: class EventEmitter {

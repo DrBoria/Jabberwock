@@ -14,7 +14,7 @@ import { isMcpEnabled, getProjectMcpPath, showErrorMessage } from "@services/mcp
 import { createAndConfigureTransport, createTransportErrorHandlers } from "@services/mcp/mcp-hub/transports"
 import { setupStdioStderr, setupElicitationHandler } from "@services/mcp/mcp-hub/transport-handlers"
 // v4 B2 (L14): workspace root via the host-context DI slot — no vscode import in this file.
-import { getWorkspaceRoot, getHostContext } from "@features/foundation/vscode/context"
+import { getWorkspaceRoot, getHostContext } from "@features/foundation/host-context/context"
 
 import { sanitizeMcpName } from "@utils/mcp"
 import { getMcpSettingsFilePath as getMcpSettingsFilePathFromConfig } from "@services/mcp"
@@ -112,7 +112,7 @@ async function connectToServerInner(
 
 	const configInjected = (await injectVariables(config as InjectableConfigType, {
 		env: process.env,
-			// v4 B2 (L14): workspace root via the host-context DI slot — no vscode import in this file.
+		// v4 B2 (L14): workspace root via the host-context DI slot — no vscode import in this file.
 		workspaceFolder: getWorkspaceRoot(),
 	})) as typeof config
 

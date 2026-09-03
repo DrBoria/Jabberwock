@@ -4,7 +4,7 @@ import * as path from "path"
 import * as fs from "fs/promises"
 import { t } from "@i18n"
 import { getWorkspacePath } from "@utils/io/path"
-import { getVscodeContext } from "@features/foundation/vscode/context"
+import { getHostEnvironment } from "@features/foundation/host-context/context"
 import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
 
 /** Resolve the rules folder path for a custom mode based on its scope */
@@ -38,7 +38,7 @@ export async function deleteRulesFolder(slug: string, rulesFolderPath: string): 
 
 /** Resolve default URI for the import mode file dialog */
 export async function resolveImportDefaultUri(): Promise<vscode.Uri | undefined> {
-	const lastImportPath = getVscodeContext().getGlobalState("lastModeImportPath") as string | undefined
+	const lastImportPath = getHostEnvironment().getGlobalState("lastModeImportPath") as string | undefined
 	if (lastImportPath) {
 		return vscode.Uri.file(path.dirname(lastImportPath))
 	}

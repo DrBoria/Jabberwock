@@ -3,6 +3,7 @@ import { onWebviewMessage } from "@features/foundation/webview/events/handlers/o
 import { IntentPriority } from "@features/intents/IntentConstants"
 import { IntentStatus } from "@jabberwock/types"
 import { getBackendRootStore } from "@features/storeSingleton"
+import { dispatchTaskResumeIntent, dispatchSendMessageToAgent } from "@features/api/events/actions/task-command-intents"
 import { registerAllTaskHandlers } from "@features/chat/task/handlers"
 import { registerOnGoalAdd } from "@features/chat/task/handlers/goal/on-goal-add"
 import { registerOnGoalRemove } from "@features/chat/task/handlers/goal/on-goal-remove"
@@ -11,6 +12,8 @@ import { registerOnGoalReorder } from "@features/chat/task/handlers/goal/on-goal
 import {
 	CHAT_TASK_NEW_TASK,
 	CHAT_TASK_CANCEL_TASK,
+	CHAT_TASK_RESUME,
+	CHAT_TASK_SEND_MESSAGE,
 	CHAT_TASK_CLEAR_TASK,
 	CHAT_TASK_TASK_SYNC_ENABLED,
 	CHAT_TASK_CONDENSE_TASK_CONTEXT_REQUEST,
@@ -66,6 +69,19 @@ export function registerOnTaskIntents(bus: IntentBus): void {
 			status: IntentStatus.Queued,
 			createdAt: Date.now(),
 		})
+	})
+
+	onWebviewMessage(CHAT_TASK_RESUME, (_provider, message) => {
+		const store = getBackendRootStore()
+		if (!store || !message.taskId) return
+
+		dispatchTaskResumeIntent(message.taskId)
+	})
+
+	onWebviewMessage(CHAT_TASK_SEND_MESSAGE, (_provider, message) => {
+		const dispatched = dispatchSendMessageToAgent(message.text ?? "", message.taskId)
+		if (!dispatched)
+			console.warn("[jabberwock] [webviewMessageHandler] sendMessage: no active task to deliver the prompt")
 	})
 
 	onWebviewMessage(CHAT_TASK_CLEAR_TASK, (_provider, message) => {

@@ -2,7 +2,7 @@ import { Instance, getSnapshot } from "mobx-state-tree"
 import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
 import type { HistoryItem } from "@jabberwock/types"
 import { getBackendRootStore } from "@features/storeSingleton"
-import { getVscodeContext } from "@features/foundation/vscode/context"
+import { getHostEnvironment } from "@features/foundation/host-context/context"
 import { HistoryTaskModel } from "@features/hist/store"
 import { sanitizeHistoryItem } from "@features/hist/actions/sanitizeHistoryItem"
 import { sendTaskHistoryUpdated, sendTaskHistoryItemUpdated } from "@features/settings/events/actions/sendSettingsEvent"
@@ -84,7 +84,7 @@ export async function deleteTaskFromState(taskId: string): Promise<void> {
 	model.removeItem(taskId)
 	const rawItems = JSON.parse(JSON.stringify(getSnapshot(model).items))
 	sendTaskHistoryUpdated(rawItems)
-	await getVscodeContext().updateGlobalState("taskHistory", rawItems)
+	await getHostEnvironment().updateGlobalState("taskHistory", rawItems)
 }
 
 /**
@@ -105,6 +105,6 @@ export async function updateTaskHistory(item: Partial<HistoryItem>): Promise<His
 		sendTaskHistoryUpdated(rawItems)
 	}
 	const rawStateItems = JSON.parse(JSON.stringify(getSnapshot(model).items))
-	await getVscodeContext().updateGlobalState("taskHistory", rawStateItems)
+	await getHostEnvironment().updateGlobalState("taskHistory", rawStateItems)
 	return rawStateItems
 }

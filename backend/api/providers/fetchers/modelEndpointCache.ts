@@ -6,7 +6,7 @@ import sanitize from "sanitize-filename"
 
 import type { ModelRecord } from "@jabberwock/types"
 
-import { getVscodeContext } from "@features/foundation/vscode/context"
+import { getHostEnvironment } from "@features/foundation/host-context/context"
 import { RouterName } from "@shared/api"
 import { getCacheDirectoryPath } from "@utils/io"
 import { fileExistsAtPath } from "@utils/io/fs"
@@ -21,13 +21,13 @@ const getCacheKey = (router: RouterName, modelId: string) => sanitize(`${router}
 
 async function writeModelEndpoints(key: string, data: ModelRecord) {
 	const filename = `${key}_endpoints.json`
-	const cacheDir = await getCacheDirectoryPath(getVscodeContext().globalStorageUri.fsPath)
+	const cacheDir = await getCacheDirectoryPath(getHostEnvironment().globalStorageUri.fsPath)
 	await safeWriteJson(path.join(cacheDir, filename), data)
 }
 
 async function readModelEndpoints(key: string): Promise<ModelRecord | undefined> {
 	const filename = `${key}_endpoints.json`
-	const cacheDir = await getCacheDirectoryPath(getVscodeContext().globalStorageUri.fsPath)
+	const cacheDir = await getCacheDirectoryPath(getHostEnvironment().globalStorageUri.fsPath)
 	const filePath = path.join(cacheDir, filename)
 	const exists = await fileExistsAtPath(filePath)
 	return exists ? JSON.parse(await fs.readFile(filePath, "utf8")) : undefined

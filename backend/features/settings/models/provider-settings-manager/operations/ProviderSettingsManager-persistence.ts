@@ -1,5 +1,5 @@
 // v4 B2 (L14): structural secrets view instead of the vscode type.
-import type { ISecretsView } from "@features/foundation/vscode/context"
+import type { ISecretsView } from "@features/foundation/host-context/context"
 import { z, ZodError } from "zod"
 
 import { providerSettingsWithIdSchema, isProviderName, isRetiredProvider } from "@jabberwock/types"

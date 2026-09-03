@@ -1,6 +1,6 @@
 import type { CodebaseIndexConfig, CodebaseIndexProvider } from "@jabberwock/types"
 import { getSettingsAccess } from "@utils/settings"
-import { getVscodeContext } from "@features/foundation/vscode/context"
+import { getHostEnvironment } from "@features/foundation/host-context/context"
 import { CodeIndexManager } from "@services/code-index/manager/manager"
 import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
 import { getCodeIndexManager } from "@services/code-index/manager/manager.factory"
@@ -21,7 +21,7 @@ export const updateGlobalState = async <K extends keyof import("@jabberwock/type
 export async function saveCodeIndexSecrets(
 	settings: Partial<CodebaseIndexConfig & CodebaseIndexProvider>,
 ): Promise<void> {
-	const ctx = getVscodeContext()
+	const ctx = getHostEnvironment()
 	if (settings.codeIndexOpenAiKey !== undefined) {
 		await ctx.storeSecret("codeIndexOpenAiKey", settings.codeIndexOpenAiKey)
 	}
@@ -94,12 +94,10 @@ export async function initializeManagerIfReady(
 		return
 	}
 	try {
-		await manager.initialize(getVscodeContext())
+		await manager.initialize(getHostEnvironment())
 		backendLog.info("Code index manager initialized after settings save")
 	} catch (error) {
-		backendLog.info(
-			`Code index initialization failed: ${error instanceof Error ? error.message : String(error)}`,
-		)
+		backendLog.info(`Code index initialization failed: ${error instanceof Error ? error.message : String(error)}`)
 		await provider.postMessageToWebview({
 			type: "indexingStatusUpdate",
 			values: manager.getCurrentStatus(),
@@ -118,9 +116,7 @@ export async function handleManagerAfterSettingsSave(
 		try {
 			await manager.handleSettingsChange()
 		} catch (error) {
-			backendLog.info(
-				`Settings change handling error: ${error instanceof Error ? error.message : String(error)}`,
-			)
+			backendLog.info(`Settings change handling error: ${error instanceof Error ? error.message : String(error)}`)
 		}
 	}
 
@@ -142,7 +138,7 @@ export async function sendNoWorkspaceResponse(provider: import("@jabberwock/type
 }
 
 export async function startCodeIndexing(provider: import("@jabberwock/types").WebviewProvider): Promise<void> {
-	const manager = getCodeIndexManager(getVscodeContext().extensionContext)
+	const manager = getCodeIndexManager(getHostEnvironment().extensionContext)
 	if (!manager) {
 		backendLog.info("Cannot start indexing: No workspace folder open")
 		await sendNoWorkspaceResponse(provider)
@@ -155,7 +151,7 @@ export async function startCodeIndexing(provider: import("@jabberwock/types").We
 		return
 	}
 
-	await manager.initialize(getVscodeContext())
+	await manager.initialize(getHostEnvironment())
 
 	const currentState = manager.state
 	const shouldStartIndexing = currentState === "Standby" || currentState === "Error"
@@ -167,7 +163,7 @@ export async function startCodeIndexing(provider: import("@jabberwock/types").We
 	manager.startIndexing()
 
 	if (!manager.isInitialized) {
-		await manager.initialize(getVscodeContext())
+		await manager.initialize(getHostEnvironment())
 		if (manager.state === "Standby" || manager.state === "Error") {
 			manager.startIndexing()
 		}
@@ -178,7 +174,7 @@ export async function toggleWorkspaceIndexing(
 	provider: import("@jabberwock/types").WebviewProvider,
 	bool: boolean,
 ): Promise<void> {
-	const manager = getCodeIndexManager(getVscodeContext().extensionContext)
+	const manager = getCodeIndexManager(getHostEnvironment().extensionContext)
 	if (!manager) {
 		backendLog.info("Cannot toggle workspace indexing: No workspace folder open")
 		return
@@ -188,7 +184,7 @@ export async function toggleWorkspaceIndexing(
 	await manager.setWorkspaceEnabled(enabled)
 
 	if (enabled && manager.isFeatureEnabled && manager.isFeatureConfigured) {
-		await manager.initialize(getVscodeContext())
+		await manager.initialize(getHostEnvironment())
 		manager.startIndexing()
 	} else if (!enabled) {
 		manager.stopIndexing()
@@ -214,7 +210,7 @@ export async function syncManagersAfterAutoEnable(
 		}
 
 		if (!wasEnabled && isNowEnabled && m.isFeatureEnabled && m.isFeatureConfigured) {
-			await m.initialize(getVscodeContext())
+			await m.initialize(getHostEnvironment())
 			m.startIndexing()
 		}
 	}

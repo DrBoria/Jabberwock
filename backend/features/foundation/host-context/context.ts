@@ -4,9 +4,10 @@ import type { DisposableLike, IHostContext, IHashmapMemory, IMementoLike, ISecre
 export const PASS_THROUGH_STATE_KEYS = ["taskHistory"]
 
 /**
- * v4 B2: this facade is now a thin wrapper over DI slots (plan §2.3 L3). It no longer imports the host module —
- * all structural types below are declared locally so consumers keep their exact call shapes until E+
- * (`getVscodeContext().extensionUri.fsPath`, `ctx.extensionContext.globalState.update(...)`, etc.).
+ * IDE-agnostic host environment facade over DI slots (v4 plan §2.3 L3). No host module is imported here — every
+ * structural type below is declared locally, so the same contract serves any connector adapter: VS Code today,
+ * WebStorm / Visual Studio later; each installs its own slot implementations at bootstrap and consumers read
+ * through `getHostEnvironment()` unchanged (`env.globalStorageUri.fsPath`, `ctx.extensionContext.globalState.update(...)`, etc.).
  */
 
 // ─── Structural host views (no host import) ──────────────────────────────
@@ -31,8 +32,6 @@ export interface ISecretsView {
 }
 
 /** Structural extension-context surface used by the facade and its consumers. Host contexts satisfy it structurally. */
-/** Structural extension-context surface used by the facade and its consumers. Host contexts satisfy it structurally. */
-/** Structural extension-context surface used by the facade and its consumers. Host contexts satisfy it structurally. */
 export interface IExtensionContextView {
 	readonly globalState: IMementoView
 	readonly workspaceState: IMementoView
@@ -44,7 +43,7 @@ export interface IExtensionContextView {
 	subscriptions?: Array<{ dispose(): void }>
 }
 
-/** Legacy host-context shape accepted by `initVscodeContext` until E+ (real host contexts satisfy it structurally). */
+/** Legacy host-context view still accepted by installBackendState for existing activation call sites; real host contexts satisfy it structurally. */
 export interface LegacyHostContextView extends IExtensionContextView {
 	readonly extensionUri: IHostUri
 	readonly globalStorageUri: IHostUri
@@ -52,9 +51,9 @@ export interface LegacyHostContextView extends IExtensionContextView {
 	readonly extensionMode: number
 }
 
-// ─── VscodeContextAccess Interface (signatures unchanged until E+) ──────
+// ─── IHostEnvironment — IDE-agnostic access surface returned by getHostEnvironment() ─────────
 
-export interface VscodeContextAccess {
+export interface IHostEnvironment {
 	extensionContext: IExtensionContextView
 	extensionUri: IHostUri
 	globalStorageUri: IHostUri
@@ -85,7 +84,7 @@ let _slots: BackendStateSlots | undefined
 let _hostContext: IHostContext | undefined
 /** Sync-read cache for the async hashmap-memory slot (server mode). Extension-mode reads go straight to the memento view. */
 const _asyncReadCache = new Map<string, unknown>()
-const _secretsCache = new Map<string, string | undefined>
+const _secretsCache = new Map<string, string | undefined>()
 
 // ─── Host context accessors (v4 B2 — L3/L4 DI slots) ──────────────────────
 
@@ -129,7 +128,7 @@ export function onWorkspaceFoldersChanged(handler: () => void): DisposableLike {
 const ABSENT = "__absent__" as const
 const WORKSPACE_KEY_PREFIX = "workspace:"
 
-// ─── initVscodeContext — installs DI slots (name kept for consumer stability until E+) ──
+// ─── installBackendState — one-time backend state slot installation at activation ─────────────
 
 function isLegacyHostContextView(arg: BackendStateSlots | LegacyHostContextView): arg is LegacyHostContextView {
 	return "extensionUri" in arg && !("extensionRootPath" in arg)
@@ -140,7 +139,7 @@ function isLegacyHostContextView(arg: BackendStateSlots | LegacyHostContextView)
  * in server mode bootstrap passes file-backed implementations of the same structural interfaces. The legacy overload
  * (raw host context) is kept so existing call sites compile unchanged until E+.
  */
-export function initVscodeContext(slotsOrLegacy: BackendStateSlots | LegacyHostContextView): void {
+export function installBackendState(slotsOrLegacy: BackendStateSlots | LegacyHostContextView): void {
 	if (!isLegacyHostContextView(slotsOrLegacy)) {
 		_slots = slotsOrLegacy
 		return
@@ -158,11 +157,11 @@ export function initVscodeContext(slotsOrLegacy: BackendStateSlots | LegacyHostC
 	}
 }
 
-// ─── getVscodeContext ──────────────────────────────────────────────
+// ─── getHostEnvironment ──────────────────────────────────────────────
 
 function requireSlots(): BackendStateSlots {
 	if (!_slots) {
-		throw new Error("Backend state not initialized. Call initVscodeContext() first.")
+		throw new Error("Backend state not initialized. Call installBackendState() first.")
 	}
 	return _slots
 }
@@ -210,7 +209,7 @@ function resolveSecrets(slots: BackendStateSlots): ISecretsView | undefined {
 	}
 }
 
-export function getVscodeContext(): VscodeContextAccess {
+export function getHostEnvironment(): IHostEnvironment {
 	const slots = requireSlots()
 
 	// Structural context object: consumers read .globalState/.workspaceState directly (unchanged until E+).
@@ -253,7 +252,8 @@ export function getVscodeContext(): VscodeContextAccess {
 		updateGlobalState(key: string, value: unknown): Thenable<void> {
 			if (slots.global) return slots.global.update(key, value)
 			const memory = slots.hashmapMemory
-			if (!memory) throw new Error("No state backend available — install a memento view or hashmapMemory capability")
+			if (!memory)
+				throw new Error("No state backend available — install a memento view or hashmapMemory capability")
 			const promise = memory.set(key, value).then(() => {
 				if (value === undefined) _asyncReadCache.delete(key)
 				else _asyncReadCache.set(key, value)

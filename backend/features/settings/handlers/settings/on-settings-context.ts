@@ -1,7 +1,7 @@
 import { IntentType } from "@jabberwock/types"
 import type { IntentBus } from "@features/intents/bus"
 import type { WebviewMessage, JabberwockSettings } from "@jabberwock/types"
-import { getVscodeContext } from "@features/foundation/vscode/context"
+import { getHostEnvironment } from "@features/foundation/host-context/context"
 import { getSettingsAccess } from "@utils/settings"
 import { generateSystemPrompt } from "@features/settings/context/generateSystemPrompt"
 import { getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
@@ -23,12 +23,12 @@ export function registerOnSettingsContext(bus: IntentBus): void {
 		const payload = intent.payload as { promptMode: string; customPrompt: { [key: string]: unknown } }
 		if (!payload.promptMode || payload.customPrompt === undefined) return
 
-		const existingPrompts = (getVscodeContext().getGlobalState("customModePrompts") ?? {}) as Record<
+		const existingPrompts = (getHostEnvironment().getGlobalState("customModePrompts") ?? {}) as Record<
 			string,
 			{ [key: string]: unknown }
 		>
 		const updatedPrompts = { ...existingPrompts, [payload.promptMode]: payload.customPrompt }
-		await getVscodeContext().updateGlobalState("customModePrompts", updatedPrompts)
+		await getHostEnvironment().updateGlobalState("customModePrompts", updatedPrompts)
 		const hasOpenedModeSelector = (getSettingsAccess().getValue(
 			"hasOpenedModeSelector" as keyof JabberwockSettings,
 		) ?? false) as boolean
@@ -63,7 +63,7 @@ export function registerOnSettingsContext(bus: IntentBus): void {
 		}
 		if (payload.systemPromptTemplateKey === undefined) return
 
-		const existingTemplates = (getVscodeContext().getGlobalState("systemPromptTemplates") ?? {}) as Record<
+		const existingTemplates = (getHostEnvironment().getGlobalState("systemPromptTemplates") ?? {}) as Record<
 			string,
 			string
 		>
@@ -75,7 +75,7 @@ export function registerOnSettingsContext(bus: IntentBus): void {
 			updatedTemplates[payload.systemPromptTemplateKey] = payload.systemPromptTemplate
 		}
 
-		await getVscodeContext().updateGlobalState("systemPromptTemplates", updatedTemplates)
+		await getHostEnvironment().updateGlobalState("systemPromptTemplates", updatedTemplates)
 		const hasOpenedModeSelector = (getSettingsAccess().getValue(
 			"hasOpenedModeSelector" as keyof JabberwockSettings,
 		) ?? false) as boolean
@@ -133,7 +133,7 @@ export function registerOnSettingsContext(bus: IntentBus): void {
 	// ── customInstructions ────────────────────────────────────────────
 	bus.register(IntentType.SettingsInstructionsCustomUpdate, async (intent) => {
 		const payload = intent.payload as { text: string }
-		await getVscodeContext().updateGlobalState("customInstructions", payload.text)
+		await getHostEnvironment().updateGlobalState("customInstructions", payload.text)
 	})
 }
 

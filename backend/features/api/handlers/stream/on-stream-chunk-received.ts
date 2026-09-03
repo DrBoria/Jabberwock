@@ -39,7 +39,7 @@ import { sendMessageUpdated } from "@features/chat/task/messages/events/actions/
  */
 export interface ChunkHandlerCallbacks {
 	say: (type: NotificationSay, text?: string, images?: string[], partial?: boolean) => Promise<void>
-	presentAssistantMessage: () => void
+	presentAssistantMessage: () => Promise<void>
 }
 
 /**
@@ -133,7 +133,9 @@ export function createChunkHandlers(
 			const assistantMsgContent = task.assistantMessageContent
 			assistantMsgContent.push(toolUse)
 			task._state.setUserMessageContentReady(true)
-			callbacks.presentAssistantMessage()
+			callbacks.presentAssistantMessage().catch((err) => {
+				console.warn(`[jabberwock] presentAssistantMessage failed for task ${task.taskId}:`, err)
+			})
 		},
 
 		text: async (chunk) => {
@@ -152,7 +154,9 @@ export function createChunkHandlers(
 				})
 				task._state.setUserMessageContentReady(true)
 			}
-			callbacks.presentAssistantMessage()
+			callbacks.presentAssistantMessage().catch((err) => {
+				console.warn(`[jabberwock] presentAssistantMessage failed for task ${task.taskId}:`, err)
+			})
 		},
 	}
 }

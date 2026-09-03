@@ -7,7 +7,7 @@ import * as os from "os"
 import * as path from "path"
 import * as fs from "fs/promises"
 import type { IBackendRootStore } from "@features/store"
-import { getVscodeContext } from "@features/foundation/vscode/context"
+import { getHostEnvironment } from "@features/foundation/host-context/context"
 import { postStateToWebview, WebviewStatePayload } from "@features/foundation/window-manager/store"
 import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
 import { t } from "@i18n"
@@ -68,7 +68,7 @@ export function registerSettingsUpdates(bus: IntentBus): void {
 		if (!provider) {
 			return
 		}
-		const dismissedUpsells = getVscodeContext().getGlobalState("dismissedUpsells") || []
+		const dismissedUpsells = getHostEnvironment().getGlobalState("dismissedUpsells") || []
 		await provider.postMessageToWebview({
 			type: "dismissedUpsells",
 			list: dismissedUpsells,
@@ -86,20 +86,18 @@ export function registerSettingsUpdates(bus: IntentBus): void {
 		}
 
 		try {
-			const dismissedUpsells: string[] = getVscodeContext().getGlobalState("dismissedUpsells") || []
+			const dismissedUpsells: string[] = getHostEnvironment().getGlobalState("dismissedUpsells") || []
 			if (dismissedUpsells.includes(payload.upsellId)) {
 				return
 			}
 			const updatedList = [...dismissedUpsells, payload.upsellId]
-			await getVscodeContext().updateGlobalState("dismissedUpsells", updatedList)
+			await getHostEnvironment().updateGlobalState("dismissedUpsells", updatedList)
 			await provider.postMessageToWebview({
 				type: "dismissedUpsells",
 				list: updatedList,
 			})
 		} catch (error) {
-			backendLog.info(
-				`Failed to dismiss upsell: ${error instanceof Error ? error.message : String(error)}`,
-			)
+			backendLog.info(`Failed to dismiss upsell: ${error instanceof Error ? error.message : String(error)}`)
 		}
 	})
 
@@ -147,13 +145,13 @@ export function registerSettingsUpdates(bus: IntentBus): void {
 		}
 		const payload = intent.payload as { text: string }
 		const telemetrySetting = payload.text as TelemetrySetting
-		const previousSetting = getVscodeContext().getGlobalState<TelemetrySetting>("telemetrySetting") || "unset"
+		const previousSetting = getHostEnvironment().getGlobalState<TelemetrySetting>("telemetrySetting") || "unset"
 		const isOptedIn = telemetrySetting !== "disabled"
 		const wasPreviouslyOptedIn = previousSetting !== "disabled"
 
 		captureTelemetryChange(wasPreviouslyOptedIn, isOptedIn, previousSetting, telemetrySetting)
 
-		await getVscodeContext().updateGlobalState("telemetrySetting", telemetrySetting)
+		await getHostEnvironment().updateGlobalState("telemetrySetting", telemetrySetting)
 
 		if (hasTelemetryService()) {
 			getTelemetryService().updateTelemetryState(isOptedIn)

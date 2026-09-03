@@ -1,4 +1,4 @@
-import type { IExtensionContextView } from "@features/foundation/vscode/context"
+import type { IExtensionContextView } from "@features/foundation/host-context/context"
 
 import { CacheManager } from "@services/code-index/cache-manager"
 import type { CodeIndexConfigManager } from "@services/code-index/config/manager"

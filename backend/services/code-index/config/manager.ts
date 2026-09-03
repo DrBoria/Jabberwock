@@ -1,5 +1,5 @@
 import { ApiHandlerOptions } from "@shared/api"
-import type { VscodeContextAccess } from "@features/foundation/vscode/context"
+import type { IHostEnvironment } from "@features/foundation/host-context/context"
 import { EmbedderProvider } from "@services/code-index/interfaces/manager"
 import { CodeIndexConfig, PreviousConfigSnapshot } from "@services/code-index/interfaces/config"
 import { DEFAULT_SEARCH_MIN_SCORE, DEFAULT_MAX_SEARCH_RESULTS } from "@services/code-index/constants"
@@ -29,7 +29,7 @@ export class CodeIndexConfigManager implements ConfigManagerFields {
 	searchMinScore?: number
 	searchMaxResults?: number
 
-	constructor(private readonly contextProxy: VscodeContextAccess) {
+	constructor(private readonly contextProxy: IHostEnvironment) {
 		this.applyConfig(loadConfigFromContext(this.contextProxy))
 	}
 
@@ -57,7 +57,7 @@ export class CodeIndexConfigManager implements ConfigManagerFields {
 	/**
 	 * Gets the context proxy instance
 	 */
-	public getContextProxy(): VscodeContextAccess {
+	public getContextProxy(): IHostEnvironment {
 		return this.contextProxy
 	}
 

@@ -1,5 +1,5 @@
 import { ApiHandlerOptions } from "@shared/api"
-import type { VscodeContextAccess } from "@features/foundation/vscode/context"
+import type { IHostEnvironment } from "@features/foundation/host-context/context"
 import { EmbedderProvider } from "@services/code-index/interfaces/manager"
 import { PreviousConfigSnapshot } from "@services/code-index/interfaces/config"
 import {
@@ -64,7 +64,7 @@ export interface LoadConfigurationResult {
 /**
  * Loads configuration from the context proxy and returns the parsed values.
  */
-export function loadConfigFromContext(contextProxy: VscodeContextAccess): LoadedConfig | undefined {
+export function loadConfigFromContext(contextProxy: IHostEnvironment): LoadedConfig | undefined {
 	const config = readGlobalConfig(contextProxy)
 	if (!config) return undefined
 

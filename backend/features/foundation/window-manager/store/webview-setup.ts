@@ -6,7 +6,7 @@ import type { IWindowManagerModel, WebviewStatePayload } from "@features/foundat
 import { getWindowManagerState } from "./state-utils"
 import { getHtmlContent, getHMRHtmlContent, getErrorHtml } from "./html-utils"
 import { postStateToWebview, postMessageToWebview } from "./messaging"
-import { getVscodeContext } from "@features/foundation/vscode/context"
+import { getHostEnvironment } from "@features/foundation/host-context/context"
 import { getProviderSettingsManager } from "@features/settings/models/provider-settings-manager/ProviderSettingsManager"
 import { getBackendRootStore } from "@features/storeSingleton"
 import { setupSyncer } from "@features/foundation/window-manager/syncer"
@@ -62,7 +62,7 @@ function configureWebviewOptions(webview: vscode.Webview): void {
 	webview.options = {
 		enableScripts: true,
 		localResourceRoots: [
-			vscode.Uri.file(path.join(path.dirname(getVscodeContext().extensionUri.fsPath), WEBVIEW_BUILD_DIR)),
+			vscode.Uri.file(path.join(path.dirname(getHostEnvironment().extensionUri.fsPath), WEBVIEW_BUILD_DIR)),
 		],
 	}
 }
@@ -110,7 +110,7 @@ function setupWebviewDisposalHandler(
 }
 
 function setWebviewHtmlContent(provider: ProviderHandle, webview: vscode.Webview): void {
-	if (getVscodeContext().extensionMode === vscode.ExtensionMode.Development) {
+	if (getHostEnvironment().extensionMode === vscode.ExtensionMode.Development) {
 		webview.html = getHMRHtmlContent(provider, webview)
 	} else {
 		webview.html = getHtmlContent(provider, webview)
@@ -123,7 +123,7 @@ async function loadInitialWebviewState(_provider: ProviderHandle): Promise<Webvi
 		const psm = getProviderSettingsManager()
 		if (!psm) return initialState
 
-		let currentConfigName = getVscodeContext().getGlobalState<string>("currentApiConfigName")
+		let currentConfigName = getHostEnvironment().getGlobalState<string>("currentApiConfigName")
 
 		let listApiConfig: import("@jabberwock/types").ProviderSettingsEntry[] = []
 		try {
@@ -135,7 +135,7 @@ async function loadInitialWebviewState(_provider: ProviderHandle): Promise<Webvi
 
 		if (!currentConfigName && listApiConfig.length > 0) {
 			try {
-				await getVscodeContext().updateGlobalState("currentApiConfigName", listApiConfig[0].name)
+				await getHostEnvironment().updateGlobalState("currentApiConfigName", listApiConfig[0].name)
 				currentConfigName = listApiConfig[0].name
 			} catch {
 				// Non-critical

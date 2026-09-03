@@ -6,7 +6,7 @@ import type { ProviderSettings, ModeConfig, ModelInfo } from "@jabberwock/types"
 import { customToolRegistry, formatNative } from "@jabberwock/core"
 
 import { getMcpServerManager } from "@services/mcp/core/McpServerManager"
-import { getVscodeContext } from "@features/foundation/vscode/context"
+import { getHostEnvironment } from "@features/foundation/host-context/context"
 import { getRooDirectoriesForCwd } from "@services/jabberwock-config/index.js"
 
 import { getNativeTools, getMcpServerTools } from "@features/settings/context/tools/native-tools"
@@ -93,7 +93,7 @@ export async function buildNativeToolsArrayWithRestrictions(options: BuildToolsO
 	const mcpHub = getMcpServerManager().getMcpHub() ?? undefined
 
 	// Get CodeIndexManager for feature checking.
-	const codeIndexManager = getCodeIndexManager(getVscodeContext().extensionContext, cwd)
+	const codeIndexManager = getCodeIndexManager(getHostEnvironment().extensionContext, cwd)
 
 	// Build settings object for tool filtering.
 	const filterSettings = {

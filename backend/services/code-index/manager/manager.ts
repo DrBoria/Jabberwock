@@ -1,4 +1,4 @@
-import type { IExtensionContextView, VscodeContextAccess } from "@features/foundation/vscode/context"
+import type { IExtensionContextView, IHostEnvironment } from "@features/foundation/host-context/context"
 import { VectorStoreSearchResult } from "@services/code-index/interfaces"
 import { IndexingState } from "@services/code-index/interfaces/manager"
 import { CodeIndexConfigManager } from "@services/code-index/config/manager"
@@ -83,7 +83,7 @@ export class CodeIndexManager {
 		}
 	}
 
-	public async initialize(contextProxy: VscodeContextAccess): Promise<{ requiresRestart: boolean }> {
+	public async initialize(contextProxy: IHostEnvironment): Promise<{ requiresRestart: boolean }> {
 		this._configManager = getOrCreateConfigManager(this._configManager, contextProxy)
 		const { requiresRestart } = await this._configManager.loadConfiguration()
 

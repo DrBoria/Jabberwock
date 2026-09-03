@@ -9,7 +9,7 @@
  *   bus.register(IntentConstants.chat.ASK_RESPONSE_RECEIVED, handler)
  *   bus.register(FrontendIntentType.SomeUiIntent, handler)
  */
-import { IntentType } from "@jabberwock/types"
+import { contextEventNames, IntentType } from "@jabberwock/types"
 
 /**
  * IntentConstants — structured namespace for intent type constants.
@@ -95,6 +95,19 @@ export const IntentConstants = {
 		LOG_WRITE: "log.write",
 	},
 
+	// Context graph intents (ICG-C2 section 8.1): values mirror contextEventNames from @jabberwock/types so both sides register identical strings and priority buckets.
+	context: {
+		COMPRESS_REQUESTED: contextEventNames.compressRequested,
+		COMPRESS_COMPLETED: contextEventNames.compressCompleted,
+		RECALL_REQUESTED: contextEventNames.recallRequested,
+		SEARCH_REQUESTED: contextEventNames.searchRequested,
+		DESCRIBE_REQUESTED: contextEventNames.describeRequested,
+		WINDOW_EVICTED: contextEventNames.windowEvicted,
+		HISTORY_RANGE_REQUESTED: contextEventNames.historyRangeRequested,
+		NODE_UPDATED_BROADCAST: contextEventNames.nodeUpdatedBroadcast,
+		WINDOW_MANIFEST_CHANGED: contextEventNames.windowManifestChanged,
+		COMPRESS_PROGRESS: contextEventNames.compressProgress,
+	},
 	// ── File Context (backend — for transitive compilation) ───────────
 	fileContext: {
 		FILE_CONTEXT_TRACKED: "file.context.tracked",
@@ -257,4 +270,15 @@ export const INTENT_PRIORITY: Record<string, IntentPriority> = {
 	"log.write": IntentPriority.Low,
 	"agent.request.failed": IntentPriority.Low,
 	"mcp.tool.result": IntentPriority.Low,
+	// ICG-C2 section 8.1 context graph buckets: recall/search/describe = High (tool-execution class); compress/evict/progress = Low; completed/history-range/node/window-manifest broadcasts = Normal.
+	"context.compress.requested": IntentPriority.Low,
+	"context.compress.completed": IntentPriority.Normal,
+	"context.recall.requested": IntentPriority.High,
+	"context.search.requested": IntentPriority.High,
+	"context.describe.requested": IntentPriority.High,
+	"context.window.evicted": IntentPriority.Low,
+	"context.history.range.requested": IntentPriority.Normal,
+	"context.node.updated.broadcast": IntentPriority.Normal,
+	"context.window.manifest.changed": IntentPriority.Normal,
+	"context.compress.progress": IntentPriority.Low,
 }

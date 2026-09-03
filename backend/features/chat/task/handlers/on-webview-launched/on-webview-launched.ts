@@ -1,7 +1,7 @@
 import { IntentType } from "@jabberwock/types"
 import type { IntentBus } from "@features/intents/bus"
 import { getTheme } from "@integrations/theme/getTheme"
-import { getVscodeContext } from "@features/foundation/vscode/context"
+import { getHostEnvironment } from "@features/foundation/host-context/context"
 import { postStateToWebview } from "@features/foundation/window-manager/store"
 import { loadApiConfiguration } from "./webview-api-config"
 import { sendTaskHistory, restoreChatState, initializeWorkspaceTracker } from "./webview-state"
@@ -23,13 +23,13 @@ async function handleWebviewLaunched(ctx: never): Promise<void> {
 		return
 	}
 
-	const rootStore = (ctx as {rootStore: never}).rootStore
+	const rootStore = (ctx as { rootStore: never }).rootStore
 
 	// 1. Custom Modes
 	const customModes = (rootStore as never as { settings: { modes: { customModes: never } } }).settings.modes
 		.customModes
 
-	await getVscodeContext().updateGlobalState("customModes", customModes)
+	await getHostEnvironment().updateGlobalState("customModes", customModes)
 
 	// 2. API Config Profile Management — MUST run before reading store state
 	await syncApiConfigProfiles(provider, rootStore)

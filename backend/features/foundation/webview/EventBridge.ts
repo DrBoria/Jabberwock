@@ -12,7 +12,7 @@ import { getProvider } from "./providerRegistry"
  * Only event handlers and the messages exception may import EventBridge directly.
  */
 export interface ProviderHandle {
-	postMessageToWebview(message: Record<string, unknown>): Promise<boolean>
+	postMessageToWebview(message: Record<string, unknown>, target?: ClientTarget): Promise<boolean>
 	context: { globalStorageUri: { fsPath: string } }
 }
 
@@ -41,7 +41,7 @@ export class EventBridge extends EventEmitter<TaskProviderEvents> {
 
 	/**
 	 * ProviderHandle-compatible context surface — sourced from the injected hostContext
-	 * capability (storageDir), never from a vscode type.
+	 * capability (storageDir), never from a host type.
 	 */
 	get context(): { globalStorageUri: { fsPath: string } } {
 		return { globalStorageUri: { fsPath: this.caps.hostContext.storageDir } }

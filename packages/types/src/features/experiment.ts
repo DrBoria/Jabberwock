@@ -6,7 +6,13 @@ import type { Keys, Equals, AssertEqual } from "../utils/type-fu.ts"
  * ExperimentId
  */
 
-export const experimentIds = ["preventFocusDisruption", "imageGeneration", "runSlashCommand", "customTools"] as const
+export const experimentIds = [
+	"preventFocusDisruption",
+	"imageGeneration",
+	"runSlashCommand",
+	"customTools",
+	"contextGraphTools",
+] as const
 
 export const experimentIdsSchema = z.enum(experimentIds)
 
@@ -21,6 +27,7 @@ export const experimentsSchema = z.object({
 	imageGeneration: z.boolean().optional(),
 	runSlashCommand: z.boolean().optional(),
 	customTools: z.boolean().optional(),
+	contextGraphTools: z.boolean().optional(),
 })
 
 export type Experiments = z.infer<typeof experimentsSchema>

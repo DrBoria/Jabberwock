@@ -7,7 +7,7 @@ import * as fs from "fs/promises"
 import { fileExistsAtPath } from "@utils/io/fs"
 import { resolveDefaultSaveUri, saveLastExportPath } from "@utils/io/export"
 import { postStateToWebview } from "@features/foundation/window-manager/store"
-import { getVscodeContext } from "@features/foundation/vscode/context"
+import { getHostEnvironment } from "@features/foundation/host-context/context"
 import { getSettingsAccess } from "@utils/settings"
 import {
 	loadAndMergeModes,
@@ -42,8 +42,8 @@ export async function handleUpdateCustomMode(
 		const isNewMode = !existingModes.some((mode: { slug: string }) => mode.slug === modeConfig.modeConfig.slug)
 		await updateCustomModeInFile(modeConfig.modeConfig.slug, modeConfig.modeConfig, requireContext())
 		const customModes = await loadAndMergeModes(requireContext())
-		await getVscodeContext().updateGlobalState("customModes", customModes)
-		await getVscodeContext().updateGlobalState("mode", modeConfig.modeConfig.slug)
+		await getHostEnvironment().updateGlobalState("customModes", customModes)
+		await getHostEnvironment().updateGlobalState("mode", modeConfig.modeConfig.slug)
 		await postStateToWebview(provider)
 		if (hasTelemetryService()) {
 			if (isNewMode) {
@@ -91,7 +91,7 @@ export async function handleDeleteCustomMode(
 	}
 	await deleteCustomModeFromFile(payload.slug, requireContext())
 	if (rulesFolderExists) await deleteRulesFolder(payload.slug, rulesFolderPath)
-	await getVscodeContext().updateGlobalState("mode", defaultModeSlug)
+	await getHostEnvironment().updateGlobalState("mode", defaultModeSlug)
 	await postStateToWebview(provider)
 }
 
@@ -104,7 +104,7 @@ export async function handleExportMode(
 	const payload = intent.payload as { slug: string }
 	if (!payload.slug) return
 	try {
-		const customModePrompts = (getVscodeContext().getGlobalState("customModePrompts") || {}) as Record<
+		const customModePrompts = (getHostEnvironment().getGlobalState("customModePrompts") || {}) as Record<
 			string,
 			unknown
 		>
@@ -166,7 +166,7 @@ export async function handleImportMode(
 			provider.postMessageToWebview({ type: "importModeResult", success: false, error: "cancelled" })
 			return
 		}
-		await getVscodeContext().updateGlobalState("lastModeImportPath", fileUri[0].fsPath)
+		await getHostEnvironment().updateGlobalState("lastModeImportPath", fileUri[0].fsPath)
 		const yamlContent = await fs.readFile(fileUri[0].fsPath, "utf-8")
 		const result = await importModeWithRules(yamlContent, (payload.source || "project") as "global" | "project")
 		if (!result.success) {
@@ -175,7 +175,7 @@ export async function handleImportMode(
 			return
 		}
 		const customModes = await loadAndMergeModes(requireContext())
-		await getVscodeContext().updateGlobalState("customModes", customModes)
+		await getHostEnvironment().updateGlobalState("customModes", customModes)
 		await postStateToWebview(provider)
 		provider.postMessageToWebview({ type: "importModeResult", success: true, slug: result.slug })
 		vscode.window.showInformationMessage(t("common:info.mode_imported"))

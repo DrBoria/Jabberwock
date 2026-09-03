@@ -1,7 +1,7 @@
 import * as path from "path"
 import { promises as fs } from "fs"
 
-import { getWorkspaceRoots } from "@features/foundation/vscode/context"
+import { getWorkspaceRoots } from "@features/foundation/host-context/context"
 import { truncateOutput } from "@integrations/misc/extract-text/helpers"
 import { execAsync, GIT_OUTPUT_LINE_LIMIT } from "./git.helpers"
 import { checkGitRepo } from "./git.helpers"

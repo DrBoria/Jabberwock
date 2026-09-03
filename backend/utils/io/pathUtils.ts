@@ -1,6 +1,6 @@
 import * as path from "path"
 
-import { getWorkspaceRoots } from "@features/foundation/vscode/context"
+import { getWorkspaceRoots } from "@features/foundation/host-context/context"
 
 /**
  * Checks if a file path is outside all workspace folders.

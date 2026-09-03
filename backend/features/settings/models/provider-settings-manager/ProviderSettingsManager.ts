@@ -1,5 +1,5 @@
 // v4 B2 (L14): structural host-context view instead of the vscode type.
-import type { IExtensionContextView, ISecretsView } from "@features/foundation/vscode/context"
+import type { IExtensionContextView, ISecretsView } from "@features/foundation/host-context/context"
 
 import { type ProviderSettingsWithId, ProviderSettingsEntry } from "@jabberwock/types"
 

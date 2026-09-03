@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest"
-import type {
-	BackendCapabilities,
-	ClientTarget,
-	IBackendConnector,
-	WebviewMessage,
-} from "@jabberwock/types"
+import type { BackendCapabilities, ClientTarget, IBackendConnector, WebviewMessage } from "@jabberwock/types"
 
 import { AskClaimTracker } from "./ask-claims"
 import { EventBridge } from "./EventBridge"
@@ -108,7 +103,10 @@ describe("EventBridge (transport-agnostic, §4.2)", () => {
 		const caps = createCapabilities()
 		const bridge = new EventBridge(connector, caps)
 
-		await bridge.postMessageToWebview({ type: "notification.ask.follow_up", requestId: "req-1" }, { kind: "broadcast" })
+		await bridge.postMessageToWebview(
+			{ type: "notification.ask.follow_up", requestId: "req-1" },
+			{ kind: "broadcast" },
+		)
 		await bridge.postMessageToWebview({ type: "some.type" }, { kind: "client", clientId: "watch-1" })
 
 		expect(connector.outbox).toHaveLength(2)
@@ -121,7 +119,7 @@ describe("EventBridge (transport-agnostic, §4.2)", () => {
 		const caps = createCapabilities()
 		const bridge = new EventBridge(connector, caps)
 
-		wireInboundToQueue(connector, caps.queue)
+		wireInboundToQueue(connector, caps.queue, "vscode")
 
 		const received: Array<{ type: string; [key: string]: unknown }> = []
 		onWebviewMessage("test.ping", (_provider, message) => {
@@ -141,7 +139,7 @@ describe("EventBridge (transport-agnostic, §4.2)", () => {
 		const caps = createCapabilities()
 		const bridge = new EventBridge(connector, caps)
 
-		wireInboundToQueue(connector, caps.queue)
+		wireInboundToQueue(connector, caps.queue, "vscode")
 
 		const tracker = new AskClaimTracker<"yes" | "no">()
 

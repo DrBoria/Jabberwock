@@ -1,7 +1,7 @@
 import { IntentType } from "@jabberwock/types"
 import type { IntentBus } from "@features/intents/bus"
 // v4 B2 (L4): workspace roots come from the host context DI slot, not vscode directly.
-import { getWorkspaceRoots } from "@features/foundation/vscode/context"
+import { getWorkspaceRoots } from "@features/foundation/host-context/context"
 import * as path from "path"
 import * as fs from "fs/promises"
 import { t } from "@i18n"

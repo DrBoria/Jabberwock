@@ -113,6 +113,24 @@ async function main() {
 	}
 
 	/**
+	 * v4 Phase C1 (§7.2 / §8.3 criterion C-2): standalone server bundle.
+	 *
+	 * Entry = the web connector backend main. Deliberately NO external "vscode" and no
+	 * vscode-shim alias: if any transitive import in the server-reachable graph reaches
+	 * the "vscode" module, esbuild fails with an unresolved-module error — the automatic
+	 * purity proof that the server mode never depends on the host API.
+	 *
+	 * @type {import('esbuild').BuildOptions}
+	 */
+	const serverConfig = {
+		...buildOptions,
+		entryPoints: ["../connectors/web/backend/main.ts"],
+		outfile: "dist/server.js",
+		// global-agent must stay external (it patches Node http/https at runtime).
+		external: ["esbuild", "global-agent"],
+	}
+
+	/**
 	 * @type {import('esbuild').BuildOptions}
 	 */
 	const workerConfig = {
@@ -121,18 +139,19 @@ async function main() {
 		outdir: "dist/workers",
 	}
 
-	const [extensionCtx, workerCtx] = await Promise.all([
+	const [extensionCtx, workerCtx, serverCtx] = await Promise.all([
 		esbuild.context(extensionConfig),
 		esbuild.context(workerConfig),
+		esbuild.context(serverConfig),
 	])
 
 	if (watch) {
-		await Promise.all([extensionCtx.watch(), workerCtx.watch()])
+		await Promise.all([extensionCtx.watch(), workerCtx.watch(), serverCtx.watch()])
 		copyLocales(srcDir, distDir)
 		setupLocaleWatcher(srcDir, distDir)
 	} else {
-		await Promise.all([extensionCtx.rebuild(), workerCtx.rebuild()])
-		await Promise.all([extensionCtx.dispose(), workerCtx.dispose()])
+		await Promise.all([extensionCtx.rebuild(), workerCtx.rebuild(), serverCtx.rebuild()])
+		await Promise.all([extensionCtx.dispose(), workerCtx.dispose(), serverCtx.dispose()])
 	}
 }
 

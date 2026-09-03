@@ -1,7 +1,7 @@
 import { IntentType } from "@jabberwock/types"
 import type { IntentBus } from "@features/intents/bus"
 import { setTtsSpeed } from "@utils/token/tts"
-import { getVscodeContext } from "@features/foundation/vscode/context"
+import { getHostEnvironment } from "@features/foundation/host-context/context"
 import { postStateToWebview } from "@features/foundation/window-manager/store"
 
 /**
@@ -16,7 +16,7 @@ export function registerOnTtsSpeedSet(bus: IntentBus): void {
 			return
 		}
 
-		await getVscodeContext().updateGlobalState("ttsSpeed", value)
+		await getHostEnvironment().updateGlobalState("ttsSpeed", value)
 		setTtsSpeed(value)
 		await postStateToWebview(provider)
 	})

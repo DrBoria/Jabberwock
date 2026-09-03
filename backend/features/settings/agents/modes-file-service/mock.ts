@@ -1,6 +1,6 @@
 // v4 B2 (L14): structural host views instead of the vscode types. The mock only needs to satisfy
 // IExtensionContextView — consumers read globalState/workspaceState/globalStorageUri/secrets, nothing more.
-import type { IExtensionContextView } from "@features/foundation/vscode/context"
+import type { IExtensionContextView } from "@features/foundation/host-context/context"
 
 /**
  * Create a minimal extension-context view with only the properties needed

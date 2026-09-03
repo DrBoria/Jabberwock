@@ -1,7 +1,7 @@
 import type { ITaskModel } from "@features/chat/task/store"
 import { CodeIndexManager } from "@services/code-index/manager/manager"
 import { getCodeIndexManager } from "@services/code-index/manager/manager.factory"
-import { getVscodeContext, getWorkspaceRoots } from "@features/foundation/vscode/context"
+import { getHostEnvironment, getWorkspaceRoots } from "@features/foundation/host-context/context"
 import { normalizePath, toRelativePath, getWorkspacePath } from "@utils/io/path"
 import { formatResponse } from "@features/settings/context/responses"
 import { VectorStoreSearchResult } from "@services/code-index/interfaces"
@@ -22,7 +22,7 @@ interface CodebaseSearchParams {
  */
 function resolveCodeIndexManager(): CodeIndexManager {
 	// v4 B2 (L3): the structural context view — no cast needed.
-	const manager = getCodeIndexManager(getVscodeContext().extensionContext)
+	const manager = getCodeIndexManager(getHostEnvironment().extensionContext)
 
 	if (!manager) {
 		throw new Error("CodeIndexManager is not available.")

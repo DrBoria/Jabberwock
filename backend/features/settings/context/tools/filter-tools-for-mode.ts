@@ -70,6 +70,9 @@ export function filterNativeToolsForMode(
 	excludeCodebaseSearchIfDisabled(allowedToolNames, codeIndexManager)
 	excludeToolIfExperimentDisabled(allowedToolNames, experiments, "generate_image", "imageGeneration")
 	excludeToolIfExperimentDisabled(allowedToolNames, experiments, "run_slash_command", "runSlashCommand")
+	// ICG-C2 context graph tools - DEFAULT OFF until ICG-F sign-off (experiment flag: contextGraphTools).
+	excludeToolIfExperimentDisabled(allowedToolNames, experiments, "context_search", "contextGraphTools")
+	excludeToolIfExperimentDisabled(allowedToolNames, experiments, "context_recall", "contextGraphTools")
 	excludeDisabledTools(allowedToolNames, settings)
 	excludeMcpResourceIfNotAvailable(allowedToolNames, mcpHub)
 

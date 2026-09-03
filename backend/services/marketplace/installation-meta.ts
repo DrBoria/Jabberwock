@@ -2,9 +2,9 @@ import * as fs from "fs/promises"
 import * as path from "path"
 
 // v4 B2 (L3/L14): structural host-context view instead of the vscode ExtensionContext type.
-import type { IExtensionContextView } from "@features/foundation/vscode/context"
+import type { IExtensionContextView } from "@features/foundation/host-context/context"
 // v4 B2 (L4): workspace roots come from the host context DI slot, not vscode directly.
-import { getWorkspaceRoots } from "@features/foundation/vscode/context"
+import { getWorkspaceRoots } from "@features/foundation/host-context/context"
 import * as yaml from "yaml"
 
 import { GlobalFileNames } from "@shared/globalFileNames"

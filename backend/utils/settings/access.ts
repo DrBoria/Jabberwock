@@ -19,7 +19,7 @@ import {
 import { getTelemetryService } from "@jabberwock/telemetry"
 
 import { logger } from "@utils/logging"
-import { getVscodeContext } from "@features/foundation/vscode/context"
+import { getHostEnvironment } from "@features/foundation/host-context/context"
 
 // ─── Type helpers ───────────────────────────────────────────────────────
 
@@ -36,7 +36,7 @@ const globalSettingsExportSchema = globalSettingsSchema.omit({
 })
 
 function getAllValues(): JabberwockSettings {
-	const ctx = getVscodeContext()
+	const ctx = getHostEnvironment()
 
 	const globalEntries = GLOBAL_SETTINGS_KEYS.map((key) => [key, ctx.getGlobalState(key as GlobalStateKey)])
 	const providerEntries = PROVIDER_SETTINGS_KEYS.filter((key) => !isSecretStateKey(key)).map((key) => [
@@ -112,14 +112,14 @@ export function getSettingsAccess(): SettingsAccess {
 		},
 
 		getValue<K extends JabberwockSettingsKey>(key: K): JabberwockSettings[K] {
-			const ctx = getVscodeContext()
+			const ctx = getHostEnvironment()
 			return isSecretStateKey(key as string)
 				? (ctx.getSecret(key as SecretStateKey) as JabberwockSettings[K])
 				: (ctx.getGlobalState(key as GlobalStateKey) as JabberwockSettings[K])
 		},
 
 		async setValue<K extends JabberwockSettingsKey>(key: K, value: JabberwockSettings[K]): Promise<void> {
-			const ctx = getVscodeContext()
+			const ctx = getHostEnvironment()
 			if (isSecretStateKey(key as string)) {
 				await ctx.storeSecret(key as SecretStateKey, value as string)
 			} else {
@@ -171,7 +171,7 @@ export function getSettingsAccess(): SettingsAccess {
 				}
 			}
 
-			const ctx = getVscodeContext()
+			const ctx = getHostEnvironment()
 			const resetValues = Object.fromEntries(
 				PROVIDER_SETTINGS_KEYS.filter((key) => !isSecretStateKey(key))
 					.filter((key) => {
@@ -204,7 +204,7 @@ export function getSettingsAccess(): SettingsAccess {
 		},
 
 		async resetAllState() {
-			const ctx = getVscodeContext()
+			const ctx = getHostEnvironment()
 			const allStateKeys = [...GLOBAL_SETTINGS_KEYS, ...PROVIDER_SETTINGS_KEYS].filter(
 				(key) => !isSecretStateKey(key as string),
 			)

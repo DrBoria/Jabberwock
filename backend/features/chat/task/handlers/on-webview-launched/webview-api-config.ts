@@ -1,6 +1,6 @@
 import type { ProviderSettingsEntry, ProviderNameWithRetired, ProviderSettings } from "@jabberwock/types"
 import { getProviderSettingsManager } from "@features/settings/models/provider-settings-manager/ProviderSettingsManager"
-import { getVscodeContext } from "@features/foundation/vscode/context"
+import { getHostEnvironment } from "@features/foundation/host-context/context"
 import { checkExistKey } from "@shared/api/checkExistApiConfig"
 import { activateProviderProfile } from "@features/settings/models/api-config-store.profiles"
 
@@ -67,13 +67,13 @@ export async function initializeStoreApiConfig(): Promise<void> {
 			setCurrentConfigName: (n: string) => void
 		}
 
-		let currentConfigName: string | undefined = getVscodeContext().getGlobalState("currentApiConfigName")
+		let currentConfigName: string | undefined = getHostEnvironment().getGlobalState("currentApiConfigName")
 
 		if (!currentConfigName) {
 			const listApiConfig = await psm.listConfig()
 			if (listApiConfig.length > 0) {
 				currentConfigName = listApiConfig[0].name
-				await getVscodeContext().updateGlobalState("currentApiConfigName", currentConfigName)
+				await getHostEnvironment().updateGlobalState("currentApiConfigName", currentConfigName)
 			}
 		}
 
@@ -106,7 +106,7 @@ async function processApiConfigList(
 	await resolveApiConfigName(listApiConfig, psm, provider)
 
 	await Promise.all([
-		getVscodeContext().updateGlobalState("listApiConfigMeta", listApiConfig),
+		getHostEnvironment().updateGlobalState("listApiConfigMeta", listApiConfig),
 		provider.postMessageToWebview({ type: "listApiConfig", listApiConfig }),
 	])
 
@@ -141,7 +141,7 @@ async function resolveApiConfigName(
 	psm: NonNullable<ReturnType<typeof getProviderSettingsManager>>,
 	provider: { postMessageToWebview: (msg: unknown) => Promise<void> },
 ): Promise<void> {
-	const currentConfigName: string | undefined = getVscodeContext().getGlobalState("currentApiConfigName")
+	const currentConfigName: string | undefined = getHostEnvironment().getGlobalState("currentApiConfigName")
 
 	if (!currentConfigName) {
 		return
@@ -153,7 +153,7 @@ async function resolveApiConfigName(
 
 	const name = listApiConfig[0]?.name
 
-	await getVscodeContext().updateGlobalState("currentApiConfigName", name)
+	await getHostEnvironment().updateGlobalState("currentApiConfigName", name)
 
 	if (name) {
 		await activateProviderProfile(provider as never, { name })
@@ -165,7 +165,7 @@ async function syncMstConfigProfile(
 	rootStore: never,
 ): Promise<void> {
 	try {
-		const currentConfigName: string | undefined = getVscodeContext().getGlobalState("currentApiConfigName")
+		const currentConfigName: string | undefined = getHostEnvironment().getGlobalState("currentApiConfigName")
 
 		if (currentConfigName) {
 			const apiConfig = getStoreApiConfig(rootStore) as never as {

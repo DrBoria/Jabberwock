@@ -20,6 +20,7 @@
 		"format:write": "prettier --write 'apps/*/src/**/*.{ts,tsx}' 'packages/*/src/**/*.{ts,tsx}' 'backend/**/*.{ts,tsx}' 'frontend/src/**/*.{ts,tsx}'",
 		"audit:platform": "node scripts/audit-platform.mjs",
 		"check-all": "pnpm lint && pnpm check-types && pnpm test",
+		"start:server": "node backend/dist/server.js",
 		"validate": "pnpm lint && pnpm check-types && pnpm format:check",
 		"build": "turbo build --ui stream --output-logs new-only",
 		"bundle": "turbo bundle --ui stream --output-logs new-only",
@@ -65,7 +66,8 @@
 	},
 	"pnpm": {
 		"onlyBuiltDependencies": [
-			"@vscode/ripgrep"
+			"@vscode/ripgrep",
+			"better-sqlite3"
 		],
 		"overrides": {
 			"tar-fs": ">=3.1.1",

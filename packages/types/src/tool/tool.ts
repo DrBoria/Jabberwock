@@ -50,6 +50,8 @@ export const toolNames = [
 	"analyze_image",
 	"custom_tool",
 	"think_tool",
+	"context_search",
+	"context_recall",
 ] as const
 
 export const toolNamesSchema = z.enum(toolNames)

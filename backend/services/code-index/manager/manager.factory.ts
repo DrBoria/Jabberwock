@@ -1,5 +1,5 @@
-import type { IExtensionContextView } from "@features/foundation/vscode/context"
-import { getWorkspaceRoots } from "@features/foundation/vscode/context"
+import type { IExtensionContextView } from "@features/foundation/host-context/context"
+import { getWorkspaceRoots } from "@features/foundation/host-context/context"
 
 import { CodeIndexManager } from "./manager"
 

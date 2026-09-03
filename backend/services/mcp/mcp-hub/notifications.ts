@@ -1,7 +1,7 @@
 import * as fs from "fs/promises"
 
 // v4 B2 (L11): workspace root via the host-context DI slot — no dynamic require("vscode").
-import { getWorkspaceRoot } from "@features/foundation/vscode/context"
+import { getWorkspaceRoot } from "@features/foundation/host-context/context"
 
 import type { McpHubState } from "@services/mcp/core/types"
 

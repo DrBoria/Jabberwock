@@ -2,7 +2,7 @@
 import type { McpErrorEntry } from "@jabberwock/types"
 import { sanitizeMcpName, toolNamesMatch } from "@utils/mcp"
 
-import { getWorkspaceRoot } from "@features/foundation/vscode/context"
+import { getWorkspaceRoot } from "@features/foundation/host-context/context"
 
 import type { McpConnection } from "@services/mcp/core/types"
 import type { McpHubState } from "@services/mcp/core/types"

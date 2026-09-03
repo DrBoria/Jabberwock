@@ -1,5 +1,5 @@
 import * as vscode from "vscode"
-import type { IExtensionContextView } from "@features/foundation/vscode/context"
+import type { IExtensionContextView } from "@features/foundation/host-context/context"
 import { BATCH_SEGMENT_THRESHOLD } from "@services/code-index/constants"
 import { scannerExtensions } from "@services/code-index/shared/supported-extensions"
 import {

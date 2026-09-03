@@ -1,4 +1,4 @@
-import type { VscodeContextAccess } from "@features/foundation/vscode/context"
+import type { IHostEnvironment } from "@features/foundation/host-context/context"
 
 import { CodeIndexConfigManager } from "@services/code-index/config/manager"
 import type { CodeIndexStateManager } from "@services/code-index/state-manager"
@@ -41,7 +41,7 @@ export function shouldStartOrRestartIndexing(
 
 export function getOrCreateConfigManager(
 	configManager: CodeIndexConfigManager | undefined,
-	contextProxy: VscodeContextAccess,
+	contextProxy: IHostEnvironment,
 ): CodeIndexConfigManager {
 	if (configManager) {
 		return configManager

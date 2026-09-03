@@ -12,7 +12,7 @@ import { CodeIndexServiceFactory } from "@services/code-index/service-factory"
 import { CodeIndexSearchService } from "@services/code-index/search-service"
 import { CodeIndexOrchestrator } from "@services/code-index/orchestrator/orchestrator"
 import { CacheManager } from "@services/code-index/cache-manager"
-import type { IExtensionContextView } from "@features/foundation/vscode/context"
+import type { IExtensionContextView } from "@features/foundation/host-context/context"
 import type { CodeIndexStateManager } from "@services/code-index/state-manager"
 
 export type RecreatedServices = {

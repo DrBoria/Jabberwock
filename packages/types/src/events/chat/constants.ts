@@ -40,6 +40,8 @@ export const CHAT = {
 	TASK: {
 		NEW_TASK: "newTask" as const,
 		CANCEL_TASK: "cancelTask" as const,
+		RESUME_TASK: "resumeTask" as const,
+		SEND_MESSAGE: "sendMessage" as const,
 		CLEAR_TASK: "clearTask" as const,
 		TASK_SYNC_ENABLED: "taskSyncEnabled" as const,
 		CONDENSE_TASK_CONTEXT_REQUEST: "condenseTaskContextRequest" as const,

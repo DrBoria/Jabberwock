@@ -199,3 +199,11 @@ export type WebviewMessageType =
 	| "followUpAnswered"
 	| "batchFileResponse"
 	| "requestState"
+	// Task command surface over WS (v4 Phase C3, plan row C3): TaskCommandName values as ordinary WebviewMessage bodies
+	| "resumeTask"
+	| "sendMessage"
+	// ── Context graph storage requests (ICG-C2 §6.2; body shapes in protocol/context.ts) ────────────────
+	| "context.search.requested"
+	| "context.recall.requested"
+	| "context.describe.requested"
+	| "context.history.range.requested"

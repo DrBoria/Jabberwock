@@ -3,7 +3,7 @@ import * as path from "path"
 import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
 import { getNonce } from "@utils/ui"
 import { getUri } from "@utils/ui"
-import { getVscodeContext } from "@features/foundation/vscode/context"
+import { getHostEnvironment } from "@features/foundation/host-context/context"
 import { WEBVIEW_BUILD_DIR } from "@shared/webviewBuildDir"
 
 const webviewBuildSegments = WEBVIEW_BUILD_DIR.split("/") // ["frontend", "build"] — v4 layout, §3.3/R1
@@ -15,14 +15,14 @@ function escapeHtml(text: string): string {
 export function getHtmlContent(provider: ProviderHandle, webview: vscode.Webview): string {
 	const nonce = getNonce()
 	const buildVersion = Date.now().toString(36)
-	const workspaceRootUri = vscode.Uri.file(path.resolve(getVscodeContext().extensionUri.fsPath, ".."))
+	const workspaceRootUri = vscode.Uri.file(path.resolve(getHostEnvironment().extensionUri.fsPath, ".."))
 	const scriptUriParts = [...webviewBuildSegments, "assets", "index.js"]
 	const styleUriParts = [...webviewBuildSegments, "assets", "index.css"]
 
 	const scriptUri = String(getUri(webview, workspaceRootUri, scriptUriParts)) + `?v=${buildVersion}`
 	const styleUri = String(getUri(webview, workspaceRootUri, styleUriParts)) + `?v=${buildVersion}`
 
-	const isDev = getVscodeContext().extensionMode === vscode.ExtensionMode.Development
+	const isDev = getHostEnvironment().extensionMode === vscode.ExtensionMode.Development
 	const cspMeta = isDev
 		? ""
 		: `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource}; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}' ${webview.cspSource} 'wasm-unsafe-eval'; connect-src 'self' https: http:">`
@@ -45,7 +45,7 @@ export function getHtmlContent(provider: ProviderHandle, webview: vscode.Webview
 
 export function getHMRHtmlContent(provider: ProviderHandle, webview: vscode.Webview): string {
 	try {
-		const extensionRoot = path.dirname(getVscodeContext().extensionUri.fsPath)
+		const extensionRoot = path.dirname(getHostEnvironment().extensionUri.fsPath)
 		// dev HMR port file lives at the frontend package root (= dirname of WEBVIEW_BUILD_DIR)
 		const vitePortPath = path.join(extensionRoot, path.dirname(WEBVIEW_BUILD_DIR), ".vite-port")
 		const { existsSync, readFileSync } = require("fs") as typeof import("fs")

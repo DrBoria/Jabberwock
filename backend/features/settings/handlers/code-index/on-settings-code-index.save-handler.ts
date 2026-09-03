@@ -1,7 +1,7 @@
 import type { IntentHandlerContext as IntentBusCtx } from "@features/intents/context"
 import type { CodebaseIndexConfig, CodebaseIndexProvider } from "@jabberwock/types"
 import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
-import { getVscodeContext } from "@features/foundation/vscode/context"
+import { getHostEnvironment } from "@features/foundation/host-context/context"
 import { postStateToWebview } from "@features/foundation/window-manager/store"
 import { getCodeIndexManager } from "@services/code-index/manager/manager.factory"
 import {
@@ -53,7 +53,7 @@ export async function handleSaveSettings(
 
 		await postStateToWebview(provider)
 
-		const currentCodeIndexManager = getCodeIndexManager(getVscodeContext().extensionContext)
+		const currentCodeIndexManager = getCodeIndexManager(getHostEnvironment().extensionContext)
 
 		if (currentCodeIndexManager) {
 			await handleManagerAfterSettingsSave(provider, currentCodeIndexManager, embedderProviderChanged)

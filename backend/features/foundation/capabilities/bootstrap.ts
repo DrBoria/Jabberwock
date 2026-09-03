@@ -4,7 +4,7 @@ import { setBackendLogger } from "./backend-logger"
 import { EventBusPubSub } from "./pubsub"
 import { InMemoryMessageQueue } from "./in-memory-queue"
 import { MementoBackedMemory } from "./memory/memento-hashmap-memory"
-import { setHostContext } from "@features/foundation/vscode/context"
+import { setHostContext } from "@features/foundation/host-context/context"
 
 /** Structural secret-store view (host SecretStorage satisfies it; Thenable returns). */
 export interface ISecretStoreLike {

@@ -1,7 +1,7 @@
 import * as path from "path"
 import os from "os"
 
-import { getWorkspaceRoots } from "@features/foundation/vscode/context"
+import { getWorkspaceRoots } from "@features/foundation/host-context/context"
 
 /*
 The Node.js 'path' module resolves and normalizes paths differently depending on the platform:

@@ -1,7 +1,7 @@
 import { IntentType } from "@jabberwock/types"
 import type { IntentBus } from "@features/intents/bus"
 import type { IBackendRootStore } from "@features/store"
-import { getVscodeContext } from "@features/foundation/vscode/context"
+import { getHostEnvironment } from "@features/foundation/host-context/context"
 import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
 import { openAiCodexOAuthManager } from "@integrations/openai-codex/oauth"
 import { fetchOpenAiCodexRateLimitInfo } from "@integrations/openai-codex/rate-limits"
@@ -69,7 +69,7 @@ export function registerSettingsDebug(bus: IntentBus): void {
 		}
 
 		try {
-			const globalStoragePath = getVscodeContext().globalStorageUri.fsPath
+			const globalStoragePath = getHostEnvironment().globalStorageUri.fsPath
 			await openDebugHistoryFile(
 				currentTask.taskId,
 				globalStoragePath,
@@ -95,7 +95,7 @@ export function registerSettingsDebug(bus: IntentBus): void {
 		}
 
 		try {
-			const globalStoragePath = getVscodeContext().globalStorageUri.fsPath
+			const globalStoragePath = getHostEnvironment().globalStorageUri.fsPath
 			await openDebugHistoryFile(currentTask.taskId, globalStoragePath, "ui_messages.json", "debug-ui")
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
@@ -118,7 +118,7 @@ export function registerSettingsDebug(bus: IntentBus): void {
 
 		await generateErrorDiagnostics({
 			taskId: currentTask.taskId,
-			globalStoragePath: getVscodeContext().globalStorageUri.fsPath,
+			globalStoragePath: getHostEnvironment().globalStorageUri.fsPath,
 			values: payload.values as ErrorDiagnosticsValues | undefined,
 			log: (msg: string) => backendLog.info(msg),
 		})

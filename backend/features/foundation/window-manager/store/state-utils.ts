@@ -2,7 +2,8 @@ import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
 import type { Notification } from "@jabberwock/types"
 import type { IWindowManagerModel, WebviewStatePayload } from "@features/foundation/window-manager/store"
 import { getBackendRootStore } from "@features/storeSingleton"
-import { getVscodeContext } from "@features/foundation/vscode/context"
+import { getContextWindowMeta } from "@features/context"
+import { getHostEnvironment } from "@features/foundation/host-context/context"
 import { jabberwockLog } from "@utils/logger"
 import WorkspaceTracker from "@integrations/workspace/WorkspaceTracker"
 
@@ -24,8 +25,15 @@ export function buildEnrichedState(additionalState?: WebviewStatePayload): Webvi
 
 	enrichedState._hydration = true
 
+	// ICG-C1 (section 7.3 bounded handshake) - see enrichContextMeta: minimal per-task archive metadata only, content never enters hydrated state; heavy pages arrive via explicit range fetches once the client knows where it is. O(1) cache read at push time.
+	try {
+		enrichContextMeta(enrichedState)
+	} catch {
+		// Non-critical - archive may be disabled or still initializing; the next state post retries.
+	}
+
 	if (!enrichedState.currentApiConfigName) {
-		const currentConfigName = getVscodeContext().getGlobalState("currentApiConfigName")
+		const currentConfigName = getHostEnvironment().getGlobalState("currentApiConfigName")
 		if (currentConfigName) {
 			enrichedState.currentApiConfigName = currentConfigName
 		}
@@ -40,6 +48,15 @@ export function buildEnrichedState(additionalState?: WebviewStatePayload): Webvi
 	}
 
 	return enrichedState
+}
+
+/** ICG-C1 (ICG doc section 7.3 bounded handshake): inject minimal per-task archive metadata into hydrated state - content never included, by design; heavy pages arrive via explicit range fetches once the client knows where it is. O(1) cache read at push time. */
+function enrichContextMeta(enrichedState: WebviewStatePayload): void {
+	const contextMeta = getContextWindowMeta()
+
+	if (!enrichedState.context && Object.keys(contextMeta).length > 0) {
+		enrichedState.context = { tasks: contextMeta }
+	}
 }
 
 function applyStoreEnrichment(enrichedState: WebviewStatePayload): void {

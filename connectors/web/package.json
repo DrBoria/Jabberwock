@@ -4,9 +4,21 @@
 	"description": "v4 host adapter for standalone server mode: WebSocket-only transport (backend) + browser WS client connector (frontend). Plan §3.1, Phase C.",
 	"private": true,
 	"type": "module",
+	"dependencies": {
+		"@jabberwock/types": "workspace:^",
+		"chokidar": "^4.0.1",
+		"ws": "^8.18.0"
+	},
+	"devDependencies": {
+		"@jabberwock/config-eslint": "workspace:^",
+		"@types/node": "^24.1.0",
+		"@types/ws": "^8.18.0",
+		"vitest": "^3.2.3"
+	},
 	"scripts": {
-		"lint": "echo 'connector-web: skeleton (Phase A1), no sources yet'",
-		"check-types": "echo 'connector-web: skeleton (Phase A1), nothing to type-check'",
-		"test": "echo 'connector-web: skeleton (Phase A1), no tests yet'"
+		"lint": "eslint backend --ext=ts --max-warnings=0",
+		"check-types": "tsc --noEmit",
+		"test": "vitest run",
+		"clean": "rimraf dist .turbo"
 	}
 }

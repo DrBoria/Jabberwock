@@ -11,6 +11,7 @@ import { MarketplaceModel } from "@features/marketplace/store"
 import { EventLogModel } from "@features/eventlog/store"
 import { SettingsModel } from "@features/settings/store"
 import { FileContextTrackerStoreModel } from "@features/foundation/time-machine/store"
+import { ContextWindowModel, createContextWindowState } from "@features/context"
 import { setRootStore } from "@features/storeSingleton"
 import { loadSnapshot, sanitizeSnapshots } from "@features/store/store.snapshot"
 
@@ -61,6 +62,7 @@ export const BackendRootModel = types
 			entries: {},
 		})),
 		eventLog: types.array(EventLogModel),
+		context: types.optional(ContextWindowModel, createContextWindowState()),
 	})
 	.actions((self) => ({
 		logEvent(event: { type: string; ts: number; direction: "outgoing" | "incoming"; payload: unknown }) {

@@ -1,4 +1,6 @@
 import type OpenAI from "openai"
+import contextSearch from "./context/context_search"
+import contextRecall from "./context/context_recall"
 import analyzeImage from "./a-c/analyze_image"
 import accessMcpResource from "./a-c/access_mcp_resource"
 import { apply_diff } from "./a-c/apply_diff"
@@ -67,6 +69,8 @@ export function getNativeTools(options: NativeToolsOptions = {}): OpenAI.Chat.Ch
 		searchFiles,
 		switchMode,
 		thinkTool,
+		contextSearch,
+		contextRecall,
 		writeToFile,
 	] satisfies OpenAI.Chat.ChatCompletionTool[]
 }

@@ -2,7 +2,7 @@ import * as path from "path"
 import { promises as fsp } from "fs"
 
 import { createHash } from "crypto"
-import type { IExtensionContextView } from "@features/foundation/vscode/context"
+import type { IExtensionContextView } from "@features/foundation/host-context/context"
 import { ICacheManager } from "./interfaces/cache"
 import debounce from "lodash.debounce"
 import { safeWriteJson } from "@utils/io"

@@ -1,4 +1,4 @@
-import { getWorkspaceRoots } from "@features/foundation/vscode/context"
+import { getWorkspaceRoots } from "@features/foundation/host-context/context"
 import type { IFileWatcher, IVectorStore } from "@services/code-index/interfaces"
 import type { CodeIndexConfigManager } from "@services/code-index/config/manager"
 import type { CodeIndexStateManager } from "@services/code-index/state-manager"

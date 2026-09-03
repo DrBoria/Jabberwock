@@ -7,7 +7,7 @@ import { supportPrompt } from "@shared/support-prompt"
 
 /**
  * Run all settings migrations in order.
- * Called once during extension activation after initVscodeContext().
+ * Called once during extension activation after installBackendState().
  */
 export async function runSettingsMigrations(context: vscode.ExtensionContext): Promise<void> {
 	await migrateImageGenerationSettings(context)

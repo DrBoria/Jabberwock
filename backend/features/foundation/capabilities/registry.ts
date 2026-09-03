@@ -19,7 +19,7 @@ export function setBackendCapabilities(capabilities: BackendCapabilities): void 
 	_capabilities = capabilities
 }
 
-/** Get the process-wide capabilities. Throws if bootstrap has not run yet (fail fast, like getVscodeContext). */
+/** Get the process-wide capabilities. Throws if bootstrap has not run yet (fail fast, like getHostEnvironment). */
 export function getBackendCapabilities(): BackendCapabilities {
 	if (!_capabilities) {
 		throw new Error("[capabilities] Not initialized — setBackendCapabilities() must be called during activation")

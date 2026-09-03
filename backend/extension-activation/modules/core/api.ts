@@ -1,6 +1,7 @@
 import * as vscode from "vscode"
 import * as path from "path"
 import { EventEmitter } from "events"
+import { when } from "mobx"
 
 import type {
 	JabberwockAPI,
@@ -12,9 +13,14 @@ import type {
 
 import { EventBridge } from "@features/foundation/webview/EventBridge"
 import { getBackendRootStore } from "@features/storeSingleton"
-import { startNewTask, createTaskWithHistoryItem } from "@features/chat/task/actions/startTask"
+import {
+	dispatchTaskCancelIntent,
+	dispatchTaskNewIntent,
+	dispatchTaskResumeIntent,
+} from "@features/api/events/actions/task-command-intents"
+import { startNewTask } from "@features/chat/task/actions/startTask"
 import { isTaskInHistory, getCurrentTaskStack } from "@features/chat/task/actions/taskRegistry"
-import { popTaskFromStack, abortRunningTask } from "@features/chat/task/actions/abortRunningTask"
+import { popTaskFromStack } from "@features/chat/task/actions/abortRunningTask"
 import { sendMessage } from "@features/chat/task/messages/actions/sendMessage"
 import { healthcheck } from "@features/foundation/window-manager/actions/ready"
 import { getTaskWithId } from "@features/hist/actions"
@@ -75,6 +81,28 @@ export function setupDevWatchers(context: vscode.ExtensionContext): void {
 	})
 }
 
+/** Resolves with the key of a task added to chat.tasks after `knownKeys` were captured; rejects if none appears within 15 seconds. */
+function waitForNewTaskId(
+	store: NonNullable<ReturnType<typeof getBackendRootStore>>,
+	knownKeys: ReadonlySet<string>,
+): Promise<string> {
+	return new Promise((resolve, reject) => {
+		when(() => [...store.chat.tasks.keys()].some((key) => !knownKeys.has(key)), { timeout: 15_000 }).then(
+			() => {
+				const key = [...store.chat.tasks.keys()].find((k) => !knownKeys.has(k))
+				if (key !== undefined) {
+					resolve(key)
+				} else {
+					reject(new Error("startNewTask timed out waiting for the task to appear in chat.tasks"))
+				}
+			},
+			(error: unknown) => {
+				reject(error instanceof Error ? error : new Error(String(error)))
+			},
+		)
+	})
+}
+
 export async function buildApi(
 	provider: EventBridge,
 	context: vscode.ExtensionContext,
@@ -83,33 +111,66 @@ export async function buildApi(
 	const eventEmitter = new EventEmitter<JabberwockAPIEvents>()
 
 	const api: JabberwockAPI = Object.assign(eventEmitter, {
-		startNewTask: (opts: {
+		startNewTask: async ({
+			configuration,
+			text,
+			images,
+			newTab,
+		}: {
 			configuration?: JabberwockSettings
 			text?: string
 			images?: string[]
 			newTab?: boolean
-		}) =>
-			startNewTask(provider, context, outputChannel, {
-				configuration: opts.configuration ?? ({} as JabberwockSettings),
-				text: opts.text,
-				images: opts.images,
-				newTab: opts.newTab,
-			}),
+		}) => {
+			if (newTab || configuration !== undefined) {
+				return startNewTask(provider, context, outputChannel, {
+					configuration: configuration ?? ({} as JabberwockSettings),
+					text,
+					images,
+					newTab,
+				})
+			}
+
+			const store = getBackendRootStore()
+			if (!store) throw new Error("startNewTask failed: backend root store is not initialized")
+
+			// Legacy parity with the direct startNewTask action (start-new-task.ts L35-41): a new task replaces any active one.
+			const activeTask = store.chat.activeTask
+			if (activeTask) {
+				store.chat.clearAllStreamingToolCalls()
+				store.chat.removeTask(activeTask.taskId)
+			}
+
+			const knownKeys = new Set(store.chat.tasks.keys())
+			dispatchTaskNewIntent({ text, images })
+			return waitForNewTaskId(store, knownKeys)
+		},
 
 		resumeTask: async (taskId: string) => {
-			const result = await getTaskWithId(taskId)
-			const historyItem = result.historyItem
+			// Preserve the documented @throws contract for unknown task ids; completion then happens asynchronously in the IntentBus fiber, same as WS/IPC transports.
+			await getTaskWithId(taskId)
 
-			if (historyItem) {
-				await createTaskWithHistoryItem(provider, historyItem)
-			}
+			dispatchTaskResumeIntent(taskId)
 		},
 		isTaskInHistory: (taskId: string) => isTaskInHistory(provider, taskId),
 		getCurrentTaskStack: () => getCurrentTaskStack(),
 		popTaskFromStack: async (lastMessage?: string) => {
 			await popTaskFromStack(lastMessage)
 		},
-		abortRunningTask: () => abortRunningTask(provider),
+		// v4 Phase C3 (plan row C3): cancel routes through the shared Critical-bucket intent, same as WS/IPC transports.
+		abortRunningTask: async () => {
+			const store = getBackendRootStore()
+			if (!store) return
+
+			dispatchTaskCancelIntent()
+			await when(() => !store.chat.isRunning || !store.chat.activeTask, { timeout: 15_000 }).catch(
+				(error: unknown) => {
+					console.warn(
+						`[jabberwock] [buildApi] abortRunningTask timed out waiting for cancel to take effect: ${String(error)}`,
+					)
+				},
+			)
+		},
 		sendMessage: (text?: string, images?: string[]) => sendMessage(provider, text, images),
 		pressPrimaryButton: async () => {
 			await provider.postMessageToWebview({ type: "invoke", invoke: "primaryButtonClick" })

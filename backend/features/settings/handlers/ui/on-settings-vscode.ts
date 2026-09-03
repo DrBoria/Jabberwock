@@ -1,7 +1,7 @@
 import { IntentType } from "@jabberwock/types"
 import type { IntentBus } from "@features/intents/bus"
 import * as vscode from "vscode"
-import { getVscodeContext } from "@features/foundation/vscode/context"
+import { getHostEnvironment } from "@features/foundation/host-context/context"
 
 const ALLOWED_VSCODE_SETTINGS = new Set(["terminal.integrated.inheritEnv"])
 
@@ -57,14 +57,14 @@ export function registerOnSettingsVscode(bus: IntentBus): void {
 	bus.register(IntentType.SettingsAutoApprovalEnabled, async (intent) => {
 		const payload = intent.payload as { bool: boolean }
 		const bool = payload.bool ?? false
-		await getVscodeContext().updateGlobalState("autoApprovalEnabled", bool)
+		await getHostEnvironment().updateGlobalState("autoApprovalEnabled", bool)
 	})
 
 	// ── debugSetting ─────────────────────────────────────────────────
 	bus.register(IntentType.SettingsDebugSetting, async (intent) => {
 		const payload = intent.payload as { bool: boolean }
 		const bool = payload.bool ?? false
-		await getVscodeContext().extensionContext.globalState.update("debugSetting", bool)
+		await getHostEnvironment().extensionContext.globalState.update("debugSetting", bool)
 	})
 }
 

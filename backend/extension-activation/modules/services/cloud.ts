@@ -5,7 +5,7 @@ import { getTelemetryService } from "@jabberwock/telemetry"
 import { createCloudService } from "@jabberwock/cloud"
 
 import { EventBridge } from "@features/foundation/webview/EventBridge"
-import { getVscodeContext } from "@features/foundation/vscode/context"
+import { getHostEnvironment } from "@features/foundation/host-context/context"
 import { postStateToWebviewWithoutMessages } from "@features/foundation/window-manager/store"
 import { flushModels, refreshModels } from "@api/providers/fetchers/modelCache"
 import { getCloudService as getCloudServiceInstance } from "@jabberwock/cloud"
@@ -74,7 +74,7 @@ export async function setupCloudService(
 					if (storedModel) {
 						cloudLogger(`[authStateChangedHandler] Applying stored provider model: ${storedModel}`)
 						const currentConfigName =
-							getVscodeContext().getGlobalState<string>("currentApiConfigName") || "default"
+							getHostEnvironment().getGlobalState<string>("currentApiConfigName") || "default"
 						await upsertProviderProfile(provider, currentConfigName, {
 							apiProvider: "jabberwock",
 							apiModelId: storedModel,

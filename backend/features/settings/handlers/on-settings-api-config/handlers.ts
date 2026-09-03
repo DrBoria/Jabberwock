@@ -1,7 +1,7 @@
 import { ProviderSettings } from "@jabberwock/types"
 import type { IntentHandlerContext as IntentBusCtx } from "@features/intents/context"
 import { t } from "@i18n"
-import { getVscodeContext } from "@features/foundation/vscode/context"
+import { getHostEnvironment } from "@features/foundation/host-context/context"
 import { getProviderSettingsManager } from "@features/settings/models/provider-settings-manager/ProviderSettingsManager"
 import { activateProviderProfile } from "@features/settings/models/api-config-store.profiles"
 import { postStateToWebview } from "@features/foundation/window-manager/store"
@@ -21,7 +21,7 @@ export async function handleSettingsApiConfigSave(
 	try {
 		await getProviderSettingsManager()!.saveConfig(payload.text, payload.apiConfiguration)
 		const listApiConfig = await getProviderSettingsManager()!.listConfig()
-		await getVscodeContext().updateGlobalState("listApiConfigMeta", listApiConfig)
+		await getHostEnvironment().updateGlobalState("listApiConfigMeta", listApiConfig)
 	} catch (error) {
 		backendLog.info(
 			`Error save api configuration: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,
@@ -76,7 +76,7 @@ export async function handleSettingsApiConfigLoad(
 	try {
 		const profile = await activateProviderProfile(provider, { name: payload.text })
 		if (profile) {
-			await getVscodeContext().updateGlobalState("currentApiConfigName", payload.text)
+			await getHostEnvironment().updateGlobalState("currentApiConfigName", payload.text)
 		}
 		await postStateToWebview(provider)
 	} catch (error) {
@@ -101,7 +101,7 @@ export async function handleSettingsApiConfigLoadById(
 		const profile = await activateProviderProfile(provider, { id: payload.text })
 		if (profile) {
 			const configName = typeof profile.name === "string" ? profile.name : undefined
-			await getVscodeContext().updateGlobalState("currentApiConfigName", configName)
+			await getHostEnvironment().updateGlobalState("currentApiConfigName", configName)
 		}
 		await postStateToWebview(provider)
 	} catch (error) {
@@ -121,7 +121,7 @@ export async function handleSettingsApiConfigList(
 
 	try {
 		const listApiConfig = await getProviderSettingsManager()!.listConfig()
-		await getVscodeContext().updateGlobalState("listApiConfigMeta", listApiConfig)
+		await getHostEnvironment().updateGlobalState("listApiConfigMeta", listApiConfig)
 		provider.postMessageToWebview({ type: "listApiConfig", listApiConfig })
 		getMstState(ctx.rootStore).listApiConfigStore?.setListApiConfig(listApiConfig)
 	} catch (error) {
@@ -141,7 +141,7 @@ export async function handleSettingsApiConfigLockModes(
 
 	const payload = intent.payload as { bool: boolean }
 	const enabled = payload.bool ?? false
-	await getVscodeContext().extensionContext.workspaceState.update("lockApiConfigAcrossModes", enabled)
+	await getHostEnvironment().extensionContext.workspaceState.update("lockApiConfigAcrossModes", enabled)
 	await postStateToWebview(provider)
 }
 
@@ -156,7 +156,7 @@ export async function handleSettingsApiConfigPinToggle(
 	if (!payload.text) return
 
 	const currentPinned =
-		getVscodeContext().getGlobalState<Record<string, boolean>>("pinnedApiConfigs") ??
+		getHostEnvironment().getGlobalState<Record<string, boolean>>("pinnedApiConfigs") ??
 		({} as Record<string, boolean>)
 	const updatedPinned: Record<string, boolean> = { ...currentPinned }
 
@@ -166,7 +166,7 @@ export async function handleSettingsApiConfigPinToggle(
 		updatedPinned[payload.text] = true
 	}
 
-	await getVscodeContext().updateGlobalState("pinnedApiConfigs", updatedPinned)
+	await getHostEnvironment().updateGlobalState("pinnedApiConfigs", updatedPinned)
 	await postStateToWebview(provider)
 }
 
@@ -178,7 +178,7 @@ export async function handleSettingsApiConfigEnhancementId(
 	if (!provider) return
 
 	const payload = intent.payload as { text: string }
-	await getVscodeContext().updateGlobalState("enhancementApiConfigId", payload.text)
+	await getHostEnvironment().updateGlobalState("enhancementApiConfigId", payload.text)
 	await postStateToWebview(provider)
 }
 

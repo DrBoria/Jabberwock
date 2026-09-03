@@ -7,7 +7,7 @@ import type { McpErrorEntry, McpResource, McpResourceTemplate, McpServer, McpToo
 
 import type { DisposableLike, IFileWatcher } from "@jabberwock/types"
 
-import type { IExtensionContextView } from "@features/foundation/vscode/context"
+import type { IExtensionContextView } from "@features/foundation/host-context/context"
 
 import { WebSocketClientTransport } from "@services/mcp/features/websocket-transport"
 

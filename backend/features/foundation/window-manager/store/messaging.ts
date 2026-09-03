@@ -4,7 +4,7 @@ import { hasConnector, getConnector } from "@features/foundation/webview/provide
 import type { IWindowManagerModel, WebviewStatePayload } from "@features/foundation/window-manager/store"
 import { PUSH_DEBOUNCE_MS } from "@features/foundation/window-manager/store"
 import { getWindowManagerState, buildEnrichedState, logStateMessages } from "./state-utils"
-import { getVscodeContext } from "@features/foundation/vscode/context"
+import { getHostEnvironment } from "@features/foundation/host-context/context"
 import { getSettingsAccess } from "@utils/settings"
 import { getProviderSettingsManager } from "@features/settings/models/provider-settings-manager/ProviderSettingsManager"
 import { getBackendRootStore } from "@features/storeSingleton"
@@ -88,7 +88,7 @@ export async function postStateToWebviewWithoutMessages(provider: ProviderHandle
 		const psm = getProviderSettingsManager()
 		if (psm) {
 			state.listApiConfigMeta = await psm.listConfig()
-			const currentConfigName = getVscodeContext().getGlobalState<string>("currentApiConfigName")
+			const currentConfigName = getHostEnvironment().getGlobalState<string>("currentApiConfigName")
 			if (currentConfigName) {
 				const profile = await psm.getProfile({ name: currentConfigName })
 				if (profile) {
@@ -103,7 +103,7 @@ export async function postStateToWebviewWithoutMessages(provider: ProviderHandle
 			Object.assign(state, settings)
 		}
 
-		const currentConfigName = getVscodeContext().getGlobalState<string>("currentApiConfigName")
+		const currentConfigName = getHostEnvironment().getGlobalState<string>("currentApiConfigName")
 		if (currentConfigName) {
 			state.currentApiConfigName = currentConfigName
 		}

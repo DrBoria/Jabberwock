@@ -14,6 +14,7 @@ import { getSettingsAccess } from "@utils/settings"
 
 import { getIgnoreInstructions } from "@features/settings/constants"
 import { getProvider } from "@features/foundation/webview/providerRegistry"
+import { getHostEnvironment } from "@features/foundation/host-context/context"
 
 /**
  * Get the system prompt for this task, including MCP server configuration,
@@ -58,7 +59,7 @@ export async function getSystemPrompt(task: ITaskModel): Promise<string> {
 		const provider = getProvider()
 
 		// Wait for MCP hub initialization through McpServerManager
-		mcpHub = await getMcpServerManager().getInstance(provider.context as vscode.ExtensionContext, provider)
+		mcpHub = await getMcpServerManager().getInstance(getHostEnvironment().extensionContext, provider) // v4 B2 fix: pass the DI-backed structural view - ProviderHandle stub context has no globalState member (crash at McpServerManager init: reading 'update' on undefined)
 
 		if (!mcpHub) {
 			throw new Error("Failed to get MCP hub from server manager")
@@ -76,12 +77,10 @@ export async function getSystemPrompt(task: ITaskModel): Promise<string> {
 	const jabberwockIgnoreInstructions = getIgnoreInstructions(task.jabberwockIgnoreController)
 
 	return await (async () => {
-		const provider = getProvider()
-
 		const modelInfo = task.api!.getModel().info
 
 		return SYSTEM_PROMPT(
-			provider.context as vscode.ExtensionContext,
+			getHostEnvironment().extensionContext, // v4 B2 fix: full DI-backed context view; ProviderHandle stub has no globalState
 			task.cwd,
 			false,
 			mcpHub,

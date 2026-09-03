@@ -1,7 +1,7 @@
 import * as vscode from "vscode"
 import delay from "delay"
 
-import { initVscodeContext } from "@features/foundation/vscode/context"
+import { installBackendState } from "@features/foundation/host-context/context"
 import { getBackendCapabilities } from "@features/foundation/capabilities/registry"
 import { EventBridge } from "@features/foundation/webview/EventBridge"
 import { wireInboundToQueue } from "@features/foundation/webview/inbound-wiring"
@@ -15,7 +15,7 @@ export const openClineInNewTab = async ({
 	context: vscode.ExtensionContext
 	outputChannel: vscode.OutputChannel
 }) => {
-	initVscodeContext(context)
+	installBackendState(context)
 
 	// v4 B3 (§4.2): the editor tab gets its own connector instance (mirroring the old per-panel
 	// EventBridge); inbound is wired to the shared capabilities.queue so the extension-level drain
@@ -23,7 +23,7 @@ export const openClineInNewTab = async ({
 	const tabConnector = new VscodeWebviewBackendConnector(context, outputChannel)
 	const capabilities = getBackendCapabilities()
 	await tabConnector.start(capabilities)
-	wireInboundToQueue(tabConnector, capabilities.queue)
+	wireInboundToQueue(tabConnector, capabilities.queue, tabConnector.id)
 	const lastCol = Math.max(...vscode.window.visibleTextEditors.map((editor) => editor.viewColumn || 0))
 
 	const hasVisibleEditors = vscode.window.visibleTextEditors.length > 0

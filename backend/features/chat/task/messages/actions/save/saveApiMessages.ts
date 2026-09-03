@@ -6,6 +6,8 @@ import { sendStateToWebview } from "@features/chat/task/messages/events/actions/
 import { fileExistsAtPath } from "@utils/io/fs"
 import { GlobalFileNames } from "@shared/globalFileNames"
 import { getTaskDirectoryPath } from "@utils/io"
+// ICG-C1 (ICG doc section 5.6): dual-write ingest into the context archive.
+import { ingestTaskMessages } from "@features/context"
 
 import type { ApiMessage } from "./saveApiMessages.types"
 export type { ApiMessage }
@@ -88,6 +90,12 @@ export async function saveApiMessages({
 	const taskDir = await getTaskDirectoryPath(globalStoragePath, taskId)
 	const filePath = path.join(taskDir, GlobalFileNames.apiConversationHistory)
 	await safeWriteJson(filePath, messages)
+	// ICG-C1 (section 5.6 dual-write): mirror into the archive after the JSON write succeeds; idempotent per (taskId, seq); failures are logged and swallowed so they never break the primary save path.
+	try {
+		ingestTaskMessages(taskId, messages)
+	} catch (error) {
+		console.warn(`[jabberwock] [ContextArchive] Failed to ingest task ${taskId}:`, error)
+	}
 }
 
 /**

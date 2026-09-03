@@ -1,7 +1,7 @@
 import { ProviderSettings } from "@jabberwock/types"
 import type { IntentHandlerContext as IntentBusCtx } from "@features/intents/context"
 import { t } from "@i18n"
-import { getVscodeContext } from "@features/foundation/vscode/context"
+import { getHostEnvironment } from "@features/foundation/host-context/context"
 import { getProviderSettingsManager } from "@features/settings/models/provider-settings-manager/ProviderSettingsManager"
 import { upsertProviderProfile } from "@features/settings/models/api-config-store.profiles"
 import { postStateToWebview } from "@features/foundation/window-manager/store"
@@ -38,8 +38,8 @@ export async function handleSettingsApiConfigUpsert(
 		const listApiConfig = await getProviderSettingsManager()!.listConfig()
 		console.log(`[handlers/upsertApiConfiguration] listConfig returned ${listApiConfig?.length ?? 0} configs`)
 
-		await getVscodeContext().updateGlobalState("listApiConfigMeta", listApiConfig)
-		await getVscodeContext().updateGlobalState("currentApiConfigName", payload.text)
+		await getHostEnvironment().updateGlobalState("listApiConfigMeta", listApiConfig)
+		await getHostEnvironment().updateGlobalState("currentApiConfigName", payload.text)
 		console.log(`[handlers/upsertApiConfiguration] saved currentApiConfigName="${payload.text}" to global state`)
 
 		await postStateToWebview(provider, { apiConfiguration: payload.apiConfiguration })

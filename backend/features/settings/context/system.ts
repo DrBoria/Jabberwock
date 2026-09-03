@@ -1,5 +1,5 @@
 import * as vscode from "vscode"
-import type { IExtensionContextView } from "@features/foundation/vscode/context"
+import type { IExtensionContextView } from "@features/foundation/host-context/context"
 
 import { type ModeConfig, type PromptComponent, type CustomModePrompts, type TodoItem } from "@jabberwock/types"
 

@@ -24,7 +24,7 @@ export default defineConfig({
 			"@i18n": path.resolve(__dirname, "./i18n"),
 			"@shared": path.resolve(__dirname, "./shared"),
 			"@services": path.resolve(__dirname, "./services"),
-			"@api": path.resolve(__dirname, "./api/index.ts"),
+			"@api": path.resolve(__dirname, "./api"),
 			"@foundation": path.resolve(__dirname, "./foundation"),
 			"@activate": path.resolve(__dirname, "../connectors/vscode/backend/activation"),
 			"@integrations": path.resolve(__dirname, "./integrations"),

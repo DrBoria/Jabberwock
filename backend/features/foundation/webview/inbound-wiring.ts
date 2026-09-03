@@ -7,15 +7,19 @@ import type { DisposableLike, IBackendConnector, IMessageQueue, InboundItem } fr
  * main). Every incoming webview/ws message lands in the queue tagged with the transport
  * clientId; the resolver (drain consumer) owns delivery, exactly as in §4.6 topology
  * `connector -> queue -> resolver`.
+ *
+ * `fallbackClientId` is the clientId used when the transport reports none; callers pass their
+ * connector's `id` (e.g. the extension's webview connector, the WS server). It is explicit so
+ * the server-reachable import graph stays free of the host-connector literal.
  */
 export function wireInboundToQueue(
 	connector: IBackendConnector,
 	queue: IMessageQueue,
-	defaultClientId = "vscode",
+	fallbackClientId: string,
 ): DisposableLike {
 	return connector.onInbound((clientId, body) => {
 		queue.push({
-			clientId: clientId || defaultClientId,
+			clientId: clientId || fallbackClientId,
 			body,
 			receivedAt: Date.now(),
 		} satisfies InboundItem)

@@ -24,13 +24,7 @@ import { DIFF_VIEW_URI_SCHEME_JABBERWOCK } from "@integrations/editor/DiffViewPr
 import { hasMcpServerManager, getMcpServerManager } from "@services/mcp/core/McpServerManager"
 import { initializeModelCacheRefresh } from "@api/providers/fetchers/modelCache"
 import { TerminalRegistry } from "@integrations/terminal/TerminalRegistry"
-import {
-	handleUri,
-	registerCommands,
-	registerCodeActions,
-	registerTerminalActions,
-	CodeActionProvider,
-} from "./"
+import { handleUri, registerCommands, registerCodeActions, registerTerminalActions, CodeActionProvider } from "./"
 import {
 	setProviderSettingsManager,
 	getProviderSettingsManager,
@@ -49,15 +43,14 @@ import {
 	getUserInfoHandler,
 } from "@extension-activation/modules/services/cloud"
 import { setupIpcServer } from "@extension-activation/modules/services/ipc"
-import { setProvider, setConnector } from "@features/foundation/webview/providerRegistry"
+import { startBackend } from "@startup/bootstrap"
 import { VscodeWebviewBackendConnector } from "@connectors/vscode/backend/connector"
-import { drainQueueToResolver, wireInboundToQueue } from "@features/foundation/webview/inbound-wiring"
-import { webviewMessageHandler } from "@features/foundation/webview/events/handlers/on-webview-message"
 import { installExtensionCapabilities } from "@features/foundation/capabilities/bootstrap"
 import { NOTIFICATION_ERROR_TOPIC } from "@features/foundation/capabilities/notifications"
 import type { NotificationErrorPayload } from "@features/foundation/capabilities/pubsub"
 import { setBackendCapabilities } from "@features/foundation/capabilities/registry"
 import { createBackendRootStore } from "@features/store"
+import { getContextArchiveReady, syncContextWindowMetaToStore } from "@features/context"
 import { buildApi, setupDevWatchers } from "@extension-activation/modules/core/api"
 import { checkWorktreeAutoOpen } from "@extension-activation/modules/services/worktree"
 
@@ -97,23 +90,22 @@ export async function activate(context: vscode.ExtensionContext) {
 	})
 
 	const connector = new VscodeWebviewBackendConnector(context, outputChannel)
-	await connector.start(capabilities) // §4.2 contract — capabilities handed to the active connector at bootstrap
+
+	// v4 C2 (§7.1): shared backend bootstrap — connector.start + EventBridge + providerRegistry
+	// + inbound wiring + logger slot. The vscode-specific application composition (root store,
+	// intent handlers, telemetry, cloud/devtool/agents services, commands, IpcServer) stays below
+	// as the extension layer over the common core.
+	const provider = await startBackend({ connector, capabilities })
+	activeConnector = connector
 
 	const { telemetryService, cloudLogger } = await initializeCoreSetup(context, outputChannel)
 
 	initializeCodeIndexManagers(context, outputChannel)
 
-	const provider = new EventBridge(connector, capabilities)
-
-	setProvider(provider)
-	setConnector(connector)
-	activeConnector = connector
-
-	// v4 B3 (§4.2/§4.6): inbound webview messages → capabilities.queue → drain → existing resolver.
-	wireInboundToQueue(connector, capabilities.queue)
-	void drainQueueToResolver(capabilities.queue, (item) => webviewMessageHandler(provider, item.body))
-
 	createBackendRootStore({ globalStoragePath: context.globalStorageUri.fsPath })
+
+	// ICG-C1 (§5.7): bootstrap's floating initContextArchive may settle before OR after the root store exists; awaiting its readiness gate (no re-reconciliation) mirrors bounded archive metadata into the new store exactly once, so devtool/store consumers see hydrated contextWindowMeta without waiting for a later ingest to retry the push.
+	void getContextArchiveReady().then(() => syncContextWindowMetaToStore())
 
 	await setupIntentBus(provider, telemetryService)
 
@@ -221,7 +213,9 @@ export async function deactivate() {
 	outputChannel.appendLine(`${Package.name} extension deactivated`)
 
 	if (activeConnector) {
-		await activeConnector.stop().catch((error) => outputChannel.appendLine(`[extension] connector stop failed: ${String(error)}`))
+		await activeConnector
+			.stop()
+			.catch((error) => outputChannel.appendLine(`[extension] connector stop failed: ${String(error)}`))
 		activeConnector = undefined
 	}
 

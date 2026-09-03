@@ -23,6 +23,7 @@
 		"useDefineForClassFields": true,
 		"paths": {
 			"@features/*": ["./features/*"],
+			"@startup/*": ["./startup/*"],
 			"@utils/*": ["./utils/*"],
 			"@i18n": ["./i18n"],
 			"@i18n/*": ["./i18n/*"],

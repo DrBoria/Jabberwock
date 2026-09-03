@@ -5,7 +5,7 @@ import { experimentDefault } from "@shared/experiments"
 import { Terminal } from "@integrations/terminal/terminal-core/Terminal"
 import { setTtsEnabled, setTtsSpeed } from "@utils/token/tts"
 import * as vscode from "vscode"
-import { getVscodeContext } from "@features/foundation/vscode/context"
+import { getHostEnvironment } from "@features/foundation/host-context/context"
 import { getMcpServerManager } from "@services/mcp/core/McpServerManager"
 
 type SettingHandler = (value: unknown) => Promise<unknown>
@@ -91,7 +91,7 @@ export const SETTING_HANDLERS: Record<string, SettingHandler> = {
 	experiments: async (value) => {
 		if (!value) return value
 		return {
-			...(getVscodeContext().getGlobalState("experiments") ?? experimentDefault),
+			...(getHostEnvironment().getGlobalState("experiments") ?? experimentDefault),
 			...(value as Record<ExperimentId, boolean>),
 		}
 	},

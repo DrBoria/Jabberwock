@@ -7,7 +7,7 @@ import { importSettingsWithFeedback } from "@features/settings/actions/importSet
 import { t } from "@i18n"
 import * as vscode from "vscode"
 import { getSettingsAccess } from "@utils/settings"
-import { getVscodeContext } from "@features/foundation/vscode/context"
+import { getHostEnvironment } from "@features/foundation/host-context/context"
 import { getProviderSettingsManager } from "@features/settings/models/provider-settings-manager/ProviderSettingsManager"
 
 import type { IntentBus } from "@features/intents/bus"
@@ -87,7 +87,7 @@ export function registerOnHistory(bus: IntentBus): void {
 
 		// Re-initialize all feature stores
 		await initHistoryState(provider, {
-			getGlobalState: (key: string) => getVscodeContext().getGlobalState(key as keyof GlobalState),
+			getGlobalState: (key: string) => getHostEnvironment().getGlobalState(key as keyof GlobalState),
 		})
 		await initFoundationState(provider)
 		initChatState(provider)
