@@ -12,6 +12,18 @@ export interface DevtoolBridgeProvider {
 	getModes: () => string[]
 	getMode: () => string
 	getTaskWithId?: (taskId: string) => Record<string, unknown> | undefined
+	/**
+	 * Execute a host command in the extension host (D4g-2 batch 1). Extension mode backs this with
+	 * `vscode.commands.executeCommand`; server mode leaves it absent (the devtool bridge is not
+	 * instantiated there).
+	 */
+	executeCommand?: (command: string, args?: unknown) => Promise<void>
+	/**
+	 * Host extension version for the devtool `getExtensionInfo` tool (D4g-2 batch 1). Extension mode
+	 * backs this with `vscode.extensions.getExtension(...).packageJSON.version`; server mode leaves
+	 * it absent (the tool reports the "dev" fallback).
+	 */
+	getExtensionVersion?: () => string | undefined
 }
 
 export function registerGlobalErrorHandlers(): void {

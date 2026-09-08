@@ -226,6 +226,20 @@ export default defineConfig(({ mode }) => {
 				methods: "*",
 				allowedHeaders: "*",
 			},
+			// Phase D2 (§7.3): in standalone dev the browser connects to the same-origin
+			// /ws endpoint (plan §9.4 fallback). Forward it to the backend server port so
+			// the vite dev server proxies the WebSocket to the running `pnpm start:server`.
+			// Only active in development mode; production serves via the server/nginx.
+			...(mode === "development"
+				? {
+						proxy: {
+							"/ws": {
+								target: `ws://localhost:${process.env.JABBERWOCK_SERVER_PORT ?? 3000}`,
+								ws: true,
+							},
+						},
+					}
+				: {}),
 		},
 		define,
 		optimizeDeps: {

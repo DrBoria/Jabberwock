@@ -1,7 +1,7 @@
-import * as vscode from "vscode"
 import * as os from "os"
 import * as path from "path"
 import * as fs from "fs/promises"
+import { getHostContext } from "@features/foundation/host-context/context"
 import { getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 import type { TelemetrySetting } from "@jabberwock/types"
 import { getTaskDirectoryPath } from "@utils/io"
@@ -57,8 +57,9 @@ export async function openDebugHistoryFile(
 
 	await fs.writeFile(tempFilePath, prettifiedContent, "utf8")
 
-	const doc = await vscode.workspace.openTextDocument(tempFilePath)
-	await vscode.window.showTextDocument(doc, { preview: true })
+	// D4g-2 (batch 3): open the temp file in the host editor via the hostCommands slot (D4g-pre) —
+	// server mode has no host editor, so this degrades to a no-op.
+	getHostContext()?.hostCommands?.openFileInEditor?.(tempFilePath, { preview: true })
 }
 
 import { publishNotificationError } from "@features/foundation/capabilities/notifications"

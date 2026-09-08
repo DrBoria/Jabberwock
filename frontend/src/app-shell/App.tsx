@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { vscode, createDomMessageHandler } from "@jabberwock/devtool/webview"
+import { createDomMessageHandler } from "@jabberwock/devtool/webview"
 import type { WebviewMessage } from "@jabberwock/types"
+import { getConnectorBus } from "../connector-bus"
 import { createRootStore, getFrontendActionBuffer } from "@src/features/root-store"
 import { RootStoreContext } from "@src/features/useRootStore"
 import { AppContent } from "./app-content"
@@ -14,28 +15,36 @@ import { HTML5Backend } from "react-dnd-html5-backend"
 const queryClient = new QueryClient()
 
 const AppWithProviders = () => {
-	const postMessage = useCallback((msg: unknown) => vscode.postMessage(msg as WebviewMessage), [])
+	const bus = getConnectorBus()
+	const postMessage = useCallback((msg: unknown) => bus.publish(msg as WebviewMessage), [bus])
 	const store = useMemo(() => createRootStore(), [])
 	useEffect(() => {
-		store.initMessageListener()
-		return () => {
-			window.removeEventListener("message", store.handleExtensionMessage)
-		}
-	}, [store])
+		// Root-store handler subscribes through the bus (plan §4.5). The single
+		// window listener lives inside the active frontend connector (D1a).
+		const d1 = store.initMessageListener(bus)
+		return () => d1.dispose()
+	}, [bus, store])
 	useEffect(() => {
+		// DOM-local actions (pushWindow, settingsButtonClicked, ...) and their
+		// dom-response replies are dispatched to the DOM message handler. Only
+		// these message types are routed here; everything else is handled by the
+		// root-store subscription above.
 		const h = createDomMessageHandler(postMessage, store, { getActionBuffer: getFrontendActionBuffer })
-		window.addEventListener("message", h)
-		return () => window.removeEventListener("message", h)
-	}, [postMessage, store])
+		// The bus delivers the message object (the connector already unwrapped the
+		// DOM MessageEvent). createDomMessageHandler expects a MessageEvent-like
+		// shape and reads `.data`, so wrap the message accordingly.
+		const d2 = bus.subscribe({ types: ["action", "dom-response"] }, (msg) => h({ data: msg } as MessageEvent))
+		return () => d2.dispose()
+	}, [bus, postMessage, store])
 	useEffect(() => {
 		const t = setTimeout(() => {
 			if (!store.didHydrateState) {
 				console.warn("[jabberwock] State not received within 500ms — requesting state from extension host")
-				vscode.postMessage({ type: "requestState" })
+				bus.publish({ type: "requestState" })
 			}
 		}, 500)
 		return () => clearTimeout(t)
-	}, [store])
+	}, [bus, store])
 	return (
 		<RootStoreContext.Provider value={store}>
 			<ErrorBoundary>

@@ -1,6 +1,8 @@
+import * as path from "path"
 import { IntentType } from "@jabberwock/types"
 import type { IntentBus } from "@features/intents/bus"
-import vscode from "vscode"
+import { getUiDialogs } from "@features/foundation/capabilities/registry"
+import { getWorkspaceRoot } from "@features/foundation/host-context/context"
 import { t } from "@i18n"
 
 import { handleCreateWorktreeInternal, handleDeleteWorktreeInternal, handleSwitchWorktreeInternal } from "./handlers"
@@ -94,18 +96,18 @@ export function registerCrudRegistrations(bus: IntentBus): void {
 		if (!provider) return
 
 		try {
-			const options: vscode.OpenDialogOptions = {
+			// D4g-2 (batch 3): folder browse via the uiDialogs slot (D4c) — server mode resolves
+			// undefined (no dialog), so no folder is selected headless. The default folder is the
+			// parent of the first workspace root (mirrors the previous Uri.joinPath(root, "..")).
+			const workspaceRoot = getWorkspaceRoot()
+			const result = await getUiDialogs().showOpenDialog({
 				canSelectFiles: false,
 				canSelectFolders: true,
 				canSelectMany: false,
 				openLabel: t("worktrees:selectWorktreeLocation"),
 				title: t("worktrees:selectFolderForWorktree"),
-				defaultUri: vscode.workspace.workspaceFolders?.[0]?.uri
-					? vscode.Uri.joinPath(vscode.workspace.workspaceFolders[0].uri, "..")
-					: undefined,
-			}
-
-			const result = await vscode.window.showOpenDialog(options)
+				defaultUri: workspaceRoot ? { fsPath: path.dirname(workspaceRoot) } : undefined,
+			})
 			if (result && result[0]) {
 				await provider.postMessageToWebview({
 					type: "folderSelected",

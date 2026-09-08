@@ -1,4 +1,4 @@
-import * as vscode from "vscode"
+import { EventEmitter } from "@features/foundation/events/event-emitter"
 
 export type IndexingState = "Standby" | "Indexing" | "Indexed" | "Error" | "Stopping"
 
@@ -8,7 +8,9 @@ export class CodeIndexStateManager {
 	private _processedItems: number = 0
 	private _totalItems: number = 0
 	private _currentItemUnit: string = "blocks"
-	private _progressEmitter = new vscode.EventEmitter<ReturnType<typeof this.getCurrentStatus>>()
+	// D4g-2 (batch 3): host-neutral event emitter (replaces vscode.EventEmitter) so the code-index
+	// state manager stays free of host imports.
+	private _progressEmitter = new EventEmitter<ReturnType<typeof this.getCurrentStatus>>()
 
 	// --- Public API ---
 

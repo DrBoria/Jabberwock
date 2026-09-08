@@ -1,5 +1,4 @@
 import pWaitFor from "p-wait-for"
-import * as vscode from "vscode"
 
 import type { ITaskModel } from "@features/chat/task/store"
 import { t } from "@i18n"
@@ -8,7 +7,8 @@ import { getWorkspacePath } from "@utils/io/path"
 import { CheckpointServiceOptions, RepoPerTaskCheckpointService, type CheckpointService } from "@services/checkpoints"
 import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
 import { getProvider } from "@features/foundation/webview/providerRegistry"
-import { DIFF_VIEW_URI_SCHEME_JABBERWOCK } from "@integrations/editor/DiffViewProvider"
+import { getUiDialogs } from "@features/foundation/capabilities/registry"
+import { getHostContext } from "@features/foundation/host-context/context"
 
 import { WARNING_THRESHOLD_MS, sendCheckpointInitWarn } from "./checkpoints.warnings"
 import { checkGitInstallation } from "./checkpoints.git"
@@ -184,24 +184,11 @@ export async function showDiff(
 	const changes = await service.getDiff({ from: fromHash, to: undefined })
 
 	if (!changes?.length) {
-		vscode.window.showInformationMessage(t("common:errors.checkpoint_no_changes"))
+		await getUiDialogs().showInformationMessage(t("common:errors.checkpoint_no_changes"))
 		return
 	}
 
-	await vscode.commands.executeCommand("vscode.changes", title, changes.map(buildDiffUriEntry))
-}
-
-function buildDiffUriEntry(change: {
-	paths: { absolute: string; relative: string }
-	content: { before?: string; after?: string }
-}): [vscode.Uri, vscode.Uri, vscode.Uri] {
-	return [
-		vscode.Uri.file(change.paths.absolute),
-		vscode.Uri.parse(`${DIFF_VIEW_URI_SCHEME_JABBERWOCK}:${change.paths.relative}`).with({
-			query: Buffer.from(change.content.before ?? "").toString("base64"),
-		}),
-		vscode.Uri.parse(`${DIFF_VIEW_URI_SCHEME_JABBERWOCK}:${change.paths.relative}`).with({
-			query: Buffer.from(change.content.after ?? "").toString("base64"),
-		}),
-	]
+	// D4g-2 (batch 2): the host diff view is opened through the hostCommands slot instead of
+	// importing "vscode" (plan §3.2 Strategy G). Server mode has no diff view, so this is a no-op.
+	getHostContext()?.hostCommands?.showCheckpointDiff?.(title, changes)
 }

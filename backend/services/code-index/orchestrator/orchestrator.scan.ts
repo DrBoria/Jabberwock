@@ -1,6 +1,6 @@
-import * as vscode from "vscode"
 import * as path from "path"
 
+import type { DisposableLike } from "@jabberwock/types"
 import type { BatchProcessingSummary } from "@services/code-index/interfaces"
 import { getTelemetryService } from "@jabberwock/telemetry"
 import { TelemetryEventName } from "@jabberwock/types"
@@ -63,7 +63,7 @@ export async function handleIndexingError(
 	stopWatcher()
 }
 
-export async function startWatcher(ctx: OrchestratorContext): Promise<vscode.Disposable[]> {
+export async function startWatcher(ctx: OrchestratorContext): Promise<DisposableLike[]> {
 	if (!ctx.configManager.isFeatureConfigured) {
 		throw new Error("Cannot start watcher: Service not configured.")
 	}

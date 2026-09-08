@@ -1,5 +1,4 @@
-import * as vscode from "vscode"
-import type { IExtensionContextView } from "@features/foundation/host-context/context"
+import { getHostContext, type IExtensionContextView } from "@features/foundation/host-context/context"
 
 import { type ModeConfig, type PromptComponent, type CustomModePrompts, type TodoItem } from "@jabberwock/types"
 
@@ -96,7 +95,9 @@ async function generatePrompt(
 		settings,
 		baseInstructions,
 		globalCustomInstructions ?? "",
-		language ? language : formatLanguage(vscode.env.language),
+		// D4g-2 (batch 3): host language via the host-context slot (D4g) — server mode has no host
+		// language, so formatLanguage falls back to "en".
+		language ? language : formatLanguage(getHostContext()?.language ?? ""),
 		jabberwockIgnoreInstructions,
 	)
 

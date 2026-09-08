@@ -187,7 +187,7 @@ export type IDynamicTextAreaStore = Instance<typeof DynamicTextAreaStore>
 
 // ── Action factory for ChatStore composition ──────────────────────────
 
-import { vscode } from "@jabberwock/devtool/webview"
+import { getConnectorBus } from "../../connector-bus"
 import type { WebviewMessage } from "@jabberwock/types"
 import { eventConstants } from "@jabberwock/types"
 
@@ -199,14 +199,14 @@ export function createTextAreaActions(_self: unknown) {
 	return {
 		// ── Select images ──────────────────────────────────────────
 		selectImages() {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CHAT.TEXT_AREA.SELECT_IMAGES,
 			} satisfies WebviewMessage)
 		},
 
 		// ── Search files ───────────────────────────────────────────
 		searchFiles(query: string, requestId: string) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CHAT.TEXT_AREA.SEARCH_FILES,
 				query,
 				requestId,
@@ -215,7 +215,7 @@ export function createTextAreaActions(_self: unknown) {
 
 		// ── Dragged images ─────────────────────────────────────────
 		draggedImages(dataUrls: string[]) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CHAT.TEXT_AREA.DRAGGED_IMAGES,
 				dataUrls,
 			} satisfies WebviewMessage)
@@ -223,7 +223,7 @@ export function createTextAreaActions(_self: unknown) {
 
 		// ── Enhance prompt ─────────────────────────────────────────
 		enhancePrompt(text: string) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CHAT.TEXT_AREA.ENHANCE_PROMPT,
 				text,
 			} satisfies WebviewMessage)
@@ -231,7 +231,7 @@ export function createTextAreaActions(_self: unknown) {
 
 		// ── Select images for edit ─────────────────────────────────
 		selectImagesForEdit(context: string, messageTs: number) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CHAT.TEXT_AREA.SELECT_IMAGES,
 				context,
 				messageTs,

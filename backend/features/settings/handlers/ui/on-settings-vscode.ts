@@ -1,7 +1,7 @@
 import { IntentType } from "@jabberwock/types"
 import type { IntentBus } from "@features/intents/bus"
-import * as vscode from "vscode"
 import { getHostEnvironment } from "@features/foundation/host-context/context"
+import { getConfiguration } from "@features/foundation/capabilities/registry"
 
 const ALLOWED_VSCODE_SETTINGS = new Set(["terminal.integrated.inheritEnv"])
 
@@ -17,7 +17,10 @@ export function registerOnSettingsVscode(bus: IntentBus): void {
 
 		if (setting !== undefined && value !== undefined) {
 			if (ALLOWED_VSCODE_SETTINGS.has(setting)) {
-				await vscode.workspace.getConfiguration().update(setting, value, true)
+				// D4g-2 (batch 3): config write via the capability slot (D4b) — the vscode connector
+				// backs IConfiguration.update with getConfiguration(section).update(key, value, Global).
+				// The empty section is the root configuration (the setting is a full dotted key).
+				await getConfiguration().update("", setting, value)
 			} else {
 				publishNotificationError(`Cannot update restricted VSCode setting: ${setting}`)
 			}
@@ -37,7 +40,9 @@ export function registerOnSettingsVscode(bus: IntentBus): void {
 				await provider.postMessageToWebview({
 					type: "vsCodeSetting",
 					setting,
-					value: vscode.workspace.getConfiguration().get(setting),
+					// D4g-2 (batch 3): config read via the capability slot (D4b) — root configuration
+					// (empty section), the setting is a full dotted key.
+					value: getConfiguration().get("", setting),
 				})
 			} catch (error: unknown) {
 				const errorMsg = error instanceof Error ? error.message : String(error)

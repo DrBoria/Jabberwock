@@ -1,6 +1,6 @@
 import { types, Instance } from "mobx-state-tree"
 
-import { vscode } from "@jabberwock/devtool/webview"
+import { getConnectorBus } from "../../connector-bus"
 import { eventConstants } from "@jabberwock/types"
 import type { WebviewMessage, CloudOrganizationMembership } from "@jabberwock/types"
 
@@ -38,7 +38,7 @@ export const CloudStore = types
 	.actions((_self) => ({
 		// ── Cloud sign in ──────────────────────────────────────────
 		cloudSignIn(useProviderSignup?: boolean) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CLOUD.JABBERWOCK_CLOUD_SIGN_IN,
 				...(useProviderSignup !== undefined && { useProviderSignup }),
 			} satisfies WebviewMessage)
@@ -46,14 +46,14 @@ export const CloudStore = types
 
 		// ── Cloud sign out ─────────────────────────────────────────
 		cloudSignOut() {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CLOUD.JABBERWOCK_CLOUD_SIGN_OUT,
 			} satisfies WebviewMessage)
 		},
 
 		// ── Cloud manual URL ───────────────────────────────────────
 		cloudManualUrl(text: string) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CLOUD.JABBERWOCK_CLOUD_MANUAL_URL,
 				text,
 			} satisfies WebviewMessage)
@@ -61,28 +61,28 @@ export const CloudStore = types
 
 		// ── Clear auth skip model ──────────────────────────────────
 		clearAuthSkipModel() {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CLOUD.CLEAR_CLOUD_AUTH_SKIP_MODEL,
 			} satisfies WebviewMessage)
 		},
 
 		// ── OpenAI Codex sign in ───────────────────────────────────
 		openaiCodexSignIn() {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CLOUD.OPEN_AI_CODEX_SIGN_IN,
 			} satisfies WebviewMessage)
 		},
 
 		// ── OpenAI Codex sign out ──────────────────────────────────
 		openaiCodexSignOut() {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CLOUD.OPEN_AI_CODEX_SIGN_OUT,
 			} satisfies WebviewMessage)
 		},
 
 		// ── Switch organization ────────────────────────────────────
 		switchOrganization(organizationId: string | null) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: "switchOrganization" as const,
 				organizationId,
 			} satisfies WebviewMessage)
@@ -90,7 +90,7 @@ export const CloudStore = types
 
 		// ── Save image ─────────────────────────────────────────────
 		saveImage(dataUri: string) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: "saveImage" as const,
 				dataUri,
 			} satisfies WebviewMessage)
@@ -98,7 +98,7 @@ export const CloudStore = types
 
 		// ── Task sync enabled ────────────────────────────────────────
 		taskSyncEnabled(bool: boolean) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CHAT.TASK.TASK_SYNC_ENABLED,
 				bool,
 			} satisfies WebviewMessage)

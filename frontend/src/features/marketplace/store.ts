@@ -7,7 +7,7 @@ import type {
 	MarketplaceInstalledMetadata,
 } from "@jabberwock/types"
 
-import { vscode } from "@jabberwock/devtool/webview"
+import { getConnectorBus } from "../../connector-bus"
 import type { WebviewMessage } from "@jabberwock/types"
 import { eventConstants } from "@jabberwock/types"
 
@@ -36,20 +36,20 @@ export const MarketplaceStore = types
 	.actions((_self) => ({
 		// ── Marketplace items ──────────────────────────────────────
 		filterMarketplaceItems(filters?: { type?: string; search?: string; tags?: string[] }) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.MARKETPLACE.FILTER_MARKETPLACE_ITEMS,
 				filters,
 			} satisfies WebviewMessage)
 		},
 
 		fetchMarketplaceData() {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: "fetchMarketplaceData" as const,
 			} satisfies WebviewMessage)
 		},
 
 		installMarketplaceItem(mpItem: MarketplaceItem, mpInstallOptions: InstallMarketplaceItemOptions) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: "installMarketplaceItem" as const,
 				mpItem,
 				mpInstallOptions,
@@ -57,7 +57,7 @@ export const MarketplaceStore = types
 		},
 
 		removeInstalledMarketplaceItem(mpItem: MarketplaceItem, mpInstallOptions: InstallMarketplaceItemOptions) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: "removeInstalledMarketplaceItem" as const,
 				mpItem,
 				mpInstallOptions,
@@ -66,27 +66,27 @@ export const MarketplaceStore = types
 
 		// ── Skills ─────────────────────────────────────────────────
 		requestSkills() {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.MARKETPLACE.REQUEST_SKILLS,
 			} satisfies WebviewMessage)
 		},
 
 		deleteSkill(skillName: string) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.MARKETPLACE.DELETE_SKILL,
 				skillName,
 			} satisfies WebviewMessage)
 		},
 
 		openSkillFile(skillName: string) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.MARKETPLACE.OPEN_SKILL_FILE,
 				skillName,
 			} satisfies WebviewMessage)
 		},
 
 		updateSkillModes(skillName: string, skillModeSlugs: string[] | undefined) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.MARKETPLACE.UPDATE_SKILL_MODES,
 				skillName,
 				skillModeSlugs,
@@ -94,7 +94,7 @@ export const MarketplaceStore = types
 		},
 
 		createSkill(skillName: string, fileContent?: string, modeSlugs?: string[] | undefined) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.MARKETPLACE.CREATE_SKILL,
 				skillName,
 				...(fileContent !== undefined && { fileContent }),
@@ -103,20 +103,20 @@ export const MarketplaceStore = types
 		},
 
 		refreshCustomTools() {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.MARKETPLACE.REFRESH_CUSTOM_TOOLS,
 			} satisfies WebviewMessage)
 		},
 
 		// ── Upsells ────────────────────────────────────────────────
 		getDismissedUpsells() {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.SETTINGS.GET_DISMISSED_UPSELLS,
 			} satisfies WebviewMessage)
 		},
 
 		dismissUpsell(upsellId: string) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: "dismissUpsell" as const,
 				upsellId,
 			} satisfies WebviewMessage)

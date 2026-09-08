@@ -1,6 +1,15 @@
 import { types, Instance } from "mobx-state-tree"
-import { vscode } from "@jabberwock/devtool/webview"
-import type { WebviewMessage, ExtensionMessage, ExtensionState, Command, ModeConfig } from "@jabberwock/types"
+import type {
+	WebviewMessage,
+	ExtensionMessage,
+	ExtensionState,
+	Command,
+	ModeConfig,
+	InboundAppMessage,
+	IConnectorEventBus,
+	DisposableLike,
+} from "@jabberwock/types"
+import { getConnectorBus } from "../../connector-bus"
 import { eventConstants, DEFAULT_MODES } from "@jabberwock/types"
 
 import { extStateDefaults } from "./defaults"
@@ -24,7 +33,7 @@ import { McpExecutionStore } from "../chat/mcp/store"
 import { SkillsStore } from "../settings/skills/store"
 import { AgentStateStore } from "../settings/agents/store"
 
-const postMsg = (msg: WebviewMessage) => vscode.postMessage(msg)
+const postMsg = (msg: WebviewMessage) => getConnectorBus().publish(msg)
 
 /**
  * When the task is cancelled (isRunning transitions true→false),
@@ -200,21 +209,27 @@ export const RootStore = types
 				postMsg({ type: eventConstants.AGENT_STATE.REQUEST_ROUTER_MODELS } satisfies WebviewMessage)
 			self.cloud.setPrevCloudIsAuthenticated(ca)
 		},
-		handleExtensionMessage(event: MessageEvent) {
-			const message: ExtensionMessage = event.data
-			if (handleDomAction(message, self.chat)) return
-			if (handleStreamChunk(message, self.chat)) return
-			const intentType = handleExtensionMessageDispatchMap[message.type]
+		handleExtensionMessage(message: InboundAppMessage) {
+			// Host and DOM-local messages share the single bus channel; the helpers
+			// below discriminate by type/action. Streaming frames keep their
+			// high-frequency exception path (plan §4.5 lines 494-495).
+			const extMessage = message as ExtensionMessage
+			if (handleDomAction(extMessage, self.chat)) return
+			if (handleStreamChunk(extMessage, self.chat)) return
+			const intentType = handleExtensionMessageDispatchMap[extMessage.type]
 			if (intentType)
 				self.intentStore.createIntent({
 					id: crypto.randomUUID(),
 					type: intentType,
-					payload: { ...message } as Record<string, unknown>,
+					payload: { ...extMessage } as Record<string, unknown>,
 					createdAt: Date.now(),
 				})
 		},
-		initMessageListener() {
-			window.addEventListener("message", (event: MessageEvent) => this.handleExtensionMessage(event))
+		initMessageListener(bus: IConnectorEventBus): DisposableLike {
+			// Subscribe the root-store handler through the connector bus instead of
+			// adding a raw window "message" listener (plan §4.5). Returns a
+			// disposable so the caller (App.tsx) can unsubscribe on unmount.
+			return bus.subscribe({}, (msg) => this.handleExtensionMessage(msg))
 		},
 		/**
 		 * Run a function inside this RootStore's MST action context.

@@ -1,5 +1,3 @@
-import * as vscode from "vscode"
-
 import type { ApiReqData } from "@jabberwock/types"
 import { getTelemetryService } from "@jabberwock/telemetry"
 import { getApiMetrics } from "@shared/api/getApiMetrics"
@@ -12,6 +10,7 @@ import { systemBroadcast } from "@features/chat/task/messages/actions/say"
 import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
 import { getMstState } from "@features/foundation/mst/store"
 import { getBackendRootStore } from "@features/storeSingleton"
+import { getUiDialogs } from "@features/foundation/capabilities/registry"
 
 import { getCheckpointService, showDiff } from "./checkpoints.helpers"
 import { isModeWithCheckpoint, resolveDiffConfig } from "./checkpoints.helpers"
@@ -103,14 +102,14 @@ export async function checkpointDiff(task: ITaskModel, { commitHash, mode }: Che
 		.map(({ text }: { text?: string }) => text!)
 
 	if (isModeWithCheckpoint(mode) && checkpoints.length < 1) {
-		vscode.window.showInformationMessage(t("common:errors.checkpoint_no_first"))
+		await getUiDialogs().showInformationMessage(t("common:errors.checkpoint_no_first"))
 		return
 	}
 
 	const diffConfig = resolveDiffConfig(mode, commitHash, checkpoints)
 
 	if (!diffConfig.fromHash) {
-		vscode.window.showInformationMessage(t("common:errors.checkpoint_no_previous"))
+		await getUiDialogs().showInformationMessage(t("common:errors.checkpoint_no_previous"))
 		return
 	}
 

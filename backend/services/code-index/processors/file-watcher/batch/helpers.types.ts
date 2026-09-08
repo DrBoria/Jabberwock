@@ -1,6 +1,6 @@
-import * as vscode from "vscode"
 import { FileProcessingResult, IEmbedder, IVectorStore } from "@services/code-index/interfaces"
 import { CacheManager } from "@services/code-index/cache-manager"
+import type { EventEmitter } from "@features/foundation/events/event-emitter"
 
 export interface BatchContext {
 	cacheManager: CacheManager
@@ -9,7 +9,7 @@ export interface BatchContext {
 	workspacePath: string
 	batchSegmentThreshold: number
 	fileProcessingConcurrencyLimit: number
-	onBatchProgressUpdate: vscode.EventEmitter<{
+	onBatchProgressUpdate: EventEmitter<{
 		processedInBatch: number
 		totalInBatch: number
 		currentFile?: string

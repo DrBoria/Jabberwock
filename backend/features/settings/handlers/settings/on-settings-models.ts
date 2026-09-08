@@ -4,8 +4,8 @@ import { getOpenAiModels } from "@api/providers/openai/models"
 import { getOllamaModels } from "@api/providers/fetchers/providers/ollama"
 import { getLMStudioModels } from "@api/providers/fetchers/providers/lmstudio"
 import { getRooModels } from "@api/providers/fetchers/providers/jabberwock"
-import { getVsCodeLmModels } from "@connectors/vscode/backend/model-providers/vscode-lm/tools"
 import { getModels, flushModels } from "@api/providers/fetchers/modelCache"
+import { getHostModels } from "@features/foundation/capabilities/registry"
 import { toRouterName } from "@shared/api"
 import type { GetModelsOptions } from "@shared/api"
 import { getCloudService, hasCloudService } from "@jabberwock/cloud"
@@ -69,9 +69,7 @@ export function registerOnSettingsModels(bus: IntentBus): void {
 				models: aggregatedModels.routerModels,
 			})
 		} catch (error) {
-			backendLog.info(
-				`Error in requestRouterModels: ${error instanceof Error ? error.message : String(error)}`,
-			)
+			backendLog.info(`Error in requestRouterModels: ${error instanceof Error ? error.message : String(error)}`)
 		}
 	})
 
@@ -96,9 +94,7 @@ export function registerOnSettingsModels(bus: IntentBus): void {
 				baseUrl: payload.values.baseUrl,
 			})
 		} catch (error) {
-			backendLog.info(
-				`Error fetching OpenAI models: ${error instanceof Error ? error.message : String(error)}`,
-			)
+			backendLog.info(`Error fetching OpenAI models: ${error instanceof Error ? error.message : String(error)}`)
 			await provider.postMessageToWebview({
 				type: "openAiModels",
 				models: [],
@@ -117,9 +113,7 @@ export function registerOnSettingsModels(bus: IntentBus): void {
 			const models = await getOllamaModels()
 			await provider.postMessageToWebview({ type: "ollamaModels", models })
 		} catch (error) {
-			backendLog.info(
-				`Error fetching Ollama models: ${error instanceof Error ? error.message : String(error)}`,
-			)
+			backendLog.info(`Error fetching Ollama models: ${error instanceof Error ? error.message : String(error)}`)
 			await provider.postMessageToWebview({ type: "ollamaModels", models: [] })
 		}
 	})
@@ -149,9 +143,7 @@ export function registerOnSettingsModels(bus: IntentBus): void {
 			const models = await getRooModels("", "")
 			await provider.postMessageToWebview({ type: "rooModels", models })
 		} catch (error) {
-			backendLog.info(
-				`Error fetching Roo models: ${error instanceof Error ? error.message : String(error)}`,
-			)
+			backendLog.info(`Error fetching Roo models: ${error instanceof Error ? error.message : String(error)}`)
 			await provider.postMessageToWebview({ type: "rooModels", models: [] })
 		}
 	})
@@ -197,7 +189,11 @@ export function registerOnSettingsModels(bus: IntentBus): void {
 		if (!provider) return
 
 		try {
-			const models = await getVsCodeLmModels()
+			// D4g-2 (batch 3): host model listing via the capability slot (locked orchestrator
+			// decision Q1 option a) — the vscode connector backs this with getVsCodeLmModels;
+			// server mode has no host models, so the slot is absent and we send an empty list.
+			const hostModels = getHostModels()
+			const models = hostModels ? await hostModels("vscode-lm") : []
 			await provider.postMessageToWebview({ type: "vsCodeLmModels", models })
 		} catch (error) {
 			backendLog.info(

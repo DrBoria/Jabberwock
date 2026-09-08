@@ -104,7 +104,7 @@ export type INotificationsStore = Instance<typeof NotificationsStore>
 
 // ── Action factory for ChatStore composition ──────────────────────────
 
-import { vscode } from "@jabberwock/devtool/webview"
+import { getConnectorBus } from "../../../connector-bus"
 import type { WebviewMessage } from "@jabberwock/types"
 import { eventConstants } from "@jabberwock/types"
 
@@ -115,7 +115,7 @@ import { eventConstants } from "@jabberwock/types"
 export function createNotificationsActions(self: { textArea: { clearInput(): void } }) {
 	return {
 		queueMessage(text: string, images: string[]) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CHAT.NOTIFICATIONS.QUEUE_MESSAGE,
 				text,
 				images,
@@ -124,14 +124,14 @@ export function createNotificationsActions(self: { textArea: { clearInput(): voi
 		},
 
 		removeQueuedMessage(id: string) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CHAT.NOTIFICATIONS.REMOVE_QUEUED_MESSAGE,
 				messageTs: Number(id),
 			} satisfies WebviewMessage)
 		},
 
 		editQueuedMessage(id: string, text: string, images?: string[]) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CHAT.NOTIFICATIONS.EDIT_QUEUED_MESSAGE,
 				messageTs: Number(id),
 				editedMessageContent: text,
@@ -140,26 +140,26 @@ export function createNotificationsActions(self: { textArea: { clearInput(): voi
 		},
 
 		cancelAutoApproval() {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CHAT.NOTIFICATIONS.CANCEL_AUTO_APPROVAL,
 			} satisfies WebviewMessage)
 		},
 
 		stopTts() {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CHAT.NOTIFICATIONS.STOP_TTS,
 			} satisfies WebviewMessage)
 		},
 
 		acknowledgeLastMessageSeen(ts: string) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CHAT.NOTIFICATIONS.LAST_MESSAGE_SEEN,
 				text: ts,
 			} satisfies WebviewMessage)
 		},
 
 		elicitResponse(values: Record<string, unknown>) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CHAT.NOTIFICATIONS.ELICITATION_RESPONSE,
 				values,
 			} satisfies WebviewMessage)
@@ -171,28 +171,28 @@ export function createNotificationsActions(self: { textArea: { clearInput(): voi
 			previousCommitHash?: string
 			mode: "checkpoint" | "full" | "from-init" | "to-current"
 		}) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CHAT.NOTIFICATIONS.CHECKPOINT_DIFF,
 				payload,
 			} satisfies WebviewMessage)
 		},
 
 		checkpointRestore(payload: { ts: number; commitHash: string; mode: "preview" | "restore" }) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CHAT.NOTIFICATIONS.CHECKPOINT_RESTORE,
 				payload,
 			} satisfies WebviewMessage)
 		},
 
 		followUpAnswered(ts: number) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CLOUD.FOLLOW_UP_ANSWERED,
 				text: String(ts),
 			} satisfies WebviewMessage)
 		},
 
 		showMdmAuthNotification() {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.SETTINGS.SHOW_MDM_AUTH_REQUIRED_NOTIFICATION,
 			} satisfies WebviewMessage)
 		},

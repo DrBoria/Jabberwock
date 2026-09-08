@@ -9,10 +9,7 @@ import type { WebviewMessage } from "../../../packages/types/src/webview/message
 
 // The connector lives outside backend/, so it imports backend core via RELATIVE paths — esbuild
 // resolves tsconfig `paths` per source-file location and would miss the backend aliases from here.
-import {
-	resolveWebviewView as resolveWindowManagerView,
-	type WebviewMessageHandler,
-} from "../../../backend/features/foundation/window-manager/store"
+import { resolveWebviewView as resolveWindowManagerView, type WebviewMessageHandler } from "./webview-setup"
 import { sendViaView } from "../../../backend/features/foundation/window-manager/store/messaging"
 
 /**
@@ -51,10 +48,7 @@ export class VscodeWebviewBackendConnector implements IBackendConnector, vscode.
 		this.capabilities = undefined
 	}
 
-	sendOutbound(
-		message: { type: string; [key: string]: unknown },
-		_target?: ClientTarget,
-	): void {
+	sendOutbound(message: { type: string; [key: string]: unknown }, _target?: ClientTarget): void {
 		if (!this.capabilities) {
 			console.warn(
 				`[jabberwock] [VscodeWebviewBackendConnector] sendOutbound SKIPPED - connector not started! type=${message.type}`,

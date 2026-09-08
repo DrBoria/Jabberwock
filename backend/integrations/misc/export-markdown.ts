@@ -1,5 +1,8 @@
 import { Anthropic } from "@anthropic-ai/sdk"
-import * as vscode from "vscode"
+import * as fs from "fs/promises"
+import type { IUri } from "@jabberwock/types"
+import { getUiDialogs } from "@features/foundation/capabilities/registry"
+import { getHostContext } from "@features/foundation/host-context/context"
 
 // Extended content block types to support new Anthropic API features
 interface ReasoningBlock {
@@ -30,8 +33,8 @@ export function getTaskFileName(dateTs: number): string {
 export async function downloadTask(
 	dateTs: number,
 	conversationHistory: Anthropic.MessageParam[],
-	defaultUri: vscode.Uri,
-): Promise<vscode.Uri | undefined> {
+	defaultUri: IUri,
+): Promise<IUri | undefined> {
 	// File name
 	const _fileName = getTaskFileName(dateTs)
 
@@ -47,15 +50,15 @@ export async function downloadTask(
 		.join("---\n\n")
 
 	// Prompt user for save location
-	const saveUri = await vscode.window.showSaveDialog({
+	const saveUri = await getUiDialogs().showSaveDialog({
 		filters: { Markdown: ["md"] },
 		defaultUri,
 	})
 
 	if (saveUri) {
 		// Write content to the selected location
-		await vscode.workspace.fs.writeFile(saveUri, Buffer.from(markdownContent))
-		vscode.window.showTextDocument(saveUri, { preview: true })
+		await fs.writeFile(saveUri.fsPath, markdownContent, "utf-8")
+		getHostContext()?.hostCommands?.openFileInEditor?.(saveUri.fsPath, { preview: true })
 		return saveUri
 	}
 	return undefined

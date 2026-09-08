@@ -1,6 +1,6 @@
 import fs from "fs/promises"
 import path from "path"
-import * as vscode from "vscode"
+import { pathToFileURL } from "node:url"
 import { formatResponse } from "@features/settings/context/responses"
 import { fileExistsAtPath } from "@utils/io/fs"
 import { getReadablePath } from "@utils/io/path"
@@ -96,7 +96,7 @@ export async function saveGeneratedImage(
 
 	const fullImagePath = path.join(cwd, finalPath)
 	const cacheBuster = Date.now()
-	const imageUri = vscode.Uri.file(fullImagePath).toString()
+	const imageUri = pathToFileURL(fullImagePath).toString()
 	const finalUri = imageUri.includes("?") ? `${imageUri}&t=${cacheBuster}` : `${imageUri}?t=${cacheBuster}`
 
 	pushToolResult(formatResponse.toolResult(getReadablePath(cwd, finalPath)))

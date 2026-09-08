@@ -1,5 +1,4 @@
 import * as fs from "fs/promises"
-import * as vscode from "vscode"
 import * as path from "path"
 
 import { McpSettingsSchema } from "@services/mcp/config/schemas"
@@ -13,6 +12,7 @@ import type { McpHubState } from "@services/mcp/core/types"
 // ─── Debounce config change ──────────────────────────────────────────
 
 import { getSettingsAccess } from "@utils/settings"
+import { getUiDialogs } from "@features/foundation/capabilities/registry"
 
 export function debounceConfigChange(
 	state: McpHubState,
@@ -81,7 +81,7 @@ export async function handleConfigFileChange(
 		if ((error as NodeJS.ErrnoException).code === "ENOENT" && source === "project") {
 			await cleanupProjectMcpServers()
 			await notifyWebview()
-			vscode.window.showInformationMessage(t("mcp:info.project_config_deleted"))
+			await getUiDialogs().showInformationMessage(t("mcp:info.project_config_deleted"))
 		} else {
 			showErrorMessage(t("mcp:errors.failed_update_project"), error)
 		}

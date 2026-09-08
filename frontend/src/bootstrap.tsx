@@ -1,7 +1,9 @@
 import { createRoot } from "react-dom/client"
 import { StrictMode } from "react"
 
-import { createWebviewStoreBridge, initWebviewConsoleBridge, vscode } from "@jabberwock/devtool/webview"
+import { createWebviewStoreBridge, initWebviewConsoleBridge } from "@jabberwock/devtool/webview"
+import { initConnectorBus, getConnectorBus } from "./connector-bus"
+import type { WebviewMessage } from "@jabberwock/types"
 
 // Must be called before any other code to capture all console output
 initWebviewConsoleBridge()
@@ -15,24 +17,33 @@ import { commandExecutionStore } from "./features/chat/tree/store"
 import { routerModelsStore } from "./features/settings/models/store"
 
 import { createRootStore } from "./features/root-store"
+import { subscribeContextStore } from "./features/context"
 
 import { getHighlighter } from "./utils/text/highlighter"
-import { createMstBridge } from "./features/foundation/mst-bridge/bridge"
+import { createMstBridge, type SnapshotBatch } from "./features/foundation/mst-bridge/bridge"
 
 // Initialize Shiki early to hide initialization latency (async)
 getHighlighter().catch((error: Error) => console.error("[jabberwock] Failed to initialize Shiki highlighter:", error))
 
 /** Boot the webview application: wire up MST bridge, register stores, render React tree.
  *  Wrapped in try/catch so that any init failure renders a visible error instead of a blank page. */
-function boot(): void {
+async function boot(): Promise<void> {
 	try {
+		// Initialize the connector bus (single window listener lives in the active connector)
+		await initConnectorBus()
+
+		// Wire the ICG-D1 context viewport store to the bus (inbound history/recall/
+		// state frames). Subscribes on the already-initialized bus; boot is one-shot
+		// so the disposable lives for the app lifetime.
+		subscribeContextStore()
+
 		// Create root store first so all sub-stores are available
 		const root = createRootStore()
 
 		// Initialize webview store bridge: handles devtool console/store queries
 		// from the extension (getConsoleLogs, searchConsole, getRootSnapshot, etc.)
 		createWebviewStoreBridge(root, (msg: unknown) => {
-			vscode.postMessage(msg as never)
+			getConnectorBus().publish(msg as WebviewMessage)
 		})
 
 		// Wire up MstBridge: receives snapshot batches from the extension and applies
@@ -56,12 +67,10 @@ function boot(): void {
 		mstBridge.registerStore("TaskHistoryStore", root.history)
 		mstBridge.registerStore("ChatStore", root.chat)
 
-		// Listen for mst-snapshot-batch messages from the extension
-		window.addEventListener("message", (event) => {
-			const message = event.data
-			if (message?.type === "mst-snapshot-batch") {
-				mstBridge.handleSnapshotBatch(message.payload)
-			}
+		// Listen for mst-snapshot-batch messages from the extension via the connector bus.
+		// The single window listener lives inside the active frontend connector (D1a).
+		getConnectorBus().subscribe({ types: ["mst-snapshot-batch"] }, (msg) => {
+			mstBridge.handleSnapshotBatch((msg as { payload: SnapshotBatch }).payload)
 		})
 
 		// Expose bridge for DevTools inspection
@@ -86,4 +95,4 @@ function boot(): void {
 	}
 }
 
-boot()
+void boot()

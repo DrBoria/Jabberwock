@@ -6,8 +6,8 @@ import { getSettingsAccess } from "@utils/settings"
 import { generateSystemPrompt } from "@features/settings/context/generateSystemPrompt"
 import { getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 import { t } from "@i18n"
-import * as vscode from "vscode"
 import type { WebviewStatePayload } from "@features/foundation/window-manager/store"
+import { getClipboard, getUiDialogs } from "@features/foundation/capabilities/registry"
 import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
 
 /**
@@ -120,8 +120,10 @@ export function registerOnSettingsContext(bus: IntentBus): void {
 
 			const systemPrompt = await generateSystemPrompt(provider, payload as WebviewMessage)
 
-			await vscode.env.clipboard.writeText(systemPrompt)
-			await vscode.window.showInformationMessage(t("common:info.clipboard_copy"))
+			// D4g-2 (batch 3): clipboard + toast via the capability slots (D4c) — server mode has
+			// no host clipboard, so the copy degrades to a no-op.
+			await getClipboard()?.writeText(systemPrompt)
+			await getUiDialogs().showInformationMessage(t("common:info.clipboard_copy"))
 		} catch (error) {
 			backendLog.info(
 				`Error getting system prompt: ${JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2)}`,

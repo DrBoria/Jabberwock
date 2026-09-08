@@ -1,6 +1,6 @@
 import * as path from "path"
 import * as childProcess from "child_process"
-import * as vscode from "vscode"
+import { getAppRoot } from "@features/foundation/capabilities/registry"
 import { getBinPath } from "@services/ripgrep"
 import { DIRS_TO_IGNORE } from "./constants"
 
@@ -8,7 +8,7 @@ import { DIRS_TO_IGNORE } from "./constants"
  * Get the path to the ripgrep binary
  */
 export async function getRipgrepPath(): Promise<string> {
-	const vscodeAppRoot = vscode.env.appRoot
+	const vscodeAppRoot = getAppRoot()
 	const rgPath = await getBinPath(vscodeAppRoot)
 
 	if (!rgPath) {

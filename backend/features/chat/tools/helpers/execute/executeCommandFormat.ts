@@ -2,7 +2,7 @@ import * as path from "path"
 
 import { PersistedCommandOutput } from "@jabberwock/types"
 
-import { ExitCodeDetails } from "@integrations/terminal/types"
+import { ExitCodeDetails } from "@jabberwock/types"
 
 import { ToolResponse } from "@shared/tools"
 import { formatResponse } from "@features/settings/context/responses"

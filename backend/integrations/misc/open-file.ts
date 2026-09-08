@@ -1,8 +1,10 @@
 import * as path from "path"
 import * as os from "os"
-import * as vscode from "vscode"
-import { arePathsEqual, getWorkspacePath } from "@utils/io/path"
+import * as fs from "fs/promises"
+import type { IUri } from "@jabberwock/types"
+import { getWorkspacePath } from "@utils/io/path"
 import { t } from "@i18n"
+import { getHostContext } from "@features/foundation/host-context/context"
 
 interface OpenFileOptions {
 	create?: boolean
@@ -29,14 +31,13 @@ function resolveAttemptPaths(filePath: string, workspaceRoot: string | undefined
 	return paths
 }
 
-async function findExistingUri(
-	attemptPaths: string[],
-): Promise<{ stat: vscode.FileStat; uri: vscode.Uri } | undefined> {
+async function findExistingUri(attemptPaths: string[]): Promise<{ isDirectory: boolean; uri: IUri } | undefined> {
 	for (const p of attemptPaths) {
 		try {
-			const tempUri = vscode.Uri.file(p)
-			const stat = await vscode.workspace.fs.stat(tempUri)
-			return { stat, uri: tempUri }
+			// D4g-2 (batch 3): plain Node fs stat (the path is a local fs path) — replaces the
+			// vscode.workspace.fs.stat call so this shared helper stays host-neutral.
+			const stat = await fs.stat(p)
+			return { isDirectory: stat.isDirectory(), uri: { fsPath: p } }
 		} catch {
 			// Path not found, try next
 		}
@@ -44,10 +45,12 @@ async function findExistingUri(
 	return undefined
 }
 
-async function handleDirectory(uri: vscode.Uri): Promise<void> {
-	await vscode.commands.executeCommand("revealInExplorer", uri)
+async function handleDirectory(uri: IUri): Promise<void> {
+	// D4g-2 (batch 3): reveal the directory in the host explorer via the hostCommands slot
+	// (D4g-pre) — server mode has no host explorer, so this degrades to a no-op.
+	getHostContext()?.hostCommands?.revealInExplorer?.(uri.fsPath)
 	try {
-		await vscode.commands.executeCommand("list.expand")
+		getHostContext()?.hostCommands?.executeCommand?.("list.expand")
 	} catch (expandError) {
 		console.warn("[jabberwock] Could not expand directory in explorer:", expandError)
 	}
@@ -72,34 +75,20 @@ async function createFile(
 	options: OpenFileOptions,
 	workspaceRoot: string | undefined,
 	homeDir: string,
-): Promise<vscode.Uri> {
+): Promise<IUri> {
 	const pathToCreateAt = resolveCreationPath(originalPath, workspaceRoot, homeDir)
-	const uri = vscode.Uri.file(pathToCreateAt)
 	const contentToCreate = options.content || ""
-	await vscode.workspace.fs.writeFile(uri, Buffer.from(contentToCreate, "utf8"))
-	return uri
+	// D4g-2 (batch 3): plain Node fs write (the path is a local fs path) — replaces the
+	// vscode.workspace.fs.writeFile call so this shared helper stays host-neutral.
+	await fs.writeFile(pathToCreateAt, Buffer.from(contentToCreate, "utf8"))
+	return { fsPath: pathToCreateAt }
 }
 
-async function closeDuplicateTab(uriToProcess: vscode.Uri): Promise<void> {
-	try {
-		for (const group of vscode.window.tabGroups.all) {
-			const existingTab = group.tabs.find(
-				(tab) =>
-					tab.input instanceof vscode.TabInputText &&
-					arePathsEqual(tab.input.uri.fsPath, uriToProcess.fsPath),
-			)
-			if (existingTab) {
-				const activeColumn = vscode.window.activeTextEditor?.viewColumn
-				const tabColumn = vscode.window.tabGroups.all.find((g) => g.tabs.includes(existingTab))?.viewColumn
-				if (activeColumn && activeColumn !== tabColumn && !existingTab.isDirty) {
-					await vscode.window.tabGroups.close(existingTab)
-				}
-				break
-			}
-		}
-	} catch {
-		// Tab operations sometimes fail; non-essential
-	}
+async function closeDuplicateTab(uriToProcess: IUri): Promise<void> {
+	// D4g-2 (batch 3): close a cross-column duplicate tab via the hostCommands slot (D4g-pre) —
+	// the vscode connector performs the tab-group close logic; server mode has no host tabs, so
+	// this degrades to a no-op.
+	getHostContext()?.hostCommands?.closeDuplicateTab?.(uriToProcess.fsPath)
 }
 
 export async function openFile(filePath: string, options: OpenFileOptions = {}) {
@@ -120,26 +109,27 @@ export async function openFile(filePath: string, options: OpenFileOptions = {}) 
 
 		await closeDuplicateTab(uriToProcess)
 
-		const document = await vscode.workspace.openTextDocument(uriToProcess)
-		const selection =
-			options.line !== undefined
-				? new vscode.Selection(Math.max(options.line - 1, 0), 0, Math.max(options.line - 1, 0), 0)
-				: undefined
-		await vscode.window.showTextDocument(document, { preview: false, selection })
+		// D4g-2 (batch 3): open the file in the host editor via the hostCommands slot (D4g-pre) —
+		// the vscode connector opens the text document with the requested line selection; server
+		// mode has no host editor, so this degrades to a no-op.
+		getHostContext()?.hostCommands?.openFileInEditor?.(uriToProcess.fsPath, {
+			preview: false,
+			line: options.line,
+		})
 	} catch (error) {
 		showOpenFileError(error)
 	}
 }
 
 async function resolveUri(
-	found: { stat: vscode.FileStat; uri: vscode.Uri } | undefined,
+	found: { isDirectory: boolean; uri: IUri } | undefined,
 	originalPath: string,
 	options: OpenFileOptions,
 	workspaceRoot: string | undefined,
 	homeDir: string,
-): Promise<vscode.Uri> {
+): Promise<IUri> {
 	if (found) {
-		if (found.stat.type === vscode.FileType.Directory) {
+		if (found.isDirectory) {
 			await handleDirectory(found.uri)
 			throw new OpenFileSkipError()
 		}

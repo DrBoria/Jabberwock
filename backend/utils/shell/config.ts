@@ -1,5 +1,5 @@
-import * as vscode from "vscode"
 import { userInfo } from "os"
+import { getConfiguration } from "@features/foundation/capabilities/registry"
 import {
 	SHELL_PATHS,
 	normalizeShellPath,
@@ -13,9 +13,11 @@ import {
 
 function getWindowsTerminalConfig() {
 	try {
-		const config = vscode.workspace.getConfiguration("terminal.integrated")
-		const defaultProfileName = config.get<string>("defaultProfile.windows")
-		const profiles = config.get<WindowsTerminalProfiles>("profiles.windows") || {}
+		// D4g-2 (batch 3): config read via the capability slot (D4b) — the vscode connector backs
+		// IConfiguration.get with getConfiguration(section).get(key).
+		const defaultProfileName = getConfiguration().get<string>("terminal.integrated", "defaultProfile.windows")
+		const profiles =
+			getConfiguration().get<WindowsTerminalProfiles>("terminal.integrated", "profiles.windows") || {}
 		return { defaultProfileName, profiles }
 	} catch {
 		return { defaultProfileName: null, profiles: {} as WindowsTerminalProfiles }
@@ -24,9 +26,9 @@ function getWindowsTerminalConfig() {
 
 function getMacTerminalConfig() {
 	try {
-		const config = vscode.workspace.getConfiguration("terminal.integrated")
-		const defaultProfileName = config.get<string>("defaultProfile.osx")
-		const profiles = config.get<MacTerminalProfiles>("profiles.osx") || {}
+		// D4g-2 (batch 3): config read via the capability slot (D4b).
+		const defaultProfileName = getConfiguration().get<string>("terminal.integrated", "defaultProfile.osx")
+		const profiles = getConfiguration().get<MacTerminalProfiles>("terminal.integrated", "profiles.osx") || {}
 		return { defaultProfileName, profiles }
 	} catch {
 		return { defaultProfileName: null, profiles: {} as MacTerminalProfiles }
@@ -35,9 +37,9 @@ function getMacTerminalConfig() {
 
 function getLinuxTerminalConfig() {
 	try {
-		const config = vscode.workspace.getConfiguration("terminal.integrated")
-		const defaultProfileName = config.get<string>("defaultProfile.linux")
-		const profiles = config.get<LinuxTerminalProfiles>("profiles.linux") || {}
+		// D4g-2 (batch 3): config read via the capability slot (D4b).
+		const defaultProfileName = getConfiguration().get<string>("terminal.integrated", "defaultProfile.linux")
+		const profiles = getConfiguration().get<LinuxTerminalProfiles>("terminal.integrated", "profiles.linux") || {}
 		return { defaultProfileName, profiles }
 	} catch {
 		return { defaultProfileName: null, profiles: {} as LinuxTerminalProfiles }

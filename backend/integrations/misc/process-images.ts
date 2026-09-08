@@ -1,9 +1,9 @@
-import * as vscode from "vscode"
 import fs from "fs/promises"
 import * as path from "path"
+import { getUiDialogs } from "@features/foundation/capabilities/registry"
 
 export async function selectImages(): Promise<string[]> {
-	const options: vscode.OpenDialogOptions = {
+	const options = {
 		canSelectMany: true,
 		openLabel: "Select",
 		filters: {
@@ -11,7 +11,7 @@ export async function selectImages(): Promise<string[]> {
 		},
 	}
 
-	const fileUris = await vscode.window.showOpenDialog(options)
+	const fileUris = await getUiDialogs().showOpenDialog(options)
 
 	if (!fileUris || fileUris.length === 0) {
 		return []

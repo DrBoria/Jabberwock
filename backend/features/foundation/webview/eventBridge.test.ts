@@ -65,7 +65,24 @@ function createCapabilities(): BackendCapabilities {
 		},
 		queue: new InMemoryMessageQueue(),
 		pubsub: new EventBusPubSub(),
+		config: {
+			get: <T>(_section: string, _key: string, defaultValue?: T): T | undefined => defaultValue,
+			update: async (_section: string, _key: string, _value: unknown): Promise<void> => {},
+		},
+		uiDialogs: {
+			showOpenDialog: async () => undefined,
+			showInputBox: async () => undefined,
+			showInformationMessage: async () => undefined,
+			showWarningMessage: async () => undefined,
+			showSaveDialog: async () => undefined,
+			showConfirmDialog: async () => undefined,
+		},
 		hostContext: { storageDir: "/tmp/jabberwock-test", workspaceRoot: "" },
+		logger: {
+			info: () => {},
+			warn: () => {},
+			appendLine: () => {},
+		},
 	}
 }
 

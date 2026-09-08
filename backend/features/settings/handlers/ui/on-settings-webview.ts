@@ -1,10 +1,11 @@
 import { IntentType } from "@jabberwock/types"
 import type { IntentBus } from "@features/intents/bus"
-import * as vscode from "vscode"
 import { getWindowManagerState, postStateToWebview } from "@features/foundation/window-manager/store"
 import { Package } from "@shared/package"
 import { getSettingsAccess } from "@utils/settings"
 import { diagnosticsManager } from "@jabberwock/devtool"
+import { getConfiguration } from "@features/foundation/capabilities/registry"
+import { getHostContext } from "@features/foundation/host-context/context"
 
 /**
  * Register all webview/devtool settings intent handlers.
@@ -12,9 +13,9 @@ import { diagnosticsManager } from "@jabberwock/devtool"
 export function registerOnSettingsWebview(bus: IntentBus): void {
 	// ── devtoolStatus ─────────────────────────────────────────────────
 	bus.register(IntentType.SettingsDevtoolStatus, async () => {
-		const config = vscode.workspace.getConfiguration(Package.name)
-		const current = config.get<boolean>("devtool", false)
-		await config.update("devtool", !current, vscode.ConfigurationTarget.Global)
+		// D4g-2 (batch 3): config read/write via the capability slot (D4b).
+		const current = getConfiguration().get<boolean>(Package.name, "devtool", false) ?? false
+		await getConfiguration().update(Package.name, "devtool", !current)
 	})
 
 	// ── webviewLog ────────────────────────────────────────────────────
@@ -115,14 +116,13 @@ export function registerOnSettingsWebview(bus: IntentBus): void {
 				const targetColumn = isNaN(column) ? 1 : column
 
 				const uriString = `${locatorPrefix}://file${filePath}:${targetLine}:${targetColumn}`
-				const uri = vscode.Uri.parse(uriString)
-
-				await vscode.env.openExternal(uri)
+				// D4g-2 (batch 3): open the locator URI via the hostCommands slot (D4g-pre) — the
+				// vscode connector parses the string into a host URI; server mode has no host, so
+				// this degrades to a no-op.
+				getHostContext()?.hostCommands?.openExternal?.(uriString)
 			} catch (error) {
 				console.error("[jabberwock] LocatorJS Bridge Error:", error)
-				publishNotificationError(
-					`LocatorJS: Failed to open file using protocol ${locatorPrefix}: ${error}`,
-				)
+				publishNotificationError(`LocatorJS: Failed to open file using protocol ${locatorPrefix}: ${error}`)
 			}
 		}
 	})

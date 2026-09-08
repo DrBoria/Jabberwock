@@ -1,6 +1,6 @@
 import { IntentType } from "@jabberwock/types"
 import type { IntentBus } from "@features/intents/bus"
-import { getTheme } from "@integrations/theme/getTheme"
+import { getHostThemeService } from "@features/foundation/capabilities/registry"
 import { getHostEnvironment } from "@features/foundation/host-context/context"
 import { postStateToWebview } from "@features/foundation/window-manager/store"
 import { loadApiConfiguration } from "./webview-api-config"
@@ -50,9 +50,13 @@ async function handleWebviewLaunched(ctx: never): Promise<void> {
 	await initializeWorkspaceTracker(provider)
 
 	// 8. Theme
-	getTheme().then((theme: { [key: string]: unknown }) =>
-		provider.postMessageToWebview({ type: "theme", text: JSON.stringify(theme) }),
-	)
+	getHostThemeService()
+		?.getTheme()
+		.then((theme: Record<string, unknown> | undefined) => {
+			if (theme) {
+				provider.postMessageToWebview({ type: "theme", text: JSON.stringify(theme) })
+			}
+		})
 
 	// 9. MCP Servers
 	syncMcpServers(provider, rootStore)

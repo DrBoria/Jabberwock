@@ -1,5 +1,4 @@
 import * as http from "http"
-import type { ExtensionContext } from "vscode"
 import {
 	OpenAiCodexCredentials,
 	generateCodeVerifier,
@@ -17,10 +16,26 @@ import {
 } from "./oauthTokenManager"
 
 /**
+ * Minimal structural type for the host extension context.
+ *
+ * Captures only the members this module actually uses (the secret store), so the
+ * file stays host-neutral and no longer imports "vscode". The real
+ * `vscode.ExtensionContext` remains assignable because its `secrets` (SecretStorage)
+ * is Thenable-based and Promise-compatible.
+ */
+interface IExtensionContextLike {
+	secrets: {
+		get(key: string): PromiseLike<string | undefined>
+		store(key: string, value: string): PromiseLike<void>
+		delete(key: string): PromiseLike<void>
+	}
+}
+
+/**
  * OpenAiCodexOAuthManager - Handles OAuth flow and token management
  */
 export class OpenAiCodexOAuthManager {
-	private context: ExtensionContext | null = null
+	private context: IExtensionContextLike | null = null
 	private credentials: OpenAiCodexCredentials | null = null
 	private logFn: ((message: string) => void) | null = null
 	private refreshPromise: Promise<OpenAiCodexCredentials> | null = null
@@ -45,7 +60,7 @@ export class OpenAiCodexOAuthManager {
 		console.error(`[jabberwock]`, full)
 	}
 
-	initialize(context: ExtensionContext, logFn?: (message: string) => void): void {
+	initialize(context: IExtensionContextLike, logFn?: (message: string) => void): void {
 		this.context = context
 		this.logFn = logFn ?? null
 	}

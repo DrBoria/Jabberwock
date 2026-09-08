@@ -2,7 +2,7 @@ import * as childProcess from "child_process"
 import * as path from "path"
 import * as readline from "readline"
 
-import * as vscode from "vscode"
+import { getAppRoot } from "@features/foundation/capabilities/registry"
 import { VirtualWorkspace } from "@features/foundation/time-machine/VirtualWorkspace"
 
 import { fileExistsAtPath } from "@utils/io/fs"
@@ -92,7 +92,7 @@ export async function regexSearchFiles(
 	filePattern?: string,
 	ignorePatterns?: string,
 ): Promise<string> {
-	const vscodeAppRoot = vscode.env.appRoot
+	const vscodeAppRoot = getAppRoot()
 	const rgPath = await getBinPath(vscodeAppRoot)
 
 	if (!rgPath) {

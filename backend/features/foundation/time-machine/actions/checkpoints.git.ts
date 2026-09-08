@@ -1,5 +1,3 @@
-import * as vscode from "vscode"
-
 import type { ITaskModel } from "@features/chat/task/store"
 import { checkGitInstalled } from "@utils/git"
 import { t } from "@i18n"
@@ -11,6 +9,8 @@ import { sendCurrentCheckpointUpdated } from "@features/foundation/time-machine/
 import { systemBroadcast } from "@features/chat/task/messages/actions/say"
 import { getMstState } from "@features/foundation/mst/store"
 import { getBackendRootStore } from "@features/storeSingleton"
+import { getUiDialogs } from "@features/foundation/capabilities/registry"
+import { getHostContext } from "@features/foundation/host-context/context"
 
 export async function checkGitInstallation(
 	task: ITaskModel,
@@ -25,13 +25,12 @@ export async function checkGitInstallation(
 			task._state.setEnableCheckpoints(false)
 			task._state.setCheckpointServiceInitializing(false)
 
-			const selection = await vscode.window.showWarningMessage(
-				t("common:errors.git_not_installed"),
+			const selection = await getUiDialogs().showWarningMessage(t("common:errors.git_not_installed"), [
 				t("common:buttons.learn_more"),
-			)
+			])
 
 			if (selection === t("common:buttons.learn_more")) {
-				await vscode.env.openExternal(vscode.Uri.parse("https://git-scm.com/downloads"))
+				getHostContext()?.hostCommands?.openExternal?.("https://git-scm.com/downloads")
 			}
 
 			return

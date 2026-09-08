@@ -1,9 +1,9 @@
-import * as vscode from "vscode"
-
 import { getCommitInfo } from "@utils/git"
 import { getWorkingState } from "@utils/git"
-import { diagnosticsToProblemsString } from "@integrations/diagnostics"
+import { diagnosticsToProblemsString, DiagnosticSeverity } from "@integrations/diagnostics"
 import { FileContextTracker } from "@features/foundation/time-machine/file-context/FileContextTracker"
+import { getDiagnostics } from "@features/foundation/capabilities/registry"
+import { getHostContext } from "@features/foundation/host-context/context"
 
 import { processFileMention } from "@features/chat/task/messages/actions/file-mentions/fileMentionHelpers"
 import type { ContentBlockShape } from "@features/chat/task/messages/actions/types"
@@ -91,10 +91,12 @@ async function getWorkspaceProblems(
 	includeDiagnosticMessages: boolean = true,
 	maxDiagnosticMessages: number = 50,
 ): Promise<string> {
-	const diagnostics = vscode.languages.getDiagnostics()
+	// D4g-2 (batch 3): host language-service diagnostics via the capability slot — server mode has
+	// no host language services, so this degrades to "no problems detected".
+	const diagnostics = getDiagnostics()?.getAll() ?? []
 	const result = await diagnosticsToProblemsString(
 		diagnostics,
-		[vscode.DiagnosticSeverity.Error, vscode.DiagnosticSeverity.Warning],
+		[DiagnosticSeverity.Error, DiagnosticSeverity.Warning],
 		cwd,
 		includeDiagnosticMessages,
 		maxDiagnosticMessages,
@@ -106,36 +108,8 @@ async function getWorkspaceProblems(
 }
 
 export async function getLatestTerminalOutput(): Promise<string> {
-	const originalClipboard = await vscode.env.clipboard.readText()
-
-	try {
-		await vscode.commands.executeCommand("workbench.action.terminal.selectAll")
-
-		await vscode.commands.executeCommand("workbench.action.terminal.copySelection")
-
-		await vscode.commands.executeCommand("workbench.action.terminal.clearSelection")
-
-		let terminalContents = (await vscode.env.clipboard.readText()).trim()
-
-		if (terminalContents === originalClipboard) {
-			return ""
-		}
-
-		const lines = terminalContents.split("\n")
-		const lastLine = lines.pop()?.trim()
-
-		if (lastLine) {
-			let i = lines.length - 1
-
-			while (i >= 0 && !lines[i].trim().startsWith(lastLine)) {
-				i--
-			}
-
-			terminalContents = lines.slice(Math.max(i, 0)).join("\n")
-		}
-
-		return terminalContents
-	} finally {
-		await vscode.env.clipboard.writeText(originalClipboard)
-	}
+	// D4g-2 (batch 3): capture the latest terminal output via the hostCommands slot (D4g-pre) —
+	// the vscode connector performs the clipboard-based capture atomically; server mode has no
+	// host terminal, so this degrades to empty output.
+	return (await getHostContext()?.hostCommands?.getTerminalOutput?.()) ?? ""
 }

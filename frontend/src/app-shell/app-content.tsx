@@ -11,6 +11,8 @@ import { WindowLayer } from "@src/features/foundation/window-manager/window-laye
 import { MarketplaceViewStateManager } from "@src/features/marketplace/components/state/MarketplaceViewStateManager"
 import { useAddNonInteractiveClickListener } from "@src/features/foundation/ui/hooks/useInteraction/useNonInteractiveClick"
 import { McpIframeRenderer } from "@src/features/settings/mcp/McpIframeRenderer"
+import { isWebMode } from "@src/connector-bus"
+import { Timeline } from "@src/features/context"
 import { getAllModes } from "@shared/modes"
 import type { DeleteMessageDialogState, EditMessageDialogState } from "./app-types"
 import type { SettingsViewRef } from "../features/settings/components/SettingsView/types"
@@ -173,6 +175,26 @@ export const AppContent = observer(() => {
 								}}
 							/>
 						</WindowLayer>
+					)}
+					{/* ICG-D1 full-history timeline — web/watch mode only, when a task is active (spec §7). */}
+					{isWebMode() && (s.currentTaskId ?? s.currentTaskItem?.id) && (
+						<aside
+							className="context-timeline-panel"
+							style={{
+								position: "absolute",
+								top: 0,
+								right: 0,
+								bottom: 0,
+								width: "38%",
+								minWidth: 320,
+								maxWidth: 720,
+								zIndex: 5,
+								borderLeft: "1px solid var(--border, #333)",
+								background: "var(--background, #111)",
+								overflow: "hidden",
+							}}>
+							<Timeline taskId={s.currentTaskId ?? s.currentTaskItem!.id} />
+						</aside>
 					)}
 					<AppDialogs
 						deleteMessageDialogState={deleteMessageDialogState}

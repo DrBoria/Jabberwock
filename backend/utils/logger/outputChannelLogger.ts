@@ -1,4 +1,4 @@
-import * as vscode from "vscode"
+import { getBackendLogger } from "@features/foundation/capabilities/registry"
 
 export type LogFunction = (...args: unknown[]) => void
 
@@ -6,20 +6,20 @@ export type LogFunction = (...args: unknown[]) => void
  * Creates a logging function that writes to a VSCode output channel
  * Based on the outputChannelLog implementation from src/extension/api.ts
  */
-export function createOutputChannelLogger(outputChannel: vscode.OutputChannel): LogFunction {
+export function createOutputChannelLogger(): LogFunction {
 	return (...args: unknown[]) => {
 		for (const arg of args) {
 			if (arg === null) {
-				outputChannel.appendLine("null")
+				getBackendLogger().appendLine("null")
 			} else if (arg === undefined) {
-				outputChannel.appendLine("undefined")
+				getBackendLogger().appendLine("undefined")
 			} else if (typeof arg === "string") {
-				outputChannel.appendLine(arg)
+				getBackendLogger().appendLine(arg)
 			} else if (arg instanceof Error) {
-				outputChannel.appendLine(`Error: ${arg.message}\n${arg.stack || ""}`)
+				getBackendLogger().appendLine(`Error: ${arg.message}\n${arg.stack || ""}`)
 			} else {
 				try {
-					outputChannel.appendLine(
+					getBackendLogger().appendLine(
 						JSON.stringify(
 							arg,
 							(key, value) => {
@@ -32,7 +32,7 @@ export function createOutputChannelLogger(outputChannel: vscode.OutputChannel): 
 						),
 					)
 				} catch (_error) {
-					outputChannel.appendLine(`[Non-serializable object: ${Object.prototype.toString.call(arg)}]`)
+					getBackendLogger().appendLine(`[Non-serializable object: ${Object.prototype.toString.call(arg)}]`)
 				}
 			}
 		}

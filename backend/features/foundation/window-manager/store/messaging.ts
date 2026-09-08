@@ -1,10 +1,9 @@
-import * as vscode from "vscode"
 import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
 import { hasConnector, getConnector } from "@features/foundation/webview/providerRegistry"
 import type { IWindowManagerModel, WebviewStatePayload } from "@features/foundation/window-manager/store"
 import { PUSH_DEBOUNCE_MS } from "@features/foundation/window-manager/store"
 import { getWindowManagerState, buildEnrichedState, logStateMessages } from "./state-utils"
-import { getHostEnvironment } from "@features/foundation/host-context/context"
+import { getHostEnvironment, getHostContext } from "@features/foundation/host-context/context"
 import { getSettingsAccess } from "@utils/settings"
 import { getProviderSettingsManager } from "@features/settings/models/provider-settings-manager/ProviderSettingsManager"
 import { getBackendRootStore } from "@features/storeSingleton"
@@ -119,7 +118,10 @@ export async function postStateToWebviewWithoutTaskHistory(provider: ProviderHan
 }
 
 export async function refreshWorkspace(_provider: ProviderHandle): Promise<void> {
-	await vscode.commands.executeCommand("workbench.action.reloadWindow")
+	// v4 D4d (plan §3.2 Strategy D, file #3): window reload is a host command — route through the
+	// host-context capability slot instead of importing "vscode" directly (purity rule G6).
+	// Server mode has no hostCommands slot, so the reload is a no-op there.
+	getHostContext()?.hostCommands?.reloadWindow?.()
 }
 
 function getBackendRootStoreForProvider(): { foundation: { windowManager: IWindowManagerModel } } {

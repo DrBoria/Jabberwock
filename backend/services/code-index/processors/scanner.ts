@@ -3,7 +3,7 @@ import { VirtualWorkspace } from "@features/foundation/time-machine/VirtualWorks
 import { Ignore } from "ignore"
 import { readIgnoreFile, filterPaths } from "@utils/ignore"
 import { getWorkspacePathForContext } from "@utils/io/path"
-import * as vscode from "vscode"
+import { getConfiguration } from "@features/foundation/capabilities/registry"
 import { CodeBlock, ICodeParser, IEmbedder, IVectorStore, IDirectoryScanner } from "@services/code-index/interfaces"
 import pLimit from "p-limit"
 import { Mutex } from "async-mutex"
@@ -41,9 +41,13 @@ export class DirectoryScanner implements IDirectoryScanner {
 			this.batchSegmentThreshold = batchSegmentThreshold
 		} else {
 			try {
-				this.batchSegmentThreshold = vscode.workspace
-					.getConfiguration(Package.name)
-					.get<number>("codeIndex.embeddingBatchSize", BATCH_SEGMENT_THRESHOLD)
+				// D4g-2 (batch 3): config read via the capability slot (D4b).
+				this.batchSegmentThreshold =
+					getConfiguration().get<number>(
+						Package.name,
+						"codeIndex.embeddingBatchSize",
+						BATCH_SEGMENT_THRESHOLD,
+					) ?? BATCH_SEGMENT_THRESHOLD
 			} catch {
 				this.batchSegmentThreshold = BATCH_SEGMENT_THRESHOLD
 			}

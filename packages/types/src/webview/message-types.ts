@@ -108,6 +108,9 @@ export type WebviewMessageType =
 	| "openAiCodexSignOut"
 	| "switchOrganization"
 	| "condenseTaskContextRequest"
+	/** ICG (infinite-context) display-layer request frames (ICG-D1, spec §7/§8.2). */
+	| "context.history.range.requested"
+	| "context.recall.requested"
 	| "requestIndexingStatus"
 	| "startIndexing"
 	| "stopIndexing"

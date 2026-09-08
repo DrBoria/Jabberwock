@@ -103,11 +103,7 @@ function waitForNewTaskId(
 	})
 }
 
-export async function buildApi(
-	provider: EventBridge,
-	context: vscode.ExtensionContext,
-	outputChannel: vscode.OutputChannel,
-): Promise<JabberwockAPI> {
+export async function buildApi(provider: EventBridge): Promise<JabberwockAPI> {
 	const eventEmitter = new EventEmitter<JabberwockAPIEvents>()
 
 	const api: JabberwockAPI = Object.assign(eventEmitter, {
@@ -123,7 +119,9 @@ export async function buildApi(
 			newTab?: boolean
 		}) => {
 			if (newTab || configuration !== undefined) {
-				return startNewTask(provider, context, outputChannel, {
+				// D4g-2 (batch 4): startNewTask is host-neutral — the new-tab provider and host
+				// commands are resolved through the capability slots inside the action.
+				return startNewTask(provider, {
 					configuration: configuration ?? ({} as JabberwockSettings),
 					text,
 					images,

@@ -1,7 +1,8 @@
 import * as path from "path"
-import * as vscode from "vscode"
+import type { IFileWatcher } from "@jabberwock/types"
 import type { RecordSource } from "./FileContextTrackerTypes"
 import { getBackendRootStore } from "@features/storeSingleton"
+import { getBackendCapabilities, getFileWatchers } from "@features/foundation/capabilities/registry"
 
 /**
  * FileContextTracker — VSCode integration layer for file context tracking.
@@ -19,7 +20,7 @@ export class FileContextTracker {
 	readonly taskId: string
 
 	// File tracking and watching
-	private fileWatchers = new Map<string, vscode.FileSystemWatcher>()
+	private fileWatchers = new Map<string, IFileWatcher>()
 	private recentlyModifiedFiles = new Set<string>()
 	private recentlyEditedByRoo = new Set<string>()
 	private checkpointPossibleFiles = new Set<string>()
@@ -30,7 +31,9 @@ export class FileContextTracker {
 
 	// Gets the current working directory or returns undefined if it cannot be determined
 	private getCwd(): string | undefined {
-		const cwd = vscode.workspace.workspaceFolders?.map((folder) => folder.uri.fsPath).at(0)
+		// D4g-2 (batch 4): workspace folders via the hostContext capability slot (D4e) — the shared
+		// backend never imports the host directly.
+		const cwd = getBackendCapabilities().hostContext.workspaceFolders?.at(0)
 		if (!cwd) {
 			console.info("No workspace folder available - cannot determine current working directory")
 		}
@@ -49,14 +52,19 @@ export class FileContextTracker {
 			return
 		}
 
-		// Create a file system watcher for this specific file
-		const fileUri = vscode.Uri.file(path.resolve(cwd, filePath))
-		const watcher = vscode.workspace.createFileSystemWatcher(
-			new vscode.RelativePattern(path.dirname(fileUri.fsPath), path.basename(fileUri.fsPath)),
-		)
+		// D4g-2 (batch 4): file watching via the host-neutral file-watcher factory (D4e) — the vscode
+		// connector adapts the host watcher API (RelativePattern) into the plain IFileWatcher callbacks.
+		// Server mode provides a chokidar factory; absent in pre-D4e fixtures (no file watching).
+		const factory = getFileWatchers()
+		if (!factory) {
+			return
+		}
+
+		// Create a file system watcher for this specific file (absolute path → exact-file match)
+		const watcher = await factory.watch([path.resolve(cwd, filePath)])
 
 		// Track file changes
-		watcher.onDidChange(() => {
+		watcher.onChange?.(() => {
 			if (this.recentlyEditedByRoo.has(filePath)) {
 				this.recentlyEditedByRoo.delete(filePath) // This was an edit by Jabberwock, no need to inform Jabberwock
 			} else {

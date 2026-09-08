@@ -1,4 +1,3 @@
-import type { ExtensionContext } from "vscode"
 import {
 	OPENAI_CODEX_CREDENTIALS_KEY,
 	openAiCodexCredentialsSchema,
@@ -9,8 +8,24 @@ import {
 } from "./oauthHelpers"
 import { OpenAiCodexOAuthTokenError } from "./oauthTokenParsing"
 
+/**
+ * Minimal structural type for the host extension context.
+ *
+ * Captures only the members this module actually uses (the secret store), so the
+ * file stays host-neutral and no longer imports "vscode". The real
+ * `vscode.ExtensionContext` remains assignable because its `secrets` (SecretStorage)
+ * is Thenable-based and Promise-compatible.
+ */
+interface IExtensionContextLike {
+	secrets: {
+		get(key: string): PromiseLike<string | undefined>
+		store(key: string, value: string): PromiseLike<void>
+		delete(key: string): PromiseLike<void>
+	}
+}
+
 export async function loadCredentialsFromStorage(
-	context: ExtensionContext | null,
+	context: IExtensionContextLike | null,
 ): Promise<OpenAiCodexCredentials | null> {
 	if (!context) {
 		return null
@@ -30,7 +45,7 @@ export async function loadCredentialsFromStorage(
 }
 
 export async function saveCredentialsToStorage(
-	context: ExtensionContext | null,
+	context: IExtensionContextLike | null,
 	credentials: OpenAiCodexCredentials,
 ): Promise<void> {
 	if (!context) {
@@ -40,7 +55,7 @@ export async function saveCredentialsToStorage(
 	await context.secrets.store(OPENAI_CODEX_CREDENTIALS_KEY, JSON.stringify(credentials))
 }
 
-export async function clearCredentialsFromStorage(context: ExtensionContext | null): Promise<void> {
+export async function clearCredentialsFromStorage(context: IExtensionContextLike | null): Promise<void> {
 	if (!context) {
 		return
 	}
@@ -50,7 +65,7 @@ export async function clearCredentialsFromStorage(context: ExtensionContext | nu
 
 export async function refreshAndSaveCredentials(
 	credentials: OpenAiCodexCredentials,
-	context: ExtensionContext | null,
+	context: IExtensionContextLike | null,
 	log: LogFunction,
 	logError: (message: string, error?: unknown) => void,
 	refreshPromiseRef: { current: Promise<OpenAiCodexCredentials> | null },
@@ -89,7 +104,7 @@ export async function refreshAndSaveCredentials(
 
 export async function getValidAccessToken(
 	credentialsRef: { current: OpenAiCodexCredentials | null },
-	context: ExtensionContext | null,
+	context: IExtensionContextLike | null,
 	log: LogFunction,
 	logError: (message: string, error?: unknown) => void,
 	refreshPromiseRef: { current: Promise<OpenAiCodexCredentials> | null },

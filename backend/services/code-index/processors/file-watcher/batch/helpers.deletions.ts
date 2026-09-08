@@ -1,11 +1,11 @@
-import * as vscode from "vscode"
+import type { IUri } from "@jabberwock/types"
 import { FileProcessingResult } from "@services/code-index/interfaces"
 import { extractDeletionErrorStatus, toError } from "@services/code-index/processors/file-watcher/error-utils"
 import { BatchContext } from "./helpers.types"
 
 export function collectDeletionPaths(
 	pathsToExplicitlyDelete: string[],
-	filesToUpsertDetails: Array<{ path: string; uri: vscode.Uri; originalType: "create" | "change" }>,
+	filesToUpsertDetails: Array<{ path: string; uri: IUri; originalType: "create" | "change" }>,
 ): Set<string> {
 	const allPathsToClearFromDB = new Set<string>(pathsToExplicitlyDelete)
 	for (const fileDetail of filesToUpsertDetails) {
@@ -66,7 +66,7 @@ export async function handleBatchDeletions(
 	processedCountInBatch: number,
 	totalFilesInBatch: number,
 	pathsToExplicitlyDelete: string[],
-	filesToUpsertDetails: Array<{ path: string; uri: vscode.Uri; originalType: "create" | "change" }>,
+	filesToUpsertDetails: Array<{ path: string; uri: IUri; originalType: "create" | "change" }>,
 ): Promise<{ overallBatchError?: Error; clearedPaths: Set<string>; processedCount: number }> {
 	const allPathsToClearFromDB = collectDeletionPaths(pathsToExplicitlyDelete, filesToUpsertDetails)
 

@@ -1,7 +1,7 @@
 /**
  * Messages event key constants.
  *
- * These keys map to the event types sent via vscode.postMessage for
+ * These keys map to the event types sent via the connector bus for
  * message-list operations (ask response, delete, edit, etc.).
  * Naming convention: [Feature]_[Action] in UPPER_SNAKE_CASE.
  */

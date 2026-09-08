@@ -1,4 +1,4 @@
-import * as vscode from "vscode"
+import type { IUri } from "@jabberwock/types"
 import { FileProcessingResult, PointStruct } from "@services/code-index/interfaces"
 import { toError } from "@services/code-index/processors/file-watcher/error-utils"
 import { BatchContext } from "./helpers.types"
@@ -135,7 +135,7 @@ export function processSettledFileResult(
 
 export async function processSingleFile(
 	ctx: BatchContext,
-	fileDetail: { path: string; uri: vscode.Uri; originalType: "create" | "change" },
+	fileDetail: { path: string; uri: IUri; originalType: "create" | "change" },
 	_totalFilesInBatch: number,
 ): Promise<{ path: string; result?: FileProcessingResult; error?: Error }> {
 	try {
@@ -150,7 +150,7 @@ export async function processSingleFile(
 
 export async function processFilesAndPrepareUpserts(
 	ctx: BatchContext,
-	filesToUpsertDetails: Array<{ path: string; uri: vscode.Uri; originalType: "create" | "change" }>,
+	filesToUpsertDetails: Array<{ path: string; uri: IUri; originalType: "create" | "change" }>,
 	batchResults: FileProcessingResult[],
 	processedCountInBatch: number,
 	totalFilesInBatch: number,

@@ -110,7 +110,7 @@ export const useMessageReceiver = (playSound: (type: string) => void) => {
 		(e: MessageEvent) => {
 			const message: ExtensionMessage = e.data
 			if (message.type === "interactionRequired") playSound("notification")
-			rootStore.handleExtensionMessage(e)
+			rootStore.handleExtensionMessage(message)
 		},
 		[playSound],
 	)

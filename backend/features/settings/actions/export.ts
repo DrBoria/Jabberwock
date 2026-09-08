@@ -1,10 +1,9 @@
 import * as path from "path"
 import fs from "fs/promises"
 
-import * as vscode from "vscode"
-
 import type { ProviderSettingsManager } from "@features/settings/models/provider-settings-manager/ProviderSettingsManager"
 import type { SettingsAccess } from "@utils/settings"
+import { getUiDialogs } from "@features/foundation/capabilities/registry"
 import { resolveDefaultSaveUri, saveLastExportPath } from "@utils/io/export"
 import { safeWriteJson } from "@utils/io"
 
@@ -20,7 +19,9 @@ export const exportSettings = async ({ providerSettingsManager, contextProxy }: 
 		fallbackDir: path.join(os.homedir(), "Downloads"),
 	})
 
-	const uri = await vscode.window.showSaveDialog({
+	// D4g-2 (batch 1): save dialog through the uiDialogs capability slot instead of a direct
+	// "vscode" import (plan section 3.2 Strategy C).
+	const uri = await getUiDialogs().showSaveDialog({
 		filters: { JSON: ["json"] },
 		defaultUri,
 	})

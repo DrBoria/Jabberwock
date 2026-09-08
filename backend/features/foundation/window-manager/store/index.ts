@@ -14,9 +14,6 @@ export {
 	resolveActivePageRequest,
 } from "./state-utils"
 
-export { resolveWebviewView } from "./webview-setup"
-export type { WebviewMessageHandler } from "./webview-setup"
-
 export {
 	scheduleStatePush,
 	postMessageToWebview,

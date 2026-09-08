@@ -4,7 +4,7 @@ import type { IntentHandlerContext } from "../../../intents/context"
 import { getRootStore } from "../../../root-store"
 import type { IRootStore } from "../../../root-store"
 import { checkExistKey } from "@shared/api/checkExistApiConfig"
-import { vscode } from "@jabberwock/devtool/webview"
+import { getConnectorBus } from "../../../../connector-bus"
 import { eventConstants } from "@jabberwock/types"
 import type { Command, ExtensionState, MarketplaceInstalledMetadata } from "@jabberwock/types"
 
@@ -199,7 +199,7 @@ async function handleActionReceived(
 	if (intent.payload.action === "toggleAutoApprove") {
 		const newValue = !(store.extensionState.autoApprovalEnabled ?? false)
 		store.extensionState = { ...store.extensionState, autoApprovalEnabled: newValue }
-		vscode.postMessage({ type: eventConstants.AGENT_STATE.AUTO_APPROVAL_ENABLED, bool: newValue })
+		getConnectorBus().publish({ type: eventConstants.AGENT_STATE.AUTO_APPROVAL_ENABLED, bool: newValue })
 	}
 }
 

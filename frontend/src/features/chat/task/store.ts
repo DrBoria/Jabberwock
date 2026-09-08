@@ -1,4 +1,4 @@
-import { vscode } from "@jabberwock/devtool/webview"
+import { getConnectorBus } from "../../../connector-bus"
 import { getRoot } from "mobx-state-tree"
 
 import type { WebviewMessage, Goal, Notification } from "@jabberwock/types"
@@ -40,7 +40,7 @@ export function createTaskActions(self: TaskActionsParams) {
 			const trimmed = text.trim()
 			if (!trimmed && images.length === 0) return
 			const root = getRoot<{ extensionState: { mode: string } }>(self as never)
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CHAT.TASK.NEW_TASK,
 				text: trimmed,
 				images,
@@ -52,7 +52,7 @@ export function createTaskActions(self: TaskActionsParams) {
 
 		// ── Clear / cancel task ────────────────────────────────────
 		clearTask() {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CHAT.TASK.CLEAR_TASK,
 			} satisfies WebviewMessage)
 			self.textArea.clearInput()
@@ -60,7 +60,7 @@ export function createTaskActions(self: TaskActionsParams) {
 		},
 
 		cancelTask() {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CHAT.TASK.CANCEL_TASK,
 			} satisfies WebviewMessage)
 			self.textArea.setSendingDisabled(false)
@@ -77,7 +77,7 @@ export function createTaskActions(self: TaskActionsParams) {
 			if (self.isCondensing || self.textArea.sendingDisabled) return
 			self.isCondensing = true
 			self.textArea.setSendingDisabled(true)
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CHAT.TASK.CONDENSE_TASK_CONTEXT_REQUEST,
 				text: taskId,
 			} satisfies WebviewMessage)
@@ -85,7 +85,7 @@ export function createTaskActions(self: TaskActionsParams) {
 
 		// ── Set chat box message ────────────────────────────────────
 		setChatBoxMessage(text: string, images: string[]) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CHAT.TASK.SET_CHAT_BOX_MESSAGE,
 				text,
 				images,
@@ -94,7 +94,7 @@ export function createTaskActions(self: TaskActionsParams) {
 
 		// ── Get task with aggregated costs ──────────────────────────
 		getTaskWithAggregatedCosts(taskId: string) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.WINDOW_MANAGER.GET_TASK_WITH_AGGREGATED_COSTS,
 				text: taskId,
 			} satisfies WebviewMessage)

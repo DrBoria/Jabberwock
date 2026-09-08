@@ -23,15 +23,6 @@ import { PROTOCOL_VERSION, IntentStatus } from "@jabberwock/types"
 import { bootGateEnvironment, sleep, waitFor, asRecord, readStreamChunks } from "./c3-gate-boot"
 import type { GateBootResult } from "./c3-gate-boot"
 import { IntentPriority } from "@features/intents/IntentConstants"
-import { registerOnTaskIntents } from "@features/chat/task/events/handlers/register-on-task-intents"
-import { registerOnMessagesIntents } from "@features/chat/task/messages/events/handlers"
-import { registerOnNotificationsIntents } from "@features/chat/task/notifications/events/handlers"
-import { registerOnSettingsIntents } from "@features/settings/events/handlers"
-import { registerOnWindowManagerIntents } from "@features/foundation/window-manager/events/handlers"
-import { registerOnContextManagementIntents } from "@features/foundation/time-machine/file-context/events/handlers"
-import { registerOnCloudIntents } from "@features/cloud/events/handlers"
-import { registerOnHistoryIntents } from "@features/hist/events/handlers"
-import { registerOnMarketplaceIntents } from "@features/marketplace/events/handlers"
 
 // -- Module state (single boot shared by both tests in this file) ------------------
 
@@ -89,17 +80,7 @@ function bothIntentsSettled(
 // -- Boot / teardown ---------------------------------------------------------------
 
 beforeAll(async () => {
-	env = await bootGateEnvironment((bus) => {
-		registerOnTaskIntents(bus)
-		registerOnMessagesIntents(bus)
-		registerOnNotificationsIntents(bus)
-		registerOnSettingsIntents(bus)
-		registerOnWindowManagerIntents(bus)
-		registerOnContextManagementIntents(bus)
-		registerOnCloudIntents(bus)
-		registerOnHistoryIntents(bus)
-		registerOnMarketplaceIntents(bus)
-	}, receivedBodies)
+	env = await bootGateEnvironment(receivedBodies)
 
 	// section 6.2 handshake: hello -> state frame with _hydration flag and the getState() payload.
 	sendFrame({ type: "hello", clientKind: "gate-test" })

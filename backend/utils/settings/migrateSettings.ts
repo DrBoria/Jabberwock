@@ -1,10 +1,11 @@
-import * as vscode from "vscode"
 import * as path from "path"
 import * as fs from "fs/promises"
 import { fileExistsAtPath } from "@utils/io/fs"
 import { GlobalFileNames } from "@shared/globalFileNames"
 import { getSettingsDirectoryPath } from "@utils/io/storage"
 import * as yaml from "yaml"
+import { getBackendLogger } from "@features/foundation/capabilities/registry"
+import { getHostContext } from "@features/foundation/host-context/context"
 
 const deprecatedCustomModesJSONFilename = "custom_modes.json"
 
@@ -13,12 +14,10 @@ const deprecatedCustomModesJSONFilename = "custom_modes.json"
  *
  * TODO: Remove this migration code in September 2025 (6 months after implementation)
  */
-export async function migrateSettings(
-	context: vscode.ExtensionContext,
-	outputChannel: vscode.OutputChannel,
-): Promise<void> {
+export async function migrateSettings(): Promise<void> {
+	const hostContext = getHostContext()
 	// First, migrate commands from old defaults (security fix)
-	await migrateDefaultCommands(context, outputChannel)
+	await migrateDefaultCommands()
 	// Legacy file names that need to be migrated to the new names in GlobalFileNames
 	const fileMigrations = [
 		// custom_modes.json to custom_modes.yaml is handled separately below
@@ -27,11 +26,11 @@ export async function migrateSettings(
 	]
 
 	try {
-		const settingsDir = await getSettingsDirectoryPath(context.globalStorageUri.fsPath)
+		const settingsDir = await getSettingsDirectoryPath(hostContext?.storageDir ?? "")
 
 		// Check if settings directory exists first
 		if (!(await fileExistsAtPath(settingsDir))) {
-			outputChannel.appendLine("No settings directory found, no migrations necessary")
+			getBackendLogger().appendLine("No settings directory found, no migrations necessary")
 			return
 		}
 
@@ -48,28 +47,28 @@ export async function migrateSettings(
 
 				if (oldFileExists && !newFileExists) {
 					await fs.rename(oldPath, newPath)
-					outputChannel.appendLine(`Renamed ${migration.oldName} to ${migration.newName}`)
+					getBackendLogger().appendLine(`Renamed ${migration.oldName} to ${migration.newName}`)
 				} else {
-					outputChannel.appendLine(
+					getBackendLogger().appendLine(
 						`Skipping migration of ${migration.oldName} to ${migration.newName}: ${oldFileExists ? "new file already exists" : "old file not found"}`,
 					)
 				}
 			}
 
 			// Special migration for custom_modes.json to custom_modes.yaml with content transformation
-			await migrateCustomModesToYaml(settingsDir, outputChannel)
+			await migrateCustomModesToYaml(settingsDir)
 		} catch (error) {
-			outputChannel.appendLine(`Error in file migrations: ${error}`)
+			getBackendLogger().appendLine(`Error in file migrations: ${error}`)
 		}
 	} catch (error) {
-		outputChannel.appendLine(`Error migrating settings files: ${error}`)
+		getBackendLogger().appendLine(`Error migrating settings files: ${error}`)
 	}
 }
 
 /**
  * Special migration function to convert custom_modes.json to YAML format
  */
-async function migrateCustomModesToYaml(settingsDir: string, outputChannel: vscode.OutputChannel): Promise<void> {
+async function migrateCustomModesToYaml(settingsDir: string): Promise<void> {
 	const oldJsonPath = path.join(settingsDir, deprecatedCustomModesJSONFilename)
 	const newYamlPath = path.join(settingsDir, GlobalFileNames.customModes)
 
@@ -78,12 +77,12 @@ async function migrateCustomModesToYaml(settingsDir: string, outputChannel: vsco
 	const yamlExists = await fileExistsAtPath(newYamlPath)
 
 	if (!jsonExists) {
-		outputChannel.appendLine("No custom_modes.json found, skipping YAML migration")
+		getBackendLogger().appendLine("No custom_modes.json found, skipping YAML migration")
 		return
 	}
 
 	if (yamlExists) {
-		outputChannel.appendLine("custom_modes.yaml already exists, skipping migration")
+		getBackendLogger().appendLine("custom_modes.yaml already exists, skipping migration")
 		return
 	}
 
@@ -103,17 +102,17 @@ async function migrateCustomModesToYaml(settingsDir: string, outputChannel: vsco
 
 			// Keeping the old JSON file for backward compatibility
 			// This allows users to roll back if needed
-			outputChannel.appendLine(
+			getBackendLogger().appendLine(
 				"Successfully migrated custom_modes.json to YAML format (original JSON file preserved for rollback purposes)",
 			)
 		} catch (parseError) {
 			// Handle corrupt JSON file
-			outputChannel.appendLine(
+			getBackendLogger().appendLine(
 				`Error parsing custom_modes.json: ${parseError}. File might be corrupted. Skipping migration.`,
 			)
 		}
 	} catch (fileError) {
-		outputChannel.appendLine(`Error reading custom_modes.json: ${fileError}. Skipping migration.`)
+		getBackendLogger().appendLine(`Error reading custom_modes.json: ${fileError}. Skipping migration.`)
 	}
 }
 
@@ -121,24 +120,26 @@ async function migrateCustomModesToYaml(settingsDir: string, outputChannel: vsco
  * Removes commands from old defaults that could execute arbitrary code
  * This addresses the security vulnerability where npm install/test can run malicious postinstall scripts
  */
-async function migrateDefaultCommands(
-	context: vscode.ExtensionContext,
-	outputChannel: vscode.OutputChannel,
-): Promise<void> {
+async function migrateDefaultCommands(): Promise<void> {
+	const memento = getHostContext()?.memento
+	if (!memento) {
+		getBackendLogger().appendLine("[Default Commands Migration] No host memento available, skipping")
+		return
+	}
 	try {
 		// Check if this migration has already been run
 		const migrationKey = "defaultCommandsMigrationCompleted"
-		if (context.globalState.get(migrationKey)) {
-			outputChannel.appendLine("[Default Commands Migration] Migration already completed, skipping")
+		if (memento.get(migrationKey)) {
+			getBackendLogger().appendLine("[Default Commands Migration] Migration already completed, skipping")
 			return
 		}
 
-		const allowedCommands = context.globalState.get<string[]>("allowedCommands")
+		const allowedCommands = memento.get<string[]>("allowedCommands")
 
 		if (!allowedCommands || !Array.isArray(allowedCommands)) {
 			// Mark migration as complete even if no commands to migrate
-			await context.globalState.update(migrationKey, true)
-			outputChannel.appendLine("No allowed commands found in global state, marking migration as complete")
+			await memento.update(migrationKey, true)
+			getBackendLogger().appendLine("No allowed commands found in global state, marking migration as complete")
 			return
 		}
 
@@ -154,19 +155,19 @@ async function migrateDefaultCommands(
 
 		if (filteredCommands.length < originalLength) {
 			const removedCount = originalLength - filteredCommands.length
-			await context.globalState.update("allowedCommands", filteredCommands)
+			await memento.update("allowedCommands", filteredCommands)
 
-			outputChannel.appendLine(
+			getBackendLogger().appendLine(
 				`[Default Commands Migration] Removed ${removedCount} command(s) from old defaults to prevent arbitrary code execution vulnerability`,
 			)
 		} else {
-			outputChannel.appendLine("[Default Commands Migration] No old default commands found in allowed list")
+			getBackendLogger().appendLine("[Default Commands Migration] No old default commands found in allowed list")
 		}
 
 		// Mark migration as complete
-		await context.globalState.update(migrationKey, true)
-		outputChannel.appendLine("[Default Commands Migration] Migration marked as complete")
+		await memento.update(migrationKey, true)
+		getBackendLogger().appendLine("[Default Commands Migration] Migration marked as complete")
 	} catch (error) {
-		outputChannel.appendLine(`[Default Commands Migration] Error migrating default commands: ${error}`)
+		getBackendLogger().appendLine(`[Default Commands Migration] Error migrating default commands: ${error}`)
 	}
 }

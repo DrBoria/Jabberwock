@@ -123,11 +123,6 @@ export const getWindowManagerState = _getWindowManagerState
 export const getWorkspaceTracker = _getWorkspaceTracker
 export const resolveActivePageRequest = _resolveActivePageRequest
 
-import { resolveWebviewView as _resolveWebviewView } from "./store/webview-setup"
-import type { WebviewMessageHandler as _WebviewMessageHandler } from "./store/webview-setup"
-export const resolveWebviewView = _resolveWebviewView
-export type { _WebviewMessageHandler as WebviewMessageHandler }
-
 import {
 	scheduleStatePush as _scheduleStatePush,
 	postMessageToWebview as _postMessageToWebview,

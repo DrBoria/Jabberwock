@@ -5,7 +5,8 @@ import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
 import { getTelemetryService } from "@jabberwock/telemetry"
 import { IntentType, TelemetryEventName } from "@jabberwock/types"
 import { getCloudService } from "@jabberwock/cloud"
-import * as vscode from "vscode"
+import { getUiDialogs } from "@features/foundation/capabilities/registry"
+import { getHostContext } from "@features/foundation/host-context/context"
 import { t } from "@i18n"
 
 import type { IntentBus } from "@features/intents/bus"
@@ -69,12 +70,15 @@ export function registerOnCloud(bus: IntentBus): void {
 		try {
 			const authUrl = openAiCodexOAuthManager.startAuthorizationFlow()
 
-			await vscode.env.openExternal(vscode.Uri.parse(authUrl))
+			// D4g-2 (batch 1): open the OAuth URL through the host-context command slot instead of a
+			// direct "vscode" import (plan section 3.2 Strategy G).
+			getHostContext()?.hostCommands?.openExternal?.(authUrl)
 
 			openAiCodexOAuthManager
 				.waitForCallback()
 				.then(async () => {
-					vscode.window.showInformationMessage("Successfully signed in to OpenAI Codex")
+					// D4g-2 (batch 1): toast through the uiDialogs capability slot (plan section 3.2 Strategy C).
+					void getUiDialogs().showInformationMessage("Successfully signed in to OpenAI Codex")
 					await postStateToWebview(provider)
 				})
 				.catch((error: unknown) => {
@@ -97,7 +101,8 @@ export function registerOnCloud(bus: IntentBus): void {
 
 		try {
 			await openAiCodexOAuthManager.clearCredentials()
-			vscode.window.showInformationMessage("Signed out from OpenAI Codex")
+			// D4g-2 (batch 1): toast through the uiDialogs capability slot (plan section 3.2 Strategy C).
+			void getUiDialogs().showInformationMessage("Signed out from OpenAI Codex")
 			await postStateToWebview(provider)
 		} catch (error) {
 			backendLog.info(`OpenAI Codex sign out failed: ${error}`)
@@ -173,13 +178,15 @@ async function processCloudManualUrl(intent: { payload: { text?: string } }, pro
 	}
 
 	const callbackUrl = payload.text.trim()
-	const uri = vscode.Uri.parse(callbackUrl)
+	// D4g-2 (batch 1): parse the callback URL with the platform-neutral WHATWG URL instead of
+	// `vscode.Uri` (plan section 3.2 Strategy A).
+	const uri = new URL(callbackUrl)
 
-	if (!uri.query) {
+	if (!uri.search) {
 		throw new Error(t("common:errors.manual_url_no_query"))
 	}
 
-	const query = new URLSearchParams(uri.query)
+	const query = new URLSearchParams(uri.search)
 	const code = query.get("code")
 	const state = query.get("state")
 	const organizationId = query.get("organizationId")

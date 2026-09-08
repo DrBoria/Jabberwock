@@ -1,4 +1,4 @@
-import { vscode } from "@jabberwock/devtool/webview"
+import { getConnectorBus } from "../../../../connector-bus"
 import type { WebviewMessage } from "@jabberwock/types"
 import { eventConstants } from "@jabberwock/types"
 
@@ -13,7 +13,7 @@ import { eventConstants } from "@jabberwock/types"
  * @param taskId - The ID of the task to summarize.
  */
 export function summarizeConversation(taskId: string): void {
-	vscode.postMessage({
+	getConnectorBus().publish({
 		type: eventConstants.CHAT.TASK.CONDENSE_TASK_CONTEXT_REQUEST,
 		text: taskId,
 	} satisfies WebviewMessage)

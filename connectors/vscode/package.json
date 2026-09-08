@@ -11,7 +11,11 @@
 		"@jabberwock/telemetry": "workspace:^",
 		"@jabberwock/types": "workspace:^",
 		"delay": "^6.0.0",
-		"openai": "^5.12.2"
+		"diff": "^5.2.0",
+		"monaco-vscode-textmate-theme-converter": "^0.1.7",
+		"openai": "^5.12.2",
+		"p-wait-for": "^5.0.2",
+		"strip-bom": "^5.0.0"
 	},
 	"scripts": {
 		"lint": "echo 'connector-vscode: skeleton (Phase A1), no sources yet'",

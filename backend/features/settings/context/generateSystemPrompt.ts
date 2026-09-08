@@ -1,4 +1,3 @@
-import * as vscode from "vscode"
 import { defaultModeSlug } from "@shared/modes"
 import type { ProviderSettings, WebviewMessage } from "@jabberwock/types"
 import { buildApiHandler } from "@api"
@@ -13,6 +12,7 @@ import { getBackendRootStore } from "@features/storeSingleton"
 import { getHostEnvironment } from "@features/foundation/host-context/context"
 import { getWorkspacePath } from "@utils/io/path"
 import { getSettingsAccess } from "@utils/settings"
+import { getConfiguration } from "@features/foundation/capabilities/registry"
 
 import { getMcpServerManager } from "@services/mcp/core/McpServerManager"
 import { getIgnoreInstructions } from "@features/settings/constants"
@@ -76,9 +76,10 @@ function buildSystemPromptSettings(
 ): SystemPromptSettings {
 	return {
 		todoListEnabled: (apiConfiguration?.todoListEnabled as boolean) ?? true,
-		useAgentRules: vscode.workspace.getConfiguration(Package.name).get<boolean>("useAgentRules") ?? true,
+		// D4g-2 (batch 3): config reads via the capability slot (D4b).
+		useAgentRules: getConfiguration().get<boolean>(Package.name, "useAgentRules") ?? true,
 		enableSubfolderRules: enableSubfolderRules ?? false,
-		newTaskRequireTodos: vscode.workspace.getConfiguration(Package.name).get<boolean>("newTaskRequireTodos", false),
+		newTaskRequireTodos: getConfiguration().get<boolean>(Package.name, "newTaskRequireTodos", false) ?? false,
 		isStealthModel: modelInfo?.isStealthModel,
 	}
 }

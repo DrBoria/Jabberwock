@@ -1,9 +1,9 @@
 import type { ProviderSettings, ModeConfig, WebviewMessage } from "@jabberwock/types"
 import { eventConstants } from "@jabberwock/types"
-import { vscode } from "@jabberwock/devtool/webview"
+import { getConnectorBus } from "../../../connector-bus"
 import { SettingsModel } from "./store"
 
-const pm = (msg: WebviewMessage) => vscode.postMessage(msg)
+const pm = (msg: WebviewMessage) => getConnectorBus().publish(msg)
 
 export const SettingsStore = SettingsModel.actions((_self) => ({
 	terminalOperation: (operation: "continue" | "abort") =>

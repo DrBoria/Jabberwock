@@ -1,6 +1,5 @@
-import * as vscode from "vscode"
-
 import type { EventBridge } from "@features/foundation/webview/EventBridge"
+import { getUiDialogs } from "@features/foundation/capabilities/registry"
 import type { ITaskModel } from "@features/chat/task/store"
 import type { Notification } from "@jabberwock/types"
 import { handleCheckpointRestoreOperation } from "@features/chat/task/notifications/handlers/checkpoint/checkpointRestoreHandler"
@@ -40,7 +39,8 @@ export async function handleEditWithCheckpoint(
 		})
 	} else {
 		console.log("[handleEditMessageConfirm] No checkpoint found before message")
-		vscode.window.showWarningMessage("No checkpoint found before this message")
+		// D4g-2 (batch 4): warning toast via the uiDialogs slot (D4c) — server mode logs and no-ops.
+		getUiDialogs().showWarningMessage("No checkpoint found before this message")
 	}
 }
 

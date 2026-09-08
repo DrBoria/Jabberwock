@@ -1,5 +1,5 @@
-import * as vscode from "vscode"
 import pWaitFor from "p-wait-for"
+import { getConfiguration } from "@features/foundation/capabilities/registry"
 import { McpHub } from "@services/mcp/core/McpHub"
 import { getMcpServerManager } from "@services/mcp/core/McpServerManager"
 import { SYSTEM_PROMPT } from "./system"
@@ -94,11 +94,10 @@ export async function getSystemPrompt(task: ITaskModel): Promise<string> {
 			jabberwockIgnoreInstructions,
 			{
 				todoListEnabled: (apiConfiguration?.todoListEnabled as boolean) ?? true,
-				useAgentRules: vscode.workspace.getConfiguration(Package.name).get<boolean>("useAgentRules") ?? true,
+				useAgentRules: getConfiguration().get<boolean>(Package.name, "useAgentRules") ?? true,
 				enableSubfolderRules: enableSubfolderRules ?? false,
-				newTaskRequireTodos: vscode.workspace
-					.getConfiguration(Package.name)
-					.get<boolean>("newTaskRequireTodos", false),
+				newTaskRequireTodos:
+					getConfiguration().get<boolean>(Package.name, "newTaskRequireTodos", false) ?? false,
 				isStealthModel: modelInfo?.isStealthModel,
 			},
 			undefined, // todoList

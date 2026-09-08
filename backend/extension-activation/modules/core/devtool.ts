@@ -144,6 +144,17 @@ function toDevtoolBridgeProvider(provider: EventBridge) {
 			return "unknown"
 		},
 
+		// D4g-2 (batch 1): host command adapter - the devtool bridge executes host commands through
+		// this slot instead of importing "vscode" in the shared devtool package (plan section 3.2 Strategy C).
+		executeCommand: async (command: string, args?: unknown) => {
+			await vscode.commands.executeCommand(command, ...(Array.isArray(args) ? args : []))
+		},
+		// D4g-2 (batch 1): extension version for the devtool getExtensionInfo tool.
+		getExtensionVersion: () => {
+			const ext = vscode.extensions.getExtension("rooveterinaryinc.roo-cline")
+			return ext?.packageJSON?.version
+		},
+
 		getTaskWithId: undefined,
 	}
 }

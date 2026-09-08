@@ -1,29 +1,36 @@
 import path from "path"
 import os from "os"
 
-import * as vscode from "vscode"
 import delay from "delay"
+import { getTabGroups } from "@features/foundation/capabilities/registry"
 
 import { formatResponse } from "@features/settings/context/responses"
 import { listFiles } from "@services/glob/list-files"
-import { TerminalRegistry } from "@integrations/terminal/TerminalRegistry"
-import { Terminal } from "@integrations/terminal/terminal-core/Terminal"
+import { getHostTerminalService } from "@features/foundation/capabilities/registry"
+import type { IHostTerminalService } from "@jabberwock/types"
 import { arePathsEqual } from "@utils/io/path"
 import { getVirtualWorkspace } from "@features/foundation/time-machine/actions/getTimeMachine"
 import { filterPaths } from "@utils/ignore"
 import { getShell } from "@utils/shell"
 import osName from "os-name"
 import { getFileContextTracker } from "@features/foundation/time-machine/actions/getTimeMachine"
-import type { RooTerminal } from "@integrations/terminal/types"
+import type { RooTerminal } from "@jabberwock/types"
 import type { ModeConfig } from "@jabberwock/types"
 import { getFullModeDetails } from "@shared/modes/extension"
 import type { ITaskModel } from "@features/chat/task/store"
 
 export function buildVisibleFilesSection(task: ITaskModel): string {
-	const visibleFilePaths = vscode.window.visibleTextEditors
-		?.map((editor) => editor.document?.uri?.fsPath)
-		.filter(Boolean)
-		.map((absolutePath) => path.relative(task.cwd, absolutePath))
+	// D4g-2 (batch 4): visible files come from the host-neutral tabGroups capability slot (the active
+	// text tab of each group approximates the visible editors). Server mode does not provide the slot,
+	// so the list degrades to empty.
+	const tabGroups = getTabGroups()
+	const visibleFilePaths = tabGroups
+		? tabGroups
+				.all()
+				.map((group) => group.tabs.find((tab) => tab.isActive)?.path)
+				.filter((p): p is string => Boolean(p))
+				.map((absolutePath) => path.relative(task.cwd, absolutePath))
+		: []
 
 	const allowedVisibleFiles = task.jabberwockIgnoreController
 		? filterPaths(task.jabberwockIgnoreController, visibleFilePaths, task.cwd)
@@ -37,12 +44,17 @@ export function buildVisibleFilesSection(task: ITaskModel): string {
 }
 
 export function buildOpenTabsSection(task: ITaskModel): string {
-	const openTabPaths = vscode.window.tabGroups.all
-		.flatMap((group) => group.tabs)
-		.filter((tab) => tab.input instanceof vscode.TabInputText)
-		.map((tab) => (tab.input as vscode.TabInputText).uri.fsPath)
-		.filter(Boolean)
-		.map((absolutePath) => path.relative(task.cwd, absolutePath).toPosix())
+	// D4g-2 (batch 4): open tabs come from the host-neutral tabGroups capability slot (the vscode
+	// backing already filters to text-document tabs). Server mode does not provide the slot, so the
+	// list degrades to empty.
+	const tabGroups = getTabGroups()
+	const openTabPaths = tabGroups
+		? tabGroups
+				.all()
+				.flatMap((group) => group.tabs)
+				.map((tab) => tab.path)
+				.map((absolutePath) => path.relative(task.cwd, absolutePath).toPosix())
+		: []
 
 	const allowedOpenTabs = task.jabberwockIgnoreController
 		? filterPaths(task.jabberwockIgnoreController, openTabPaths, task.cwd)
@@ -56,14 +68,22 @@ export function buildOpenTabsSection(task: ITaskModel): string {
 }
 
 export async function buildTerminalDetails(task: ITaskModel): Promise<string> {
+	// D4g-2 (batch 4): terminal listing via the host terminal service seam — the vscode connector
+	// backs this with the real TerminalRegistry; server mode omits it, so the section degrades to
+	// empty (no host terminals to report).
+	const terminalService = getHostTerminalService()
+	if (!terminalService) {
+		return ""
+	}
+
 	const busyTerminals = [
-		...TerminalRegistry.getTerminals(true, task.taskId),
-		...TerminalRegistry.getBackgroundTerminals(true),
+		...terminalService.getTerminals(true, task.taskId),
+		...terminalService.getBackgroundTerminals(true),
 	]
 
 	const inactiveTerminals = [
-		...TerminalRegistry.getTerminals(false, task.taskId),
-		...TerminalRegistry.getBackgroundTerminals(false),
+		...terminalService.getTerminals(false, task.taskId),
+		...terminalService.getBackgroundTerminals(false),
 	]
 
 	if (busyTerminals.length > 0 && task.didEditFile) {
@@ -73,7 +93,7 @@ export async function buildTerminalDetails(task: ITaskModel): Promise<string> {
 	let terminalDetails = ""
 
 	if (busyTerminals.length > 0) {
-		terminalDetails += buildBusyTerminalsSection(busyTerminals)
+		terminalDetails += buildBusyTerminalsSection(busyTerminals, terminalService)
 	}
 
 	const terminalsWithOutput = inactiveTerminals.filter((terminal) => {
@@ -82,27 +102,30 @@ export async function buildTerminalDetails(task: ITaskModel): Promise<string> {
 	})
 
 	if (terminalsWithOutput.length > 0) {
-		terminalDetails += buildInactiveTerminalsSection(terminalsWithOutput)
+		terminalDetails += buildInactiveTerminalsSection(terminalsWithOutput, terminalService)
 	}
 
 	return terminalDetails
 }
 
-function buildBusyTerminalsSection(busyTerminals: RooTerminal[]): string {
+function buildBusyTerminalsSection(busyTerminals: RooTerminal[], terminalService: IHostTerminalService): string {
 	let section = "\n\n# Actively Running Terminals"
 	for (const busyTerminal of busyTerminals) {
 		section += `\n## Terminal ${busyTerminal.id} (Active)`
 		section += `\n### Working Directory: \`${busyTerminal.getCurrentWorkingDirectory()}\``
 		section += `\n### Original command: \`${busyTerminal.getLastCommand()}\``
-		const newOutput = TerminalRegistry.getUnretrievedOutput(busyTerminal.id)
+		const newOutput = terminalService.getUnretrievedOutput(busyTerminal.id)
 		if (newOutput) {
-			section += `\n### New Output\n${Terminal.compressTerminalOutput(newOutput)}`
+			section += `\n### New Output\n${terminalService.compressTerminalOutput(newOutput)}`
 		}
 	}
 	return section
 }
 
-function buildInactiveTerminalsSection(terminalsWithOutput: RooTerminal[]): string {
+function buildInactiveTerminalsSection(
+	terminalsWithOutput: RooTerminal[],
+	terminalService: IHostTerminalService,
+): string {
 	let section = "\n\n# Inactive Terminals with Completed Process Output"
 	for (const inactiveTerminal of terminalsWithOutput) {
 		const completedProcesses = inactiveTerminal.getProcessesWithOutput()
@@ -110,7 +133,9 @@ function buildInactiveTerminalsSection(terminalsWithOutput: RooTerminal[]): stri
 		for (const process of completedProcesses) {
 			const output = process.getUnretrievedOutput()
 			if (output) {
-				terminalOutputs.push(`Command: \`${process.command}\`\n${Terminal.compressTerminalOutput(output)}`)
+				terminalOutputs.push(
+					`Command: \`${process.command}\`\n${terminalService.compressTerminalOutput(output)}`,
+				)
 			}
 		}
 		inactiveTerminal.cleanCompletedProcessQueue()

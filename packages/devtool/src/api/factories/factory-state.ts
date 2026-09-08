@@ -14,7 +14,6 @@ import {
 } from "../mst/actions.js"
 import { MessageInterceptor } from "../utils/interceptor.js"
 import type { BackendStore, FrontendBridge } from "../mst/types.js"
-import * as vscode from "vscode"
 import { diagnosticsManager } from "../../diagnostics/managers/DiagnosticsManager.js"
 import type { SnapshotFilters } from "../../diagnostics/types.js"
 import type { DevtoolBridgeProvider } from "./factory-helpers.js"
@@ -53,18 +52,13 @@ export function createStateMethods(
 		},
 
 		async getExtensionInfo() {
-			try {
-				const ext = vscode.extensions.getExtension("rooveterinaryinc.roo-cline")
-				return JSON.stringify({
-					name: "Jabberwock DevTools",
-					version: ext?.packageJSON?.version ?? "dev",
-				})
-			} catch {
-				return JSON.stringify({
-					name: "Jabberwock DevTools",
-					version: "dev",
-				})
-			}
+			// D4g-2 (batch 1): extension version comes from the host adapter slot instead of a
+			// direct "vscode" import (plan section 3.2 Strategy C).
+			const version = provider.getExtensionVersion?.() ?? "dev"
+			return JSON.stringify({
+				name: "Jabberwock DevTools",
+				version,
+			})
 		},
 
 		async getCurrentState() {

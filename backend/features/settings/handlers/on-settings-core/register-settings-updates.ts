@@ -2,12 +2,12 @@ import { IntentType } from "@jabberwock/types"
 import type { IntentBus } from "@features/intents/bus"
 import type { TelemetrySetting, JabberwockSettings } from "@jabberwock/types"
 import { getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
-import * as vscode from "vscode"
 import * as os from "os"
 import * as path from "path"
 import * as fs from "fs/promises"
 import type { IBackendRootStore } from "@features/store"
-import { getHostEnvironment } from "@features/foundation/host-context/context"
+import { getHostEnvironment, getHostContext } from "@features/foundation/host-context/context"
+import { getUiDialogs } from "@features/foundation/capabilities/registry"
 import { postStateToWebview, WebviewStatePayload } from "@features/foundation/window-manager/store"
 import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
 import { t } from "@i18n"
@@ -104,10 +104,12 @@ export function registerSettingsUpdates(bus: IntentBus): void {
 	bus.register(IntentType.SettingsKeyboardShortcutsOpen, async (intent, _ctx) => {
 		const payload = intent.payload as { text?: string }
 		const searchQuery = payload.text || ""
+		// D4g-2 (batch 3): host command via the hostCommands slot (D4g-pre) — server mode has no
+		// command palette, so this degrades to a no-op.
 		if (searchQuery) {
-			await vscode.commands.executeCommand("workbench.action.openGlobalKeybindings", searchQuery)
+			getHostContext()?.hostCommands?.executeCommand?.("workbench.action.openGlobalKeybindings", searchQuery)
 		} else {
-			await vscode.commands.executeCommand("workbench.action.openGlobalKeybindings")
+			getHostContext()?.hostCommands?.executeCommand?.("workbench.action.openGlobalKeybindings")
 		}
 	})
 
@@ -129,8 +131,9 @@ export function registerSettingsUpdates(bus: IntentBus): void {
 
 			await fs.writeFile(tempFilePath, payload.text, "utf8")
 
-			const doc = await vscode.workspace.openTextDocument(tempFilePath)
-			await vscode.commands.executeCommand("markdown.showPreview", doc.uri)
+			// D4g-2 (batch 3): open the markdown preview via the hostCommands slot (D4g-pre) —
+			// server mode has no host preview, so this degrades to a no-op.
+			getHostContext()?.hostCommands?.openMarkdownPreview?.(tempFilePath)
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
 			backendLog.info(`Error opening markdown preview: ${errorMessage}`)
@@ -168,7 +171,8 @@ export function registerSettingsUpdates(bus: IntentBus): void {
 	})
 
 	bus.register(IntentType.SettingsMdmAuthNotification, async () => {
-		vscode.window.showWarningMessage(t("common:mdm.info.organization_requires_auth"))
+		// D4g-2 (batch 3): warning toast via the uiDialogs slot (D4c) — server mode logs and no-ops.
+		await getUiDialogs().showWarningMessage(t("common:mdm.info.organization_requires_auth"))
 	})
 }
 

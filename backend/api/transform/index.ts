@@ -7,7 +7,6 @@ export {
 	minimaxTransform,
 	mistralTransform,
 	openaiTransform,
-	vscodeLmTransform,
 } from "./format"
 export { r1Format } from "./r1"
 export { zaiFormat } from "./zai"

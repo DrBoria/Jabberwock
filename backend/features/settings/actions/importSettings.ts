@@ -1,12 +1,12 @@
 import os from "os"
 import * as path from "path"
 
-import * as vscode from "vscode"
 import { ZodError } from "zod"
 
 import { type ModeConfig } from "@jabberwock/types"
 import { getTelemetryService } from "@jabberwock/telemetry"
 
+import { getUiDialogs } from "@features/foundation/capabilities/registry"
 import { updateCustomModeInFile, requireContext } from "@features/settings/agents"
 import { resolveDefaultSaveUri } from "@utils/io/export"
 
@@ -90,7 +90,7 @@ export const importSettings = async ({ providerSettingsManager, contextProxy }: 
 		fallbackDir: path.join(os.homedir(), "Downloads"),
 	})
 
-	const uris = await vscode.window.showOpenDialog({
+	const uris = await getUiDialogs().showOpenDialog({
 		filters: { JSON: ["json"] },
 		canSelectMany: false,
 		defaultUri,

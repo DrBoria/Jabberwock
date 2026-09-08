@@ -1,4 +1,3 @@
-import * as vscode from "vscode" // v4 B2 (L6): kept for the showWarningMessage site — outside L12 error scope, moves with the connector in B3/B4
 import delay from "delay"
 
 import { t } from "@i18n"
@@ -11,6 +10,7 @@ import type { McpHubState } from "@services/mcp/core/types"
 import { findConnection, deleteConnection } from "@services/mcp/mcp-hub/connection/manager"
 import { notifyWebviewOfServerChanges } from "@services/mcp/mcp-hub/notifications"
 import { showErrorMessage, getProjectMcpPath, isMcpEnabled } from "@services/mcp/mcp-hub/init"
+import { getUiDialogs } from "@features/foundation/capabilities/registry"
 
 // ─── Handle MCP enabled change ───────────────────────────────────────
 
@@ -38,7 +38,9 @@ export async function handleMcpEnabledChange(
 
 		if (disconnectionErrors.length > 0) {
 			const errorSummary = disconnectionErrors.map((e) => `${e.serverName}: ${e.error}`).join("\n")
-			vscode.window.showWarningMessage(
+			// D4g-2 (batch 2): warning toast through the uiDialogs slot instead of importing "vscode"
+			// (plan §3.2 Strategy C). Server mode logs the call and returns undefined.
+			await getUiDialogs().showWarningMessage(
 				t("mcp:errors.disconnect_servers_partial", {
 					count: disconnectionErrors.length,
 					errors: errorSummary,

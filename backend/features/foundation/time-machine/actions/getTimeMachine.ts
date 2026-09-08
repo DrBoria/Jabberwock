@@ -1,4 +1,4 @@
-import type { DiffViewProvider } from "@integrations/editor/DiffViewProvider"
+import type { IDiffViewProvider } from "@jabberwock/types"
 import type { VirtualWorkspace } from "@features/foundation/time-machine/VirtualWorkspace"
 import type { FileContextTracker } from "@features/foundation/time-machine/file-context/FileContextTracker"
 
@@ -13,7 +13,12 @@ import type { FileContextTracker } from "@features/foundation/time-machine/file-
  */
 
 interface TimeMachineState {
-	diffViewProvider: DiffViewProvider
+	/**
+	 * Optional: hosts without a `hostEditorService` capability (e.g. the web server) have no diff
+	 * view, so this is undefined. `getDiffViewProvider()` throws a descriptive error only when it
+	 * is actually accessed (i.e. a tool tries to edit a file), not at task start.
+	 */
+	diffViewProvider?: IDiffViewProvider
 	virtualWorkspace: VirtualWorkspace
 	fileContextTracker: FileContextTracker
 }
@@ -31,8 +36,11 @@ export function clearTimeMachineState(): void {
 }
 
 /** Get the current DiffViewProvider instance. */
-export function getDiffViewProvider(): DiffViewProvider {
+export function getDiffViewProvider(): IDiffViewProvider {
 	if (!_state) throw new Error("TimeMachine state not initialized — call setTimeMachineState() first")
+	if (!_state.diffViewProvider) {
+		throw new Error("DiffViewProvider not available in this host (no hostEditorService capability)")
+	}
 	return _state.diffViewProvider
 }
 

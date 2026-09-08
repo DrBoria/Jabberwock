@@ -3,9 +3,8 @@ import { getTelemetryService } from "@jabberwock/telemetry"
 
 import type { ITaskModel } from "@features/chat/task/store"
 
-import { JabberwockTerminalProcessResultPromise } from "@integrations/terminal/types"
-import { TerminalRegistry } from "@integrations/terminal/TerminalRegistry"
-import { Terminal } from "@integrations/terminal/terminal-core/Terminal"
+import { JabberwockTerminalProcessResultPromise } from "@jabberwock/types"
+import { getHostTerminalService } from "@features/foundation/capabilities/registry"
 
 import { ToolResponse } from "@shared/tools"
 import { systemBroadcast } from "@features/chat/task/messages/actions/say"
@@ -109,11 +108,16 @@ export async function executeCommandInTerminal(
 		}
 	}
 
-	const terminal = await TerminalRegistry.getOrCreateTerminal(workingDir, task.taskId, terminalProvider)
-
-	if (terminal instanceof Terminal) {
-		terminal.terminal.show(true)
+	// D4g-2 (batch 4): terminal creation via the host terminal service seam — the vscode connector
+	// backs this with the real TerminalRegistry; server mode omits it, so the tool degrades to an
+	// error (no host terminals available headless).
+	const terminalService = getHostTerminalService()
+	if (!terminalService) {
+		return [false, "Terminal service not available in this host"]
 	}
+
+	const terminal = await terminalService.getOrCreateTerminal(workingDir, task.taskId, terminalProvider)
+	terminalService.showTerminal(terminal)
 
 	const cmdProcess: JabberwockTerminalProcessResultPromise = terminal.runCommand(command, callbacks)
 	getTaskWithTerminal(task).terminalProcess = cmdProcess

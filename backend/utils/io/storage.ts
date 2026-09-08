@@ -1,10 +1,10 @@
-import * as vscode from "vscode"
 import * as path from "path"
 import * as fs from "fs/promises"
 import * as fsWithConstants from "fs"
 
 import { Package } from "@shared/package"
 import { t } from "@i18n"
+import { getConfiguration, getUiDialogs, hasBackendCapabilities } from "@features/foundation/capabilities/registry"
 
 /**
  * Gets the base storage path for conversations
@@ -17,8 +17,8 @@ export async function getStorageBasePath(defaultPath: string): Promise<string> {
 
 	try {
 		// This is the line causing the error in tests
-		const config = vscode.workspace.getConfiguration(Package.name)
-		customStoragePath = config.get<string>("customStoragePath", "")
+		const config = getConfiguration()
+		customStoragePath = config.get<string>(Package.name, "customStoragePath") ?? ""
 	} catch (_error) {
 		console.warn("[jabberwock] Could not access VSCode configuration - using default path")
 		return defaultPath
@@ -45,9 +45,7 @@ export async function getStorageBasePath(defaultPath: string): Promise<string> {
 		console.error(
 			`[jabberwock] Custom storage path is unusable: ${error instanceof Error ? error.message : String(error)}`,
 		)
-		if (vscode.window) {
-			publishNotificationError(t("common:errors.custom_storage_path_unusable", { path: customStoragePath }))
-		}
+		publishNotificationError(t("common:errors.custom_storage_path_unusable", { path: customStoragePath }))
 		return defaultPath
 	}
 }
@@ -87,21 +85,21 @@ export async function getCacheDirectoryPath(globalStoragePath: string): Promise<
  * Displays an input box allowing the user to enter a custom path
  */
 export async function promptForCustomStoragePath(): Promise<void> {
-	if (!vscode.window || !vscode.workspace) {
-		console.error("[jabberwock] VS Code API not available")
+	if (!hasBackendCapabilities()) {
+		console.error("[jabberwock] Capabilities not initialized — cannot prompt for storage path")
 		return
 	}
 
 	let currentPath = ""
 	try {
-		const currentConfig = vscode.workspace.getConfiguration(Package.name)
-		currentPath = currentConfig.get<string>("customStoragePath", "")
+		const currentConfig = getConfiguration()
+		currentPath = currentConfig.get<string>(Package.name, "customStoragePath") ?? ""
 	} catch (_error) {
 		console.error("[jabberwock] Could not access configuration")
 		return
 	}
 
-	const result = await vscode.window.showInputBox({
+	const result = await getUiDialogs().showInputBox({
 		value: currentPath,
 		placeHolder: t("common:storage.path_placeholder"),
 		prompt: t("common:storage.prompt_custom_path"),
@@ -129,8 +127,8 @@ export async function promptForCustomStoragePath(): Promise<void> {
 	// If user canceled the operation, result will be undefined
 	if (result !== undefined) {
 		try {
-			const currentConfig = vscode.workspace.getConfiguration(Package.name)
-			await currentConfig.update("customStoragePath", result, vscode.ConfigurationTarget.Global)
+			const currentConfig = getConfiguration()
+			await currentConfig.update(Package.name, "customStoragePath", result)
 
 			if (result) {
 				try {
@@ -142,7 +140,7 @@ export async function promptForCustomStoragePath(): Promise<void> {
 							fsWithConstants.constants.W_OK |
 							fsWithConstants.constants.X_OK,
 					)
-					vscode.window.showInformationMessage(t("common:info.custom_storage_path_set", { path: result }))
+					getUiDialogs().showInformationMessage(t("common:info.custom_storage_path_set", { path: result }))
 				} catch (error) {
 					publishNotificationError(
 						t("common:errors.cannot_access_path", {
@@ -152,7 +150,7 @@ export async function promptForCustomStoragePath(): Promise<void> {
 					)
 				}
 			} else {
-				vscode.window.showInformationMessage(t("common:info.default_storage_path"))
+				getUiDialogs().showInformationMessage(t("common:info.default_storage_path"))
 			}
 		} catch (error) {
 			console.error("[jabberwock] Failed to update configuration", error)

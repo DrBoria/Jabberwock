@@ -1,6 +1,6 @@
 import { execa, ExecaError } from "execa"
 
-import type { RooTerminal } from "@integrations/terminal/types"
+import type { RooTerminal } from "@jabberwock/types"
 import { BaseTerminal } from "@integrations/terminal/terminal-core/BaseTerminal"
 import { BaseTerminalProcess } from "@integrations/terminal/terminal-core/BaseTerminalProcess"
 import {

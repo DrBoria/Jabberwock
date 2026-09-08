@@ -1,10 +1,6 @@
 import { EventEmitter } from "events"
 
-import type {
-	JabberwockTerminalProcess,
-	JabberwockTerminalProcessEvents,
-	ExitCodeDetails,
-} from "@integrations/terminal/types"
+import type { JabberwockTerminalProcess, JabberwockTerminalProcessEvents, ExitCodeDetails } from "@jabberwock/types"
 
 export abstract class BaseTerminalProcess
 	extends EventEmitter<JabberwockTerminalProcessEvents>

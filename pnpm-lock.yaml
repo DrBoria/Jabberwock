@@ -904,9 +904,21 @@ importers:
       delay:
         specifier: ^6.0.0
         version: 6.0.0
+      diff:
+        specifier: ^5.2.0
+        version: 5.2.0
+      monaco-vscode-textmate-theme-converter:
+        specifier: ^0.1.7
+        version: 0.1.7(tslib@2.8.1)
       openai:
         specifier: ^5.12.2
         version: 5.12.2(ws@8.18.3)(zod@3.25.76)
+      p-wait-for:
+        specifier: ^5.0.2
+        version: 5.0.2
+      strip-bom:
+        specifier: ^5.0.0
+        version: 5.0.0
 
   connectors/web:
     dependencies:
@@ -16628,7 +16640,7 @@ snapshots:
       sirv: 3.0.1
       tinyglobby: 0.2.15
       tinyrainbow: 2.0.0
-      vitest: 3.2.4(@types/debug@4.1.12)(@types/node@20.17.57)(@vitest/ui@3.2.4)(jiti@2.4.2)(jsdom@26.1.0)(lightningcss@1.30.1)(tsx@4.19.4)(yaml@2.8.0)
+      vitest: 3.2.4(@types/debug@4.1.12)(@types/node@24.2.1)(@vitest/ui@3.2.4)(jiti@2.4.2)(jsdom@26.1.0)(lightningcss@1.30.1)(tsx@4.19.4)(yaml@2.8.0)
 
   '@vitest/utils@3.2.4':
     dependencies:

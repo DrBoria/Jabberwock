@@ -1,8 +1,9 @@
 import * as path from "path"
 import os from "os"
 import fs from "fs"
+import fsPromises from "fs/promises"
 
-import * as vscode from "vscode"
+import { getAppRoot } from "@features/foundation/capabilities/registry"
 
 export class ShellIntegrationManager {
 	public static terminalTmpDirs: Map<number, string> = new Map()
@@ -22,9 +23,10 @@ export class ShellIntegrationManager {
 			env.JABBERWOCK_ZDOTDIR = process.env.ZDOTDIR
 		}
 
-		// Create the temporary directory
-		vscode.workspace.fs
-			.createDirectory(vscode.Uri.file(tmpDir))
+		// Create the temporary directory (D4g-2 batch 3: plain Node fs — the path is a local fs
+		// path, so no host file API is needed).
+		fsPromises
+			.mkdir(tmpDir)
 			.then(() => {
 				console.info(`[TerminalRegistry] Created temporary directory for ZDOTDIR at ${tmpDir}`)
 
@@ -45,7 +47,7 @@ export class ShellIntegrationManager {
 	[ "$ZDOTDIR" = "$HOME" ] && unset ZDOTDIR
 	`
 				console.info(`[TerminalRegistry] Creating .zshrc file at ${zshrcPath} with content:\n${zshrcContent}`)
-				vscode.workspace.fs.writeFile(vscode.Uri.file(zshrcPath), Buffer.from(zshrcContent)).then(
+				fsPromises.writeFile(zshrcPath, Buffer.from(zshrcContent)).then(
 					// Success handler
 					() => {
 						console.info(`[TerminalRegistry] Successfully created .zshrc file at ${zshrcPath}`)
@@ -138,17 +140,8 @@ export class ShellIntegrationManager {
 				throw new Error(`Invalid shell type: ${shell}`)
 		}
 
-		// This is the same path used by the CLI command
-		return path.join(
-			vscode.env.appRoot,
-			"out",
-			"vs",
-			"workbench",
-			"contrib",
-			"terminal",
-			"common",
-			"scripts",
-			filename,
-		)
+		// This is the same path used by the CLI command (D4g-2 batch 3: appRoot via the capability
+		// slot, D4e — the host installation directory).
+		return path.join(getAppRoot(), "out", "vs", "workbench", "contrib", "terminal", "common", "scripts", filename)
 	}
 }

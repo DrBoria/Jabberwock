@@ -1,56 +1,19 @@
-// v4 B2 (L6): host FileSystemWatcher creation stays in this file until the connector-side factory exists (§2.3);
-// L12 error sites below publish to pubsub instead of calling vscode.window directly.
-import * as vscode from "vscode"
+// v4 B2 (L6): file-watcher creation routes through the fileWatchers capability slot (vscode mode:
+// createFileSystemWatcher; server mode: chokidar); L12 error sites publish to pubsub instead of
+// calling vscode.window directly.
 import * as fs from "fs/promises"
 import * as path from "path"
 
-// v4 B2 (L14): protocol DisposableLike for the adapter surface — no vscode types in McpHubState.
-import type { DisposableLike } from "@jabberwock/types"
-
-/** Concrete adapter surface — structurally satisfies the protocol `IFileWatcher` (required members are a subset of its optional ones). */
-interface McpFileSystemWatcher {
-	onChange(handler: (path: string) => void): DisposableLike
-	onCreate(handler: (path: string) => void): DisposableLike
-	close(): void
-	dispose(): void
-}
-
-/** Project-MCP variant — additionally exposes the delete event with the exact protocol handler signature. */
-interface ProjectMcpFileWatcher extends McpFileSystemWatcher {
-	onDelete(handler: (path: string) => void): DisposableLike
-}
-
-import type { IHostUri } from "@features/foundation/host-context/context"
-
+import type { IFileWatcher } from "@jabberwock/types"
 import { McpSettingsSchema } from "@services/mcp/config/schemas"
 import { t } from "@i18n"
 import { getWorkspacePath } from "@utils/io/path"
-import { onWorkspaceFoldersChanged } from "@features/foundation/host-context/context"
+import { onWorkspaceFoldersChanged, getHostContext } from "@features/foundation/host-context/context"
 import { publishNotificationError } from "@features/foundation/capabilities/notifications"
+import { getFileWatchers, getUiDialogs } from "@features/foundation/capabilities/registry"
 
 import type { McpHubState } from "@services/mcp/core/types"
 import { showErrorMessage } from "./init"
-
-/**
- * v4 B2 (L6): adapt the host FileSystemWatcher into a protocol-compatible watcher shape so
- * `McpHubState` stays free of vscode types (§2.3 L14). The connector-side factory replaces this adapter in Phase B3/B4.
- */
-function adaptFileSystemWatcher(watcher: vscode.FileSystemWatcher): McpFileSystemWatcher {
-	return {
-		onChange: (handler) => watcher.onDidChange((uri) => handler(uri.fsPath)),
-		onCreate: (handler) => watcher.onDidCreate((uri) => handler(uri.fsPath)),
-		close: () => watcher.dispose(),
-		dispose: () => watcher.dispose(),
-	}
-}
-
-/** Project-MCP variant — additionally exposes the delete event. */
-function adaptProjectMcpFileWatcher(watcher: vscode.FileSystemWatcher): ProjectMcpFileWatcher {
-	return {
-		...adaptFileSystemWatcher(watcher),
-		onDelete: (handler) => watcher.onDidDelete((uri: IHostUri) => handler(uri.fsPath)), // structural URI view — no vscode type in the adapter surface
-	}
-}
 
 // ─── Watch MCP settings file ─────────────────────────────────────────
 
@@ -59,7 +22,7 @@ export function watchMcpSettingsFile(
 	getMcpSettingsFilePath: () => Promise<string>,
 	debounceFn: (filePath: string, source: "global" | "project") => void,
 ): void {
-	if (process.env.NODE_ENV === "test" || !vscode.workspace.createFileSystemWatcher) {
+	if (process.env.NODE_ENV === "test" || !getFileWatchers()) {
 		return
 	}
 
@@ -68,20 +31,24 @@ export function watchMcpSettingsFile(
 		state.settingsWatcher = undefined
 	}
 
-	getMcpSettingsFilePath().then((settingsPath) => {
-		const settingsPattern = new vscode.RelativePattern(path.dirname(settingsPath), path.basename(settingsPath))
+	getMcpSettingsFilePath().then(async (settingsPath) => {
+		const factory = getFileWatchers()
+		if (!factory) {
+			return
+		}
 
-		// v4 B2 (L6): concrete adapter type — protocol IFileWatcher members are optional, so handlers bind through the local.
-		const settingsWatcherSource = vscode.workspace.createFileSystemWatcher(settingsPattern)
-		const watcher: McpFileSystemWatcher = adaptFileSystemWatcher(settingsWatcherSource)
+		// D4g-2 (batch 2): the file watcher is created through the fileWatchers capability slot
+		// instead of importing "vscode" (plan §3.2 Strategy E). The absolute path is adapted to a
+		// host RelativePattern by the vscode factory; chokidar watches it directly.
+		const watcher = await factory.watch([settingsPath])
 		state.settingsWatcher = watcher
 
-		const changeDisposable = watcher.onChange((changedPath) => {
+		const changeDisposable = watcher.onChange?.((changedPath) => {
 			if (changedPath === settingsPath) {
 				debounceFn(settingsPath, "global")
 			}
 		})
-		const createDisposable = watcher.onCreate((createdPath) => {
+		const createDisposable = watcher.onCreate?.((createdPath) => {
 			if (createdPath === settingsPath) {
 				debounceFn(settingsPath, "global")
 			}
@@ -90,8 +57,8 @@ export function watchMcpSettingsFile(
 		// Composite disposal — same lifetime semantics as the pre-conversion vscode.Disposable.from(...).
 		state.disposables.push({
 			dispose: () => {
-				changeDisposable.dispose()
-				createDisposable.dispose()
+				changeDisposable?.dispose()
+				createDisposable?.dispose()
 				watcher.close()
 			},
 		})
@@ -100,13 +67,49 @@ export function watchMcpSettingsFile(
 
 // ─── Watch project MCP file ──────────────────────────────────────────
 
+/**
+ * D4g-2 (batch 2): bind the change/create/delete handlers to the project MCP watcher and push a
+ * composite disposable onto the hub state. Extracted from `watchProjectMcpFile` to keep the
+ * caller's cyclomatic complexity within the lint budget.
+ */
+function attachProjectMcpWatcher(
+	state: McpHubState,
+	watcher: IFileWatcher,
+	debounceFn: (filePath: string, source: "global" | "project") => void,
+	cleanupProjectMcpServers: () => Promise<void>,
+	notifyWebview: () => Promise<void>,
+): void {
+	const changeDisposable = watcher.onChange?.((changedPath) => {
+		debounceFn(changedPath, "project")
+	})
+	const createDisposable = watcher.onCreate?.((createdPath) => {
+		debounceFn(createdPath, "project")
+	})
+	const deleteDisposable = watcher.onDelete?.(async () => {
+		await cleanupProjectMcpServers()
+		await notifyWebview()
+		// D4g-2 (batch 2): info toast through the uiDialogs slot instead of importing "vscode".
+		await getUiDialogs().showInformationMessage(t("mcp:info.project_config_deleted"))
+	})
+
+	// Composite disposal — same lifetime semantics as the pre-conversion vscode.Disposable.from(...).
+	state.disposables.push({
+		dispose: () => {
+			changeDisposable?.dispose()
+			createDisposable?.dispose()
+			deleteDisposable?.dispose()
+			watcher.close()
+		},
+	})
+}
+
 export async function watchProjectMcpFile(
 	state: McpHubState,
 	debounceFn: (filePath: string, source: "global" | "project") => void,
 	cleanupProjectMcpServers: () => Promise<void>,
 	notifyWebview: () => Promise<void>,
 ): Promise<void> {
-	if (process.env.NODE_ENV === "test" || !vscode.workspace.createFileSystemWatcher) {
+	if (process.env.NODE_ENV === "test" || !getFileWatchers()) {
 		return
 	}
 
@@ -115,39 +118,21 @@ export async function watchProjectMcpFile(
 		state.projectMcpWatcher = undefined
 	}
 
-	if (!vscode.workspace.workspaceFolders?.length) {
+	if (!getHostContext()?.workspaceFolders?.length) {
 		return
 	}
 
 	const workspaceFolder = getWorkspacePath()
-	const projectMcpPattern = new vscode.RelativePattern(workspaceFolder, ".jabberwock/mcp.json")
+	const factory = getFileWatchers()
+	if (!factory) {
+		return
+	}
 
-	// v4 B2 (L6): concrete adapter type — protocol IFileWatcher members are optional, so handlers bind through the local.
-	const projectMcpSource = vscode.workspace.createFileSystemWatcher(projectMcpPattern)
-	const watcher: ProjectMcpFileWatcher = adaptProjectMcpFileWatcher(projectMcpSource)
+	// D4g-2 (batch 2): the project MCP watcher is created through the fileWatchers capability slot
+	// instead of importing "vscode" (plan §3.2 Strategy E).
+	const watcher = await factory.watch([path.join(workspaceFolder, ".jabberwock/mcp.json")])
 	state.projectMcpWatcher = watcher
-
-	const changeDisposable = watcher.onChange((changedPath) => {
-		debounceFn(changedPath, "project")
-	})
-	const createDisposable = watcher.onCreate((createdPath) => {
-		debounceFn(createdPath, "project")
-	})
-	const deleteDisposable = watcher.onDelete(async () => {
-		await cleanupProjectMcpServers()
-		await notifyWebview()
-		vscode.window.showInformationMessage(t("mcp:info.project_config_deleted")) // info toast — outside L12 error scope, stays until B3/B4
-	})
-
-	// Composite disposal — same lifetime semantics as the pre-conversion vscode.Disposable.from(...).
-	state.disposables.push({
-		dispose: () => {
-			changeDisposable.dispose()
-			createDisposable.dispose()
-			deleteDisposable.dispose()
-			watcher.close()
-		},
-	})
+	attachProjectMcpWatcher(state, watcher, debounceFn, cleanupProjectMcpServers, notifyWebview)
 }
 
 // ─── Setup workspace folders watcher ─────────────────────────────────

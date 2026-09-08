@@ -1,5 +1,4 @@
 import { PostHog } from "posthog-node"
-import * as vscode from "vscode"
 
 import {
 	type TelemetryEvent,
@@ -12,6 +11,8 @@ import {
 	isConsecutiveMistakeError,
 	extractConsecutiveMistakeErrorProperties,
 } from "@jabberwock/types"
+import type { IHostContext } from "@jabberwock/types"
+import { randomUUID } from "node:crypto"
 
 import { BaseTelemetryClient } from "./BaseTelemetryClient"
 
@@ -22,11 +23,12 @@ import { BaseTelemetryClient } from "./BaseTelemetryClient"
  */
 export class PostHogTelemetryClient extends BaseTelemetryClient {
 	private client: PostHog
-	private distinctId: string = vscode.env.machineId
+	private distinctId: string
 	// Git repository properties that should be filtered out
 	private readonly gitPropertyNames = ["repositoryUrl", "repositoryName", "defaultBranch"]
+	private readonly host?: Pick<IHostContext, "machineId" | "getTelemetryLevel">
 
-	constructor(debug = false) {
+	constructor(debug = false, host?: Pick<IHostContext, "machineId" | "getTelemetryLevel">) {
 		super(
 			{
 				type: "exclude",
@@ -34,6 +36,9 @@ export class PostHogTelemetryClient extends BaseTelemetryClient {
 			},
 			debug,
 		)
+
+		this.host = host
+		this.distinctId = host?.machineId ?? randomUUID()
 
 		this.client = new PostHog(process.env.POSTHOG_API_KEY || "dummy_key_for_development", {
 			host: "https://ph.jabberwock.com",
@@ -161,7 +166,7 @@ export class PostHogTelemetryClient extends BaseTelemetryClient {
 		this.telemetryEnabled = false
 
 		// First check global telemetry level - telemetry should only be enabled when level is "all".
-		const telemetryLevel = vscode.workspace.getConfiguration("telemetry").get<string>("telemetryLevel", "all")
+		const telemetryLevel = this.host?.getTelemetryLevel?.() ?? "all"
 		const globalTelemetryEnabled = telemetryLevel === "all"
 
 		// We only enable telemetry if global vscode telemetry is enabled.

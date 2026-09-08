@@ -4,7 +4,7 @@ import { CommandExecutionStatus } from "@jabberwock/types"
 
 import type { ITaskModel } from "@features/chat/task/store"
 
-import { JabberwockTerminalProcessResultPromise } from "@integrations/terminal/types"
+import { JabberwockTerminalProcessResultPromise } from "@jabberwock/types"
 
 import { ToolResponse } from "@shared/tools"
 import { t } from "@i18n"

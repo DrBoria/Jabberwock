@@ -5,8 +5,8 @@ import { searchCommits } from "@utils/git"
 import { exportSettings } from "@features/settings/actions/export"
 import { importSettingsWithFeedback } from "@features/settings/actions/importSettings"
 import { t } from "@i18n"
-import * as vscode from "vscode"
 import { getSettingsAccess } from "@utils/settings"
+import { getUiDialogs } from "@features/foundation/capabilities/registry"
 import { getHostEnvironment } from "@features/foundation/host-context/context"
 import { getProviderSettingsManager } from "@features/settings/models/provider-settings-manager/ProviderSettingsManager"
 
@@ -72,11 +72,13 @@ export function registerOnHistory(bus: IntentBus): void {
 		const provider = ctx.provider
 		if (!provider) return
 
-		const confirm = await vscode.window.showWarningMessage(
-			t("common:confirm.reset_state"),
-			{ modal: true },
-			t("common:yes"),
-		)
+		// D4g-2 (batch 1): modal confirmation through the uiDialogs capability slot instead of a
+		// direct "vscode" import (plan section 3.2 Strategy C).
+		const confirm = await getUiDialogs().showConfirmDialog({
+			message: t("common:confirm.reset_state"),
+			modal: true,
+			buttons: [t("common:yes")],
+		})
 		if (confirm !== t("common:yes")) return
 
 		// Abort current task if any

@@ -4,7 +4,7 @@ import { TerminalActionId, TerminalActionPromptType } from "@jabberwock/types"
 
 import { getTerminalCommand } from "@utils/mcp/commands"
 import { EventBridge } from "@features/foundation/webview/EventBridge"
-import { Terminal } from "@integrations/terminal/terminal-core/Terminal"
+import { Terminal } from "@connectors/vscode/backend/integrations/terminal/terminal-core/Terminal"
 import { t } from "@i18n"
 import { handleTerminalAction } from "@features/settings/agents/handlers"
 

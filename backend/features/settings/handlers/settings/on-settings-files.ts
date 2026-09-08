@@ -1,6 +1,5 @@
 import { IntentType } from "@jabberwock/types"
 import type { IntentBus } from "@features/intents/bus"
-import * as vscode from "vscode"
 import * as path from "path"
 import * as os from "os"
 import * as fs from "fs/promises"
@@ -10,6 +9,7 @@ import { openMention } from "@features/chat/task/messages/actions/mentions/parse
 import { resolveDefaultSaveUri, saveLastExportPath } from "@utils/io/export"
 import { isPathOutsideWorkspace } from "@utils/io"
 import { getSettingsAccess } from "@utils/settings"
+import { getHostContext } from "@features/foundation/host-context/context"
 
 /**
  * Register all file settings intent handlers.
@@ -31,7 +31,9 @@ export function registerOnSettingsFiles(bus: IntentBus): void {
 
 		const matches = payload.dataUri.match(/^data:image\/([a-zA-Z]+);base64,(.+)$/)
 		if (!matches) {
-			saveImage(payload.dataUri, vscode.Uri.file(""))
+			// D4g-2 (batch 3): host-neutral URI (IUri) — the image handler resolves the save dialog
+			// through the uiDialogs slot; an empty default path means "no default location".
+			saveImage(payload.dataUri, { fsPath: "" })
 			return
 		}
 		const format = matches[1]
@@ -42,6 +44,7 @@ export function registerOnSettingsFiles(bus: IntentBus): void {
 			fallbackDir: path.join(os.homedir(), "Downloads"),
 		})
 
+		// D4g-2 (batch 3): host-neutral URI (IUri) for the save dialog default.
 		const savedUri = await saveImage(payload.dataUri, defaultUri)
 
 		if (savedUri) {
@@ -116,7 +119,10 @@ export function registerOnSettingsFiles(bus: IntentBus): void {
 	bus.register(IntentType.SettingsFileExternalOpen, async (intent) => {
 		const payload = intent.payload as { url: string }
 		if (payload.url) {
-			vscode.env.openExternal(vscode.Uri.parse(payload.url))
+			// D4g-2 (batch 3): open the external URL via the hostCommands slot (D4g-pre) — the
+			// vscode connector parses the string into a host URI; server mode has no host, so this
+			// degrades to a no-op.
+			getHostContext()?.hostCommands?.openExternal?.(payload.url)
 		}
 	})
 

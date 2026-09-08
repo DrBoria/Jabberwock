@@ -1,9 +1,9 @@
 import { IntentType } from "@jabberwock/types"
 import type { IntentBus } from "@features/intents/bus"
-import * as vscode from "vscode"
 import * as fs from "fs/promises"
 import type { IBackendRootStore } from "@features/store"
 import { getHostEnvironment } from "@features/foundation/host-context/context"
+import { getConfiguration } from "@features/foundation/capabilities/registry"
 import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
 import { t } from "@i18n"
 import { Package } from "@shared/package"
@@ -24,9 +24,8 @@ export function registerSettingsCommands(bus: IntentBus): void {
 			: []
 
 		await getHostEnvironment().updateGlobalState("allowedCommands", validCommands)
-		await vscode.workspace
-			.getConfiguration(Package.name)
-			.update("allowedCommands", validCommands, vscode.ConfigurationTarget.Global)
+		// D4g-2 (batch 3): config write via the capability slot (D4b).
+		await getConfiguration().update(Package.name, "allowedCommands", validCommands)
 	})
 
 	bus.register(IntentType.SettingsCommandsDeniedSet, async (intent, ctx) => {
@@ -41,9 +40,8 @@ export function registerSettingsCommands(bus: IntentBus): void {
 			: []
 
 		await getHostEnvironment().updateGlobalState("deniedCommands", validCommands)
-		await vscode.workspace
-			.getConfiguration(Package.name)
-			.update("deniedCommands", validCommands, vscode.ConfigurationTarget.Global)
+		// D4g-2 (batch 3): config write via the capability slot (D4b).
+		await getConfiguration().update(Package.name, "deniedCommands", validCommands)
 	})
 
 	bus.register(IntentType.SettingsCommandsFileOpen, async (intent, ctx) => {

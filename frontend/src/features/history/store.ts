@@ -1,6 +1,6 @@
 import { types, Instance } from "mobx-state-tree"
 
-import { vscode } from "@jabberwock/devtool/webview"
+import { getConnectorBus } from "../../connector-bus"
 import type { WebviewMessage, HistoryItem } from "@jabberwock/types"
 import { eventConstants } from "@jabberwock/types"
 
@@ -31,28 +31,28 @@ export const TaskHistoryStore = types
 	.actions((_self) => ({
 		// ── Export settings ────────────────────────────────────────
 		exportSettings() {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.HISTORY.EXPORT_SETTINGS,
 			} satisfies WebviewMessage)
 		},
 
 		// ── Import settings ────────────────────────────────────────
 		importSettings() {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.HISTORY.IMPORT_SETTINGS,
 			} satisfies WebviewMessage)
 		},
 
 		// ── Reset state ────────────────────────────────────────────
 		resetState() {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.HISTORY.RESET_STATE,
 			} satisfies WebviewMessage)
 		},
 
 		// ── Search commits ─────────────────────────────────────────
 		searchCommits(query: string) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.HISTORY.SEARCH_COMMITS,
 				query,
 			} satisfies WebviewMessage)
@@ -60,14 +60,14 @@ export const TaskHistoryStore = types
 
 		// ── Export current task ────────────────────────────────────
 		exportCurrentTask() {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: "exportCurrentTask" as const,
 			} satisfies WebviewMessage)
 		},
 
 		// ── Delete task with ID ────────────────────────────────────
 		deleteTaskWithId(text: string) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: "deleteTaskWithId" as const,
 				text,
 			} satisfies WebviewMessage)
@@ -75,7 +75,7 @@ export const TaskHistoryStore = types
 
 		// ── Export task with ID ────────────────────────────────────
 		exportTaskWithId(text: string) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: "exportTaskWithId" as const,
 				text,
 			} satisfies WebviewMessage)
@@ -83,7 +83,7 @@ export const TaskHistoryStore = types
 
 		// ── Delete multiple tasks with IDs ─────────────────────────
 		deleteMultipleTasksWithIds(texts: string[]) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: "deleteMultipleTasksWithIds" as const,
 				text: texts.join(","),
 			} satisfies WebviewMessage)

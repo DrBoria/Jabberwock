@@ -1,4 +1,5 @@
-import * as vscode from "vscode"
+import type { IUri } from "@jabberwock/types"
+import type { EventEmitter } from "@features/foundation/events/event-emitter"
 import { FileProcessingResult, BatchProcessingSummary } from "@services/code-index/interfaces"
 import { BatchContext } from "./helpers.types"
 import { handleBatchDeletions } from "./helpers.deletions"
@@ -6,15 +7,15 @@ import { processFilesAndPrepareUpserts } from "./helpers.processing"
 import { executeBatchUpsertOperations } from "./helpers.upserts"
 
 export async function processBatch(
-	eventsToProcess: Map<string, { uri: vscode.Uri; type: "create" | "change" | "delete" }>,
+	eventsToProcess: Map<string, { uri: IUri; type: "create" | "change" | "delete" }>,
 	batchContext: BatchContext,
-	onBatchProgressUpdate: vscode.EventEmitter<{
+	onBatchProgressUpdate: EventEmitter<{
 		processedInBatch: number
 		totalInBatch: number
 		currentFile?: string
 	}>,
-	onDidFinishBatchProcessing: vscode.EventEmitter<BatchProcessingSummary>,
-	accumulatedEvents: Map<string, { uri: vscode.Uri; type: "create" | "change" | "delete" }>,
+	onDidFinishBatchProcessing: EventEmitter<BatchProcessingSummary>,
+	accumulatedEvents: Map<string, { uri: IUri; type: "create" | "change" | "delete" }>,
 ): Promise<void> {
 	const batchResults: FileProcessingResult[] = []
 	let processedCountInBatch = 0
@@ -28,7 +29,7 @@ export async function processBatch(
 	})
 
 	const pathsToExplicitlyDelete: string[] = []
-	const filesToUpsertDetails: Array<{ path: string; uri: vscode.Uri; originalType: "create" | "change" }> = []
+	const filesToUpsertDetails: Array<{ path: string; uri: IUri; originalType: "create" | "change" }> = []
 
 	for (const event of eventsToProcess.values()) {
 		if (event.type === "delete") {

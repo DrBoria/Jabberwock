@@ -1,4 +1,3 @@
-import * as vscode from "vscode"
 import type { IExtensionContextView } from "@features/foundation/host-context/context"
 import { BATCH_SEGMENT_THRESHOLD } from "@services/code-index/constants"
 import { scannerExtensions } from "@services/code-index/shared/supported-extensions"
@@ -11,31 +10,36 @@ import {
 } from "@services/code-index/interfaces"
 import { CacheManager } from "@services/code-index/cache-manager"
 import { getTelemetryService } from "@jabberwock/telemetry"
-import { TelemetryEventName } from "@jabberwock/types"
+import { TelemetryEventName, type IUri, type IFileWatcher as IHostFileWatcher } from "@jabberwock/types"
 import { sanitizeErrorMessage } from "@services/code-index/shared/sanitizeInput"
 import { Package } from "@shared/package"
 import { Ignore } from "ignore"
 import { BatchContext } from "./batch/helpers.types"
 import { processFile } from "./file-watcher.process"
 import { processBatch } from "./batch/file-watcher.batch"
+import { EventEmitter } from "@features/foundation/events/event-emitter"
+import { getFileWatchers, getConfiguration } from "@features/foundation/capabilities/registry"
 
 export class FileWatcher implements IFileWatcher {
 	private ignoreInstance?: Ignore
-	private fileWatcher?: vscode.FileSystemWatcher
+	// D4g-2 (batch 3): host-neutral file watcher (D4e fileWatchers slot) — the vscode connector
+	// backs it with a real vscode.FileSystemWatcher; server mode backs it with chokidar.
+	private fileWatcher?: IHostFileWatcher
 	private ignorePatterns: string | undefined
-	private accumulatedEvents: Map<string, { uri: vscode.Uri; type: "create" | "change" | "delete" }> = new Map()
+	private accumulatedEvents: Map<string, { uri: IUri; type: "create" | "change" | "delete" }> = new Map()
 	private batchProcessDebounceTimer?: NodeJS.Timeout
 	private readonly BATCH_DEBOUNCE_DELAY_MS = 500
 	private readonly FILE_PROCESSING_CONCURRENCY_LIMIT = 10
 	private readonly batchSegmentThreshold: number
 
-	private readonly _onDidStartBatchProcessing = new vscode.EventEmitter<string[]>()
-	private readonly _onBatchProgressUpdate = new vscode.EventEmitter<{
+	// D4g-2 (batch 3): host-neutral event emitters (replaces vscode.EventEmitter).
+	private readonly _onDidStartBatchProcessing = new EventEmitter<string[]>()
+	private readonly _onBatchProgressUpdate = new EventEmitter<{
 		processedInBatch: number
 		totalInBatch: number
 		currentFile?: string
 	}>()
-	private readonly _onDidFinishBatchProcessing = new vscode.EventEmitter<BatchProcessingSummary>()
+	private readonly _onDidFinishBatchProcessing = new EventEmitter<BatchProcessingSummary>()
 
 	public readonly onDidStartBatchProcessing = this._onDidStartBatchProcessing.event
 	public readonly onBatchProgressUpdate = this._onBatchProgressUpdate.event
@@ -81,9 +85,13 @@ export class FileWatcher implements IFileWatcher {
 			this.batchSegmentThreshold = batchSegmentThreshold
 		} else {
 			try {
-				this.batchSegmentThreshold = vscode.workspace
-					.getConfiguration(Package.name)
-					.get<number>("codeIndex.embeddingBatchSize", BATCH_SEGMENT_THRESHOLD)
+				// D4g-2 (batch 3): config read via the capability slot (D4b).
+				this.batchSegmentThreshold =
+					getConfiguration().get<number>(
+						Package.name,
+						"codeIndex.embeddingBatchSize",
+						BATCH_SEGMENT_THRESHOLD,
+					) ?? BATCH_SEGMENT_THRESHOLD
 			} catch {
 				this.batchSegmentThreshold = BATCH_SEGMENT_THRESHOLD
 			}
@@ -91,17 +99,31 @@ export class FileWatcher implements IFileWatcher {
 	}
 
 	async initialize(): Promise<void> {
-		const filePattern = new vscode.RelativePattern(
-			this.workspacePath,
-			`**/*{${scannerExtensions.map((e) => e.substring(1)).join(",")}}`,
-		)
-		this.fileWatcher = vscode.workspace.createFileSystemWatcher(filePattern)
-		this.fileWatcher.onDidCreate(this.handleFileCreated.bind(this))
-		this.fileWatcher.onDidChange(this.handleFileChanged.bind(this))
-		this.fileWatcher.onDidDelete(this.handleFileDeleted.bind(this))
+		// D4g-2 (batch 3): host-neutral file watching via the D4e fileWatchers slot. The pattern is
+		// an absolute path (workspace root + glob), which the vscode connector converts to a
+		// RelativePattern and chokidar watches directly. Server mode without a watcher factory
+		// degrades to no file watching (the code index still works for explicit scans).
+		const factory = getFileWatchers()
+		if (!factory) {
+			return
+		}
+		// The glob is workspace-relative and anchored to the workspace root via the `cwd` option
+		// (the vscode connector maps it to a RelativePattern; chokidar watches it under cwd).
+		const filePattern = `**/*{${scannerExtensions.map((e) => e.substring(1)).join(",")}}`
+		this.fileWatcher = await factory.watch([filePattern], { cwd: this.workspacePath })
+		this.fileWatcher.onCreate?.((filePath) => {
+			void this.handleFileCreated({ fsPath: filePath })
+		})
+		this.fileWatcher.onChange?.((filePath) => {
+			void this.handleFileChanged({ fsPath: filePath })
+		})
+		this.fileWatcher.onDelete?.((filePath) => {
+			void this.handleFileDeleted({ fsPath: filePath })
+		})
 	}
 
 	dispose(): void {
+		this.fileWatcher?.close()
 		this.fileWatcher?.dispose()
 		if (this.batchProcessDebounceTimer) {
 			clearTimeout(this.batchProcessDebounceTimer)
@@ -112,17 +134,17 @@ export class FileWatcher implements IFileWatcher {
 		this.accumulatedEvents.clear()
 	}
 
-	private async handleFileCreated(uri: vscode.Uri): Promise<void> {
+	private async handleFileCreated(uri: IUri): Promise<void> {
 		this.accumulatedEvents.set(uri.fsPath, { uri, type: "create" })
 		this.scheduleBatchProcessing()
 	}
 
-	private async handleFileChanged(uri: vscode.Uri): Promise<void> {
+	private async handleFileChanged(uri: IUri): Promise<void> {
 		this.accumulatedEvents.set(uri.fsPath, { uri, type: "change" })
 		this.scheduleBatchProcessing()
 	}
 
-	private async handleFileDeleted(uri: vscode.Uri): Promise<void> {
+	private async handleFileDeleted(uri: IUri): Promise<void> {
 		this.accumulatedEvents.set(uri.fsPath, { uri, type: "delete" })
 		this.scheduleBatchProcessing()
 	}

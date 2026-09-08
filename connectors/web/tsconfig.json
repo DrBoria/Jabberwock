@@ -22,7 +22,19 @@
 			// specifier to the real implementation via backend/tsconfig.json — one code path at runtime.
 			"@startup/*": ["./backend/startup/*"],
 			// ICG-C1 (ICG doc §7.3): same isolation pattern as @startup - the server entrypoint imports the backend context feature for bounded hello->state metadata; tsc resolves to a local declaration, runtime bundle resolves via backend/tsconfig.json aliases.
-			"@features/context": ["./backend/features-context"]
+			"@features/context": ["./backend/declarations/features-context"],
+			// D4g-2 (batch 4): the server entrypoint installs the process-wide capability registry
+			// (setBackendCapabilities) so the shared backend task graph resolves host-neutral slots;
+			// tsc resolves to a local declaration, runtime bundle resolves via backend/tsconfig.json.
+			"@features/foundation/capabilities/registry": ["./backend/declarations/capabilities-registry"],
+			// D4g PART 2: the server entrypoint reads the full MST root-store snapshot for the
+			// hello->state handshake (buildServerState); tsc resolves to a local declaration,
+			// runtime bundle resolves via backend/tsconfig.json.
+			"@features/storeSingleton": ["./backend/declarations/store-singleton"],
+			// D4h: the server entrypoint installs the backend state slots (installBackendState) so
+			// postStateToWebview/buildEnrichedState can read host paths at runtime; tsc resolves to a
+			// local declaration, runtime bundle resolves via backend/tsconfig.json.
+			"@features/foundation/host-context/context": ["./backend/declarations/host-context-context"]
 		}
 	},
 	// v4 Phase C1: backend/main.ts = WS server entry (`pnpm start:server`), frontend/connector.ts = BrowserWsFrontendConnector (Phase D).

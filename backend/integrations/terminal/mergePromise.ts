@@ -1,4 +1,4 @@
-import type { JabberwockTerminalProcess, JabberwockTerminalProcessResultPromise } from "./types"
+import type { JabberwockTerminalProcess, JabberwockTerminalProcessResultPromise } from "@jabberwock/types"
 
 // Similar to execa's ResultPromise, this lets us create a mixin of both a
 // TerminalProcess and a Promise:

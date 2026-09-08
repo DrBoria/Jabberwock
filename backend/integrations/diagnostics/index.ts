@@ -1,1 +1,1 @@
-export { getNewDiagnostics, diagnosticsToProblemsString } from "./diagnostics"
+export { getNewDiagnostics, diagnosticsToProblemsString, DiagnosticSeverity } from "./diagnostics"

@@ -1,4 +1,8 @@
-import type { RooTerminalCallbacks, JabberwockTerminalProcess, JabberwockTerminalProcessResultPromise } from "./types"
+import type {
+	RooTerminalCallbacks,
+	JabberwockTerminalProcess,
+	JabberwockTerminalProcessResultPromise,
+} from "@jabberwock/types"
 import { BaseTerminal } from "./terminal-core/BaseTerminal"
 import { ExecaTerminalProcess } from "./ExecaTerminalProcess"
 import { mergePromise } from "./mergePromise"

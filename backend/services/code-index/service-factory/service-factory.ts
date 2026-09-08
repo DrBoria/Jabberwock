@@ -1,5 +1,5 @@
-import * as vscode from "vscode"
 import type { IExtensionContextView } from "@features/foundation/host-context/context"
+import { getConfiguration } from "@features/foundation/capabilities/registry"
 import { Ignore } from "ignore"
 
 import { getTelemetryService } from "@jabberwock/telemetry"
@@ -94,9 +94,10 @@ export class CodeIndexServiceFactory {
 	): DirectoryScanner {
 		let batchSize: number
 		try {
-			batchSize = vscode.workspace
-				.getConfiguration(Package.name)
-				.get<number>("codeIndex.embeddingBatchSize", BATCH_SEGMENT_THRESHOLD)
+			// D4g-2 (batch 3): config read via the capability slot (D4b).
+			batchSize =
+				getConfiguration().get<number>(Package.name, "codeIndex.embeddingBatchSize", BATCH_SEGMENT_THRESHOLD) ??
+				BATCH_SEGMENT_THRESHOLD
 		} catch {
 			batchSize = BATCH_SEGMENT_THRESHOLD
 		}
@@ -114,9 +115,10 @@ export class CodeIndexServiceFactory {
 	): IFileWatcher {
 		let batchSize: number
 		try {
-			batchSize = vscode.workspace
-				.getConfiguration(Package.name)
-				.get<number>("codeIndex.embeddingBatchSize", BATCH_SEGMENT_THRESHOLD)
+			// D4g-2 (batch 3): config read via the capability slot (D4b).
+			batchSize =
+				getConfiguration().get<number>(Package.name, "codeIndex.embeddingBatchSize", BATCH_SEGMENT_THRESHOLD) ??
+				BATCH_SEGMENT_THRESHOLD
 		} catch {
 			batchSize = BATCH_SEGMENT_THRESHOLD
 		}

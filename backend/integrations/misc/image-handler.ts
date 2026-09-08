@@ -1,8 +1,11 @@
 import * as path from "path"
 import * as os from "os"
-import * as vscode from "vscode"
+import * as fs from "fs/promises"
+import type { IUri } from "@jabberwock/types"
 import { getWorkspacePath } from "@utils/io/path"
 import { t } from "@i18n"
+import { getClipboard, getUiDialogs } from "@features/foundation/capabilities/registry"
+import { getHostContext } from "@features/foundation/host-context/context"
 
 function isFilePath(dataUriOrPath: string): boolean {
 	return (
@@ -29,11 +32,15 @@ async function handleFilePathImage(dataUriOrPath: string, options?: { values?: {
 	try {
 		const filePath = resolveImagePath(dataUriOrPath)
 		if (options?.values?.action === "copy") {
-			await vscode.env.clipboard.writeText(filePath)
-			vscode.window.showInformationMessage(t("common:info.path_copied_to_clipboard"))
+			// D4g-2 (batch 3): clipboard + toast via the capability slots (D4c) — server mode has
+			// no host clipboard, so the copy degrades to a no-op.
+			await getClipboard()?.writeText(filePath)
+			await getUiDialogs().showInformationMessage(t("common:info.path_copied_to_clipboard"))
 			return
 		}
-		await vscode.commands.executeCommand("vscode.open", vscode.Uri.file(filePath))
+		// D4g-2 (batch 3): open the image with the host's default handler via the hostCommands slot
+		// (D4g-pre) — server mode has no host, so this degrades to a no-op.
+		getHostContext()?.hostCommands?.openWithDefaultHandler?.(filePath)
 	} catch (error) {
 		publishNotificationError(t("common:errors.error_opening_image", { error }))
 	}
@@ -41,17 +48,19 @@ async function handleFilePathImage(dataUriOrPath: string, options?: { values?: {
 
 async function copyDataUriToClipboard(tempFilePath: string, format: string): Promise<void> {
 	try {
-		const imageData = await vscode.workspace.fs.readFile(vscode.Uri.file(tempFilePath))
+		// D4g-2 (batch 3): plain Node fs (the temp file is a local path) + clipboard/toast via the
+		// capability slots (D4c) — server mode has no host clipboard, so the copy degrades to a no-op.
+		const imageData = await fs.readFile(tempFilePath)
 		const base64Image = Buffer.from(imageData).toString("base64")
 		const dataUri = `data:image/${format};base64,${base64Image}`
-		await vscode.env.clipboard.writeText(dataUri)
-		vscode.window.showInformationMessage(t("common:info.image_copied_to_clipboard"))
+		await getClipboard()?.writeText(dataUri)
+		await getUiDialogs().showInformationMessage(t("common:info.image_copied_to_clipboard"))
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error)
 		publishNotificationError(t("common:errors.error_copying_image", { errorMessage }))
 	} finally {
 		try {
-			await vscode.workspace.fs.delete(vscode.Uri.file(tempFilePath))
+			await fs.rm(tempFilePath, { force: true })
 		} catch {
 			// Ignore cleanup errors
 		}
@@ -69,12 +78,14 @@ async function handleDataUriImage(dataUriOrPath: string, options?: { values?: { 
 
 	const tempFilePath = path.join(os.tmpdir(), `temp_image_${Date.now()}.${format}`)
 	try {
-		await vscode.workspace.fs.writeFile(vscode.Uri.file(tempFilePath), imageBuffer)
+		// D4g-2 (batch 3): plain Node fs for the local temp file + host open via the hostCommands
+		// slot (D4g-pre) — server mode has no host, so the open degrades to a no-op.
+		await fs.writeFile(tempFilePath, imageBuffer)
 		if (options?.values?.action === "copy") {
 			await copyDataUriToClipboard(tempFilePath, format)
 			return
 		}
-		await vscode.commands.executeCommand("vscode.open", vscode.Uri.file(tempFilePath))
+		getHostContext()?.hostCommands?.openWithDefaultHandler?.(tempFilePath)
 	} catch (error) {
 		publishNotificationError(t("common:errors.error_opening_image", { error }))
 	}
@@ -88,7 +99,7 @@ export async function openImage(dataUriOrPath: string, options?: { values?: { ac
 	await handleDataUriImage(dataUriOrPath, options)
 }
 
-export async function saveImage(dataUri: string, defaultUri: vscode.Uri): Promise<vscode.Uri | undefined> {
+export async function saveImage(dataUri: string, defaultUri: IUri): Promise<IUri | undefined> {
 	const matches = dataUri.match(/^data:image\/([a-zA-Z]+);base64,(.+)$/)
 	if (!matches) {
 		publishNotificationError(t("common:errors.invalid_data_uri"))
@@ -97,13 +108,14 @@ export async function saveImage(dataUri: string, defaultUri: vscode.Uri): Promis
 	const [, format, base64Data] = matches
 	const imageBuffer = Buffer.from(base64Data, "base64")
 
-	// Show save dialog
-	const saveUri = await vscode.window.showSaveDialog({
+	// D4g-2 (batch 3): save dialog via the uiDialogs slot (D4c) — server mode resolves undefined
+	// (no dialog), so the save is cancelled headless.
+	const saveUri = await getUiDialogs().showSaveDialog({
 		filters: {
 			Images: [format],
 			"All Files": ["*"],
 		},
-		defaultUri: defaultUri,
+		defaultUri,
 	})
 
 	if (!saveUri) {
@@ -112,9 +124,9 @@ export async function saveImage(dataUri: string, defaultUri: vscode.Uri): Promis
 	}
 
 	try {
-		// Write the image to the selected location
-		await vscode.workspace.fs.writeFile(saveUri, imageBuffer)
-		vscode.window.showInformationMessage(t("common:info.image_saved", { path: saveUri.fsPath }))
+		// Write the image to the selected location (plain Node fs — the path is a local fs path).
+		await fs.writeFile(saveUri.fsPath, imageBuffer)
+		await getUiDialogs().showInformationMessage(t("common:info.image_saved", { path: saveUri.fsPath }))
 		return saveUri
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error)

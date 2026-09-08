@@ -2,7 +2,6 @@ import { type ModeConfig } from "@jabberwock/types"
 import { getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 import { defaultModeSlug } from "@shared/modes"
 import { t } from "@i18n"
-import * as vscode from "vscode"
 import * as fs from "fs/promises"
 import { fileExistsAtPath } from "@utils/io/fs"
 import { resolveDefaultSaveUri, saveLastExportPath } from "@utils/io/export"
@@ -18,6 +17,7 @@ import {
 	importModeWithRules,
 } from "@features/settings/agents"
 import type { IntentHandlerContext as IntentBusCtx } from "@features/intents/context"
+import { getUiDialogs } from "@features/foundation/capabilities/registry"
 import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
 import {
 	getCustomModeRulesFolderPath,
@@ -125,7 +125,9 @@ export async function handleExportMode(
 				fallbackDir: path.join(os.homedir(), "Downloads"),
 			},
 		)
-		const saveUri = await vscode.window.showSaveDialog({
+		// D4g-2 (batch 3): save dialog + toast via the uiDialogs slot (D4c) — server mode resolves
+		// undefined (no dialog), so the export is cancelled headless.
+		const saveUri = await getUiDialogs().showSaveDialog({
 			defaultUri,
 			filters: { "YAML files": ["yaml", "yml"] },
 			title: "Save mode export",
@@ -137,7 +139,7 @@ export async function handleExportMode(
 		await saveLastExportPath(getSettingsAccess(), "lastModeExportPath", saveUri)
 		await fs.writeFile(saveUri.fsPath, result.yaml, "utf-8")
 		postExportResult(provider, payload.slug, true)
-		vscode.window.showInformationMessage(t("common:info.mode_exported", { mode: payload.slug }))
+		await getUiDialogs().showInformationMessage(t("common:info.mode_exported", { mode: payload.slug }))
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error)
 		backendLog.info(`Failed to export mode ${payload.slug}: ${errorMessage}`)
@@ -154,7 +156,9 @@ export async function handleImportMode(
 	const payload = intent.payload as { source: string }
 	try {
 		const defaultUri = await resolveImportDefaultUri()
-		const fileUri = await vscode.window.showOpenDialog({
+		// D4g-2 (batch 3): open dialog via the uiDialogs slot (D4c) — server mode resolves
+		// undefined (no dialog), so the import is cancelled headless.
+		const fileUri = await getUiDialogs().showOpenDialog({
 			canSelectFiles: true,
 			canSelectFolders: false,
 			canSelectMany: false,
@@ -178,7 +182,7 @@ export async function handleImportMode(
 		await getHostEnvironment().updateGlobalState("customModes", customModes)
 		await postStateToWebview(provider)
 		provider.postMessageToWebview({ type: "importModeResult", success: true, slug: result.slug })
-		vscode.window.showInformationMessage(t("common:info.mode_imported"))
+		await getUiDialogs().showInformationMessage(t("common:info.mode_imported"))
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error)
 		backendLog.info(`Failed to import mode: ${errorMessage}`)

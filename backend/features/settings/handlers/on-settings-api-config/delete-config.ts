@@ -1,5 +1,5 @@
 import type { IntentHandlerContext as IntentBusCtx } from "@features/intents/context"
-import * as vscode from "vscode"
+import { getUiDialogs } from "@features/foundation/capabilities/registry"
 import { t } from "@i18n"
 import { getProviderSettingsManager } from "@features/settings/models/provider-settings-manager/ProviderSettingsManager"
 import { activateProviderProfile } from "@features/settings/models/api-config-store.profiles"
@@ -15,11 +15,13 @@ export async function handleSettingsApiConfigDelete(
 	const payload = intent.payload as { text: string }
 	if (!payload.text) return
 
-	const answer = await vscode.window.showInformationMessage(
-		t("common:confirmation.delete_config_profile"),
-		{ modal: true },
-		t("common:answers.yes"),
-	)
+	// D4g-2 (batch 3): modal confirmation via the uiDialogs slot (D4c) — server mode resolves
+	// undefined (no dialog), so the delete is cancelled headless.
+	const answer = await getUiDialogs().showConfirmDialog({
+		message: t("common:confirmation.delete_config_profile"),
+		modal: true,
+		buttons: [t("common:answers.yes")],
+	})
 
 	if (answer !== t("common:answers.yes")) return
 

@@ -17,7 +17,6 @@ import type { RawData } from "ws"
 import { WebSocket } from "ws"
 import nock from "nock"
 
-import { createTelemetryService } from "@jabberwock/telemetry"
 import { createMcpServerManager } from "@services/mcp/core/McpServerManager"
 import { getSettingsAccess } from "@utils/settings"
 import { createServerCapabilities } from "@connectors/web/backend/capabilities"
@@ -25,8 +24,10 @@ import { WebWsServer } from "@connectors/web/backend/ws/web-ws-server"
 
 import { startBackend } from "./bootstrap"
 import { installBackendState } from "@features/foundation/host-context/context"
+import { setBackendCapabilities } from "@features/foundation/capabilities/registry"
 import { FakeAIHandler } from "@api/providers/fake-ai/handler"
-import { createBackendRootStore, getIntentBus } from "@features/backendroot/store"
+import { getIntentBus } from "@features/backendroot/store"
+import { getBackendRootStore } from "@features/storeSingleton"
 import type { IntentBus } from "@features/intents/bus"
 
 // -- Small helpers (no `any`; frames are narrowed at the boundary) ----------------
@@ -121,7 +122,7 @@ export interface GateBootResult {
 	httpServer: http.Server
 	connector: WebWsServer
 	bridge: Awaited<ReturnType<typeof startBackend>>
-	rootStore: ReturnType<typeof createBackendRootStore>
+	rootStore: ReturnType<typeof getBackendRootStore>
 	bus: IntentBus
 	wsClient: WebSocket
 }
@@ -129,17 +130,11 @@ export interface GateBootResult {
 // -- Boot ------------------------------------------------------------------------
 
 /**
- * Boots the hermetic C3 gate environment: capabilities, host state, telemetry, MCP,
- * WebWsServer, backend bridge, root store, intent bus, fake AI, and WS client.
- *
- * The `registerHandlers` callback is called after the intent bus is created but before
- * `bus.setProvider(bridge)`, so the test file can register all intent handlers without
- * this file importing from events/handlers/ directories.
+ * Boots the hermetic C3 gate environment: capabilities, host state, MCP, WebWsServer,
+ * backend bridge (which creates the root store and registers ALL feature intent handlers
+ * via setupIntentBus), fake AI, and WS client.
  */
-export async function bootGateEnvironment(
-	registerHandlers: (bus: IntentBus) => void,
-	receivedBodies: Array<Record<string, unknown>>,
-): Promise<GateBootResult> {
+export async function bootGateEnvironment(receivedBodies: Array<Record<string, unknown>>): Promise<GateBootResult> {
 	const tmpDir = mkdtempSync(path.join(os.tmpdir(), "c3-gate-"))
 	nock.enableNetConnect("127.0.0.1")
 
@@ -148,6 +143,11 @@ export async function bootGateEnvironment(
 		workspaceRoot: path.join(tmpDir, "workspace"),
 	})
 
+	// Install capabilities into the process-wide registry so the shared backend task graph
+	// (startNewTask resolves host commands / new-tab provider through capability slots) works
+	// in the hermetic gate environment, matching the real server (connectors/web/backend/main.ts).
+	setBackendCapabilities(capabilities)
+
 	installBackendState({
 		hashmapMemory: capabilities.hashmapMemory,
 		extensionRootPath: tmpDir,
@@ -155,7 +155,6 @@ export async function bootGateEnvironment(
 		isDevelopmentMode: true,
 	})
 
-	createTelemetryService([])
 	createMcpServerManager()
 	await getSettingsAccess().setValue("mcpEnabled", false)
 
@@ -169,13 +168,14 @@ export async function bootGateEnvironment(
 	})
 	if (!connector) throw new Error("C3 gate test: connector not created")
 
+	// D4g PART 2: startBackend now creates the root store and registers ALL feature intent
+	// handlers (setupIntentBus) + sets the bus provider, so the gate environment no longer
+	// registers handlers itself (IntentBus.register chains, so a second registration would
+	// double-execute every handler).
 	const bridge = await startBackend({ connector, capabilities })
-	const rootStore = createBackendRootStore()
+	const rootStore = getBackendRootStore()
 	const bus = getIntentBus()
 	if (!bus || !bridge) throw new Error("C3 gate test: intent bus or bridge missing after boot")
-
-	registerHandlers(bus)
-	bus.setProvider(bridge)
 
 	new FakeAIHandler({ fakeAi: makeFakeAI() })
 	rootStore.settings.apiConfig.setConfiguration({

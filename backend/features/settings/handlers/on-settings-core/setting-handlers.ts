@@ -2,10 +2,13 @@ import type { Language, ExperimentId } from "@jabberwock/types"
 import { changeLanguage } from "@i18n"
 import { Package } from "@shared/package"
 import { experimentDefault } from "@shared/experiments"
-import { Terminal } from "@integrations/terminal/terminal-core/Terminal"
+// D4g-2 (batch 3): the settings handlers only use the static terminal-config setters, which live
+// on the vscode-free BaseTerminal (Terminal extends it). Importing BaseTerminal instead of the
+// vscode-importing Terminal keeps the settings handler graph host-neutral.
+import { BaseTerminal as Terminal } from "@integrations/terminal/terminal-core/BaseTerminal"
 import { setTtsEnabled, setTtsSpeed } from "@utils/token/tts"
-import * as vscode from "vscode"
 import { getHostEnvironment } from "@features/foundation/host-context/context"
+import { getConfiguration } from "@features/foundation/capabilities/registry"
 import { getMcpServerManager } from "@services/mcp/core/McpServerManager"
 
 type SettingHandler = (value: unknown) => Promise<unknown>
@@ -21,9 +24,9 @@ export const SETTING_HANDLERS: Record<string, SettingHandler> = {
 		const valid = Array.isArray(commands)
 			? commands.filter((cmd: unknown) => typeof cmd === "string" && cmd.trim().length > 0)
 			: []
-		await vscode.workspace
-			.getConfiguration(Package.name)
-			.update("allowedCommands", valid, vscode.ConfigurationTarget.Global)
+		// D4g-2 (batch 3): config write via the capability slot (D4b) — the vscode connector backs
+		// IConfiguration.update with getConfiguration(section).update(key, value, Global).
+		await getConfiguration().update(Package.name, "allowedCommands", valid)
 		return valid
 	},
 	deniedCommands: async (value) => {
@@ -31,9 +34,8 @@ export const SETTING_HANDLERS: Record<string, SettingHandler> = {
 		const valid = Array.isArray(commands)
 			? commands.filter((cmd: unknown) => typeof cmd === "string" && cmd.trim().length > 0)
 			: []
-		await vscode.workspace
-			.getConfiguration(Package.name)
-			.update("deniedCommands", valid, vscode.ConfigurationTarget.Global)
+		// D4g-2 (batch 3): config write via the capability slot (D4b).
+		await getConfiguration().update(Package.name, "deniedCommands", valid)
 		return valid
 	},
 	ttsEnabled: async (value) => {

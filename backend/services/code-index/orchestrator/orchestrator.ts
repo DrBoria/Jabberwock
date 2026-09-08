@@ -1,5 +1,4 @@
-import * as vscode from "vscode"
-
+import type { DisposableLike } from "@jabberwock/types"
 import type { IndexingState } from "@services/code-index/state-manager"
 import type { CodeIndexConfigManager } from "@services/code-index/config/manager"
 import type { CodeIndexStateManager } from "@services/code-index/state-manager"
@@ -11,7 +10,7 @@ import { canStartIndexing, type OrchestratorContext } from "./orchestrator.helpe
 import { handleIndexingError, runFullScan, runIncrementalScan } from "./orchestrator.scan"
 
 export class CodeIndexOrchestrator {
-	private _fileWatcherSubscriptions: vscode.Disposable[] = []
+	private _fileWatcherSubscriptions: DisposableLike[] = []
 	private _isProcessing: boolean = false
 	private _abortController: AbortController | null = null
 

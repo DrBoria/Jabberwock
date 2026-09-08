@@ -1,0 +1,24 @@
+{
+	"servers": {
+		"jabberwock-devtools": {
+			"type": "stdio",
+			"command": "node",
+			"args": ["--experimental-websocket", "--import", "tsx", "packages/devtool/src/api/mcp-entry/mcp-entry.ts"]
+		},
+		"debug-mcp": {
+			"type": "stdio",
+			"command": "node",
+			"args": ["packages/devtool/src/api/debug-mcp-bridge.mjs"]
+		},
+		"serena": {
+			"type": "stdio",
+			"command": "serena",
+			"args": ["start-mcp-server", "--project", "."]
+		},
+		"rpg": {
+			"type": "stdio",
+			"command": "npx",
+			"args": ["-y", "-p", "rpg-encoder", "rpg-mcp-server"]
+		}
+	}
+}

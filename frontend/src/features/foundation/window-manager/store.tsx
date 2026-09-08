@@ -1,6 +1,6 @@
 import { types, Instance } from "mobx-state-tree"
 
-import { vscode } from "@jabberwock/devtool/webview"
+import { getConnectorBus } from "../../../connector-bus"
 import type { WebviewMessage, ShareVisibility } from "@jabberwock/types"
 import { eventConstants } from "@jabberwock/types"
 
@@ -117,7 +117,7 @@ export const WindowManagerStore = types
 			tab: "settings" | "history" | "mcp" | "modes" | "chat" | "marketplace" | "cloud",
 			values?: Record<string, unknown>,
 		) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.WINDOW_MANAGER.SWITCH_TAB,
 				tab,
 				...(values !== undefined && { values }),
@@ -126,21 +126,21 @@ export const WindowManagerStore = types
 
 		// ── Webview did launch ────────────────────────────────────────
 		webviewDidLaunch() {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CHAT.TASK.WEBVIEW_DID_LAUNCH,
 			} satisfies WebviewMessage)
 		},
 
 		// ── Focus panel request ────────────────────────────────────────
 		focusPanelRequest() {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.WINDOW_MANAGER.FOCUS_PANEL_REQUEST,
 			} satisfies WebviewMessage)
 		},
 
 		// ── Respond with active page ──────────────────────────────────
 		respondWithActivePage(requestId: string, activePage: string) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.WINDOW_MANAGER.ACTIVE_PAGE_RESPONSE,
 				requestId,
 				activePage,
@@ -149,7 +149,7 @@ export const WindowManagerStore = types
 
 		// ── Share current task ────────────────────────────────────────
 		shareCurrentTask(visibility: ShareVisibility) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.WINDOW_MANAGER.EXPORT_CURRENT_TASK,
 				visibility,
 			} satisfies WebviewMessage)
@@ -157,14 +157,14 @@ export const WindowManagerStore = types
 
 		// ── Focus panel ───────────────────────────────────────────────
 		focusPanel() {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.WINDOW_MANAGER.FOCUS_PANEL_REQUEST,
 			} satisfies WebviewMessage)
 		},
 
 		// ── Batch file response ───────────────────────────────────────
 		batchFileResponse(response: { [key: string]: boolean }) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: "batchFileResponse" as const,
 				response,
 			} satisfies WebviewMessage)

@@ -7,7 +7,7 @@ import type {
 	JabberwockTerminalProcess,
 	JabberwockTerminalProcessResultPromise,
 	ExitCodeDetails,
-} from "@integrations/terminal/types"
+} from "@jabberwock/types"
 
 export abstract class BaseTerminal implements RooTerminal {
 	public readonly provider: RooTerminalProvider

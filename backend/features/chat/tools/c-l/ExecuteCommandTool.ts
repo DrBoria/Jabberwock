@@ -1,6 +1,5 @@
-import * as vscode from "vscode"
-
 import { Package } from "@shared/package"
+import { getConfiguration } from "@features/foundation/capabilities/registry"
 import { ToolUse } from "@shared/tools"
 import { formatResponse } from "@features/settings/context/responses"
 import { unescapeHtmlEntities } from "@utils/text"
@@ -30,13 +29,10 @@ function resolveCommandOptions(
 	customCwd?: string,
 	timeoutSeconds?: number | null,
 ): ExecuteCommandOptions {
-	const commandExecutionTimeoutSeconds = vscode.workspace
-		.getConfiguration(Package.name)
-		.get<number>("commandExecutionTimeout", 0)
+	const commandExecutionTimeoutSeconds =
+		getConfiguration().get<number>(Package.name, "commandExecutionTimeout", 0) ?? 0
 
-	const commandTimeoutAllowlist = vscode.workspace
-		.getConfiguration(Package.name)
-		.get<string[]>("commandTimeoutAllowlist", [])
+	const commandTimeoutAllowlist = getConfiguration().get<string[]>(Package.name, "commandTimeoutAllowlist", []) ?? []
 
 	const isCommandAllowlisted = commandTimeoutAllowlist.some((prefix) => canonicalCommand.startsWith(prefix.trim()))
 

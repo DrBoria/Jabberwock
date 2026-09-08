@@ -1,4 +1,5 @@
 import type { BackendCapabilities, IBackendConnector } from "@jabberwock/types"
+import { getOrCreateTelemetryService } from "@jabberwock/telemetry"
 
 import { setBackendLogger } from "@features/foundation/capabilities/backend-logger"
 import { drainQueueToResolver, wireInboundToQueue } from "@features/foundation/webview/inbound-wiring"
@@ -7,6 +8,8 @@ import { webviewMessageHandler } from "@features/foundation/webview/events/handl
 import { setConnector, setProvider } from "@features/foundation/webview/providerRegistry"
 import { initContextArchive } from "@features/context"
 import { registerContextIntents } from "@features/context/actions"
+import { createBackendRootStore } from "@features/store"
+import { setupIntentBus } from "./intents"
 
 /**
  * Options for the shared backend bootstrap (plan §7.1).
@@ -29,18 +32,13 @@ export interface BackendStartupOptions {
  *   1. `connector.start(capabilities)` — transport up (webview ready / WS listening on loopback|TUN).
  *   2. `EventBridge(connector, caps)` — the single transport-agnostic bridge (§4.2).
  *   3. Active provider + connector slots in the providerRegistry for legacy call sites (Phase E).
- *   4. Inbound wiring: `connector.onInbound → capabilities.queue → drain → webviewMessageHandler` (§4.6).
- *   5. Module-level logger slot (`setBackendLogger`), backed by `caps.logger` when the host provides one.
- *
- * PURITY NOTE (G6 / criterion C-2 §8.3): this module deliberately does NOT create the MST root store
- * or register feature intent handlers. Those stay on the host path because the root-store import graph
- * is still vscode-coupled — `reports/audit-platform.json` lists 100 backend files importing "vscode",
- * and the root-store graph alone reaches 21 of them (verified by the Phase C2 esbuild probe). Importing
- * them here would pull "vscode" into the standalone server bundle and fail the esbuild purity gate.
- * Extension mode therefore continues to call `createBackendRootStore` + `setupIntentBus` after
- * `startBackend()` (in `connectors/vscode/backend/activation/extension.ts`); server mode hydrates from a
- * pure capability-derived state. Once the purity debt is cleared, this composition graduates to the full
- * §7.1 sketch (root store + intent bus inside `startBackend`).
+ *   4. Context intent handlers (`registerContextIntents`) — webview message handlers for BOTH hosts.
+ *   5. MST root store (`createBackendRootStore`) + ALL feature intent handlers (`setupIntentBus`) — the
+ *      full §7.1 sketch, now in BOTH modes (D4g PART 2). The root store is created before the intent bus
+ *      so `getIntentBus()` resolves; the telemetry service is get-or-created so the provider set here
+ *      propagates to clients the host registers later (e.g. PostHog in extension mode).
+ *   6. Inbound wiring: `connector.onInbound → capabilities.queue → drain → webviewMessageHandler` (§4.6).
+ *   7. Module-level logger slot (`setBackendLogger`), backed by `caps.logger` when the host provides one.
  *
  * @returns the registered `EventBridge` (the active provider handle).
  */
@@ -61,9 +59,16 @@ export async function startBackend(opts: BackendStartupOptions): Promise<EventBr
 	setConnector(connector)
 
 	// ICG-C2 section 8.1: context graph intent handlers (search/recall/describe/history-range plus the cancel observer).
-	// Registered from the shared bootstrap so BOTH hosts get them - web mode has no setupIntentBus; in extension mode a later
-	// setupIntentBus registration may overwrite the "cancelTask" slot (recorded deviation, full dual-mode wiring lands with Phase D1).
+	// Registered from the shared bootstrap so BOTH hosts get them; a later setupIntentBus registration may overwrite the
+	// "cancelTask" slot (recorded deviation, full dual-mode wiring lands with Phase D1).
 	registerContextIntents()
+
+	// D4g PART 2 (§7.1): full MST root store + ALL feature intent handlers, in BOTH modes. The root store is
+	// created before the intent bus so getIntentBus() resolves. The telemetry service is get-or-created so the
+	// provider set by setupIntentBus propagates to clients the host registers later (e.g. PostHog in extension mode).
+	const telemetryService = getOrCreateTelemetryService()
+	createBackendRootStore({ globalStoragePath: capabilities.hostContext.storageDir })
+	await setupIntentBus(bridge, telemetryService)
 
 	// Inbound: connector → queue → drain → existing resolver (§4.6).
 	wireInboundToQueue(connector, capabilities.queue, connector.id)

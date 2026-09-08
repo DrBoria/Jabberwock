@@ -1,9 +1,9 @@
 import * as path from "path"
-import * as vscode from "vscode"
 
 import { unescapeSpaces } from "@shared/context/mentions"
 
 import { openFile } from "@integrations/misc/open-file"
+import { getHostContext } from "@features/foundation/host-context/context"
 
 import { FileContextTracker } from "@features/foundation/time-machine/file-context/FileContextTracker"
 import type { SkillLookup } from "@services/skills/skillInvocation"
@@ -16,6 +16,21 @@ import {
 } from "@features/chat/task/messages/actions/command/commandHelpers"
 import { processMentions } from "./mentionHelpers"
 
+// D4g-2 (batch 3): host command dispatch helpers — each isolates a single hostCommands slot call
+// so openMention stays within the complexity budget (the chained optional calls would otherwise
+// push it over the limit). Server mode has no host, so each degrades to a no-op.
+function revealInHostExplorer(filePath: string): void {
+	getHostContext()?.hostCommands?.revealInExplorer?.(filePath)
+}
+
+function openExternalUrl(url: string): void {
+	getHostContext()?.hostCommands?.openExternal?.(url)
+}
+
+function runHostCommand(command: string, ...args: unknown[]): void {
+	getHostContext()?.hostCommands?.executeCommand?.(command, ...args)
+}
+
 export async function openMention(cwd: string, mention?: string): Promise<void> {
 	if (!mention) {
 		return
@@ -25,16 +40,16 @@ export async function openMention(cwd: string, mention?: string): Promise<void> 
 		const relPath = unescapeSpaces(mention.slice(1))
 		const absPath = path.resolve(cwd, relPath)
 		if (mention.endsWith("/")) {
-			vscode.commands.executeCommand("revealInExplorer", vscode.Uri.file(absPath))
+			revealInHostExplorer(absPath)
 		} else {
 			openFile(absPath)
 		}
 	} else if (mention === "problems") {
-		vscode.commands.executeCommand("workbench.actions.view.problems")
+		runHostCommand("workbench.actions.view.problems")
 	} else if (mention === "terminal") {
-		vscode.commands.executeCommand("workbench.action.terminal.focus")
+		runHostCommand("workbench.action.terminal.focus")
 	} else if (mention.startsWith("http")) {
-		vscode.env.openExternal(vscode.Uri.parse(mention))
+		openExternalUrl(mention)
 	}
 }
 

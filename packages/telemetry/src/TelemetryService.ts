@@ -8,13 +8,19 @@ import {
 } from "@jabberwock/types"
 
 export class TelemetryService {
+	private provider: TelemetryPropertiesProvider | null = null
+
 	constructor(private clients: TelemetryClient[]) {}
 
 	public register(client: TelemetryClient): void {
 		this.clients.push(client)
+		if (this.provider) {
+			client.setProvider(this.provider)
+		}
 	}
 
 	public setProvider(provider: TelemetryPropertiesProvider): void {
+		this.provider = provider
 		if (this.isReady) {
 			this.clients.forEach((client) => client.setProvider(provider))
 		}

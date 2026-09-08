@@ -1,4 +1,5 @@
-import * as vscode from "vscode"
+import type { IUri } from "@jabberwock/types"
+import { getBackendCapabilities } from "@features/foundation/capabilities/registry"
 import * as path from "path"
 
 export interface ExportContext {
@@ -31,31 +32,31 @@ export function resolveDefaultSaveUri(
 	configKey: string,
 	fileName: string,
 	options: ExportOptions = {},
-): vscode.Uri {
+): IUri {
 	const { useWorkspace = true, fallbackDir } = options
 	const lastExportPath = context.getValue(configKey) as string | undefined
 
 	if (lastExportPath) {
 		// Use the directory from the last export
 		const lastDir = path.dirname(lastExportPath)
-		return vscode.Uri.file(path.join(lastDir, fileName))
+		return { fsPath: path.join(lastDir, fileName) }
 	} else {
 		// Try workspace if enabled
-		const workspaceFolders = vscode.workspace.workspaceFolders
+		const workspaceFolders = getBackendCapabilities().hostContext.workspaceFolders
 		if (useWorkspace && workspaceFolders && workspaceFolders.length > 0) {
-			return vscode.Uri.file(path.join(workspaceFolders[0].uri.fsPath, fileName))
+			return { fsPath: path.join(workspaceFolders[0], fileName) }
 		}
 
 		// Fallback
 		if (fallbackDir) {
-			return vscode.Uri.file(path.join(fallbackDir, fileName))
+			return { fsPath: path.join(fallbackDir, fileName) }
 		}
 
 		// Default to cwd/home
-		return vscode.Uri.file(fileName)
+		return { fsPath: fileName }
 	}
 }
 
-export async function saveLastExportPath(context: ExportContext, configKey: string, uri: vscode.Uri) {
+export async function saveLastExportPath(context: ExportContext, configKey: string, uri: IUri) {
 	await context.setValue(configKey, uri.fsPath)
 }

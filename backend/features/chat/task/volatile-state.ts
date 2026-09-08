@@ -4,7 +4,7 @@ import type { Anthropic } from "@anthropic-ai/sdk"
 import type { AskResponseValue, TokenUsage, ToolUsage, Notification } from "@jabberwock/types"
 import type { AssistantMessageContent } from "@features/chat/task/messages/actions"
 import type { ApiMessage } from "@features/chat/task/messages/actions/save/saveApiMessages.types"
-import type { JabberwockTerminalProcessResultPromise } from "@integrations/terminal/types"
+import type { JabberwockTerminalProcessResultPromise } from "@jabberwock/types"
 import type { IAutoApprovalHandler } from "@features/settings"
 import debounce from "lodash.debounce"
 

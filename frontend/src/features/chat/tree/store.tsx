@@ -124,7 +124,7 @@ export const commandExecutionStore = CommandExecutionStore.create({ executions: 
 
 // ── Action factory for ChatStore composition ──────────────────────────
 
-import { vscode } from "@jabberwock/devtool/webview"
+import { getConnectorBus } from "../../../connector-bus"
 import type { WebviewMessage, AskResponseValue } from "@jabberwock/types"
 import { eventConstants } from "@jabberwock/types"
 
@@ -137,7 +137,7 @@ export function createMessagesListActions(self: {
 }) {
 	return {
 		respondToAsk(response: AskResponseValue, text?: string, images?: string[]) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CHAT.MESSAGES_LIST.ASK_RESPONSE,
 				askResponse: response,
 				text,
@@ -148,14 +148,14 @@ export function createMessagesListActions(self: {
 		},
 
 		deleteMessage(value: number) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CHAT.MESSAGES_LIST.DELETE_MESSAGE,
 				value,
 			} satisfies WebviewMessage)
 		},
 
 		submitEditedMessage(value: number, editedMessageContent: string, images?: string[]) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CHAT.MESSAGES_LIST.SUBMIT_EDITED_MESSAGE,
 				value,
 				editedMessageContent,
@@ -164,7 +164,7 @@ export function createMessagesListActions(self: {
 		},
 
 		confirmDeleteMessage(messageTs: number, restoreCheckpoint?: boolean) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CHAT.MESSAGES_LIST.DELETE_MESSAGE_CONFIRM,
 				messageTs,
 				...(restoreCheckpoint !== undefined && { restoreCheckpoint }),
@@ -172,7 +172,7 @@ export function createMessagesListActions(self: {
 		},
 
 		confirmEditMessage(messageTs: number, text: string, restoreCheckpoint?: boolean, images?: string[]) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CHAT.MESSAGES_LIST.EDIT_MESSAGE_CONFIRM,
 				messageTs,
 				text,
@@ -182,7 +182,7 @@ export function createMessagesListActions(self: {
 		},
 
 		taskSyncEnabled(bool: boolean) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CHAT.TASK.TASK_SYNC_ENABLED,
 				bool,
 			} satisfies WebviewMessage)

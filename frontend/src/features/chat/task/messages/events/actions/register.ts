@@ -2,11 +2,11 @@
  * Messages event action creators.
  *
  * These functions dispatch message-list-related events to the backend
- * via vscode.postMessage. They live in `events/actions/` instead of
+ * via the connector bus (getConnectorBus().publish). They live in `events/actions/` instead of
  * the store to decouple action dispatch from MST state management.
  */
 
-import { vscode } from "@jabberwock/devtool/webview"
+import { getConnectorBus } from "../../../../../../connector-bus"
 import type { WebviewMessage, AskResponseValue } from "@jabberwock/types"
 import { MessagesEventKeys } from "../constants"
 
@@ -14,7 +14,7 @@ import { MessagesEventKeys } from "../constants"
  * Send an ask response (primary/secondary button click, message response).
  */
 export function sendAskResponse(response: AskResponseValue, text?: string, images?: string[]) {
-	vscode.postMessage({
+	getConnectorBus().publish({
 		type: MessagesEventKeys.ASK_RESPONSE,
 		askResponse: response,
 		text,
@@ -26,7 +26,7 @@ export function sendAskResponse(response: AskResponseValue, text?: string, image
  * Request deletion of a message by its timestamp value.
  */
 export function sendDeleteMessage(value: number) {
-	vscode.postMessage({
+	getConnectorBus().publish({
 		type: MessagesEventKeys.DELETE_MESSAGE,
 		value,
 	} satisfies WebviewMessage)
@@ -36,7 +36,7 @@ export function sendDeleteMessage(value: number) {
  * Submit an edited message.
  */
 export function sendSubmitEditedMessage(value: number, editedMessageContent: string, images?: string[]) {
-	vscode.postMessage({
+	getConnectorBus().publish({
 		type: MessagesEventKeys.SUBMIT_EDITED_MESSAGE,
 		value,
 		editedMessageContent,
@@ -48,7 +48,7 @@ export function sendSubmitEditedMessage(value: number, editedMessageContent: str
  * Confirm deletion of a message, optionally restoring a checkpoint.
  */
 export function sendConfirmDeleteMessage(messageTs: number, restoreCheckpoint?: boolean) {
-	vscode.postMessage({
+	getConnectorBus().publish({
 		type: MessagesEventKeys.DELETE_MESSAGE_CONFIRM,
 		messageTs,
 		...(restoreCheckpoint !== undefined && { restoreCheckpoint }),
@@ -64,7 +64,7 @@ export function sendConfirmEditMessage(
 	restoreCheckpoint?: boolean,
 	images?: string[],
 ) {
-	vscode.postMessage({
+	getConnectorBus().publish({
 		type: MessagesEventKeys.EDIT_MESSAGE_CONFIRM,
 		messageTs,
 		text,
@@ -77,7 +77,7 @@ export function sendConfirmEditMessage(
  * Send task sync enabled status.
  */
 export function sendTaskSyncEnabled(bool: boolean) {
-	vscode.postMessage({
+	getConnectorBus().publish({
 		type: MessagesEventKeys.TASK_SYNC_ENABLED,
 		bool,
 	} satisfies WebviewMessage)

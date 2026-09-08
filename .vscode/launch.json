@@ -12,13 +12,13 @@
 			"request": "launch",
 			"runtimeExecutable": "${execPath}",
 			"args": [
-			"--extensionDevelopmentPath=${workspaceFolder}/backend",
+				"--extensionDevelopmentPath=${workspaceFolder}/backend",
 				"--disable-extension",
 				"ozzafar.debugmcpextension"
 			],
 			"sourceMaps": true,
 			"outFiles": ["${workspaceFolder}/backend/dist/**/*.js", "${workspaceFolder}/packages/*/dist/**/*.js"],
-			"preLaunchTask": "${defaultBuildTask}",
+			"preLaunchTask": "build:extension",
 			"env": {
 				"NODE_ENV": "development",
 				"VSCODE_DEBUG_MODE": "true"

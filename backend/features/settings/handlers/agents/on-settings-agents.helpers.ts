@@ -1,10 +1,10 @@
-import * as vscode from "vscode"
 import * as os from "os"
 import * as path from "path"
 import * as fs from "fs/promises"
+import type { IUri } from "@jabberwock/types"
 import { t } from "@i18n"
 import { getWorkspacePath } from "@utils/io/path"
-import { getHostEnvironment } from "@features/foundation/host-context/context"
+import { getHostEnvironment, getWorkspaceRoot } from "@features/foundation/host-context/context"
 import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
 
 /** Resolve the rules folder path for a custom mode based on its scope */
@@ -37,14 +37,16 @@ export async function deleteRulesFolder(slug: string, rulesFolderPath: string): 
 }
 
 /** Resolve default URI for the import mode file dialog */
-export async function resolveImportDefaultUri(): Promise<vscode.Uri | undefined> {
+export async function resolveImportDefaultUri(): Promise<IUri | undefined> {
 	const lastImportPath = getHostEnvironment().getGlobalState("lastModeImportPath") as string | undefined
 	if (lastImportPath) {
-		return vscode.Uri.file(path.dirname(lastImportPath))
+		return { fsPath: path.dirname(lastImportPath) }
 	}
-	const workspaceFolders = vscode.workspace.workspaceFolders
-	if (workspaceFolders && workspaceFolders.length > 0) {
-		return vscode.Uri.file(workspaceFolders[0].uri.fsPath)
+	// D4g-2 (batch 3): workspace root via the host-context slot (D4e) — server mode has no
+	// workspace folders, so the dialog falls back to the host default location.
+	const workspaceRoot = getWorkspaceRoot()
+	if (workspaceRoot) {
+		return { fsPath: workspaceRoot }
 	}
 	return undefined
 }

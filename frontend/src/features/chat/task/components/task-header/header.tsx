@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next"
 import { observer } from "mobx-react-lite"
 import type { Goal } from "@jabberwock/types"
 import { eventConstants } from "@jabberwock/types"
-import { vscode } from "@jabberwock/devtool/webview"
+import { getConnectorBus } from "../../../../../connector-bus"
 import { FoldVertical } from "lucide-react"
 import { useCloudUpsell } from "@src/hooks/useCloudUpsell"
 import { useSelectedModel } from "@/features/foundation/ui/hooks/useSelectedModel/useSelectedModel"
@@ -74,21 +74,21 @@ const TaskHeaderComponent = () => {
 				...prev,
 				{ id: crypto.randomUUID(), text, ts: Date.now(), version: 1, order: editableGoals.length },
 			])
-			vscode.postMessage({ type: eventConstants.CHAT.TASK.GOAL_ADD, text })
+			getConnectorBus().publish({ type: eventConstants.CHAT.TASK.GOAL_ADD, text })
 		},
 		[editableGoals.length],
 	)
 
 	const handleRemoveGoal = useCallback((id: string) => {
 		setEditableGoals((prev) => prev.filter((g) => g.id !== id))
-		vscode.postMessage({ type: eventConstants.CHAT.TASK.GOAL_REMOVE, id })
+		getConnectorBus().publish({ type: eventConstants.CHAT.TASK.GOAL_REMOVE, id })
 	}, [])
 
 	const handleUpdateGoal = useCallback((id: string, partial: Partial<Goal>) => {
 		setEditableGoals((prev) =>
 			prev.map((g) => (g.id === id ? { ...g, ...partial, id: g.id, version: g.version + 1, ts: Date.now() } : g)),
 		)
-		vscode.postMessage(buildGoalUpdateMessage(id, partial))
+		getConnectorBus().publish(buildGoalUpdateMessage(id, partial))
 	}, [])
 
 	const handleReorderGoals = useCallback((fromIndex: number, toIndex: number) => {

@@ -13,6 +13,15 @@ export function createTelemetryService(clients: TelemetryClient[] = []): Telemet
 	return _globalTelemetryService
 }
 
+export function getOrCreateTelemetryService(clients: TelemetryClient[] = []): TelemetryService {
+	if (_globalTelemetryService) {
+		return _globalTelemetryService
+	}
+
+	_globalTelemetryService = new TelemetryService(clients)
+	return _globalTelemetryService
+}
+
 export function getTelemetryService(): TelemetryService {
 	if (!_globalTelemetryService) {
 		throw new Error("TelemetryService not initialized")

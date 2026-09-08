@@ -1,7 +1,7 @@
 import * as path from "path"
 import * as os from "os"
 import * as fs from "fs/promises"
-import * as vscode from "vscode"
+import { getHostContext } from "@features/foundation/host-context/context"
 import { IntentType } from "@jabberwock/types"
 import { getTaskDirectoryPath } from "@utils/io"
 import { fileExistsAtPath } from "@utils/io/fs"
@@ -94,8 +94,9 @@ function buildDiagnosticsContent(
 /** Write diagnostics to temp file and open in editor */
 async function writeAndOpenDiagnostics(fullContent: string, tempFilePath: string): Promise<void> {
 	await fs.writeFile(tempFilePath, fullContent, "utf8")
-	const doc = await vscode.workspace.openTextDocument(tempFilePath)
-	await vscode.window.showTextDocument(doc, { preview: true })
+	// D4g-2 (batch 3): open the diagnostics file in the host editor via the hostCommands slot
+	// (D4g-pre) — server mode has no host editor, so this degrades to a no-op.
+	getHostContext()?.hostCommands?.openFileInEditor?.(tempFilePath, { preview: true })
 }
 
 export async function generateErrorDiagnostics(params: GenerateDiagnosticsParams): Promise<GenerateDiagnosticsResult> {

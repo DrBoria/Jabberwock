@@ -1,4 +1,3 @@
-import vscode from "vscode"
 import path from "path"
 import * as os from "os"
 
@@ -7,6 +6,7 @@ import { worktreeService, worktreeIncludeService, type CopyProgressCallback } fr
 
 import { getWorkspacePath } from "@utils/io/path"
 import { getSettingsAccess } from "@utils/settings"
+import { getHostContext, getWorkspaceRoot } from "@features/foundation/host-context/context"
 
 /**
  * Generate a random alphanumeric suffix for branch/folder names.
@@ -82,10 +82,10 @@ export async function handleDeleteWorktreeInternal(worktreePath: string, force =
 
 export async function handleSwitchWorktreeInternal(worktreePath: string, newWindow: boolean): Promise<WorktreeResult> {
 	try {
-		const worktreeUri = vscode.Uri.file(worktreePath)
-
 		await getSettingsAccess().setValue("worktreeAutoOpenPath", worktreePath)
-		await vscode.commands.executeCommand("vscode.openFolder", worktreeUri, { forceNewWindow: newWindow })
+		// D4g-2 (batch 3): open the worktree folder via the hostCommands slot (D4g-pre) — server
+		// mode has no host window, so this degrades to a no-op.
+		getHostContext()?.hostCommands?.openFolder?.(worktreePath, { forceNewWindow: newWindow })
 
 		return {
 			success: true,
@@ -107,8 +107,10 @@ export async function handleGetAvailableBranchesInternal(): Promise<BranchInfo> 
 
 export async function handleGetWorktreeDefaultsInternal(): Promise<WorktreeDefaultsResponse> {
 	const suffix = generateRandomSuffix()
-	const workspaceFolders = vscode.workspace.workspaceFolders
-	const projectName = workspaceFolders?.[0]?.name || "project"
+	// D4g-2 (batch 3): workspace folder name via the host-context slot (D4e) — the folder name is
+	// the basename of the first workspace root; server mode has no workspace, so "project".
+	const workspaceRoot = getWorkspaceRoot()
+	const projectName = workspaceRoot ? path.basename(workspaceRoot) : "project"
 
 	const dotRooPath = path.join(os.homedir(), ".jabberwock")
 	const suggestedPath = path.join(dotRooPath, "worktrees", `${projectName}-${suffix}`)
@@ -137,8 +139,8 @@ export async function handleCreateWorktreeIncludeInternal(content: string): Prom
 
 		try {
 			const filePath = path.join(cwd, ".worktreeinclude")
-			const document = await vscode.workspace.openTextDocument(filePath)
-			await vscode.window.showTextDocument(document)
+			// D4g-2 (batch 3): open the file in the host editor via the hostCommands slot (D4g-pre).
+			getHostContext()?.hostCommands?.openFileInEditor?.(filePath)
 		} catch {
 			// Opening the file in editor is a convenience feature - don't fail the operation
 		}

@@ -9,7 +9,7 @@ import {
 
 import type { ITaskModel } from "@features/chat/task/store"
 
-import { ExitCodeDetails, JabberwockTerminalProcessResultPromise } from "@integrations/terminal/types"
+import { ExitCodeDetails, JabberwockTerminalProcessResultPromise } from "@jabberwock/types"
 import { getTaskDirectoryPath } from "@utils/io"
 import { OutputInterceptor } from "@integrations/terminal/output-interceptor/OutputInterceptor"
 

@@ -9,6 +9,8 @@
  * This tracker is the transport-level claim registry embodying those rules — deterministic
  * and testable with the FakeConnector, without vscode or network.
  */
+import type { AskResponseValue } from "@jabberwock/types"
+
 export type AskClaimStatus = "claimed" | "already-answered"
 
 export interface AskClaimResult<TDecision> {
@@ -44,3 +46,10 @@ export class AskClaimTracker<TDecision = unknown> {
 		return this.claims.get(requestId)
 	}
 }
+
+/**
+ * D4h (§6.4): process-wide claim registry used by the askResponse handler so the standalone
+ * server (and the extension) both enforce first-response-wins. Typed with the chat ask decision
+ * union so the handler can broadcast the winning answer without a cast.
+ */
+export const askClaimTracker = new AskClaimTracker<AskResponseValue>()

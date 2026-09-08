@@ -1,7 +1,6 @@
-import * as vscode from "vscode"
-
 import { formatResponse } from "@features/settings/context/responses"
 import { Package } from "@shared/package"
+import { getConfiguration } from "@features/foundation/capabilities/registry"
 import { t } from "@i18n"
 
 import type { ITaskModel } from "@features/chat/task/store"
@@ -20,9 +19,11 @@ export async function validateAttemptCompletionPreConditions(
 		const errorMsg = t("common:errors.attempt_completion_tool_failed")
 		return errorMsg
 	}
-	const preventCompletionWithOpenTodos = vscode.workspace
-		.getConfiguration(Package.name)
-		.get<boolean>("preventCompletionWithOpenTodos", false)
+	const preventCompletionWithOpenTodos = getConfiguration().get<boolean>(
+		Package.name,
+		"preventCompletionWithOpenTodos",
+		false,
+	)
 	const hasIncompleteTodos = task._state.todoList && task._state.todoList.some((todo) => todo.status !== "completed")
 	if (preventCompletionWithOpenTodos && hasIncompleteTodos) {
 		task._state.setConsecutiveMistakeCount(task._state.consecutiveMistakeCount + 1)

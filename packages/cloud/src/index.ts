@@ -2,6 +2,8 @@ export * from "./config.ts"
 
 export { CloudService } from "./service/index.ts"
 
+export { setVscodeModule } from "./importVscode.ts"
+
 export {
 	createCloudService,
 	getCloudService,

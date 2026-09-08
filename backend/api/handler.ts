@@ -19,7 +19,6 @@ import {
 	DeepSeekHandler,
 	MoonshotHandler,
 	MistralHandler,
-	VsCodeLmHandler,
 	RequestyHandler,
 	UnboundHandler,
 	FakeAIHandler,
@@ -35,6 +34,7 @@ import {
 	BasetenHandler,
 } from "./providers"
 import { NativeOllamaHandler } from "./providers/native-ollama"
+import { getProvider } from "./providers/registry"
 
 export interface SingleCompletionHandler {
 	completePrompt(prompt: string): Promise<string>
@@ -132,7 +132,6 @@ const providerHandlerMap: Record<string, ProviderConstructor | ((options: Record
 	deepseek: DeepSeekHandler,
 	"qwen-code": QwenCodeHandler,
 	moonshot: MoonshotHandler,
-	"vscode-lm": VsCodeLmHandler,
 	mistral: MistralHandler,
 	requesty: RequestyHandler,
 	unbound: UnboundHandler,
@@ -157,7 +156,7 @@ export function buildApiHandler(configuration: ProviderSettings): ApiHandler {
 		)
 	}
 
-	const handlerFactory = providerHandlerMap[apiProvider ?? ""]
+	const handlerFactory = getProvider(apiProvider ?? "") ?? providerHandlerMap[apiProvider ?? ""]
 	if (handlerFactory) {
 		if (handlerFactory.prototype instanceof Object) {
 			const Ctor = handlerFactory as ProviderConstructor

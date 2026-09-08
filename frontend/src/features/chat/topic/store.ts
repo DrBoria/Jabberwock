@@ -1,4 +1,4 @@
-import { vscode } from "@jabberwock/devtool/webview"
+import { getConnectorBus } from "../../../connector-bus"
 import type { WebviewMessage } from "@jabberwock/types"
 import { eventConstants } from "@jabberwock/types"
 
@@ -9,7 +9,7 @@ export function createTopicActions(_self: unknown) {
 	return {
 		// ── Mode switching ─────────────────────────────────────────
 		switchMode(modeSlug: string) {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CHAT.TOPIC.MODE,
 				text: modeSlug,
 			} satisfies WebviewMessage)
@@ -17,7 +17,7 @@ export function createTopicActions(_self: unknown) {
 
 		// ── Request commands ───────────────────────────────────────
 		requestCommands() {
-			vscode.postMessage({
+			getConnectorBus().publish({
 				type: eventConstants.CHAT.TOPIC.REQUEST_COMMANDS,
 			} satisfies WebviewMessage)
 		},

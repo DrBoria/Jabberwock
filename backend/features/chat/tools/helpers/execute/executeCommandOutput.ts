@@ -5,8 +5,8 @@ import { getBackendRootStore } from "@features/storeSingleton"
 
 import type { ITaskModel } from "@features/chat/task/store"
 
-import { ExitCodeDetails, JabberwockTerminalProcess, RooTerminalCallbacks } from "@integrations/terminal/types"
-import { Terminal } from "@integrations/terminal/terminal-core/Terminal"
+import { ExitCodeDetails, JabberwockTerminalProcess, RooTerminalCallbacks } from "@jabberwock/types"
+import { getHostTerminalService } from "@features/foundation/capabilities/registry"
 import { OutputInterceptor } from "@integrations/terminal/output-interceptor/OutputInterceptor"
 
 import { userBroadcast } from "@features/chat/task/messages/actions/say"
@@ -72,6 +72,10 @@ export function buildTerminalCallbacks(
 	schedulePartialCommandOutputUpdate: () => void,
 	maxAccumulatedOutputSize: number,
 ): RooTerminalCallbacks {
+	// D4g-2 (batch 4): output compression via the host terminal service seam — the vscode connector
+	// backs this with the real Terminal.compressTerminalOutput; server mode degrades to the
+	// identity function (no host terminal to compress for).
+	const compress = getHostTerminalService()?.compressTerminalOutput ?? ((s: string) => s)
 	const callbacks: RooTerminalCallbacks = {
 		onLine: async (lines: string, process: JabberwockTerminalProcess) => {
 			state.accumulatedOutput += lines
@@ -82,7 +86,7 @@ export function buildTerminalCallbacks(
 
 			interceptor?.write(lines)
 
-			const compressedOutput = Terminal.compressTerminalOutput(state.accumulatedOutput)
+			const compressedOutput = compress(state.accumulatedOutput)
 			state.latestCompressedOutput = compressedOutput
 			const status: CommandExecutionStatus = { executionId, status: "output", output: compressedOutput }
 			sendCommandExecutionStatus(status)
@@ -116,7 +120,7 @@ export function buildTerminalCallbacks(
 					state.persistedResult = await interceptor.finalize()
 				}
 
-				state.result = Terminal.compressTerminalOutput(output ?? "")
+				state.result = compress(output ?? "")
 				state.latestCompressedOutput = state.result
 
 				await state.commandOutputSayChain

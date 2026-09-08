@@ -1,6 +1,5 @@
 import type { ExtensionBridge } from "./bridge.js"
 import { MessageInterceptor } from "./utils/interceptor.js"
-import * as vscode from "vscode"
 import type { BackendStore, FrontendBridge } from "./mst/types.js"
 import { registerGlobalErrorHandlers, nextRequestId, DevtoolBridgeProvider } from "./factories/factory-helpers.js"
 import { handleGetConsole, handleSearchConsole } from "./factories/factory-console.js"
@@ -20,7 +19,10 @@ export function createDevtoolBridge(
 
 	const interceptor = new MessageInterceptor({
 		executeVscodeCommand: async (command: string, args: unknown) => {
-			await vscode.commands.executeCommand(command, ...(Array.isArray(args) ? args : []))
+			if (!provider.executeCommand) {
+				throw new Error("executeVscodeCommand unavailable - no host command adapter installed")
+			}
+			await provider.executeCommand(command, args)
 			return ""
 		},
 		getActivePage: async () => {
@@ -42,7 +44,10 @@ export function createDevtoolBridge(
 
 	return {
 		async executeVscodeCommand(command: string, args?: unknown): Promise<string> {
-			await vscode.commands.executeCommand(command, ...(Array.isArray(args) ? args : []))
+			if (!provider.executeCommand) {
+				throw new Error("executeVscodeCommand unavailable - no host command adapter installed")
+			}
+			await provider.executeCommand(command, args)
 			return JSON.stringify({ success: true, command })
 		},
 
