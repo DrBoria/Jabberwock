@@ -10,7 +10,7 @@ import type { ProviderSettings, ExtensionMessage, ModelInfo } from "@jabberwock/
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 
-import { ModelPicker } from "../../../ModelPicker/ModelPickerComponent"
+import { ModelPicker } from "@src/features/settings/components/ModelPicker/main"
 
 type VSCodeLMProps = {
 	apiConfiguration: ProviderSettings

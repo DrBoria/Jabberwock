@@ -1,7 +1,6 @@
 import { IntentType } from "@jabberwock/types"
 import type { NotificationSay } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
-
+import type { IntentBus } from "@features/intents"
 /**
  * Handles agent.response.received intent — processes an assistant's response
  * and adds it to the message history.

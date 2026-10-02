@@ -21,3 +21,22 @@ export { exportModeWithRules } from "./modes-file-service"
 export { importRulesFiles, importModeWithRules } from "./modes-file-service"
 
 export { updateCustomModeInFile, deleteCustomModeFromFile, resetCustomModesInFile } from "./modes-file-service"
+// ─── Re-exports from "store.ts" (MST models) ─────────────────────
+export {
+	AgentStateModel,
+	ToolConfig,
+	AgentProfile,
+	AgentStore,
+	ModesModel,
+	type IAgentStore,
+	type IAgentProfile,
+	type IToolConfig,
+	type IAgentStateModel,
+	type AgentStateState,
+	initAgentStateState,
+	getAgentStateState,
+	type IModesModel,
+	type ModesState,
+	initModesState,
+	getModesState,
+} from "./store"

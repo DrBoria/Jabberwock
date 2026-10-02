@@ -6,15 +6,15 @@ import { VSCodeCheckbox, VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 
 import { type TelemetrySetting } from "@jabberwock/types"
 
-import { Package } from "@shared/package"
+import { Package } from "@shared/core/package"
 
 import { rootStore } from "@src/features/store"
 import { cn } from "@/lib/utils"
-import { Button } from "@src/shared/ui/buttons/button"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
 
-import { SectionHeader } from "../shared/SectionHeader"
-import { Section } from "../shared/Section"
-import { SearchableSetting } from "../shared/SearchableSetting"
+import { SectionHeader } from "@src/features/settings/components/shared/header"
+import { Section } from "@src/features/settings/components/shared/section"
+import { SearchableSetting } from "@src/features/settings/components/shared/SearchableSetting"
 
 type AboutProps = HTMLAttributes<HTMLDivElement> & {
 	telemetrySetting: TelemetrySetting

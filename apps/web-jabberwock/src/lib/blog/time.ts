@@ -98,7 +98,7 @@ export function formatPostDatePt(publishDate: string): string {
 }
 
 /**
- * Strip all angle brackets from text to remove any HTML tags or fragments.
+ * Strip all angle brackets from "text" to remove any HTML tags or fragments.
  * This is used only for word-count purposes in reading-time calculation,
  * so a single-pass removal of every `<` and `>` is sufficient and
  * avoids the incomplete multi-character sanitization pattern that

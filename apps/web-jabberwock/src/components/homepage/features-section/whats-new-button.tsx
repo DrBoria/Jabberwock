@@ -184,7 +184,7 @@ export function WhatsNewButton() {
 										duration: 0.25,
 									}}
 									onClick={(e) => {
-										// prevent clicks inside the panel from closing it
+										// prevent clicks inside the panel from "closing" it
 										e.stopPropagation()
 									}}>
 									<div className="flex items-center justify-between gap-4">

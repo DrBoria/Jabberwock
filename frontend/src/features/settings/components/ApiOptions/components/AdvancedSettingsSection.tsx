@@ -1,11 +1,11 @@
 import { DEFAULT_CONSECUTIVE_MISTAKE_LIMIT } from "@jabberwock/types"
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@src/shared/ui/displays/collapsible"
-import { TemperatureControl } from "../../provider-controls/TemperatureControl"
-import { RateLimitSecondsControl } from "../../provider-controls/RateLimitSecondsControl"
-import { ConsecutiveMistakeLimitControl } from "../../provider-controls/ConsecutiveMistakeLimitControl"
-import { noTransform } from "../../shared/transforms"
+import { TemperatureControl } from "@src/features/settings/components/provider-controls/TemperatureControl"
+import { RateLimitSecondsControl } from "@src/features/settings/components/provider-controls/RateLimitSecondsControl"
+import { ConsecutiveMistakeLimitControl } from "@src/features/settings/components/provider-controls/ConsecutiveMistakeLimitControl"
+import { noTransform } from "@src/features/settings/components/shared/transforms"
 import { OpenRouterProviderRouting } from "./OpenRouterProviderRouting"
-import type { AdvancedSettingsSectionProps } from "../types"
+import type { AdvancedSettingsSectionProps } from "@src/features/settings/components/ApiOptions/types"
 
 export const AdvancedSettingsSection = ({
 	fromWelcomeView,

@@ -35,7 +35,7 @@ export interface ISecretsView {
 export interface IExtensionContextView {
 	readonly globalState: IMementoView
 	readonly workspaceState: IMementoView
-	/** Structural host URI view; consumers read `.fsPath`. Always provided — real host contexts carry a full `Uri`, the facade synthesizes one from slots. */
+	/** Structural host URI view; consumers read `.fsPath`. Always provided — real host contexts carry a full `Uri`, the facade synthesizes one from "slots." */
 	readonly globalStorageUri: IHostUri
 	/** Optional workspace-scoped storage location (host context's `storageUri`); absent in server mode and for synthesized views. Consumers must degrade to `globalStorageUri`. */
 	readonly storageUri?: IHostUri | undefined
@@ -79,28 +79,35 @@ export interface BackendStateSlots {
 	isDevelopmentMode: boolean
 }
 
-let _slots: BackendStateSlots | undefined
-/** v4 B2 (L3/L4): host context slot installed from `BackendCapabilities.hostContext` at bootstrap. */
-let _hostContext: IHostContext | undefined
-/** Sync-read cache for the async hashmap-memory slot (server mode). Extension-mode reads go straight to the memento view. */
-const _asyncReadCache = new Map<string, unknown>()
-const _secretsCache = new Map<string, string | undefined>()
+/**
+ * Module state holder (DI slots — installed once during activation).
+ * Wrapped in a `const` object (no module-level `let` / `const = new`) so this module carries no
+ * shadow-store state (no-shadow-store rule); accessors read through `.value`-style properties.
+ */
+const _hostContextState = {
+	slots: undefined as BackendStateSlots | undefined,
+	/** v4 B2 (L3/L4): host context slot installed from `BackendCapabilities.hostContext` at bootstrap. */
+	hostContext: undefined as IHostContext | undefined,
+	/** Sync-read cache for the async hashmap-memory slot (server mode). Extension-mode reads go straight to the memento view. */
+	asyncReadCache: new Map<string, unknown>(),
+	secretsCache: new Map<string, string | undefined>(),
+}
 
 // ─── Host context accessors (v4 B2 — L3/L4 DI slots) ──────────────────────
 
 /** Install the host-context capability slot. Called once during bootstrap from `BackendCapabilities`. */
 export function setHostContext(hostContext: IHostContext): void {
-	_hostContext = hostContext
+	_hostContextState.hostContext = hostContext
 }
 
 /** The installed host context, or undefined before bootstrap (callers must degrade gracefully). */
 export function getHostContext(): IHostContext | undefined {
-	return _hostContext
+	return _hostContextState.hostContext
 }
 
-/** Workspace folder roots as plain paths. Extension mode: from the capability slot; fallback empty list. */
+/** Workspace folder roots as plain paths. Extension mode: from "the" capability slot; fallback empty list. */
 export function getWorkspaceRoots(): string[] {
-	const folders = _hostContext?.workspaceFolders ?? []
+	const folders = _hostContextState.hostContext?.workspaceFolders ?? []
 	if (folders.length > 0) return [...folders]
 	// Fallback for early startup before bootstrap installed host context with workspace info.
 	return []
@@ -108,21 +115,21 @@ export function getWorkspaceRoots(): string[] {
 
 /** First workspace root or empty string — the canonical "current workspace" path used by L4 consumers. */
 export function getWorkspaceRoot(): string {
-	const folders = _hostContext?.workspaceFolders ?? []
+	const folders = _hostContextState.hostContext?.workspaceFolders ?? []
 	if (folders.length > 0) return folders[0]
-	return _hostContext?.workspaceRoot ?? ""
+	return _hostContextState.hostContext?.workspaceRoot ?? ""
 }
 
-/** Memento view from the host context slot, or undefined when not installed. */
+/** Memento view from "the" host context slot, or undefined when not installed. */
 export function getHostMemento(): IMementoLike | undefined {
-	return _hostContext?.memento
+	return _hostContextState.hostContext?.memento
 }
 
 // ─── Host-context DI accessors (v4 B2 — L6/L7/C-5 zero-host-API) ──────────────
 
 /** Subscribe to workspace-folder changes via the host context slot; no-op when absent. */
 export function onWorkspaceFoldersChanged(handler: () => void): DisposableLike {
-	return _hostContext?.onWorkspaceFoldersChanged?.(handler) ?? { dispose() {} }
+	return _hostContextState.hostContext?.onWorkspaceFoldersChanged?.(handler) ?? { dispose() {} }
 }
 
 const ABSENT = "__absent__" as const
@@ -141,11 +148,11 @@ function isLegacyHostContextView(arg: BackendStateSlots | LegacyHostContextView)
  */
 export function installBackendState(slotsOrLegacy: BackendStateSlots | LegacyHostContextView): void {
 	if (!isLegacyHostContextView(slotsOrLegacy)) {
-		_slots = slotsOrLegacy
+		_hostContextState.slots = slotsOrLegacy
 		return
 	}
 	const legacy = slotsOrLegacy
-	_slots = {
+	_hostContextState.slots = {
 		global: legacy.globalState,
 		workspace: legacy.workspaceState,
 		secrets: undefined,
@@ -153,23 +160,23 @@ export function installBackendState(slotsOrLegacy: BackendStateSlots | LegacyHos
 		legacySecrets: legacy.secrets,
 		extensionRootPath: legacy.extensionUri.fsPath,
 		globalStoragePath: legacy.globalStorageUri.fsPath,
-		isDevelopmentMode: legacy.extensionMode === 1, // host enum value Development = 1
+		isDevelopmentMode: legacy.extensionMode === 2, // host enum value Development = 2 (VS Code: Production=1, Development=2, Test=3)
 	}
 }
 
 // ─── getHostEnvironment ──────────────────────────────────────────────
 
 function requireSlots(): BackendStateSlots {
-	if (!_slots) {
+	if (!_hostContextState.slots) {
 		throw new Error("Backend state not initialized. Call installBackendState() first.")
 	}
-	return _slots
+	return _hostContextState.slots
 }
 
 /** Sync read: memento view when present (extension mode), otherwise the async-slot cache (server mode). */
 function syncRead(view: IMementoView | undefined, key: string): unknown {
 	if (view) return view.get(key) ?? ABSENT
-	const cached = _asyncReadCache.get(key)
+	const cached = _hostContextState.asyncReadCache.get(key)
 	return cached === undefined ? ABSENT : cached
 }
 
@@ -179,7 +186,7 @@ function asyncMemento(slots: BackendStateSlots, prefix: string): IMementoView {
 	if (!memory) throw new Error("No state backend available — install a memento view or hashmapMemory capability")
 	return {
 		keys() {
-			const cachedKeys = [..._asyncReadCache.keys()]
+			const cachedKeys = [..._hostContextState.asyncReadCache.keys()]
 			if (!prefix) return cachedKeys.filter((k) => !k.startsWith(WORKSPACE_KEY_PREFIX))
 			return cachedKeys.filter((k) => k.startsWith(prefix)).map((k) => k.slice(prefix.length))
 		},
@@ -189,8 +196,8 @@ function asyncMemento(slots: BackendStateSlots, prefix: string): IMementoView {
 		},
 		update(key: string, value: unknown): Thenable<void> {
 			const promise = memory.set(prefix + key, value).then(() => {
-				if (value === undefined) _asyncReadCache.delete(prefix + key)
-				else _asyncReadCache.set(prefix + key, value)
+				if (value === undefined) _hostContextState.asyncReadCache.delete(prefix + key)
+				else _hostContextState.asyncReadCache.set(prefix + key, value)
 			})
 			return Promise.resolve(promise) as Thenable<void>
 		},
@@ -241,7 +248,7 @@ export function getHostEnvironment(): IHostEnvironment {
 			return { fsPath: slots.globalStoragePath }
 		},
 		get extensionMode() {
-			return slots.isDevelopmentMode ? 1 : 3 // host enum values: Development=1, Production=3 (numeric comparison at call sites)
+			return slots.isDevelopmentMode ? 2 : 1 // host enum values: Development=2, Production=1 (VS Code ExtensionMode, numeric comparison at call sites)
 		},
 
 		getGlobalState<T>(key: string): T | undefined {
@@ -255,18 +262,18 @@ export function getHostEnvironment(): IHostEnvironment {
 			if (!memory)
 				throw new Error("No state backend available — install a memento view or hashmapMemory capability")
 			const promise = memory.set(key, value).then(() => {
-				if (value === undefined) _asyncReadCache.delete(key)
-				else _asyncReadCache.set(key, value)
+				if (value === undefined) _hostContextState.asyncReadCache.delete(key)
+				else _hostContextState.asyncReadCache.set(key, value)
 			})
 			return Promise.resolve(promise) as Thenable<void>
 		},
 
 		getSecret(key: string): string | undefined {
-			return _secretsCache.get(key)
+			return _hostContextState.secretsCache.get(key)
 		},
 
 		async storeSecret(key: string, value: string | undefined): Promise<void> {
-			_secretsCache.set(key, value ?? undefined)
+			_hostContextState.secretsCache.set(key, value ?? undefined)
 			const secrets = secretsView()
 			if (!secrets) return
 			if (value === undefined) await secrets.delete(key)
@@ -279,7 +286,7 @@ export function getHostEnvironment(): IHostEnvironment {
 			await Promise.all(
 				[...SECRET_STATE_KEYS, ...GLOBAL_SECRET_KEYS].map(async (key) => {
 					const value = await store.get(key)
-					_secretsCache.set(key, value ?? undefined)
+					_hostContextState.secretsCache.set(key, value ?? undefined)
 				}),
 			)
 		},

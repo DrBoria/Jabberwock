@@ -1,5 +1,5 @@
 import type { McpHubState } from "@services/mcp/core/types"
-import { initializeMcpServers, debounceConfigChange, handleConfigFileChange } from "./init"
+import { initializeMcpServers, debounceConfigChange, handleConfigFileChange } from "./main"
 import {
 	watchMcpSettingsFile,
 	watchProjectMcpFile,

@@ -50,8 +50,13 @@ function typeIntoInputElement(el: Element, text: string): void {
 	} else {
 		;(el as HTMLInputElement).value = text
 	}
-	el.dispatchEvent(new Event("input", { bubbles: true }))
-	el.dispatchEvent(new Event("change", { bubbles: true }))
+	// `composed: true` makes the events retarget through a shadow DOM boundary
+	// when the input lives inside a custom element's shadow root, so host-level
+	// listeners (e.g. React `onInput` wrapped by @vscode/webview-ui-toolkit)
+	// still fire. For light-DOM inputs this is a no-op.
+	const eventOpts: EventInit = { bubbles: true, composed: true }
+	el.dispatchEvent(new Event("input", eventOpts))
+	el.dispatchEvent(new Event("change", eventOpts))
 }
 
 function typeIntoContentEditable(el: Element, text: string): void {
@@ -71,11 +76,47 @@ function typeIntoGenericElement(el: Element, text: string): void {
 	el.dispatchEvent(new Event("input", { bubbles: true }))
 }
 
+/**
+ * Type into a shadow-DOM host element (e.g. Fast Elements such as
+ * `vscode-text-field` / `vscode-text-area`): the real editable control lives
+ * inside `shadowRoot` (`part="control"`).
+ *
+ * Writing the value onto that inner input through its native setter and
+ * dispatching a composed `input` event there reproduces a real keystroke:
+ * the Fast control's own `handleTextInput` handler copies the value onto the
+ * host (`this.value = this.control.value`) and the composed `input` event
+ * retargets to the host, where React's `onInput` (wired by the toolkit's
+ * `wrap(..., events: { onInput: "input" })`) listens for it — and
+ * `e.target.value` reads the host's `value` property.
+ *
+ * Returns `true` when a shadow control was found and typed into.
+ */
+function typeIntoShadowHost(el: HTMLElement, text: string): boolean {
+	if (!el.shadowRoot) {
+		return false
+	}
+	const control = el.shadowRoot.querySelector<HTMLElement>('input, textarea, [contenteditable="true"]')
+	if (!control) {
+		return false
+	}
+	if (control instanceof HTMLInputElement || control instanceof HTMLTextAreaElement) {
+		typeIntoInputElement(control, text)
+		return true
+	}
+	if (control.isContentEditable) {
+		typeIntoContentEditable(control, text)
+		return true
+	}
+	return false
+}
+
 function dispatchAndRespond(el: Element, targetId: string, text: string, submit: boolean | undefined): void {
 	if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
 		typeIntoInputElement(el, text)
 	} else if (el.getAttribute("contenteditable") === "true") {
 		typeIntoContentEditable(el, text)
+	} else if (el instanceof HTMLElement && typeIntoShadowHost(el, text)) {
+		// Shadow-DOM host (e.g. vscode-text-field): typed into the inner control.
 	} else {
 		typeIntoGenericElement(el, text)
 	}

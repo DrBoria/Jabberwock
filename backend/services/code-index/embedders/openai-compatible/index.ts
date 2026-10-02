@@ -1,1 +1,1 @@
-export { OpenAICompatibleEmbedder } from "./embedder"
+export { OpenAICompatibleEmbedder } from "./main"

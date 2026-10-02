@@ -1,1 +1,1 @@
-export { FileWatcher } from "./file-watcher"
+export { FileWatcher } from "./main"

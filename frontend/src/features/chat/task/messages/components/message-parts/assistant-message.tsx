@@ -3,8 +3,8 @@ import { MessageCircle } from "lucide-react"
 import type { Notification } from "@jabberwock/types"
 import { Markdown } from "./markdown"
 import { ReasoningBlock } from "./reasoning-block"
-import { OpenMarkdownPreviewButton } from "./open-markdown-preview-button"
-import ImageBlock from "@src/features/foundation/components/image/ImageBlock"
+import { OpenMarkdownPreviewButton } from "./markdown"
+import { ImageBlock } from "@src/features/foundation"
 
 interface AssistantMessageProps {
 	message: Notification

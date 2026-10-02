@@ -1,7 +1,7 @@
 import { ArrowRight, Slack, Zap } from "lucide-react"
 
 import { AnimatedBackground } from "@/components/homepage"
-import { SlackThreadDemo } from "@/components/slack/thread-demo"
+import { SlackThreadDemo } from "@/components/slack/main"
 import { Button } from "@/components/ui"
 import { EXTERNAL_LINKS } from "@/lib/constants"
 import { VALUE_PROPS, WORKFLOW_STEPS, ONBOARDING_STEPS } from "./data"

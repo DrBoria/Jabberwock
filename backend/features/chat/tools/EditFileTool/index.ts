@@ -1,4 +1,3 @@
-export { EditFileTool } from "./edit-file-tool"
-export type { EditFileParams } from "./edit-file-types"
+export type { EditFileParams } from "./types"
 
-export { editFileTool } from "./edit-file-tool"
+export { editFileTool } from "./tool"

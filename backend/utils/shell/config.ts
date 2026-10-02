@@ -1,5 +1,5 @@
 import { userInfo } from "os"
-import { getConfiguration } from "@features/foundation/capabilities/registry"
+import { getConfiguration } from "@features/foundation/capabilities"
 import {
 	SHELL_PATHS,
 	normalizeShellPath,
@@ -57,7 +57,7 @@ function resolvePowerShellPath(profile: WindowsTerminalProfile | undefined): str
 	return SHELL_PATHS.POWERSHELL_LEGACY
 }
 
-/** Attempts to retrieve a shell path from VS Code config on Windows. */
+/** Attempts to retrieve a shell path from "VS" Code config on Windows. */
 function getWindowsShellFromVSCode(): string | null {
 	const { defaultProfileName, profiles } = getWindowsTerminalConfig()
 	if (!defaultProfileName) {
@@ -82,7 +82,7 @@ function getWindowsShellFromVSCode(): string | null {
 	return SHELL_PATHS.CMD
 }
 
-/** Attempts to retrieve a shell path from VS Code config on macOS. */
+/** Attempts to retrieve a shell path from "VS" Code config on macOS. */
 function getMacShellFromVSCode(): string | null {
 	const { defaultProfileName, profiles } = getMacTerminalConfig()
 	if (!defaultProfileName) {
@@ -93,7 +93,7 @@ function getMacShellFromVSCode(): string | null {
 	return normalizeShellPath(profile?.path)
 }
 
-/** Attempts to retrieve a shell path from VS Code config on Linux. */
+/** Attempts to retrieve a shell path from "VS" Code config on Linux. */
 function getLinuxShellFromVSCode(): string | null {
 	const { defaultProfileName, profiles } = getLinuxTerminalConfig()
 	if (!defaultProfileName) {
@@ -147,7 +147,7 @@ export function getShell(): string {
 		shell = getLinuxShellFromVSCode()
 	}
 
-	// 2. If no shell from VS Code, try userInfo()
+	// 2. If no shell from "VS" Code, try userInfo()
 	if (!shell) {
 		shell = getShellFromUserInfo()
 	}

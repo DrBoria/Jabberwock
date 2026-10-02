@@ -1,7 +1,7 @@
 import * as React from "react"
 import { Check, ChevronDown, X } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Button } from "../buttons/button"
+import { Button } from "../buttons/button-primitive"
 import { Popover, PopoverContent, PopoverTrigger } from "../overlays/popover"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "../overlays/command"
 import { useEscapeKey } from "@/hooks/escape-key/useEscapeKey"

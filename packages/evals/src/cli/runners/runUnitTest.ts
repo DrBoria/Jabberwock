@@ -4,7 +4,7 @@ import { execa, parseCommandString } from "execa"
 import psTree from "ps-tree"
 
 import type { Task } from "../../db/index"
-import { type ExerciseLanguage, EVALS_REPO_PATH } from "../../exercises/index"
+import { type ExerciseLanguage, EVALS_REPO_PATH } from "../../exercises/catalog"
 
 import { Logger } from "../helpers/logging/logger"
 

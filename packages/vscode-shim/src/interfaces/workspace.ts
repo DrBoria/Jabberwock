@@ -3,7 +3,7 @@
  */
 
 import type { Uri } from "../classes/types/Uri.ts"
-import type { Thenable, ConfigurationTarget, ConfigurationInspect } from "../types.ts"
+import type { Thenable, ConfigurationTarget, ConfigurationInspect } from "../api-types.ts"
 
 /**
  * Workspace configuration interface

@@ -1,66 +1,36 @@
-export {
-	AccessMcpResourceTool,
-	accessMcpResourceTool,
-	AnalyzeImageTool,
-	analyzeImageTool,
-	ApplyPatchTool,
-	applyPatchTool,
-	AskFollowupQuestionTool,
-	askFollowupQuestionTool,
-	AttemptCompletionTool,
-	attemptCompletionTool,
-	type AttemptCompletionCallbacks,
-	AwaitBatchCompletionTool,
-	awaitBatchCompletionTool,
-	BaseTool,
-	type ToolCallbacks,
-	type ToolParams,
-} from "./a-b"
+export { type Tool, type ToolCallbacks, type ToolParams } from "./tool"
 
-export {
-	CodebaseSearchTool,
-	codebaseSearchTool,
-	DelegateTaskTool,
-	delegateTaskTool,
-	EditTool,
-	editTool,
-	ExecuteCommandTool,
-	executeCommandTool,
-	GenerateImageTool,
-	generateImageTool,
-	ListFilesTool,
-	listFilesTool,
-} from "./c-l"
+// read
+export { codebaseSearchTool } from "./read/CodebaseSearchTool"
+export { listFilesTool } from "./read/ListFilesTool"
+export { readCommandOutputTool } from "./read/ReadCommandOutputTool"
+export { readFileTool, getReadFileToolDescription } from "./read/ReadFileTool"
+export { searchFilesTool } from "./read/SearchFilesTool"
 
-export {
-	NewTaskTool,
-	newTaskTool,
-	ReadCommandOutputTool,
-	readCommandOutputTool,
-	ReadFileTool,
-	readFileTool,
-	RunSlashCommandTool,
-	runSlashCommandTool,
-} from "./n-r"
+// write
+export { applyPatchTool } from "./write/ApplyPatchTool"
+export { editTool, searchAndReplaceTool } from "./write/EditTool"
+export { searchReplaceTool } from "./write/SearchReplaceTool"
+export { writeToFileTool } from "./write/WriteToFileTool"
 
-export {
-	SearchAndReplaceTool,
-	searchAndReplaceTool,
-	SearchFilesTool,
-	searchFilesTool,
-	SearchReplaceTool,
-	searchReplaceTool,
-	SkillTool,
-	skillTool,
-	SwitchModeTool,
-	switchModeTool,
-} from "./s"
+// execute
+export { executeCommandTool } from "./execute/ExecuteCommandTool"
+export { runSlashCommandTool } from "./execute/RunSlashCommandTool"
 
+// media
+export { analyzeImageTool } from "./media/AnalyzeImageTool"
+export { generateImageTool } from "./media/GenerateImageTool"
+
+// mcp
+export { accessMcpResourceTool } from "./mcp/accessMcpResourceTool"
+export { useMcpToolTool } from "./mcp/UseMcpToolTool"
+
+// task
+export { attemptCompletionTool, type AttemptCompletionCallbacks } from "./task/AttemptCompletionTool"
+export { awaitBatchCompletionTool } from "./task/AwaitBatchCompletionTool"
+export { delegateTaskTool } from "./task/DelegateTaskTool"
+export { newTaskTool } from "./task/NewTaskTool"
 export {
-	ThinkTool,
-	thinkTool,
-	ToolRepetitionDetector,
-	UpdateTodoListTool,
 	updateTodoListTool,
 	parseMarkdownChecklist,
 	addTodoToTask,
@@ -69,8 +39,16 @@ export {
 	getTodoListForTask,
 	restoreTodoListForTask,
 	setPendingTodoList,
-	UseMcpToolTool,
-	useMcpToolTool,
+} from "./task/UpdateTodoListTool"
+
+// interaction
+export { askFollowupQuestionTool } from "./interaction/AskFollowupQuestionTool"
+export { skillTool } from "./interaction/SkillTool"
+export { switchModeTool } from "./interaction/SwitchModeTool"
+export { thinkTool } from "./interaction/ThinkTool"
+
+// shared
+export {
 	isValidToolName,
 	validateToolUse,
 	isToolAllowedForMode,
@@ -85,6 +63,4 @@ export {
 	validateEditGroupRestrictions,
 	validateApplyPatchPaths,
 	extractFilePathsFromPatch,
-	WriteToFileTool,
-	writeToFileTool,
-} from "./t-w"
+} from "./shared/validateToolUse"

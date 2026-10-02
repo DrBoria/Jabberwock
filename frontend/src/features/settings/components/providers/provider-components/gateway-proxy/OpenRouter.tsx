@@ -11,12 +11,12 @@ import {
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { getOpenRouterAuthUrl } from "@src/oauth/urls"
-import { VSCodeButtonLink } from "@src/features/foundation/components/ui/button/VSCodeButtonLink"
+import { VSCodeButtonLink } from "@src/features/foundation"
 
-import { inputEventTransform } from "../../../shared/transforms"
+import { inputEventTransform } from "@src/features/settings/components/shared/transforms"
 
-import { ModelPicker } from "../../../ModelPicker/ModelPickerComponent"
-import { OpenRouterBalanceDisplay } from "../../balance-displays/OpenRouterBalanceDisplay"
+import { ModelPicker } from "@src/features/settings/components/ModelPicker/main"
+import { OpenRouterBalanceDisplay } from "@src/features/settings/components/providers/balance-displays/OpenRouterBalanceDisplay"
 
 type OpenRouterProps = {
 	apiConfiguration: ProviderSettings

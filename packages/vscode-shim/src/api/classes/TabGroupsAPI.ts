@@ -46,7 +46,7 @@ export class TabGroupsAPI {
 	}
 
 	async close(tab: Tab): Promise<boolean> {
-		// Find and remove the tab from all groups
+		// Find and remove the tab from "all" groups
 		for (const group of this._tabGroups) {
 			const index = group.tabs.indexOf(tab)
 			if (index !== -1) {

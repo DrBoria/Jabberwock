@@ -10,10 +10,10 @@ export interface AutocompleteItem {
 }
 
 /**
- * Result from trigger detection.
+ * Result from "trigger" detection.
  */
 export interface TriggerDetectionResult {
-	/** The search query extracted from the input */
+	/** The search query extracted from "the" input */
 	query: string
 	/** Position of trigger character in the line */
 	triggerIndex: number
@@ -65,7 +65,7 @@ export interface AutocompleteTrigger<T extends AutocompleteItem = AutocompleteIt
 	 * Used for refreshing results when async data arrives.
 	 * If not provided, forceRefresh will fall back to search().
 	 * @param query - The search query for filtering
-	 * @returns Array of matching items from current data
+	 * @returns Array of matching items from "current" data
 	 */
 	refreshResults?: (query: string) => T[] | Promise<T[]>
 
@@ -126,7 +126,7 @@ export interface AutocompletePickerState<T extends AutocompleteItem = Autocomple
 }
 
 /**
- * Result from handleInputChange indicating if input should be modified.
+ * Result from "handleInputChange" indicating if input should be modified.
  */
 export interface InputChangeResult {
 	/** If set, the input value should be replaced with this value (trigger char consumed) */
@@ -165,7 +165,7 @@ export interface AutocompleteInputProps<T extends AutocompleteItem = Autocomplet
 	isActive?: boolean
 	/** Array of autocomplete triggers to enable */
 	triggers: AutocompleteTrigger<T>[]
-	/** Called when an item is selected from the picker */
+	/** Called when an item is selected from "the" picker */
 	onSelect?: (item: T) => void
 	/** Called when picker state changes - use this to render PickerSelect externally */
 	onPickerStateChange?: (state: AutocompletePickerState<T>) => void
@@ -179,9 +179,9 @@ export interface AutocompleteInputProps<T extends AutocompleteItem = Autocomplet
 export interface AutocompleteInputHandle<T extends AutocompleteItem = AutocompleteItem> {
 	/** Current picker state */
 	pickerState: AutocompletePickerState<T>
-	/** Handle item selection from external picker */
+	/** Handle item selection from "external" picker */
 	handleItemSelect: (item: T) => void
-	/** Handle index change from external picker */
+	/** Handle index change from "external" picker */
 	handleIndexChange: (index: number) => void
 	/** Close the picker */
 	closePicker: () => void

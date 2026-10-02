@@ -1,4 +1,4 @@
-import type { IntentBus } from "@features/intents/bus"
+import type { IntentBus } from "@features/intents"
 import { registerOnUserMessageReceived } from "./on-message-received"
 
 /**

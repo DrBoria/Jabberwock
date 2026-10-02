@@ -37,7 +37,8 @@ type FullColorTheme = {
 	}[]
 }
 
-function constructTheme(tmTheme: FullColorTheme): Record<string, string> {
+export function convertTextMateToHljs(fullColorTheme: Record<string, unknown>): Record<string, string> {
+	const tmTheme: FullColorTheme = fullColorTheme || {}
 	const rules = tmTheme["rules"] || []
 
 	const tokenToForeground: Record<string, string> = {}
@@ -129,11 +130,6 @@ function fallbackTheme() {
 				".hljs-meta .hljs-string": "#ce9178",
 				".hljs-params": "#9CDCFE",
 			}
-}
-
-export function convertTextMateToHljs(fullColorTheme: Record<string, unknown>) {
-	const theme = fullColorTheme || {}
-	return constructTheme(theme)
 }
 
 function parseHexColor(hexColor: string): {

@@ -1,4 +1,4 @@
-import type { ModelInfo } from "../../models/model.ts"
+import type { ModelInfo } from "../../models/model-main.ts"
 
 export const internationalZAiModels = {
 	"glm-4.5": {

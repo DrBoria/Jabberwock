@@ -1,7 +1,24 @@
 import type { ExtensionMessage, ExtensionState } from "@jabberwock/types"
 import { IntentConstants } from "@intentConstants"
-import { streamingStore } from "../api/streaming/store"
-import { jabberwockLog } from "../../utils/misc/jabberwock-logger"
+import { streamingStore } from "@src/features/api/streaming"
+import { prefillStore } from "@src/features/api/prefill"
+import { jabberwockLog } from "@src/utils/misc/jabberwock-logger"
+import type { RootStoreSelf } from "./types"
+
+/**
+ * Factory for the many root-store setters that only spread a single field into
+ * `extensionState`. Each caller gets a `(value) => void` setter, so the ~50
+ * near-identical `setX(v) { self.extensionState = { ...self.extensionState, x: v } }`
+ * bodies across part1/part2 collapse to one shared implementation.
+ */
+export function setExtensionStateField<K extends keyof ExtensionState>(
+	self: RootStoreSelf,
+	key: K,
+): (value: ExtensionState[K]) => void {
+	return (value: ExtensionState[K]) => {
+		self.extensionState = { ...self.extensionState, [key]: value }
+	}
+}
 
 export const logIncomingMessages = (messages: ExtensionState["messages"] | undefined) => {
 	if (!messages?.length) return
@@ -54,6 +71,32 @@ export const handleStreamChunk = (message: ExtensionMessage, chat?: { setIsStrea
 		chat?.setIsStreaming(true)
 	}
 	streamingStore.appendChunk(text)
+	return true
+}
+export const handlePrefillProgress = (message: ExtensionMessage, chat?: { setIsStreaming: (v: boolean) => void }) => {
+	if (message.type !== "prefillProgress") return false
+	const { taskId, percent } = message
+	if (taskId === undefined) return true
+	// percent === null  → poller stopped (generation started / stream ended):
+	//                       clear the store so the UI falls back to "Thinking".
+	// percent === -1    → provider has no progress signal: indeterminate label.
+	// percent >= 0      → real prefill percentage (0-100).
+	if (percent === null || percent === undefined) {
+		prefillStore.reset()
+	} else {
+		prefillStore.set(taskId, percent < 0 ? null : percent)
+		// A real prefill (percent >= 0) means the request is in flight. The
+		// prefill UI gate (isPrefilling) requires `chat.isStreaming`, but for
+		// reasoning models the first content is reasoning — no text chunk fires
+		// handleStreamChunk, so isStreaming would stay false and the row would
+		// show "Thinking" forever instead of the prefill progress bar. Flip it
+		// on here. When percent is null (poller stopped) we leave isStreaming
+		// alone: the first real chunk or the computeIsStreaming reaction owns
+		// it from that point.
+		if (percent >= 0) {
+			chat?.setIsStreaming(true)
+		}
+	}
 	return true
 }
 

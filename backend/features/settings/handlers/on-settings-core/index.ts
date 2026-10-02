@@ -1,1 +1,0 @@
-export { registerOnSettingsCore } from "./register"

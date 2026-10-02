@@ -4,9 +4,9 @@ import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
 import { type ProviderSettings, type RouterModels, mistralDefaultModelId } from "@jabberwock/types"
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { VSCodeButtonLink } from "@src/features/foundation/components/ui/button/VSCodeButtonLink"
+import { VSCodeButtonLink } from "@src/features/foundation"
 
-import { inputEventTransform } from "../../../shared/transforms"
+import { inputEventTransform } from "@src/features/settings/components/shared/transforms"
 
 type MistralProps = {
 	apiConfiguration: ProviderSettings

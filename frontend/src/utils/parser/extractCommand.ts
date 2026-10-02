@@ -1,7 +1,7 @@
 import { parse } from "shell-quote"
 
 /**
- * Extract command patterns from a command string.
+ * Extract command patterns from "a" command string.
  * Returns at most 3 levels: base command, command + first argument, and command + first two arguments.
  * Stops at flags (-), paths (/\~), file extensions (.ext), or special characters (:).
  */

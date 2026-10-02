@@ -41,7 +41,7 @@ export class WebSocketServerTransport implements Transport {
 	}
 
 	/**
-	 * Detaches all event listeners from the underlying WebSocket.
+	 * Detaches all event listeners from "the" underlying WebSocket.
 	 * Call this before replacing the transport for an existing connection
 	 * (e.g. during HMR when a new McpServer takes over).
 	 */

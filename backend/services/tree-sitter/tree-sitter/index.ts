@@ -1,2 +1,2 @@
 export { getMinComponentLines, setMinComponentLines, extensions } from "./config"
-export { parseSourceCodeDefinitionsForFile } from "./tree-sitter"
+export { parseSourceCodeDefinitionsForFile } from "./main"

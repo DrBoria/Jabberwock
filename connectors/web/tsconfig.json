@@ -23,18 +23,45 @@
 			"@startup/*": ["./backend/startup/*"],
 			// ICG-C1 (ICG doc §7.3): same isolation pattern as @startup - the server entrypoint imports the backend context feature for bounded hello->state metadata; tsc resolves to a local declaration, runtime bundle resolves via backend/tsconfig.json aliases.
 			"@features/context": ["./backend/declarations/features-context"],
+			// S4 (no-deep-feature-import): the server entrypoint imports the foundation feature
+			// barrel (installBackendState, getHostEnvironment); tsc resolves to a local declaration,
+			// runtime bundle resolves via backend/tsconfig.json aliases. More-specific sub-paths
+			// (capabilities, host-context) keep their own entries above.
+			"@features/foundation": ["./backend/declarations/features-foundation"],
+			// S4 (no-deep-feature-import): the server entrypoint imports the chat feature barrel
+			// (initializeStoreApiConfig); tsc resolves to a local declaration, runtime bundle
+			// resolves via backend/tsconfig.json aliases.
+			"@features/chat": ["./backend/declarations/features-chat"],
 			// D4g-2 (batch 4): the server entrypoint installs the process-wide capability registry
 			// (setBackendCapabilities) so the shared backend task graph resolves host-neutral slots;
 			// tsc resolves to a local declaration, runtime bundle resolves via backend/tsconfig.json.
-			"@features/foundation/capabilities/registry": ["./backend/declarations/capabilities-registry"],
+			"@features/foundation/capabilities": ["./backend/declarations/capabilities-registry"],
+			// S5: deep spec re-pointed to the feature barrel; the declaration mirrors the
+			// surface connector-web imports (setBackendCapabilities).
 			// D4g PART 2: the server entrypoint reads the full MST root-store snapshot for the
 			// hello->state handshake (buildServerState); tsc resolves to a local declaration,
 			// runtime bundle resolves via backend/tsconfig.json.
-			"@features/storeSingleton": ["./backend/declarations/store-singleton"],
+			"@features/singleton": ["./backend/declarations/store-singleton"],
+			// BUG-5: the server entrypoint imports the flat hydration-state builder for the
+			// hello→state handshake; tsc resolves to a local declaration, runtime bundle resolves
+			// via backend/tsconfig.json aliases.
+			"@features/hydration": ["./backend/declarations/features-hydration"],
 			// D4h: the server entrypoint installs the backend state slots (installBackendState) so
 			// postStateToWebview/buildEnrichedState can read host paths at runtime; tsc resolves to a
 			// local declaration, runtime bundle resolves via backend/tsconfig.json.
-			"@features/foundation/host-context/context": ["./backend/declarations/host-context-context"]
+			// D4h+D3 execution record: the server entrypoint ALSO reads getHostEnvironment() to
+			// construct the ProviderSettingsManager — the declaration covers both.
+			// (S5 shadow-store: import repointed to the host-context barrel; this declaration IS the barrel surface.)
+			"@features/foundation/host-context": ["./backend/declarations/host-context-context"],
+			// Web-mode bootstrap (mirrors vscode extension.ts activate()): tsc resolves each to a local
+			// declaration, runtime bundle resolves via backend/tsconfig.json aliases.
+			"@services/mcp/core/McpServerManager": ["./backend/declarations/mcp-server-manager"],
+			// S5 shadow-store: deep spec re-pointed to the feature sub-barrel; this declaration
+			// mirrors the barrel surface the server entrypoint imports (class + setProviderSettingsManager).
+			"@features/settings/models/provider-settings-manager": ["./backend/declarations/provider-settings-manager"],
+			"@features/chat/task/handlers/on-webview-launched/webview-api-config": [
+				"./backend/declarations/webview-api-config"
+			]
 		}
 	},
 	// v4 Phase C1: backend/main.ts = WS server entry (`pnpm start:server`), frontend/connector.ts = BrowserWsFrontendConnector (Phase D).

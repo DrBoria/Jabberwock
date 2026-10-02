@@ -8,20 +8,20 @@ export interface TodoItem {
 	assignedTo?: string
 }
 
+export const isInProgress = (todo: TodoItem) => todo.status === "in_progress"
+export const isCompleted = (todo: TodoItem) => todo.status === "completed"
+
 export function useScrollIndex(todos: TodoItem[]) {
 	return useMemo(() => {
-		const inProgressIdx = todos.findIndex((todo) => todo.status === "in_progress")
+		const inProgressIdx = todos.findIndex(isInProgress)
 		if (inProgressIdx !== -1) return inProgressIdx
-		return todos.findIndex((todo) => todo.status !== "completed")
+		return todos.findIndex((todo) => !isCompleted(todo))
 	}, [todos])
 }
 
-export function useMostImportantTodo(todos: TodoItem[]) {
-	return useMemo(() => {
-		const inProgress = todos.find((todo) => todo.status === "in_progress")
-		if (inProgress) return inProgress
-		return todos.find((todo) => todo.status !== "completed")
-	}, [todos])
+/** The most important todo item (in-progress, else first non-completed). */
+export function useMostImportantTodo(todos: TodoItem[], scrollIndex: number): TodoItem | undefined {
+	return useMemo(() => (scrollIndex >= 0 ? todos[scrollIndex] : undefined), [todos, scrollIndex])
 }
 
 interface ScrollToActiveProps {

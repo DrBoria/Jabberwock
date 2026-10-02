@@ -1,4 +1,4 @@
-import { getTask } from "./taskRegistry"
+import { getTask } from "./registerTaskRegistry"
 
 export function abortTask(taskId: string, _isAbandoned?: boolean): void {
 	const task = getTask(taskId)

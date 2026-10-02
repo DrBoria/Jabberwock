@@ -1,9 +1,6 @@
 import { useTranslation } from "react-i18next"
 
-import {
-	FormattedTextField,
-	unlimitedIntegerFormatter,
-} from "@src/features/foundation/components/ui/display/FormattedTextField"
+import { FormattedTextField, unlimitedIntegerFormatter } from "@src/features/foundation"
 
 interface MaxRequestsInputProps {
 	allowedMaxRequests?: number

@@ -1,6 +1,6 @@
 import { Anthropic } from "@anthropic-ai/sdk"
 import { getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
-import { findLastIndex } from "@shared/array"
+import { findLastIndex } from "@shared/core/array"
 
 /**
  * Custom error class for tool result ID mismatches.

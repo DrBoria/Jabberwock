@@ -17,19 +17,19 @@ const CONSOLE_LOGGER: BackendLogger = {
 	warn: (...args) => console.warn("[jabberwock]", ...args),
 }
 
-let current: BackendLogger = CONSOLE_LOGGER
+const _loggerState = { current: CONSOLE_LOGGER }
 
 /** Install the process-wide backend logger (called once during bootstrap). */
 export function setBackendLogger(logger: BackendLogger): void {
-	current = logger
+	_loggerState.current = logger
 }
 
 /** Current backend logger; falls back to console until `setBackendLogger` is called. */
 export const log: BackendLogger = {
 	info(...args) {
-		return current.info(...args)
+		return _loggerState.current.info(...args)
 	},
 	warn(...args) {
-		return current.warn(...args)
+		return _loggerState.current.warn(...args)
 	},
 }

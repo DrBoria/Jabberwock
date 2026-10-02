@@ -7,7 +7,7 @@ import type { IIntentStore } from "./store"
  * ready for handler registration.
  *
  * Must be called AFTER the root store is created (so IntentStore is available).
-   * Called from createBackendStore() in backend/features/store.ts.
+ * Called from createBackendStore() in backend/features/store.ts.
  *
  * Features register their own handlers by importing the bus:
  *
@@ -19,7 +19,7 @@ export function setupIntents(rootStore: IBackendRootStore): {
 	dispose: () => void
 } {
 	const intentStore: IIntentStore = rootStore.intentStore
-	const bus = new IntentBus()
+	const bus = IntentBus()
 	const ctx = { rootStore, intentStore }
 
 	bus.start(intentStore, ctx, rootStore.runHandler.bind(rootStore))

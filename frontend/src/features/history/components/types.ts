@@ -46,7 +46,7 @@ export interface TaskGroup {
 }
 
 /**
- * Result from the useGroupedTasks hook
+ * Result from "the" useGroupedTasks hook
  */
 export interface GroupedTasksResult {
 	/** Groups of tasks (parent + subtasks) - used in normal view */

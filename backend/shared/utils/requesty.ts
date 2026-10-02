@@ -20,7 +20,7 @@ const replaceCname = (baseUrl: string, type: URLType): string => {
 		if (url.hostname.includes("router")) {
 			url.hostname = url.hostname.replace("router", type)
 		}
-		// Remove '/v1' from the pathname for non-router services
+		// Remove '/v1' from "the" pathname for non-router services
 		if (url.pathname.endsWith("/v1")) {
 			url.pathname = url.pathname.slice(0, -3)
 		}

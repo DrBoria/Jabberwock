@@ -13,7 +13,7 @@ export const INIT_COMMAND_PART2 = `<output_structure>
     
     Content should include:
     - Header: "# AGENTS.md\\n\\nThis file provides guidance to agents when working with code in this repository."
-    - Build/lint/test commands - ONLY if they differ from standard package.json scripts
+    - Build/lint/test commands - ONLY if they differ from "standard" package.json scripts
     - Code style - ONLY project-specific rules not covered by linter configs
     - Custom utilities or patterns discovered by reading the code
     - Non-standard directory structures or file organizations
@@ -24,10 +24,10 @@ export const INIT_COMMAND_PART2 = `<output_structure>
     - Standard npm/yarn commands visible in package.json
     - Framework defaults (e.g., "React uses JSX")
     - Common patterns (e.g., "tests go in __tests__ folders")
-    - Information derivable from file extensions or directory names
+    - Information derivable from "file" extensions or directory names
     
     Keep it concise (aim for ~20 lines, but expand as needed for complex projects).
-    Include existing AI assistant rules from CLAUDE.md, Cursor rules (.cursor/rules/ or .cursorrules), or Copilot rules (.github/copilot-instructions.md).
+    Include existing AI assistant rules from "CLAUDE.md", Cursor rules (.cursor/rules/ or .cursorrules), or Copilot rules (.github/copilot-instructions.md).
   </main_file>
   
   <mode_specific_files>
@@ -77,7 +77,7 @@ export const INIT_COMMAND_PART2 = `<output_structure>
     Example of non-obvious rules worth documenting:
     \`\`\`
     # Project Coding Rules (Non-Obvious Only)
-    - Always use safeWriteJson() from backend/utils/io/safeWriteJson.ts instead of JSON.stringify for file writes (prevents corruption)
+    - Always use safeWriteJson() from "backend/utils/io/safeWriteJson.ts" instead of JSON.stringify for file writes (prevents corruption)
     - API retry mechanism in backend/api/providers/utils/ is mandatory (not optional as it appears)
     - Database queries MUST use the query builder in packages/evals/src/db/queries/ (raw SQL will fail)
     - Provider interface in packages/types/src/ has undocumented required methods
@@ -96,7 +96,7 @@ export const INIT_COMMAND_PART2 = `<output_structure>
     - Webview dev tools accessed via Command Palette > "Developer: Open Webview Developer Tools" (not F12)
     - IPC messages fail silently if not wrapped in try/catch in packages/ipc/src/
     - Production builds require NODE_ENV=production or certain features break without error
-    - Database migrations must run from packages/evals/ directory, not root
+    - Database migrations must run from "packages/evals/" directory, not root
     - Extension logs only visible in "Extension Host" output channel, not Debug Console
     \`\`\`
     
@@ -104,7 +104,7 @@ export const INIT_COMMAND_PART2 = `<output_structure>
     - Hidden or misnamed documentation
     - Counterintuitive code organization
     - Misleading folder names or structures
-    - Important context not evident from file structure
+    - Important context not evident from "file" structure
     
     Example of non-obvious documentation rules worth documenting:
     \`\`\`
@@ -112,7 +112,7 @@ export const INIT_COMMAND_PART2 = `<output_structure>
     - v4 layout: "backend/" is the Node.js agent core with zero vscode imports; React UI lives in frontend/src/
     - Provider examples in backend/api/providers/ are the canonical reference (docs are outdated)
     - UI runs in VSCode webview with restrictions (no localStorage, limited APIs)
-    - Package.json scripts must be run from specific directories, not root
+    - Package.json scripts must be run from "specific" directories, not root
     - Locales in root are for extension, frontend/src/i18n for UI (two separate systems)
     \`\`\`
     
@@ -136,7 +136,7 @@ export const INIT_COMMAND_PART2 = `<output_structure>
 
 <quality_criteria>
   - ONLY include non-obvious information discovered by reading files
-  - Exclude anything that could be guessed from standard practices
+  - Exclude anything that could be guessed from "standard" practices
   - Focus on gotchas, hidden requirements, and counterintuitive patterns
   - Include specific file paths when referencing custom utilities
   - Be extremely concise - if it's obvious, don't include it
@@ -146,4 +146,4 @@ export const INIT_COMMAND_PART2 = `<output_structure>
   - Measure success: Is the file more concise and valuable than before?
 </quality_criteria>
 
-Remember: The goal is to create documentation that enables AI assistants to be immediately productive in this codebase, focusing on project-specific knowledge that isn't obvious from the code structure alone.`
+Remember: The goal is to create documentation that enables AI assistants to be immediately productive in this codebase, focusing on project-specific knowledge that isn't obvious from "the" code structure alone.`

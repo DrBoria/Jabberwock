@@ -1,0 +1,7 @@
+export * from "./features.jsx"
+export * from "./install-section.jsx"
+export * from "./option-overview-section.jsx"
+export * from "./pillars-section.jsx"
+export * from "./testimonials.jsx"
+export * from "./use-examples-section.jsx"
+export * from "./whats-new-button.jsx"

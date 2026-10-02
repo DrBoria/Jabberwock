@@ -1,6 +1,6 @@
 import { Position } from "../types/Position.ts"
 import { Range } from "../types/Range.ts"
-import type { IRange, IPosition } from "../../types.ts"
+import type { IRange, IPosition } from "../../api-types.ts"
 
 /**
  * Represents a text edit operation

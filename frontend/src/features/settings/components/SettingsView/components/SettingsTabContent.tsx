@@ -1,6 +1,6 @@
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { buildTabRenderers } from "./tab-renderers/BuildTabRenderersComponent"
-import type { TabContentProps } from "../types"
+import { buildTabRenderers } from "./tab-renderers/build"
+import type { TabContentProps } from "@src/features/settings/components/SettingsView/types"
 
 export function SettingsTabContent(props: TabContentProps) {
 	const { t } = useAppTranslation()

@@ -50,8 +50,8 @@ export function InstallSection({ downloads }: InstallSectionProps) {
 								Install Jabberwock now
 							</h2>
 							<p className="mt-6 text-lg text-muted-foreground">
-								Install from the VS Code Marketplace or the CLI in minutes, then bring your own AI
-								model.
+								Install from &quot;the&quot; VS Code Marketplace or the CLI in minutes, then bring your
+								own AI model.
 								<br />
 								Jabberwock is also compatible with all VSCode forks.
 							</p>

@@ -1,4 +1,4 @@
-import type { ModelInfo } from "../../models/model.ts"
+import type { ModelInfo } from "../../models/model-main.ts"
 
 export const fireworksModelsPart2 = {
 	"accounts/fireworks/models/glm-4p5": {

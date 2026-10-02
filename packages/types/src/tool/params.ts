@@ -56,7 +56,7 @@ export interface LineRange {
 
 /**
  * File entry for legacy read_file format.
- * Supports reading multiple disjoint line ranges from a single file.
+ * Supports reading multiple disjoint line ranges from "a" single file.
  */
 export interface FileEntry {
 	/** Path to the file, relative to workspace */

@@ -1,8 +1,8 @@
 import React from "react"
-import { ErrorRow } from "../../row/error-rows/error-row"
+import { ErrorRow } from "@src/features/chat/task/messages/components/row/error-rows/main"
 import { Container } from "@src/shared/ui/layouts/Container"
-import { headerStyle } from "@src/features/foundation/ui/utils/header-style"
-import { getPowerShellDocsUrl } from "./apiReqSay.utils"
+import { headerStyle } from "@src/features/foundation"
+import { getPowerShellDocsUrl } from "./say-utils"
 
 const ApiReqErrorRow: React.FC<{
 	apiRequestFailedMessage: string | undefined

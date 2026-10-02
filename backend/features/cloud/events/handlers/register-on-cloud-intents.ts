@@ -1,8 +1,8 @@
-import type { IntentBus } from "@features/intents/bus"
-import { onWebviewMessage } from "@features/foundation/webview/events/handlers/on-webview-message"
+import type { IntentBus } from "@features/intents"
+import { onWebviewMessage } from "@features/foundation"
 import { IntentStatus } from "@jabberwock/types"
-import { getBackendRootStore } from "@features/storeSingleton"
-import { registerOnCloud } from "@features/cloud/handlers/on-cloud"
+import { getStore } from "@features/singleton"
+import { registerOnCloud } from "@features/cloud"
 import {
 	CLOUD_CLOUD_BUTTON_CLICKED,
 	CLOUD_JABBERWOCK_CLOUD_SIGN_IN,
@@ -13,18 +13,15 @@ import {
 	CLOUD_OPEN_AI_CODEX_SIGN_OUT,
 	CLOUD_SWITCH_ORGANIZATION,
 	CLOUD_CLEAR_CLOUD_AUTH_SKIP_MODEL,
-} from "@features/cloud/events/constants"
+} from "@features/cloud"
 
 /**
  * Register all cloud event handlers on the IntentBus.
  */
-export function registerOnCloudIntents(bus: IntentBus): void {
-	// ── Register bus handlers (existing cloud logic) ───────────────
-	registerOnCloud(bus)
 
-	// ── onWebviewMessage registrations to replace WEBVIEW_TO_INTENT fallback ──
+function registerOnCloudCLOUDCLOUDBUTTONCLICKED(): void {
 	onWebviewMessage(CLOUD_CLOUD_BUTTON_CLICKED, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -34,9 +31,11 @@ export function registerOnCloudIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnCloudCLOUDJABBERWOCKCLOUDSIGNIN(): void {
 	onWebviewMessage(CLOUD_JABBERWOCK_CLOUD_SIGN_IN, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -46,9 +45,11 @@ export function registerOnCloudIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnCloudCLOUDCLOUDLANDINGPAGESIGNIN(): void {
 	onWebviewMessage(CLOUD_CLOUD_LANDING_PAGE_SIGN_IN, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -58,9 +59,11 @@ export function registerOnCloudIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnCloudCLOUDJABBERWOCKCLOUDSIGNOUT(): void {
 	onWebviewMessage(CLOUD_JABBERWOCK_CLOUD_SIGN_OUT, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -70,9 +73,11 @@ export function registerOnCloudIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnCloudCLOUDJABBERWOCKCLOUDMANUALURL(): void {
 	onWebviewMessage(CLOUD_JABBERWOCK_CLOUD_MANUAL_URL, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -82,9 +87,11 @@ export function registerOnCloudIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnCloudCLOUDOPENAICODEXSIGNIN(): void {
 	onWebviewMessage(CLOUD_OPEN_AI_CODEX_SIGN_IN, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -94,9 +101,11 @@ export function registerOnCloudIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnCloudCLOUDOPENAICODEXSIGNOUT(): void {
 	onWebviewMessage(CLOUD_OPEN_AI_CODEX_SIGN_OUT, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -106,9 +115,11 @@ export function registerOnCloudIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnCloudCLOUDSWITCHORGANIZATION(): void {
 	onWebviewMessage(CLOUD_SWITCH_ORGANIZATION, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -118,9 +129,11 @@ export function registerOnCloudIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnCloudCLOUDCLEARCLOUDAUTHSKIPMODEL(): void {
 	onWebviewMessage(CLOUD_CLEAR_CLOUD_AUTH_SKIP_MODEL, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -130,4 +143,17 @@ export function registerOnCloudIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
+
+export function registerOnCloudIntents(bus: IntentBus): void {
+	registerOnCloud(bus)
+	registerOnCloudCLOUDCLOUDBUTTONCLICKED()
+	registerOnCloudCLOUDJABBERWOCKCLOUDSIGNIN()
+	registerOnCloudCLOUDCLOUDLANDINGPAGESIGNIN()
+	registerOnCloudCLOUDJABBERWOCKCLOUDSIGNOUT()
+	registerOnCloudCLOUDJABBERWOCKCLOUDMANUALURL()
+	registerOnCloudCLOUDOPENAICODEXSIGNIN()
+	registerOnCloudCLOUDOPENAICODEXSIGNOUT()
+	registerOnCloudCLOUDSWITCHORGANIZATION()
+	registerOnCloudCLOUDCLEARCLOUDAUTHSKIPMODEL()
 }

@@ -1,6 +1,6 @@
 import cmp from "semver-compare"
 
-import { Package } from "@shared/package"
+import { Package } from "@shared/core/package"
 
 function isNightlyBuild(): boolean {
 	return Package.name.toLowerCase().includes("nightly")
@@ -60,7 +60,7 @@ export function meetsMinimumVersion(minPluginVersion: string, currentVersion: st
 }
 
 /**
- * Finds the highest version from versionedSettings that is <= the current plugin version.
+ * Finds the highest version from "versionedSettings" that is <= the current plugin version.
  *
  * @param versionedSettings The versioned settings object with version keys
  * @param currentVersion The current plugin version (defaults to Package.version)

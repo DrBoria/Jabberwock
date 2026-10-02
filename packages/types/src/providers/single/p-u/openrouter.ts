@@ -1,4 +1,4 @@
-import type { ModelInfo } from "../../../models/model.ts"
+import type { ModelInfo } from "../../../models/model-main.ts"
 
 // https://openrouter.ai/models?order=newest&supported_parameters=tools
 export const openRouterDefaultModelId = "anthropic/claude-sonnet-4.5"

@@ -1,4 +1,4 @@
-import type { ModelInfo } from "../../../models/model.ts"
+import type { ModelInfo } from "../../../models/model-main.ts"
 
 // https://docs.x.ai/docs/api-reference
 export type XAIModelId = keyof typeof xaiModels

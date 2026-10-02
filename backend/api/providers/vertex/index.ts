@@ -1,1 +1,0 @@
-export { VertexHandler } from "./handler"

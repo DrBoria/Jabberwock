@@ -8,30 +8,33 @@ import type { IHashmapMemory, IMementoLike } from "@jabberwock/types"
  * (`getHostEnvironment()`) and capability consumers with zero data duplication (no split-brain store).
  * Server mode uses {@link FileHashmapMemory} instead — same interface, different backing.
  */
-export class MementoBackedMemory implements IHashmapMemory {
-	constructor(private readonly memento: IMementoLike) {}
+export function MementoBackedMemory(memento: IMementoLike): IHashmapMemory {
+	return {
+		async get<T>(key: string): Promise<T | undefined> {
+			return memento.get<T>(key)
+		},
 
-	async get<T>(key: string): Promise<T | undefined> {
-		return this.memento.get<T>(key)
-	}
+		async set(key: string, value: unknown): Promise<void> {
+			if (value === undefined) {
+				await this.delete(key)
+				return
+			}
+			await memento.update(key, value)
+		},
 
-	async set(key: string, value: unknown): Promise<void> {
-		if (value === undefined) {
-			await this.delete(key)
-			return
-		}
-		await this.memento.update(key, value)
-	}
+		async delete(key: string): Promise<void> {
+			const current = memento.get<unknown>(key)
+			if (current !== undefined) {
+				await memento.update(key, undefined)
+			}
+		},
 
-	async delete(key: string): Promise<void> {
-		const current = this.memento.get<unknown>(key)
-		if (current !== undefined) {
-			await this.memento.update(key, undefined)
-		}
-	}
-
-	async keys(prefix?: string): Promise<string[]> {
-		const all = [...this.memento.keys()]
-		return prefix ? all.filter((k) => k.startsWith(prefix)) : all
+		async keys(prefix?: string): Promise<string[]> {
+			const all = [...memento.keys()]
+			return prefix ? all.filter((k) => k.startsWith(prefix)) : all
+		},
 	}
 }
+
+/** MementoBackedMemory instance type */
+export type MementoBackedMemory = IHashmapMemory

@@ -1,6 +1,6 @@
 import React from "react"
 import type { Notification } from "@jabberwock/types"
-import { ErrorRow } from "../../../messages/components/row/error-rows/error-row"
+import { ErrorRow } from "@src/features/chat/task/messages/components/row/error-rows/main"
 
 interface MistakeLimitAskProps {
 	message: Notification

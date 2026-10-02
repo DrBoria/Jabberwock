@@ -1,4 +1,4 @@
-import type { McpServer } from "../../mcp/mcp.ts"
+import type { McpServer } from "../../mcp/server-config.ts"
 import type { GlobalSettings } from "../../settings/global/schema.ts"
 import type { WorktreeIncludeStatus } from "../../utils/worktree.ts"
 import type { OpenAiCodexRateLimitInfo } from "../../providers/openai/codex/rate-limits.ts"

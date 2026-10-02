@@ -1,4 +1,4 @@
-import { NewRun } from "./page-content"
+import { NewRun } from "./run"
 
 export default function Page() {
 	return (

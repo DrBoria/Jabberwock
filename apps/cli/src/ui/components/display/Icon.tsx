@@ -88,24 +88,25 @@ function detectNerdFontSupport(): boolean {
 	return true
 }
 
-// Cache the detection result
-let nerdFontSupported: boolean | null = null
+// Cache the detection result. Held in a const holder object (not a mutable
+// module `let`) so there is no top-level mutable state.
+const nerdFontCache: { supported: boolean | null } = { supported: null }
 
 /**
  * Get whether Nerd Font icons are supported (cached).
  */
 export function isNerdFontSupported(): boolean {
-	if (nerdFontSupported === null) {
-		nerdFontSupported = detectNerdFontSupport()
+	if (nerdFontCache.supported === null) {
+		nerdFontCache.supported = detectNerdFontSupport()
 	}
-	return nerdFontSupported
+	return nerdFontCache.supported
 }
 
 /**
  * Reset the Nerd Font detection cache (useful for testing).
  */
 export function resetNerdFontCache(): void {
-	nerdFontSupported = null
+	nerdFontCache.supported = null
 }
 
 export interface IconProps extends Omit<TextProps, "children"> {
@@ -141,7 +142,7 @@ export function Icon({ name, useNerdFont, width = 2, color, ...textProps }: Icon
 	const icon = shouldUseNerdFont ? iconDef.nerd : iconDef.fallback
 
 	// Use fixed-width Box to isolate surrogate pair width calculation
-	// from surrounding text. This prevents the off-by-one truncation bug.
+	// from "surrounding" text. This prevents the off-by-one truncation bug.
 	const needsWidthFix = containsSurrogatePair(icon)
 
 	if (needsWidthFix) {

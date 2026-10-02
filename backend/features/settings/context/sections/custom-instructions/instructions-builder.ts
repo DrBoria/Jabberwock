@@ -4,8 +4,8 @@ import { isLanguage } from "@jabberwock/types"
 
 import type { SystemPromptSettings } from "@features/settings/context/types"
 
-import { LANGUAGES } from "@shared/language"
-import { getRooDirectoriesForCwd, getAllRooDirectoriesForCwd } from "@services/jabberwock-config"
+import { LANGUAGES } from "@shared/core/language"
+import { getRooDirectoriesForCwd, getAllRooDirectoriesForCwd } from "@services/jabberwock-config/config"
 
 import { loadModeRules } from "./rules-loader"
 import { loadAllAgentRulesFiles } from "./agent-rules"

@@ -188,7 +188,7 @@ function extractTextFromItem(item: vscode.LanguageModelChatMessage["content"][nu
 }
 
 /**
- * Extracts the text content from a VS Code Language Model chat message.
+ * Extracts the text content from "a" VS Code Language Model chat message.
  * @param message A VS Code Language Model chat message.
  * @returns The extracted text content.
  */

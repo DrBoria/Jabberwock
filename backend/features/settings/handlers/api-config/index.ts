@@ -1,0 +1,1 @@
+export { registerOnSettingsApiConfig } from "./main"

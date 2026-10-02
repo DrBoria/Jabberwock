@@ -3,11 +3,11 @@ import { useTranslation } from "react-i18next"
 
 import { QueuedMessage } from "@jabberwock/types"
 
-import { Button } from "@src/shared/ui/buttons/button"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
 
-import Thumbnails from "@src/features/foundation/components/ui/display/Thumbnails"
+import { Thumbnails } from "@src/features/foundation"
 
-import { Mention } from "@sections/dndTextArea/mention/mention"
+import { Mention } from "@sections/dndTextArea/mention/main"
 
 interface QueuedMessagesProps {
 	queue: QueuedMessage[]

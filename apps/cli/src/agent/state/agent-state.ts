@@ -11,13 +11,13 @@
 
 import type { Notification, ChatMessage } from "@jabberwock/types"
 
-import type { AgentStateInfo } from "./agent-state-types.js"
-import { AgentLoopState } from "./agent-state-types.js"
-import { getStateDescription } from "./agent-state-helpers.js"
-import { detectFromChatMessages, detectFromNotificationMessages } from "./agent-state-detectors.js"
+import type { AgentStateInfo } from "./types.js"
+import { AgentLoopState } from "./types.js"
+import { getStateDescription } from "./helpers.js"
+import { detectFromChatMessages, detectFromNotificationMessages } from "./detectors.js"
 
 /**
- * Detect the current state of the agent loop from the messages array.
+ * Detect the current state of the agent loop from "the" messages array.
  */
 export function detectAgentState(messages: ChatMessage[]): AgentStateInfo
 export function detectAgentState(messages: Notification[]): AgentStateInfo

@@ -3,7 +3,7 @@ import { Fzf } from "fzf"
 import { cn } from "@/lib/utils"
 import { useJabberwockPortal } from "@/features/foundation/ui/hooks/useJabberwock/useJabberwockPortal"
 import { Popover, PopoverContent, PopoverTrigger } from "@src/shared/ui/overlays/popover"
-import { StandardTooltip } from "@src/shared/ui/tooltips/standard-tooltip"
+import { StandardTooltip } from "@src/shared/ui/tooltips/standard"
 import { useAppTranslation } from "@/i18n/TranslationContext"
 import { rootStore } from "@src/features/store"
 import type { ApiConfigSelectorProps } from "./types"
@@ -58,7 +58,7 @@ export const ApiConfigSelector = ({
 		togglePinnedApiConfig(configId)
 	}
 	return (
-		<Popover open={open} onOpenChange={setOpen} data-testid="api-config-selector-root">
+		<Popover open={open} onOpenChange={setOpen} data-testid="toolExecutor.api-config-selector-root">
 			<StandardTooltip content={title}>
 				<PopoverTrigger
 					disabled={disabled}

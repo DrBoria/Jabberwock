@@ -1,101 +1,99 @@
 import type { Notification } from "@jabberwock/types"
 import type { JsonEvent } from "@/types/json-events.js"
 import type { CommandOutputHandler } from "./command-output-handler.js"
-import type { JsonEmitterState } from "./emitter-utils.js"
+import type { JsonEmitterState } from "./delta.js"
 import {
 	getContentToSend,
 	isEmptyStreamingDelta,
 	buildTextEvent,
 	computeStructuredDelta,
 	parseToolInfo,
-} from "./emitter-utils.js"
+} from "./delta.js"
 
-export class JsonAskHandler {
-	constructor(
-		private state: JsonEmitterState,
-		private emitEvent: (event: JsonEvent) => void,
-		private mode: string,
-		private commandOutputHandler: CommandOutputHandler,
-	) {}
-
-	private getPartial(msg: Notification): boolean {
+export function createJsonAskHandler(
+	state: JsonEmitterState,
+	emitEvent: (event: JsonEvent) => void,
+	mode: string,
+	commandOutputHandler: CommandOutputHandler,
+) {
+	function getPartial(msg: Notification): boolean {
 		return msg.partial ?? false
 	}
 
-	private isEmptyStreamingDelta(content: string | null): boolean {
-		return isEmptyStreamingDelta(this.mode, content)
+	function isEmptyStreamingDeltaCheck(content: string | null): boolean {
+		return isEmptyStreamingDelta(mode, content)
 	}
 
-	private getContentToSend(msgId: number, text: string | undefined, isPartial: boolean): string | null {
-		return getContentToSend(this.mode, this.state.previousContent, msgId, text, isPartial)
+	function getContentToSendFn(msgId: number, text: string | undefined, isPartial: boolean): string | null {
+		return getContentToSend(mode, state.previousContent, msgId, text, isPartial)
 	}
 
-	private computeStructuredDeltaFn(msgId: number, fullContent: string | undefined): string | null {
-		return computeStructuredDelta(this.state.previousToolUseContent, msgId, fullContent)
+	function computeStructuredDeltaFn(msgId: number, fullContent: string | undefined): string | null {
+		return computeStructuredDelta(state.previousToolUseContent, msgId, fullContent)
 	}
 
-	private isStreamingPartial(msg: Notification): boolean {
-		return this.mode === "stream-json" && msg.partial === true
+	function isStreamingPartial(msg: Notification): boolean {
+		return mode === "stream-json" && msg.partial === true
 	}
 
-	handleAskType(msg: Notification, isDone: boolean): void {
+	function handleAskType(msg: Notification, isDone: boolean): void {
 		if (!msg.ask) return
-		this.handleAskMessage(msg, isDone)
+		handleAskMessage(msg, isDone)
 	}
 
-	private handleFollowupAsk(msg: Notification, isDone: boolean): void {
-		const contentToSend = this.getContentToSend(msg.ts, msg.text, this.getPartial(msg))
-		if (msg.partial && this.isEmptyStreamingDelta(contentToSend)) return
-		this.emitEvent(buildTextEvent("assistant", msg.ts, contentToSend, isDone, "followup"))
+	function handleFollowupAsk(msg: Notification, isDone: boolean): void {
+		const contentToSend = getContentToSendFn(msg.ts, msg.text, getPartial(msg))
+		if (msg.partial && isEmptyStreamingDeltaCheck(contentToSend)) return
+		emitEvent(buildTextEvent("assistant", msg.ts, contentToSend, isDone, "followup"))
 	}
 
-	private handleCompletionResultAsk(msg: Notification): void {
-		if (msg.text && !msg.partial) this.state.completionResultContent = msg.text
+	function handleCompletionResultAsk(msg: Notification): void {
+		if (msg.text && !msg.partial) state.completionResultContent = msg.text
 	}
 
-	private handleDefaultAsk(msg: Notification, isDone: boolean, ask: string): void {
+	function handleDefaultAsk(msg: Notification, isDone: boolean, ask: string): void {
 		if (!msg.text) return
-		const contentToSend = this.getContentToSend(msg.ts, msg.text, this.getPartial(msg))
-		if (msg.partial && this.isEmptyStreamingDelta(contentToSend)) return
-		this.emitEvent(buildTextEvent("assistant", msg.ts, contentToSend, isDone, ask))
+		const contentToSend = getContentToSendFn(msg.ts, msg.text, getPartial(msg))
+		if (msg.partial && isEmptyStreamingDeltaCheck(contentToSend)) return
+		emitEvent(buildTextEvent("assistant", msg.ts, contentToSend, isDone, ask))
 	}
 
-	private handleAskMessage(msg: Notification, isDone: boolean): void {
+	function handleAskMessage(msg: Notification, isDone: boolean): void {
 		const ask = msg.ask as string
 		if (ask === "tool" || ask === "command" || ask === "use_mcp_server") {
-			this.handleToolUseAsk(msg, ask === "use_mcp_server" ? "mcp" : (ask as "tool" | "command"), isDone)
+			handleToolUseAsk(msg, ask === "use_mcp_server" ? "mcp" : (ask as "tool" | "command"), isDone)
 			return
 		}
 		if (ask === "followup") {
-			this.handleFollowupAsk(msg, isDone)
+			handleFollowupAsk(msg, isDone)
 			return
 		}
 		if (ask === "command_output") return
 		if (ask === "completion_result") {
-			this.handleCompletionResultAsk(msg)
+			handleCompletionResultAsk(msg)
 			return
 		}
-		this.handleDefaultAsk(msg, isDone, ask)
+		handleDefaultAsk(msg, isDone, ask)
 	}
 
-	private handleToolUseAsk(msg: Notification, subtype: "tool" | "command" | "mcp", isDone: boolean): void {
+	function handleToolUseAsk(msg: Notification, subtype: "tool" | "command" | "mcp", isDone: boolean): void {
 		if (subtype === "command") {
-			this.commandOutputHandler.handleToolUseAskCommand(msg, isDone)
-			this.emitToolUseCommandContent(msg, isDone)
+			commandOutputHandler.handleToolUseAskCommand(msg, isDone)
+			emitToolUseCommandContent(msg, isDone)
 			return
 		}
 		if (subtype === "mcp") {
-			this.handleToolUseAskMcp(msg, isDone)
+			handleToolUseAskMcp(msg, isDone)
 			return
 		}
-		this.handleToolUseAskTool(msg, isDone)
+		handleToolUseAskTool(msg, isDone)
 	}
 
-	private emitToolUseCommandContent(msg: Notification, isDone: boolean): void {
-		if (this.isStreamingPartial(msg)) {
-			const commandDelta = this.computeStructuredDeltaFn(msg.ts, msg.text)
+	function emitToolUseCommandContent(msg: Notification, isDone: boolean): void {
+		if (isStreamingPartial(msg)) {
+			const commandDelta = computeStructuredDeltaFn(msg.ts, msg.text)
 			if (commandDelta === null) return
-			this.emitEvent({
+			emitEvent({
 				type: "tool_use",
 				id: msg.ts,
 				subtype: "command",
@@ -104,7 +102,7 @@ export class JsonAskHandler {
 			})
 			return
 		}
-		this.emitEvent({
+		emitEvent({
 			type: "tool_use",
 			id: msg.ts,
 			subtype: "command",
@@ -113,11 +111,11 @@ export class JsonAskHandler {
 		})
 	}
 
-	private handleToolUseAskMcp(msg: Notification, isDone: boolean): void {
-		if (this.isStreamingPartial(msg)) {
-			const mcpDelta = this.computeStructuredDeltaFn(msg.ts, msg.text)
+	function handleToolUseAskMcp(msg: Notification, isDone: boolean): void {
+		if (isStreamingPartial(msg)) {
+			const mcpDelta = computeStructuredDeltaFn(msg.ts, msg.text)
 			if (mcpDelta === null) return
-			this.emitEvent({
+			emitEvent({
 				type: "tool_use",
 				id: msg.ts,
 				subtype: "mcp",
@@ -126,7 +124,7 @@ export class JsonAskHandler {
 			})
 			return
 		}
-		this.emitEvent({
+		emitEvent({
 			type: "tool_use",
 			id: msg.ts,
 			subtype: "mcp",
@@ -135,11 +133,11 @@ export class JsonAskHandler {
 		})
 	}
 
-	private handleToolUseAskTool(msg: Notification, isDone: boolean): void {
-		if (this.isStreamingPartial(msg)) {
-			const toolDelta = this.computeStructuredDeltaFn(msg.ts, msg.text)
+	function handleToolUseAskTool(msg: Notification, isDone: boolean): void {
+		if (isStreamingPartial(msg)) {
+			const toolDelta = computeStructuredDeltaFn(msg.ts, msg.text)
 			if (toolDelta === null) return
-			this.emitEvent({
+			emitEvent({
 				type: "tool_use",
 				id: msg.ts,
 				subtype: "tool",
@@ -149,7 +147,7 @@ export class JsonAskHandler {
 			return
 		}
 		const toolInfo = parseToolInfo(msg.text)
-		this.emitEvent({
+		emitEvent({
 			type: "tool_use",
 			id: msg.ts,
 			subtype: "tool",
@@ -158,21 +156,26 @@ export class JsonAskHandler {
 		})
 	}
 
-	handleTaskCompleted(event: { message?: { ts: number; text?: string }; success: boolean }): void {
-		const resultContent = event.message?.text || this.state.completionResultContent || this.state.lastAssistantText
-		this.emitEvent({
+	function handleTaskCompleted(event: { message?: { ts: number; text?: string }; success: boolean }): void {
+		const resultContent = event.message?.text || state.completionResultContent || state.lastAssistantText
+		emitEvent({
 			type: "result",
 			id: event.message?.ts ?? Date.now(),
 			content: resultContent,
 			done: true,
 			success: event.success,
-			cost: this.state.lastCost,
+			cost: state.lastCost,
 		})
-		this.state.completionResultContent = undefined
-		this.state.lastAssistantText = undefined
+		state.completionResultContent = undefined
+		state.lastAssistantText = undefined
 	}
 
-	handleError(error: Error): void {
-		this.emitEvent({ type: "error", id: Date.now(), content: error.message })
+	function handleError(error: Error): void {
+		emitEvent({ type: "error", id: Date.now(), content: error.message })
 	}
+
+	return { handleAskType, handleTaskCompleted, handleError }
 }
+
+/** JsonAskHandler instance type */
+export type JsonAskHandler = ReturnType<typeof createJsonAskHandler>

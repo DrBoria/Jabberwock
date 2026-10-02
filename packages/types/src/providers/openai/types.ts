@@ -1,7 +1,7 @@
-import type { ModelInfo } from "../../models/model.ts"
+import type { ModelInfo } from "../../models/model-main.ts"
 
 // https://openai.com/api/pricing/
-import { openAiNativeModels } from "./models.ts"
+import { openAiNativeModels } from "./models-main.ts"
 
 export type OpenAiNativeModelId = keyof typeof openAiNativeModels
 

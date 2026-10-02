@@ -1,10 +1,9 @@
-import { type Notification, TelemetryEventName } from "@jabberwock/types"
-import { getCloudService, isCloudEnabled } from "@jabberwock/cloud"
-import { getTask } from "@features/chat/task/actions/taskRegistry"
+import { type Notification } from "@jabberwock/types"
+import { getTask } from "@features/chat/task/actions"
 import { restoreTodoListForTask } from "@features/chat/tools"
-import { getBackendRootStore } from "@features/storeSingleton"
-import { saveMessages } from "./saveMessages"
-import { sendMessageUpdated } from "@features/chat/task/messages/events/actions/sendMessageEvent"
+import { getStore } from "@features/singleton"
+import { updateNotification } from "@features/chat/task/notifications/actions/core/updateNotification"
+import { saveMessages } from "./save"
 
 /**
  * Overwrite all messages with a new array.
@@ -12,7 +11,7 @@ import { sendMessageUpdated } from "@features/chat/task/messages/events/actions/
 export async function overwriteMessages(taskId: string, newMessages: Notification[]) {
 	const task = getTask(taskId)
 	// Overwrite per-task MST store notifications
-	getBackendRootStore().chat.tasks.get(taskId)!.notifications.setNotifications(newMessages)
+	getStore().chat.tasks.get(taskId)!.notifications.setNotifications(newMessages)
 
 	restoreTodoListForTask(task)
 	await saveMessages(taskId)
@@ -28,26 +27,8 @@ export async function overwriteMessages(taskId: string, newMessages: Notificatio
 
 /**
  * Update a single message and notify the webview.
+ *
+ * Alias for {@link updateNotification} — the two implementations were identical;
+ * the canonical body lives in `task/notifications/actions/core/updateNotification.ts`.
  */
-export async function updateMessage(taskId: string, message: Notification) {
-	const task = getTask(taskId)
-	// Notify the webview via event action (only code path allowed for postMessage)
-	sendMessageUpdated(message)
-
-	// TODO(phase-e): Move event emit to reactive layer
-	// task.emit(JabberwockEventName.Message, { action: "updated", message })
-
-	// Check if we should sync to cloud
-	const shouldCaptureMessage = message.partial !== true && isCloudEnabled()
-
-	// TODO(phase-i): Move cloud sync tracking to MST store
-	// const hasNotBeenSynced = !task.cloudSyncedMessageTimestamps.has(message.ts)
-
-	if (shouldCaptureMessage) {
-		getCloudService().captureEvent({
-			event: TelemetryEventName.TASK_MESSAGE,
-			properties: { taskId: task.taskId, message },
-		})
-		// TODO(phase-i): task.cloudSyncedMessageTimestamps.add(message.ts)
-	}
-}
+export const updateMessage = updateNotification

@@ -24,8 +24,8 @@ function PageViewTracker() {
 			if (referrer) {
 				try {
 					referringDomain = new URL(referrer).hostname
-				} catch {
-					// Invalid URL, leave empty
+				} catch (error) {
+					console.warn("[posthog] Invalid referrer URL, leaving domain empty:", error)
 				}
 			}
 

@@ -3,9 +3,9 @@ import { VSCodeTextArea } from "@vscode/webview-ui-toolkit/react"
 import { supportPrompt } from "@shared/support-prompt"
 import { useAppTranslation } from "@/i18n/TranslationContext"
 import { getEventValue } from "@src/utils/helpers/getEventValue"
-import { Button } from "@src/shared/ui/buttons/button"
-import { StandardTooltip } from "@src/shared/ui/tooltips/standard-tooltip"
-import { SearchableSetting } from "../shared/SearchableSetting"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
+import { StandardTooltip } from "@src/shared/ui/tooltips/standard"
+import { SearchableSetting } from "@src/features/settings/components/shared/SearchableSetting"
 
 type CondensePromptEditorProps = {
 	customSupportPrompts: Record<string, string | undefined>

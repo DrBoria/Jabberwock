@@ -1,5 +1,5 @@
-import { IntentBus } from "./bus"
-import type { IRootStore } from "../root-store"
+import { createIntentBus, type IntentBus } from "./bus"
+import type { IRootStore } from "@src/features/root-store"
 import type { IIntentStore } from "./store"
 import { registerAllFrontendIntents } from "./registrations"
 
@@ -20,7 +20,7 @@ export function setupIntents(rootStore: IRootStore): {
 	dispose: () => void
 } {
 	const intentStore: IIntentStore = rootStore.intentStore
-	const bus = new IntentBus()
+	const bus = createIntentBus()
 	const ctx = { rootStore, intentStore }
 
 	registerAllFrontendIntents(bus)

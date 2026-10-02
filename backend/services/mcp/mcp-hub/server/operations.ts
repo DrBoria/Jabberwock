@@ -5,7 +5,7 @@ import {
 	readServerConfigFromFile,
 	getMcpSettingsFilePath as getMcpSettingsFilePathFromConfig,
 } from "@services/mcp"
-import { parseToolTimeout, formatToolResponse } from "@services/mcp/features/tools"
+import { parseToolTimeout, formatToolResponse } from "@services/mcp/features/registry"
 import { CallToolResultSchema } from "@modelcontextprotocol/sdk/types.js"
 import { readFile } from "fs/promises"
 

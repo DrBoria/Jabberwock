@@ -2,7 +2,7 @@
  * StatusBarItem class for VSCode API
  */
 
-import { StatusBarAlignment } from "../../types.ts"
+import { StatusBarAlignment } from "../../api-types.ts"
 import type { Disposable } from "../../interfaces/workspace.ts"
 
 /**

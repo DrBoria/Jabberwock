@@ -1,8 +1,8 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
+import type { IntentBus } from "@features/intents"
 import { checkoutDiffPayloadSchema } from "@jabberwock/types"
-import { checkpointDiff } from "@features/foundation/time-machine/actions/checkpoints"
-import type { ITaskModel } from "@features/chat/task/store"
+import { checkpointDiff } from "@features/foundation"
+import type { ITaskModel } from "@features/chat/task"
 
 /**
  * Handles notification.checkpoint.diff.requested intent — shows checkpoint diff.

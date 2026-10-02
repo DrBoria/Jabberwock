@@ -1,6 +1,6 @@
 import type { ProviderSettings, ModelInfo, OrganizationAllowList, ProviderName } from "@jabberwock/types"
 import { isRetiredProvider } from "@jabberwock/types"
-import { filterModels } from "../utils/organizationFilters"
+import { filterModels } from "@src/features/settings/components/utils/organizationFilters"
 import type { ModelIdKey } from "./types"
 
 export const getActiveProvider = (apiConfiguration: ProviderSettings): string | undefined =>

@@ -1,7 +1,10 @@
 import React from "react"
-import { CreateModeDialog } from "../create-mode/dialog"
-import { SystemPromptPreviewDialog, ImportModeDialog } from "../dialogs"
-import { DeleteModeDialog } from "@/features/settings/agents/components/DeleteModeDialog"
+import { CreateModeDialog } from "@src/features/settings/agents/components/modes-view/create-mode/dialog"
+import {
+	SystemPromptPreviewDialog,
+	ImportModeDialog,
+} from "@src/features/settings/agents/components/modes-view/dialogs"
+import { DeleteModeDialog } from "@/features/settings/agents/components/delete-dialog"
 import { rootStore } from "@src/features/store"
 
 interface ModesViewDialogsProps {
@@ -47,7 +50,7 @@ interface ModesViewDialogsProps {
 	t: (key: string, options?: Record<string, unknown>) => string
 }
 
-import type { GroupEntry, ToolGroup, ModeSource } from "../types"
+import type { GroupEntry, ToolGroup, ModeSource } from "@src/features/settings/agents/components/modes-view/types"
 
 export function ModesViewDialogs({
 	isCreateModeDialogOpen,

@@ -48,6 +48,24 @@ export interface DisposableLike {
 }
 
 /**
+ * Minimal structural event contract: subscribe to a stream of values and get
+ * back a disposable that unsubscribes. Mirrors the call shape of
+ * `vscode.Event<T>` (`(listener, thisArgs?, disposables?) => Disposable`) so
+ * host event types satisfy it without importing any host types into this
+ * package. Used by backend interfaces that expose host events (file watchers,
+ * index progress) without leaking `vscode` outside connectors/<host>/backend.
+ *
+ * Минимальный структурный контракт события: подписка на поток значений с
+ * возвратом disposable для отписки. Повторяет сигнатуру `vscode.Event<T>`,
+ * чтобы host-типы событий удовлетворяли ему без импорта host-типов в пакет.
+ */
+export type EventLike<T> = (
+	listener: (e: T) => void,
+	thisArgs?: unknown,
+	disposables?: DisposableLike[],
+) => DisposableLike
+
+/**
  * Capability slot: a key/value in-memory store with optional prefix-key listing.
  * Слот возможностей: key/value in-memory хранилище с опциональным перечислением
  * ключей по префиксу.
@@ -65,16 +83,32 @@ export interface IHashmapMemory {
  * Mirrors the synchronous read surface of `vscode.workspace.getConfiguration(section).get(key, default)`.
  * Extension mode backs it with the host configuration API; server mode backs it with a pure-Node source
  * (JSON file under `--data-dir` + env overrides). The read path is synchronous because consumers
- * (provider constructors, ripgrep option builders) call it from synchronous contexts.
+ * (provider constructors, ripgrep option builders) call it from "synchronous" contexts.
  */
 export interface IConfiguration {
 	/**
-	 * Synchronously read a configuration value from the given section.
+	 * Synchronously read a configuration value from "the" given section.
 	 * Returns `defaultValue` when the key is unset, or `undefined` if no default is given.
 	 */
 	get<T>(section: string, key: string, defaultValue?: T): T | undefined
 	/** Asynchronously write a configuration value. No-op in server mode (no host configuration to persist). */
 	update(section: string, key: string, value: unknown): Promise<void>
+	/**
+	 * Subscribe to configuration changes (D4b-2). Extension mode backs it with the host
+	 * `workspace.onDidChangeConfiguration`; server mode omits it (no host configuration to watch),
+	 * so consumers degrade to reading the current value on demand.
+	 */
+	onDidChange?(listener: (event: IConfigurationChangeEvent) => void): DisposableLike
+}
+
+/**
+ * Capability slot: host-neutral view of a configuration-change event (D4b-2).
+ * Mirrors the `vscode.ConfigurationChangeEvent` surface the shared backend reads:
+ * `affectsConfiguration(section)` — true when any key under the section changed.
+ */
+export interface IConfigurationChangeEvent {
+	/** True when the change affected the given configuration section (or any key under it). */
+	affectsConfiguration(section: string): boolean
 }
 
 /**
@@ -394,7 +428,7 @@ export interface IHostContext {
 }
 
 /**
- * A single item received from a client, ready to be queued/processed.
+ * A single item received from "a" client, ready to be queued/processed.
  * Один элемент, полученный от клиента, готовый к постановке в очередь/обработке.
  */
 export interface InboundItem {

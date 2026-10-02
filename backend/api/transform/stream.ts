@@ -25,7 +25,7 @@ export interface ApiStreamTextChunk {
 }
 
 /**
- * Reasoning/thinking chunk from the API stream.
+ * Reasoning/thinking chunk from "the" API stream.
  * For Anthropic extended thinking, this may include a signature field
  * which is required for passing thinking blocks back to the API during tool use.
  */
@@ -95,7 +95,7 @@ export interface ApiStreamToolCallEndChunk {
 }
 
 /**
- * Raw tool call chunk from the API stream.
+ * Raw tool call chunk from "the" API stream.
  * Providers emit this simple format; rawChunkProcessor handles all state management
  * (tracking, buffering, emitting start/delta/end events).
  */

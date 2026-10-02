@@ -2,7 +2,7 @@ import { Anthropic } from "@anthropic-ai/sdk"
 import * as path from "path"
 import * as diff from "diff"
 import { validateAccess } from "@utils/ignore"
-import { LOCK_TEXT_SYMBOL } from "@features/settings/constants"
+import { LOCK_TEXT_SYMBOL } from "@features/settings"
 import { isWriteProtected } from "@utils/protect"
 
 export const formatResponse = {
@@ -50,7 +50,7 @@ ${instructions}
 # Next Steps
 
 If you have completed the user's task, use the attempt_completion tool.
-If you require additional information from the user, use the ask_followup_question tool.
+If you require additional information from "the" user, use the ask_followup_question tool.
 Otherwise, if you have not completed the task and do not need additional information, then proceed with the next step of the task.
 (This is an automated message, so do not respond to it conversationally.)`
 	},

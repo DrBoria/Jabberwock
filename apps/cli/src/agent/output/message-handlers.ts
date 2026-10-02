@@ -4,23 +4,15 @@ import type { DisplayedMessage, StreamState } from "./types.js"
 
 /**
  * Encapsulates the message-type-specific output formatting logic.
- * Delegated from OutputManager to keep the main file focused on orchestration.
+ * Delegated from "OutputManager" to keep the main file focused on orchestration.
  */
-export class MessageOutputHandlers {
-	displayedMessages = new Map<number, DisplayedMessage>()
-	streamedContent = new Map<number, StreamState>()
-	currentlyStreamingTs: number | null = null
-	completionResultStreamed = false
+export function createMessageOutputHandlers(stdout: NodeJS.WriteStream, stderr: NodeJS.WriteStream) {
+	const displayedMessages = new Map<number, DisplayedMessage>()
+	const streamedContent = new Map<number, StreamState>()
+	let currentlyStreamingTs: number | null = null
+	let completionResultStreamed = false
 
-	private stdout: NodeJS.WriteStream
-	private stderr: NodeJS.WriteStream
-
-	constructor(stdout: NodeJS.WriteStream, stderr: NodeJS.WriteStream) {
-		this.stdout = stdout
-		this.stderr = stderr
-	}
-
-	outputSayMessage(
+	function outputSayMessage(
 		ts: number,
 		say: NotificationSay,
 		text: string,
@@ -30,21 +22,21 @@ export class MessageOutputHandlers {
 	): void {
 		switch (say) {
 			case "text":
-				this.outputTextMessage(ts, text, isPartial, alreadyDisplayedComplete, skipFirstUserMessage)
+				outputTextMessage(ts, text, isPartial, alreadyDisplayedComplete, skipFirstUserMessage)
 				break
 			case "reasoning":
-				this.outputReasoningMessage(ts, text, isPartial, alreadyDisplayedComplete)
+				outputReasoningMessage(ts, text, isPartial, alreadyDisplayedComplete)
 				break
 			case "command_output":
-				this.outputCommandOutputMessage(ts, text, isPartial, alreadyDisplayedComplete)
+				outputCommandOutputMessage(ts, text, isPartial, alreadyDisplayedComplete)
 				break
 			case "completion_result":
-				this.outputCompletionSayMessage(ts, text, isPartial, alreadyDisplayedComplete)
+				outputCompletionSayMessage(ts, text, isPartial, alreadyDisplayedComplete)
 				break
 			case "error":
 				if (!alreadyDisplayedComplete) {
-					this.writeError("\n[error]", text || "Unknown error")
-					this.displayedMessages.set(ts, { ts, text: text || "", partial: false })
+					writeError("\n[error]", text || "Unknown error")
+					displayedMessages.set(ts, { ts, text: text || "", partial: false })
 				}
 				break
 			case "api_req_started":
@@ -54,133 +46,159 @@ export class MessageOutputHandlers {
 		}
 	}
 
-	private outputTextMessage(
+	function outputTextMessage(
 		ts: number,
 		text: string,
 		isPartial: boolean,
 		alreadyDisplayedComplete: boolean | undefined,
 		skipFirstUserMessage: boolean,
 	): void {
-		if (skipFirstUserMessage && !this.displayedMessages.size && !this.displayedMessages.has(ts)) {
-			this.displayedMessages.set(ts, { ts, text, partial: !!isPartial })
+		if (skipFirstUserMessage && !displayedMessages.size && !displayedMessages.has(ts)) {
+			displayedMessages.set(ts, { ts, text, partial: !!isPartial })
 			return
 		}
 		if (isPartial && text) {
-			this.streamContent(ts, text, "[assistant]")
-			this.displayedMessages.set(ts, { ts, text, partial: true })
+			streamContent(ts, text, "[assistant]")
+			displayedMessages.set(ts, { ts, text, partial: true })
 		} else if (!isPartial && text && !alreadyDisplayedComplete) {
-			if (!this.streamDelta(ts, text)) {
-				this.writeLine("\n[assistant]", text)
+			if (!streamDelta(ts, text)) {
+				writeLine("\n[assistant]", text)
 			}
-			this.displayedMessages.set(ts, { ts, text, partial: false })
-			this.streamedContent.set(ts, { ts, text, headerShown: true })
+			displayedMessages.set(ts, { ts, text, partial: false })
+			streamedContent.set(ts, { ts, text, headerShown: true })
 		}
 	}
 
-	private outputReasoningMessage(
+	function outputReasoningMessage(
 		ts: number,
 		text: string,
 		isPartial: boolean,
 		alreadyDisplayedComplete: boolean | undefined,
 	): void {
 		if (isPartial && text) {
-			this.streamContent(ts, text, "[reasoning]")
-			this.displayedMessages.set(ts, { ts, text, partial: true })
+			streamContent(ts, text, "[reasoning]")
+			displayedMessages.set(ts, { ts, text, partial: true })
 		} else if (!isPartial && text && !alreadyDisplayedComplete) {
-			if (!this.streamDelta(ts, text)) {
-				this.writeLine("\n[reasoning]", text)
+			if (!streamDelta(ts, text)) {
+				writeLine("\n[reasoning]", text)
 			}
-			this.displayedMessages.set(ts, { ts, text, partial: false })
+			displayedMessages.set(ts, { ts, text, partial: false })
 		}
 	}
 
-	outputCommandOutputMessage(
+	function outputCommandOutputMessage(
 		ts: number,
 		text: string,
 		isPartial: boolean,
 		alreadyDisplayedComplete: boolean | undefined,
 	): void {
 		if (isPartial && text) {
-			this.streamContent(ts, text, "[command output]")
-			this.displayedMessages.set(ts, { ts, text, partial: true })
+			streamContent(ts, text, "[command output]")
+			displayedMessages.set(ts, { ts, text, partial: true })
 		} else if (!isPartial && text && !alreadyDisplayedComplete) {
-			if (!this.streamDelta(ts, text)) {
-				this.writeRaw("\n[command output] ")
-				this.writeRaw(text)
-				this.writeRaw("\n")
+			if (!streamDelta(ts, text)) {
+				writeRaw("\n[command output] ")
+				writeRaw(text)
+				writeRaw("\n")
 			}
-			this.displayedMessages.set(ts, { ts, text, partial: false })
-			this.streamedContent.set(ts, { ts, text, headerShown: true })
+			displayedMessages.set(ts, { ts, text, partial: false })
+			streamedContent.set(ts, { ts, text, headerShown: true })
 		}
 	}
 
-	streamContent(ts: number, text: string, header: string): void {
-		const previous = this.streamedContent.get(ts)
+	function streamContent(ts: number, text: string, header: string): void {
+		const previous = streamedContent.get(ts)
 		if (!previous) {
-			this.writeRaw(`\n${header} `)
-			this.writeRaw(text)
-			this.currentlyStreamingTs = ts
+			writeRaw(`\n${header} `)
+			writeRaw(text)
+			currentlyStreamingTs = ts
 		} else if (text.length > previous.text.length && text.startsWith(previous.text)) {
 			const delta = text.slice(previous.text.length)
-			this.writeRaw(delta)
+			writeRaw(delta)
 		}
-		this.streamedContent.set(ts, { ts, text, headerShown: true })
+		streamedContent.set(ts, { ts, text, headerShown: true })
 	}
 
-	streamDelta(ts: number, text: string): boolean {
-		const streamed = this.streamedContent.get(ts)
+	function streamDelta(ts: number, text: string): boolean {
+		const streamed = streamedContent.get(ts)
 		if (!streamed) {
 			return false
 		}
 		if (text.length > streamed.text.length && text.startsWith(streamed.text)) {
-			this.writeRaw(text.slice(streamed.text.length))
+			writeRaw(text.slice(streamed.text.length))
 		}
-		this.finishStream(ts)
+		finishStream(ts)
 		return true
 	}
 
-	finishStream(ts: number): void {
-		if (this.currentlyStreamingTs === ts) {
-			this.writeRaw("\n")
-			this.currentlyStreamingTs = null
+	function finishStream(ts: number): void {
+		if (currentlyStreamingTs === ts) {
+			writeRaw("\n")
+			currentlyStreamingTs = null
 		}
 	}
 
-	private outputCompletionSayMessage(
+	function outputCompletionSayMessage(
 		ts: number,
 		text: string,
 		isPartial: boolean,
 		alreadyDisplayedComplete: boolean | undefined,
 	): void {
 		if (isPartial && text) {
-			this.streamContent(ts, text, "[assistant]")
-			this.displayedMessages.set(ts, { ts, text, partial: true })
+			streamContent(ts, text, "[assistant]")
+			displayedMessages.set(ts, { ts, text, partial: true })
 		} else if (!isPartial && text && !alreadyDisplayedComplete) {
-			if (!this.streamDelta(ts, text)) {
-				this.writeLine("\n[assistant]", text)
+			if (!streamDelta(ts, text)) {
+				writeLine("\n[assistant]", text)
 			}
-			this.displayedMessages.set(ts, { ts, text, partial: false })
+			displayedMessages.set(ts, { ts, text, partial: false })
 		}
-		this.completionResultStreamed = true
+		completionResultStreamed = true
 	}
 
-	outputCompletionResult(ts: number, text: string): void {
-		const previousDisplay = this.displayedMessages.get(ts)
+	function outputCompletionResult(ts: number, text: string): void {
+		const previousDisplay = displayedMessages.get(ts)
 		if (!previousDisplay || previousDisplay.partial) {
-			this.writeLine("\n[task complete]", this.completionResultStreamed ? undefined : text || "")
-			this.displayedMessages.set(ts, { ts, text: text || "", partial: false })
+			writeLine("\n[task complete]", completionResultStreamed ? undefined : text || "")
+			displayedMessages.set(ts, { ts, text: text || "", partial: false })
 		}
 	}
 
-	private writeLine(label: string, text?: string): void {
-		this.stdout.write(text ? `${label} ${text}\n` : `${label}\n`)
+	function writeLine(label: string, text?: string): void {
+		stdout.write(text ? `${label} ${text}\n` : `${label}\n`)
 	}
 
-	private writeRaw(text: string): void {
-		this.stdout.write(text)
+	function writeRaw(text: string): void {
+		stdout.write(text)
 	}
 
-	private writeError(label: string, text?: string): void {
-		this.stderr.write(text ? `${label} ${text}\n` : `${label}\n`)
+	function writeError(label: string, text?: string): void {
+		stderr.write(text ? `${label} ${text}\n` : `${label}\n`)
+	}
+
+	return {
+		displayedMessages,
+		streamedContent,
+		get currentlyStreamingTs() {
+			return currentlyStreamingTs
+		},
+		set currentlyStreamingTs(value: number | null) {
+			currentlyStreamingTs = value
+		},
+		get completionResultStreamed() {
+			return completionResultStreamed
+		},
+		set completionResultStreamed(value: boolean) {
+			completionResultStreamed = value
+		},
+		outputSayMessage,
+		outputCommandOutputMessage,
+		streamContent,
+		streamDelta,
+		finishStream,
+		outputCompletionResult,
 	}
 }
+
+/** MessageOutputHandlers instance type */
+export type MessageOutputHandlers = ReturnType<typeof createMessageOutputHandlers>

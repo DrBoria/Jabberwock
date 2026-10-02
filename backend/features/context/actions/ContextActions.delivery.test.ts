@@ -9,8 +9,8 @@ import {
 	getContextDatabase,
 	ingestTaskMessages,
 	initContextArchive,
-} from "@features/context/services/ContextArchiveService"
-import { getTaskStats } from "@features/context/services/ContextSearchService"
+} from "@features/context"
+import { getTaskStats } from "@features/context"
 import { runHistoryRangeDelivery } from "./index"
 
 // ICG-C2 chunked history-range delivery acceptance: page-by-page delivery with terminal boundaries, single-sender cancellation acks, and undeliverable-target stops [D-cancel-ack-requires-sender-id]. Split out of ContextActions.test.ts so the suite stays within its line budget [D-actions-test-split].

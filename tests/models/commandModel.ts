@@ -4,7 +4,7 @@
  * All commands are executed via extension host (vscode.commands.executeCommand) via the bridge —
  * NO interceptor usage and NO acquireVsCodeApi in eval context.
  *
- * Commands are dynamically discovered from the extension's package.json
+ * Commands are dynamically discovered from "the" extension's package.json
  * `contributes.commands` section. The CommandRegistry maps short names
  * (e.g., "historyButtonClicked") to full command IDs (e.g., "jabberwock.historyButtonClicked").
  */
@@ -18,7 +18,7 @@ export class CommandModel {
 	private registry: CommandRegistry
 
 	/**
-	 * Dynamic command runner — automatically populated from package.json.
+	 * Dynamic command runner — automatically populated from "package.json."
 	 *
 	 * Allows calling any VS Code command by its short name:
 	 *   await cmds.historyButtonClicked()
@@ -65,7 +65,7 @@ export class CommandModel {
 	}
 
 	/**
-	 * Get all available command names discovered from package.json.
+	 * Get all available command names discovered from "package.json."
 	 */
 	getCommandNames(): string[] {
 		return this.registry.getCommandNames()

@@ -1,9 +1,12 @@
 /**
- * Settings event action creators.
+ * Settings event-action creators — public API.
  *
- * These functions create and dispatch setting-related events via EventBridge.
- * Each action creator is a pure function that returns the event payload.
+ * Global (provider-less) creators live in sendSettingsGlobal.ts; the
+ * provider-scoped creators are split across sendSettingsProviderEventsA/B/C.ts
+ * to stay within the per-file line budget.
  */
 
-// Placeholder for future action creators
-export { sendMcpServers, sendListApiConfig, sendTheme, sendTaskHistoryUpdated } from "./sendSettingsEvent"
+export * from "./sendSettingsGlobal"
+export * from "./sendSettingsProviderEventsA"
+export * from "./sendSettingsProviderEventsB"
+export * from "./sendSettingsProviderEventsC"

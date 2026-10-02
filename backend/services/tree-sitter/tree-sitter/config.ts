@@ -1,13 +1,14 @@
 const DEFAULT_MIN_COMPONENT_LINES_VALUE = 4
 
-let currentMinComponentLines = DEFAULT_MIN_COMPONENT_LINES_VALUE
-
+const __moduleState = {
+	currentMinComponentLines: DEFAULT_MIN_COMPONENT_LINES_VALUE,
+}
 export function getMinComponentLines(): number {
-	return currentMinComponentLines
+	return __moduleState.currentMinComponentLines
 }
 
 export function setMinComponentLines(value: number): void {
-	currentMinComponentLines = value
+	__moduleState.currentMinComponentLines = value
 }
 
 export const extensions = [

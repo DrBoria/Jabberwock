@@ -1,6 +1,6 @@
 import type { ZodType, z } from "zod/v4"
 
-import { TaskLike } from "../task/task.ts"
+import { TaskLike } from "../task/provider.ts"
 
 export type CustomToolParametersSchema = ZodType
 

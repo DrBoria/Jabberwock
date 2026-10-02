@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { SCROLL_SNAP_TOLERANCE } from "../CodeBlock.constants"
+import { SCROLL_SNAP_TOLERANCE } from "@src/features/foundation/components/code/code-block/constants"
 
 export const useCodeBlockScroll = (
 	preRef: React.RefObject<HTMLDivElement | null>,

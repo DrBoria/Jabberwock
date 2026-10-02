@@ -4,7 +4,7 @@
 
 import type { Uri } from "../classes/types/Uri.ts"
 import type { ThemeIcon } from "../classes/types/Additional.ts"
-import type { Thenable } from "../types.ts"
+import type { Thenable } from "../api-types.ts"
 
 /**
  * Represents a terminal in VSCode

@@ -1,5 +1,5 @@
-import { IconButton } from "@src/shared/ui/buttons/icon-button"
-import { StandardTooltip } from "@src/shared/ui/tooltips/standard-tooltip"
+import { IconButton } from "@src/shared/ui/buttons/icon-button-primary"
+import { StandardTooltip } from "@src/shared/ui/tooltips/standard"
 import type { ApiConfigBottomBarProps } from "./types"
 
 export const ApiConfigBottomBar = ({

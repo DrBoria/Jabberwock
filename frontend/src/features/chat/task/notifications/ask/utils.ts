@@ -1,5 +1,5 @@
 import type { Notification } from "@jabberwock/types"
-import { findLast } from "@shared/array"
+import { findLast } from "@shared/core/array"
 
 export function hasOrphanApiRequest(messages: Notification[]): boolean {
 	const lastApiReqStarted = findLast(messages, (message: Notification) => message.say === "api_req_started")

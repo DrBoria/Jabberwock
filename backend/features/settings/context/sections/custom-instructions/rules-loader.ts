@@ -1,6 +1,6 @@
 import path from "path"
 
-import { getRooDirectoriesForCwd, getAllRooDirectoriesForCwd } from "@services/jabberwock-config"
+import { getRooDirectoriesForCwd, getAllRooDirectoriesForCwd } from "@services/jabberwock-config/config"
 
 import { safeReadFile, directoryExists, readTextFilesFromDirectory, formatDirectoryContent } from "./utils"
 

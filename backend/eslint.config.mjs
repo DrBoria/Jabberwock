@@ -4,7 +4,7 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 
 // ——— v4 purity (plan §8.2): backend must not import the "vscode" module outside connectors/vscode/backend ———
-// The allowlist below is DERIVED from the committed baseline artifact reports/audit-platform.json (Phase A0) and may only
+// The allowlist below is DERIVED from "the" committed baseline artifact reports/audit-platform.json (Phase A0) and may only
 // shrink as phases B/C remove violations: after any step that changes the inventory, re-run `pnpm audit:platform --write-baseline`
 // so this list follows automatically. If the report is missing/unreadable we fall back to strict mode (empty allowlist).
 
@@ -21,7 +21,7 @@ function loadVscodeAllowlist() {
 	}
 }
 
-const VSCODE_ALLOWLIST = loadVscodeAllowlist() // package-relative globs; regenerated from reports/audit-platform.json (A0 baseline, only shrinks per §11)
+const VSCODE_ALLOWLIST = loadVscodeAllowlist() // package-relative globs; regenerated from "reports/audit-platform.json" (A0 baseline, only shrinks per §11)
 
 // shared rule fragments so the relative-import hygiene pattern is defined exactly once:
 const RELATIVE_IMPORT_PATTERN = {
@@ -31,12 +31,67 @@ const RELATIVE_IMPORT_PATTERN = {
 const VSCODE_PATH_RESTRICTION = [
 	{
 		name: "vscode",
-		message: 'v4 purity G6 (§8): backend must not import the "vscode" module — host access goes through connectors/vscode/backend. Remove this file from reports/audit-platform.json only after its vscode usage is migrated (plan §2.3).',
+		message: 'v4 purity G6 (§8): backend must not import the "vscode" module — host access goes through connectors/vscode/backend. Remove this file from "reports/audit-platform.json" only after its vscode usage is migrated (plan §2.3).',
 	},
 ]
 
 // Per-file overrides for files still carrying baseline vscode debt: keep relative-import hygiene active, allow "vscode" until migrated.
 const VSCODE_ALLOWLIST_OVERRIDES = VSCODE_ALLOWLIST.map((glob) => ({
+	files: [glob],
+	rules: {
+		"no-restricted-imports": ["error", { patterns: [RELATIVE_IMPORT_PATTERN] }],
+	},
+}))
+
+// ——— Provider-SDK purity (v4 §1.3a): the app layer (actions / handlers / events) must be provider-agnostic ———
+// Only the provider layer (backend/api/providers/**, backend/api/handler.ts, backend/api/transform/**) may import an
+// LLM SDK. Actions, handlers and events must never know about anthropic / lm studio / llama.cpp / openai / … — they
+// speak the app's neutral content-block types and the api boundary maps them to the provider's wire format.
+const PROVIDER_SDK_RESTRICTION = [
+	{ name: "@anthropic-ai/sdk", message: "Provider-SDK purity: actions/handlers/events must be provider-agnostic. Import the app's neutral content-block types, not the Anthropic SDK — the api boundary maps to the provider wire format." },
+	{ name: "openai", message: "Provider-SDK purity: actions/handlers/events must be provider-agnostic. Do not import the OpenAI SDK in the app layer." },
+	{ name: "@google/genai", message: "Provider-SDK purity: actions/handlers/events must be provider-agnostic. Do not import the Google GenAI SDK in the app layer." },
+	{ name: "ollama", message: "Provider-SDK purity: actions/handlers/events must be provider-agnostic. Do not import the Ollama SDK in the app layer." },
+	{ name: "@mistralai/mistralai", message: "Provider-SDK purity: actions/handlers/events must be provider-agnostic. Do not import the Mistral SDK in the app layer." },
+	{ name: "@aws-sdk/client-bedrock", message: "Provider-SDK purity: actions/handlers/events must be provider-agnostic. Do not import the AWS Bedrock SDK in the app layer." },
+	{ name: "@anthropic-ai/vertex", message: "Provider-SDK purity: actions/handlers/events must be provider-agnostic. Do not import the Anthropic Vertex SDK in the app layer." },
+]
+
+// Debt allowlist: files still importing a provider SDK in the app layer. Only shrinks — remove an entry once its SDK
+// import is moved to the api boundary. (The mentions/ files are being fixed now, so they are NOT listed.)
+const PROVIDER_SDK_DEBT_ALLOWLIST = [
+	"features/api/handlers/request/prepare/attemptApiRequest.ts",
+	"features/api/handlers/request/prepare/helpers.ts",
+	"features/api/handlers/request/prepare/main.ts",
+	"features/api/handlers/request/prepare/mergeConsecutiveApiMessages.ts",
+	"features/api/handlers/request/process/streaming.ts",
+	"features/chat/task/messages/actions/presentAssistantMessage/helpers.ts",
+	"features/chat/task/messages/actions/save/blocks.ts",
+	"features/chat/task/messages/actions/save/io.ts",
+	"features/chat/task/messages/actions/save/transform.ts",
+	"features/chat/task/messages/actions/save/types.ts",
+	"features/chat/task/messages/handlers/user/on-message-received.ts",
+	"features/chat/task/actions/resumeTask/from-history.ts",
+	"features/chat/task/actions/resumeTask/helpers.ts",
+	"features/chat/task/actions/resumeTask/rebuild.ts",
+	"features/chat/tools/actions/buildToolDefinitions.ts",
+	"features/chat/tools/actions/executeTools.ts",
+	"features/chat/tools/actions/flushPendingToolResults.ts",
+	"features/chat/tools/actions/toolExecutor/api.ts",
+	"features/chat/tools/actions/toolExecutor/execution.ts",
+	"features/chat/tools/actions/toolExecutor/history.ts",
+	"features/chat/tools/actions/validateToolResultIds.ts",
+]
+
+// Scoped ban: applies to the app layer only. Placed BEFORE VSCODE_ALLOWLIST_OVERRIDES so that a file in the
+// intersection (vscode debt AND app layer) keeps its vscode allowance — flat config: later block wins.
+const PROVIDER_SDK_BAN = {
+	files: ["**/actions/**/*.ts", "**/handlers/**/*.ts", "**/events/**/*.ts"],
+	rules: {
+		"no-restricted-imports": ["error", { paths: PROVIDER_SDK_RESTRICTION }],
+	},
+}
+const PROVIDER_SDK_DEBT_OVERRIDES = PROVIDER_SDK_DEBT_ALLOWLIST.map((glob) => ({
 	files: [glob],
 	rules: {
 		"no-restricted-imports": ["error", { patterns: [RELATIVE_IMPORT_PATTERN] }],
@@ -94,14 +149,16 @@ export default [
 			],
 		},
 	},
-	...VSCODE_ALLOWLIST_OVERRIDES, // v4 A0 baseline allowlist — regenerated from reports/audit-platform.json; must only shrink (plan §8.2)
+	PROVIDER_SDK_BAN, // provider-SDK purity — app layer (actions/handlers/events) must be provider-agnostic (v4 §1.3a)
+	...PROVIDER_SDK_DEBT_OVERRIDES, // debt allowlist — only shrinks; remove an entry once its SDK import is at the api boundary
+	...VSCODE_ALLOWLIST_OVERRIDES, // v4 A0 baseline allowlist — regenerated from "reports/audit-platform.json"; must only shrink (plan §8.2)
 	{
 		files: ["core/assistant-message/presentAssistantMessage.ts", "core/webview/webviewMessageHandler.ts"],
 		rules: {
 			"no-case-declarations": "off",
 		},
 	},
-	// ——— Test files are exempt from strict type hygiene (mocks, casts, etc. are normal in tests) ———
+	// ——— Test files are exempt from "strict" type hygiene (mocks, casts, etc. are normal in tests) ———
 	{
 		files: ["**/__tests__/**", "**/*.spec.ts", "**/*.test.ts", "**/*.benchmark.ts"],
 		rules: {

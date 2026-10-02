@@ -62,7 +62,7 @@ function formatBufferEntry(entry: unknown) {
 	}
 }
 
-function filterByStore(buffer: unknown[], store?: string): unknown[] {
+export function filterByStore(buffer: unknown[], store?: string): unknown[] {
 	if (!store) return buffer
 	return buffer.filter((entry: unknown) => {
 		const e = entry as Record<string, unknown>
@@ -122,11 +122,6 @@ export function searchBufferActions(buffer: unknown[], store?: string, query?: s
 		totalActions: filtered.length,
 		cursor: cursor + paginated.length,
 	})
-}
-
-export function countBufferActions(buffer: unknown[], store?: string): string {
-	const filtered = filterByStore(buffer, store)
-	return JSON.stringify({ count: filtered.length })
 }
 
 export function getStoreActionsLogFromBuffer(buffer: unknown[], store?: string, cursor = 0, limit = 50): string {

@@ -1,9 +1,22 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 
+/**
+ * Envelope returned by frontend-bridge queries: the parsed payload plus the
+ * connector id of the surface that answered ("vscode" | "web"), stamped by the
+ * frontend connector onto the domResponse.
+ */
+export interface FrontendQueryResult<T> {
+	data: T
+	connector?: string
+}
+
 export interface FrontendBridge {
-	readonly getRootSnapshot: () => Promise<Record<string, unknown>>
-	readonly getNestedStoreState: (store: string, path?: string) => Promise<Record<string, unknown>>
-	readonly getActionBuffer: () => Promise<unknown[]>
+	readonly getRootSnapshot: () => Promise<FrontendQueryResult<Record<string, unknown>>>
+	readonly getNestedStoreState: (
+		store: string,
+		path?: string,
+	) => Promise<FrontendQueryResult<Record<string, unknown>>>
+	readonly getActionBuffer: () => Promise<FrontendQueryResult<unknown[]>>
 	readonly applySnapshot: (snapshot: Record<string, unknown>) => Promise<void>
 	readonly getConsoleLogs: (params: {
 		level?: string

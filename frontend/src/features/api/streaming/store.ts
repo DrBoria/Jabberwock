@@ -20,62 +20,43 @@ export interface StreamingState {
 
 type Listener = (state: Readonly<StreamingState>) => void
 
-export class StreamingStore {
-	private state: StreamingState = {
-		taskId: null,
-		text: "",
-		isActive: false,
-		error: null,
-	}
-
-	private listeners = new Set<Listener>()
-
+export interface StreamingStore {
 	/**
 	 * Append the incoming delta to the current stream buffer.
 	 * The backend now sends per-chunk deltas (not full accumulated text)
 	 * to minimise postMessage payload size.
 	 */
-	appendChunk(chunk: string): void {
-		this.state.text += chunk
-		this.notify()
-	}
-
+	appendChunk(chunk: string): void
 	/** Start a new streaming session for the given task ID. */
-	start(taskId: string): void {
-		this.state = { taskId, text: "", isActive: true, error: null }
-		this.notify()
-	}
-
+	start(taskId: string): void
 	/** End the current streaming session with optional error. */
-	end(finalText: string, error?: string): void {
-		this.state.text = finalText
-		this.state.isActive = false
-		this.state.error = error ?? null
-		this.notify()
-	}
-
+	end(finalText: string, error?: string): void
 	/** Reset the store to initial state. */
-	reset(): void {
-		this.state = { taskId: null, text: "", isActive: false, error: null }
-		this.notify()
-	}
-
+	reset(): void
 	/** Get a snapshot of the current state. */
-	getSnapshot(): Readonly<StreamingState> {
-		return { ...this.state }
-	}
-
+	getSnapshot(): Readonly<StreamingState>
 	/** Subscribe to state changes. Returns unsubscribe function. */
-	subscribe(listener: Listener): () => void {
-		this.listeners.add(listener)
-		return () => {
-			this.listeners.delete(listener)
-		}
-	}
+	subscribe(listener: Listener): () => void
+}
 
-	private notify(): void {
-		const snapshot = this.getSnapshot()
-		for (const listener of this.listeners) {
+/**
+ * Create a streaming store.
+ *
+ * Factory-closure form (no class): the state + listeners live in the closure,
+ * not module state. The singleton below is the one shared instance.
+ */
+export function createStreamingStore(): StreamingStore {
+	let state: StreamingState = {
+		taskId: null,
+		text: "",
+		isActive: false,
+		error: null,
+	}
+	const listeners = new Set<Listener>()
+
+	function notify(): void {
+		const snapshot = getSnapshot()
+		for (const listener of listeners) {
 			try {
 				listener(snapshot)
 			} catch (err) {
@@ -83,7 +64,44 @@ export class StreamingStore {
 			}
 		}
 	}
+
+	function getSnapshot(): Readonly<StreamingState> {
+		return { ...state }
+	}
+
+	return {
+		appendChunk(chunk: string): void {
+			state.text += chunk
+			notify()
+		},
+
+		start(taskId: string): void {
+			state = { taskId, text: "", isActive: true, error: null }
+			notify()
+		},
+
+		end(finalText: string, error?: string): void {
+			state.text = finalText
+			state.isActive = false
+			state.error = error ?? null
+			notify()
+		},
+
+		reset(): void {
+			state = { taskId: null, text: "", isActive: false, error: null }
+			notify()
+		},
+
+		getSnapshot,
+
+		subscribe(listener: Listener): () => void {
+			listeners.add(listener)
+			return () => {
+				listeners.delete(listener)
+			}
+		},
+	}
 }
 
 /** Singleton streaming store instance. */
-export const streamingStore = new StreamingStore()
+export const streamingStore = createStreamingStore()

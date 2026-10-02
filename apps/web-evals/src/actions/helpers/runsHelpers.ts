@@ -3,7 +3,7 @@ import { spawn } from "child_process"
 
 import pMap from "p-map"
 
-import { type ExerciseLanguage, exerciseLanguages, createTask, getExercisesForLanguage } from "@jabberwock/evals"
+import { type ExerciseLanguage, exerciseLanguages, tasksStore, getExercisesForLanguage } from "@jabberwock/evals"
 
 import type { CreateRun } from "@/lib/schemas"
 import { redisClient } from "@/lib/server/redis"
@@ -39,7 +39,7 @@ async function createPartialSuiteTasks(
 		}
 
 		for (let iteration = 1; iteration <= iterations; iteration++) {
-			await createTask({
+			await tasksStore.create({
 				...values,
 				runId,
 				language: language as ExerciseLanguage,
@@ -68,7 +68,7 @@ async function createFullSuiteTasks(
 
 		await pMap(
 			tasksToCreate,
-			({ language, exercise, iteration }) => createTask({ runId, language, exercise, iteration }),
+			({ language, exercise, iteration }) => tasksStore.create({ runId, language, exercise, iteration }),
 			{ concurrency: 10 },
 		)
 	}

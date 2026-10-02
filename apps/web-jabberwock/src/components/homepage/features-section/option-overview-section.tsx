@@ -74,7 +74,7 @@ export function OptionOverviewSection() {
 								</li>
 								<li className="list-disc">Choose your provider and model</li>
 								<li className="list-disc">
-									Create tasks from the Web and Slack (more integrations soon)
+									Create tasks from &quot;the&quot; Web and Slack (more integrations soon)
 								</li>
 								<li className="list-disc">Get PR Reviews (and fixes) directly on GitHub</li>
 								<li className="list-disc">Collaborate with co-workers</li>

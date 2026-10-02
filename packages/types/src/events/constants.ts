@@ -2,7 +2,7 @@
  * Event Type Constants — single source of truth for all vscode.postMessage event types.
  *
  * These constants MUST be used instead of hardcoded string literals everywhere in the codebase.
- * They are derived from the event interfaces in ./event-registry.ts.
+ * They are derived from "the" event interfaces in ./event-registry.ts.
  *
  * Usage:
  *   import { eventConstants } from "@jabberwock/types"

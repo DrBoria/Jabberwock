@@ -1,17 +1,26 @@
 import { useTranslation } from "react-i18next"
 import { formatLargeNumber } from "@src/utils/format/formatNumber"
-import { CircularProgress } from "@src/shared/ui/displays/circular-progress"
+import { CircularProgress } from "@src/shared/ui/displays/spinner"
 import { Table, TableBody, TableRow, TableCell } from "@src/shared/ui/displays/table"
 
 interface TokenTooltipProps {
 	contextWindow: number
 	contextTokens: number
 	reservedForOutput: number
+	condenseThresholdPercent?: number
 }
 
-export const TokenTooltipContent = ({ contextWindow, contextTokens, reservedForOutput }: TokenTooltipProps) => {
+export const TokenTooltipContent = ({
+	contextWindow,
+	contextTokens,
+	reservedForOutput,
+	condenseThresholdPercent,
+}: TokenTooltipProps) => {
 	const { t } = useTranslation()
 	const availableSpace = contextWindow - (contextTokens || 0) - reservedForOutput
+	const thresholdTokens = condenseThresholdPercent
+		? Math.round(((contextWindow - reservedForOutput) * condenseThresholdPercent) / 100)
+		: undefined
 	return (
 		<Table className="text-base ml-1.5">
 			<TableBody>
@@ -23,6 +32,14 @@ export const TokenTooltipContent = ({ contextWindow, contextTokens, reservedForO
 						{formatLargeNumber(contextTokens || 0)} / {formatLargeNumber(contextWindow)}
 					</TableCell>
 				</TableRow>
+				{thresholdTokens != null && (
+					<TableRow>
+						<TableCell className="font-medium whitespace-nowrap">{t("chat:task.condenseAt")}</TableCell>
+						<TableCell className="text-right text-[0.9em] font-mono">
+							{formatLargeNumber(thresholdTokens)} / {formatLargeNumber(contextWindow)}
+						</TableCell>
+					</TableRow>
+				)}
 				{reservedForOutput > 0 && (
 					<TableRow>
 						<TableCell className="font-medium whitespace-nowrap">

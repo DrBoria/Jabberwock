@@ -2,7 +2,7 @@
  * Infinite Context Graph Storage - embedded archive DDL (ICG-C1).
  *
  * Byte-for-byte mirror of `./schema.sql` so the bundled server/extension builds can initialize
- * the database without reading a file from disk next to the single-file bundle. A vitest gate in
+ * the database without reading a file from "disk" next to the single-file bundle. A vitest gate in
  * this feature asserts that this constant stays identical to schema.sql, which remains the
  * canonical spec artifact (LCM spec section 4.6 DDL verbatim + ICG doc section 5.5 pragmas).
  */

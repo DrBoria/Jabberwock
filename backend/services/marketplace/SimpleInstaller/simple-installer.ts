@@ -24,23 +24,13 @@ export interface InstallOptions extends InstallMarketplaceItemOptions {
 	selectedIndex?: number
 }
 
-export class SimpleInstaller {
-	constructor(private readonly context: IExtensionContextView) {}
-
-	async installItem(item: MarketplaceItem, options: InstallOptions): Promise<{ filePath: string; line?: number }> {
-		const { target } = options
-
-		switch (item.type) {
-			case "mode":
-				return await this.installMode(item, target)
-			case "mcp":
-				return await this.installMcp(item, target, options)
-			default:
-				throw new Error(`Unsupported item type: ${(item as { type: string }).type}`)
-		}
-	}
-
-	private async installMode(
+/**
+ * SimpleInstaller — installs/removes marketplace items (modes, MCP servers).
+ *
+ * @param context - Host extension context view
+ */
+export function SimpleInstaller(context: IExtensionContextView) {
+	async function installMode(
 		item: MarketplaceItem,
 		target: "project" | "global",
 	): Promise<{ filePath: string; line?: number }> {
@@ -63,7 +53,7 @@ export class SimpleInstaller {
 			throw new Error(result.error || "Failed to import mode")
 		}
 
-		const filePath = await getModeFilePath(target, this.context)
+		const filePath = await getModeFilePath(target, context)
 
 		let line: number | undefined
 		try {
@@ -86,7 +76,7 @@ export class SimpleInstaller {
 		return { filePath, line }
 	}
 
-	private async installMcp(
+	async function installMcp(
 		item: MarketplaceItem,
 		target: "project" | "global",
 		options?: InstallOptions,
@@ -108,7 +98,7 @@ export class SimpleInstaller {
 
 		contentToUse = resolveSelectedIndexOverride(item, contentToUse, methodParameters, options?.parameters)
 
-		const filePath = await getMcpFilePath(target, this.context)
+		const filePath = await getMcpFilePath(target, context)
 		const mcpData = JSON.parse(contentToUse)
 
 		const existingData = await readMcpFile(filePath)
@@ -125,22 +115,7 @@ export class SimpleInstaller {
 		return { filePath, line }
 	}
 
-	async removeItem(item: MarketplaceItem, options: InstallOptions): Promise<void> {
-		const { target } = options
-
-		switch (item.type) {
-			case "mode":
-				await this.removeMode(item, target)
-				break
-			case "mcp":
-				await this.removeMcp(item, target)
-				break
-			default:
-				throw new Error(`Unsupported item type: ${(item as { type: string }).type}`)
-		}
-	}
-
-	private async removeMode(item: MarketplaceItem, _target: "project" | "global"): Promise<void> {
+	async function removeMode(item: MarketplaceItem, _target: "project" | "global"): Promise<void> {
 		let content: string
 		if (Array.isArray(item.content)) {
 			content = item.content[0].content
@@ -160,11 +135,11 @@ export class SimpleInstaller {
 			throw new Error("Mode missing slug identifier")
 		}
 
-		await deleteCustomModeFromFile(modeSlug, this.context, true)
+		await deleteCustomModeFromFile(modeSlug, context, true)
 	}
 
-	private async removeMcp(item: MarketplaceItem, target: "project" | "global"): Promise<void> {
-		const filePath = await getMcpFilePath(target, this.context)
+	async function removeMcp(item: MarketplaceItem, target: "project" | "global"): Promise<void> {
+		const filePath = await getMcpFilePath(target, context)
 
 		try {
 			const existing = await fs.readFile(filePath, "utf-8")
@@ -187,4 +162,40 @@ export class SimpleInstaller {
 			// File doesn't exist or other error, nothing to remove
 		}
 	}
+
+	return {
+		async installItem(
+			item: MarketplaceItem,
+			options: InstallOptions,
+		): Promise<{ filePath: string; line?: number }> {
+			const { target } = options
+
+			switch (item.type) {
+				case "mode":
+					return await installMode(item, target)
+				case "mcp":
+					return await installMcp(item, target, options)
+				default:
+					throw new Error(`Unsupported item type: ${(item as { type: string }).type}`)
+			}
+		},
+
+		async removeItem(item: MarketplaceItem, options: InstallOptions): Promise<void> {
+			const { target } = options
+
+			switch (item.type) {
+				case "mode":
+					await removeMode(item, target)
+					break
+				case "mcp":
+					await removeMcp(item, target)
+					break
+				default:
+					throw new Error(`Unsupported item type: ${(item as { type: string }).type}`)
+			}
+		},
+	}
 }
+
+/** SimpleInstaller instance type */
+export type SimpleInstaller = ReturnType<typeof SimpleInstaller>

@@ -3,7 +3,7 @@ import type { ModelRecord, RouterModels } from "@jabberwock/types"
 
 /**
  * RouterModelsStore — tracks router model lists.
- * Receives snapshots from the extension-side RouterModelsStore via MstBridge.
+ * Receives snapshots from "the" extension-side RouterModelsStore via MstBridge.
  */
 export const RouterModelsStore = types
 	.model("RouterModelsStore", {
@@ -32,19 +32,3 @@ export const RouterModelsStore = types
 	}))
 
 export type IRouterModelsStore = Instance<typeof RouterModelsStore>
-export const routerModelsStore = RouterModelsStore.create({
-	routerModels: {
-		openrouter: {},
-		"vercel-ai-gateway": {},
-		litellm: {},
-		requesty: {},
-		jabberwock: {},
-		unbound: {},
-		ollama: {},
-		lmstudio: {},
-	},
-	ollamaModels: {},
-	lmStudioModels: {},
-	openAiModels: [],
-	vsCodeLmModels: [],
-})

@@ -1,19 +1,19 @@
 import React from "react"
 import type { Notification, SuggestionItem } from "@jabberwock/types"
-import { Markdown } from "../message-parts/markdown"
-import { ReasoningBlock } from "../message-parts/reasoning-block"
-import { ErrorRow } from "../row/error-rows/error-row"
-import { CommandExecutionError } from "../command/execution-error"
+import { Markdown } from "@src/features/chat/task/messages/components/message-parts/markdown"
+import { ReasoningBlock } from "@src/features/chat/task/messages/components/message-parts/reasoning-block"
+import { ErrorRow } from "@src/features/chat/task/messages/components/row/error-rows/main"
+import { CommandExecutionError } from "@src/features/chat/task/messages/components/command/execution-error"
 import { Container } from "@src/shared/ui/layouts/Container"
-import { McpIframeRenderer } from "@src/features/settings/mcp/McpIframeRenderer"
+import { McpIframeRenderer } from "@src/features/settings"
 import { observer } from "mobx-react-lite"
 import { rootStore } from "@src/features/store"
 import { getAllModes } from "@shared/modes"
-import { TextSay } from "./text-say"
+import { TextSay } from "./text"
 import { SayTool } from "./tool"
-import { ApiReqStartedSay, ApiReqRetryDelayedSay, ApiReqRateLimitWaitSay } from "./api-req/api"
-import { ErrorSay } from "./error-say"
-import { UserFeedbackSay, UserFeedbackDiffSay } from "./feedback-say"
+import { ApiReqStartedSay, ApiReqRetryDelayedSay, ApiReqRateLimitWaitSay } from "./api-req/api-main"
+import { ErrorSay } from "./error"
+import { UserFeedbackSay, UserFeedbackDiffSay } from "./feedback"
 import {
 	SubtaskResultSay,
 	CompletionResultSay,
@@ -25,7 +25,7 @@ import {
 	CondenseContextSay,
 	SlidingWindowTruncationSay,
 	CondensationErrorSay,
-} from "./misc-say"
+} from "./misc"
 
 interface SayRendererProps {
 	message: Notification
@@ -50,7 +50,7 @@ export const SayRenderer: React.FC<SayRendererProps> = observer((props) => {
 	const { message, icon, title, isExpanded, onToggleExpand, t, i18n } = props
 	const customModes = rootStore.extensionState.customModes
 
-	// Parse interactive app metadata from mcp_server_response messages
+	// Parse interactive app metadata from "mcp_server_response" messages
 	const interactiveMeta = React.useMemo<{ resourceUri?: string; input?: Record<string, unknown> } | null>(() => {
 		if (message.say === "mcp_server_response" && message.text) {
 			try {

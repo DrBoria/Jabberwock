@@ -2,8 +2,8 @@ import * as vscode from "vscode"
 import delay from "delay"
 
 import { installBackendState } from "@features/foundation/host-context/context"
-import { getBackendCapabilities } from "@features/foundation/capabilities/registry"
-import { EventBridge } from "@features/foundation/webview/EventBridge"
+import { getBackendCapabilities } from "@features/foundation/capabilities"
+import { EventBridge, tabPanelId } from "@features/foundation/webview/EventBridge"
 import { wireInboundToQueue } from "@features/foundation/webview/inbound-wiring"
 import { setPanel } from "./panel-store"
 import { VscodeWebviewBackendConnector } from "@connectors/vscode/backend/connector"
@@ -34,7 +34,7 @@ export const openClineInNewTab = async ({
 
 	const targetCol = hasVisibleEditors ? Math.max(lastCol + 1, 1) : vscode.ViewColumn.Two
 
-	const newPanel = vscode.window.createWebviewPanel(EventBridge.tabPanelId, "Jabberwock", targetCol, {
+	const newPanel = vscode.window.createWebviewPanel(tabPanelId, "Jabberwock", targetCol, {
 		enableScripts: true,
 		retainContextWhenHidden: true,
 		localResourceRoots: [context.extensionUri],

@@ -2,9 +2,9 @@ import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
 import { Checkbox } from "vscrui"
 import { type ProviderSettings, type ModelInfo, type BedrockServiceTier } from "@jabberwock/types"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@src/shared/ui/selects/select"
-import { StandardTooltip } from "@src/shared/ui/tooltips/standard-tooltip"
-import { noTransform } from "../../shared/transforms"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@src/shared/ui/selects/select-primitive"
+import { StandardTooltip } from "@src/shared/ui/tooltips/standard"
+import { noTransform } from "@src/features/settings/components/shared/transforms"
 import type { BedrockProps, HandleInputChangeFn } from "./types"
 
 export const ServiceTierSection = ({

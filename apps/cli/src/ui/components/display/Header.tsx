@@ -6,10 +6,10 @@ import type { TokenUsage } from "@jabberwock/types"
 import { ASCII_JABBERWOCK } from "@/types/constants.js"
 
 import { ExtensionHostOptions } from "@/agent/index.js"
-import { useTerminalSize } from "../../hooks/TerminalSizeContext.js"
+import { useTerminalSize } from "../../hooks/context.js"
 import * as theme from "../../theme.js"
 
-import MetricsDisplay from "../chat/MetricsDisplay.js"
+import MetricsDisplay from "../chat/metrics.js"
 
 interface HeaderProps extends ExtensionHostOptions {
 	version: string

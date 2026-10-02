@@ -1,4 +1,4 @@
-import type { ModelInfo } from "../../../models/model.ts"
+import type { ModelInfo } from "../../../models/model-main.ts"
 
 // https://docs.litellm.ai/
 export const litellmDefaultModelId = "claude-3-7-sonnet-20250219"

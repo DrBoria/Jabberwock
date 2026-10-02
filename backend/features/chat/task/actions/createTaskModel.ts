@@ -5,11 +5,15 @@ import * as os from "os"
 
 import type { ProviderSettings } from "@jabberwock/types"
 
-import type { ITaskModel } from "@features/chat/task/store"
-import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
-import { getBackendRootStore } from "@features/storeSingleton"
-import { getWorkspacePath } from "@utils/io/path"
-import { createAttemptApiRequest } from "@features/api/handlers/helpers/prepare/attemptApiRequest"
+import type { ITaskModel } from "@features/chat/task"
+import type { ProviderHandle } from "@features/foundation"
+import { getStore } from "@features/singleton"
+import { getWorkspacePath } from "@utils/io/main"
+import { createAttemptApiRequest } from "@features/api"
+// Leaf imports (not the messages/actions barrel) to avoid an import cycle:
+// the barrel re-exports updateMessage, which imports back into this actions barrel.
+import { getSavedMessages } from "@features/chat/task/messages/actions/command/getSavedMessages"
+import { getSavedApiConversationHistory } from "@features/chat/task/messages/actions/save/io"
 
 export interface CreateTaskModelOptions {
 	provider: ProviderHandle
@@ -64,7 +68,7 @@ export function createTaskModel(options: CreateTaskModelOptions): ITaskModel {
 		mode: explicitMode,
 		consecutiveMistakeLimit,
 	} = options
-	const store = getBackendRootStore()
+	const store = getStore()
 
 	// ── Compute identity values ──────────────────────────────────
 	const identity = resolveIdentityValues(options)
@@ -82,18 +86,26 @@ export function createTaskModel(options: CreateTaskModelOptions): ITaskModel {
 		consecutiveMistakeLimit,
 	})
 
-	// ── Set up volatile properties (migrated from Task class) ────
+	// ── Set up volatile properties (migrated from "Task" class) ────
 	model.setGlobalStoragePath(provider.context.globalStorageUri.fsPath)
 	model.setTaskMode(resolveTaskMode(explicitMode, historyItem))
 	model.setTaskModeReady(Promise.resolve())
 
 	if (historyItem) {
-		model.askResolve = undefined
+		model.setAskResolve(undefined)
 	}
 
 	console.log(`[createTaskModel] Setting attemptApiRequest on task ${model.taskId}`)
 	model.setAttemptApiRequest((retryAttempt, opts) => createAttemptApiRequest(model, retryAttempt, opts))
 	console.log(`[createTaskModel] attemptApiRequest is now: ${typeof model.attemptApiRequest}`)
+
+	// ── Wire persisted-state readers (migrated from the legacy Task class) ──
+	// Without these, resumeTaskFromHistory reads [] and overwriteMessages would
+	// clobber the saved ui_messages.json with an empty array.
+	model.setSavedMessagesReader(() => getSavedMessages(model.taskId, model.globalStoragePath))
+	model.setSavedApiConversationHistoryReader(() =>
+		getSavedApiConversationHistory(model.taskId, model.globalStoragePath),
+	)
 
 	return model
 }

@@ -1,17 +1,23 @@
 import { Anthropic } from "@anthropic-ai/sdk"
+
 import { IntentType, IntentStatus } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
+import type { IntentBus, IIntentStore } from "@features/intents"
 
 /**
  * Handles user.message.received intent — triggers the API request pipeline
  * when a user message arrives.
  */
-import { getTask } from "@features/chat/task/actions/taskRegistry"
-import { getBackendRootStore } from "@features/storeSingleton"
-import { prepareApiRequest } from "@features/api/handlers/helpers/prepare/prepareApiRequest"
-import { handleStream } from "@features/api/handlers/helpers/process/handleStream"
-import { finalizeToolCalls } from "@features/chat/tools/actions/finalizeToolCalls"
-import { executeTools } from "@features/chat/tools/actions/executeTools"
+import { getTask } from "@features/chat"
+
+import { getStore } from "@features/singleton"
+
+import { prepareApiRequest } from "@features/api"
+
+import { handleStream } from "@features/api"
+
+import { finalizeToolCalls } from "@features/chat"
+
+import { executeTools } from "@features/chat"
 
 function buildUserContent(
 	content: Anthropic.Messages.ContentBlockParam[] | undefined,
@@ -44,8 +50,6 @@ function buildUserContent(
 	return result
 }
 
-import type { IIntentStore } from "@features/intents/store"
-
 function handleProcessingError(ctx: { intentStore: IIntentStore }, taskId: string, err: unknown): void {
 	console.error(`[UserMessageReceived] Error processing task:`, err)
 	ctx.intentStore.createIntent({
@@ -55,7 +59,7 @@ function handleProcessingError(ctx: { intentStore: IIntentStore }, taskId: strin
 		status: IntentStatus.Queued,
 		createdAt: Date.now(),
 	})
-	const taskModel = getBackendRootStore().chat.tasks.get(taskId)
+	const taskModel = getStore().chat.tasks.get(taskId)
 	if (taskModel) {
 		taskModel.setIsProcessing(false)
 	}
@@ -82,7 +86,7 @@ async function processUserMessage(
 		retryAttempt?: number
 	}
 
-	const store = getBackendRootStore()
+	const store = getStore()
 	const taskModel = store.chat.tasks.get(taskId)
 	const task = getTask(taskId)
 

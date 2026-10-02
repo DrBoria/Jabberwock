@@ -1,6 +1,6 @@
-import Thumbnails from "@src/features/foundation/components/ui/display/Thumbnails"
+import { Thumbnails } from "@src/features/foundation"
 import { TaskActions } from "@/features/chat/task/messages/components/displays/task-actions"
-import { Mention } from "@/sections/dndTextArea/mention/mention"
+import { Mention } from "@/sections/dndTextArea/mention/main"
 import type { HistoryItem } from "@jabberwock/types"
 import { ContextWindowRow, TokensRow, CacheRow, CostRow, SizeRow } from "./components-metrics"
 

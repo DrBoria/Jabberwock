@@ -66,7 +66,7 @@ export function initializeWorkspace(workspacePath: string): void {
  */
 export function getWorkspaceStorageDir(workspacePath: string): string {
 	const hash = hashWorkspacePath(workspacePath)
-	return path.join(getBaseStorageDir(), "workspace-storage", hash)
+	return path.join(getBaseStorageDir(), "manager.workspace-storage", hash)
 }
 
 export const VSCodeMockPaths = {

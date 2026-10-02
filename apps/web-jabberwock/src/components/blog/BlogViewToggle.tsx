@@ -50,7 +50,7 @@ export function BlogViewToggle({ curatedCount, totalCount }: BlogViewToggleProps
 }
 
 /**
- * Get the current blog view from search params
+ * Get the current blog view from "search" params
  */
 export function getBlogView(searchParams: URLSearchParams): BlogView {
 	const view = searchParams.get("view")

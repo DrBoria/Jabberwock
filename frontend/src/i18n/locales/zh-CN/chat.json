@@ -149,6 +149,8 @@
 		"title": "API请求",
 		"failed": "API请求失败",
 		"streaming": "API请求...",
+		"loadingContext": "正在加载上下文...",
+		"loadingContextPercent": "正在加载上下文... {{percent}}%",
 		"cancelled": "API请求已取消",
 		"streamingFailed": "API流式传输失败",
 		"rateLimitWait": "请求频率限制",

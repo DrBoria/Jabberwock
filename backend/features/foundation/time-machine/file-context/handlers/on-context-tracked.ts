@@ -1,6 +1,6 @@
 import { IntentConstants } from "@intentConstants"
-import type { IntentBus } from "@features/intents/bus"
-import type { RecordSource } from "@features/foundation/time-machine/file-context/FileContextTrackerTypes"
+import type { IntentBus } from "@features/intents"
+import type { RecordSource } from "@features/foundation"
 
 /**
  * Handles file.context.tracked intent — records a file operation in the

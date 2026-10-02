@@ -1,9 +1,9 @@
-import type { ITaskModel } from "@features/chat/task/store"
+import type { ITaskModel } from "@features/chat/task"
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
-import { postStateToWebview } from "@features/foundation/window-manager/store"
-import { unregisterTask } from "@features/chat/task/actions/taskRegistry"
-import { clearTimeMachineState } from "@features/foundation/time-machine/actions/getTimeMachine"
+import type { IntentBus } from "@features/intents"
+import { postStateToWebview } from "@features/foundation"
+import { unregisterTask } from "@features/chat"
+import { clearTimeMachineState } from "@features/foundation/time-machine"
 
 function abortActiveTask(activeTask: ITaskModel | undefined): void {
 	activeTask?.abortTask?.()

@@ -1,8 +1,8 @@
 import { memo } from "react"
 import { cn } from "@src/lib/utils"
-import CodeBlock from "@src/features/foundation/components/code/CodeBlock"
-import { Markdown } from "@src/features/chat/task/messages/components/message-parts/markdown"
-import type { ResponseContainerProps } from "../types"
+import { CodeBlock } from "@src/features/foundation"
+import { Markdown } from "@src/features/chat"
+import type { ResponseContainerProps } from "@src/features/settings/mcp/mcp-execution/types"
 
 const ResponseContainerInternal = ({
 	isExpanded,

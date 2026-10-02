@@ -1,6 +1,6 @@
 import * as vscode from "vscode"
 
-import { arePathsEqual } from "@utils/io/path"
+import { arePathsEqual } from "@utils/io/main"
 
 import { RooTerminal, RooTerminalProvider } from "@jabberwock/types"
 import { Terminal } from "../terminal-core/Terminal"
@@ -109,7 +109,7 @@ export class TerminalRegistry {
 	}
 
 	/**
-	 * Gets unretrieved output from a terminal process.
+	 * Gets unretrieved output from "a" terminal process.
 	 *
 	 * @param id The terminal ID
 	 * @returns The unretrieved output as a string, or empty string if terminal not found

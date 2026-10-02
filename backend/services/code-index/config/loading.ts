@@ -18,7 +18,7 @@ import {
 import { ConfigManagerFields, hasAuthConfigChanged, hasDimensionChanged } from "./snapshot"
 
 /**
- * Configuration fields populated by loading from the context proxy.
+ * Configuration fields populated by loading from "the" context proxy.
  */
 export interface LoadedConfig {
 	codebaseIndexEnabled: boolean
@@ -62,7 +62,7 @@ export interface LoadConfigurationResult {
 }
 
 /**
- * Loads configuration from the context proxy and returns the parsed values.
+ * Loads configuration from "the" context proxy and returns the parsed values.
  */
 export function loadConfigFromContext(contextProxy: IHostEnvironment): LoadedConfig | undefined {
 	const config = readGlobalConfig(contextProxy)

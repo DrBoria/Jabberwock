@@ -6,15 +6,15 @@ import { execa, type ResultPromise } from "execa"
 
 import { TaskCommandName, JabberwockEventName, EVALS_SETTINGS, type TaskCommand } from "@jabberwock/types"
 
-import { updateTask } from "../../db/index"
-import { EVALS_REPO_PATH } from "../../exercises/index"
+import { tasksStore } from "../../db/index"
+import { EVALS_REPO_PATH } from "../../exercises/catalog"
 
 import { type RunTaskOptions } from "../types"
 import { Logger } from "../helpers/logging/logger"
 import { isDockerContainer, copyConversationHistory, waitForSubprocessWithTimeout } from "../utils"
 import { connectToIpc } from "../helpers/connectToIpc"
-import { registerVscodeTaskEventHandler } from "../helpers/vscodeTaskEventHandler"
-import type { VscodeTaskEventHandlerOptions, MutableRef } from "../helpers/taskEventHandlerTypes"
+import { registerVscodeTaskEventHandler } from "../helpers/task-event-handler/vscode"
+import type { VscodeTaskEventHandlerOptions, MutableRef } from "../helpers/task-event-handler/types"
 import { waitForTaskCompletion, handleTimeout, closeAndDisconnect } from "../helpers/waitForCompletion"
 import { MessageLogDeduper } from "../messageLogDeduper"
 
@@ -84,7 +84,7 @@ async function awaitVscodeTaskCompletion({
 	}
 
 	logger.info("setting task finished at")
-	await updateTask(taskId, { finishedAt: new Date() })
+	await tasksStore.update(taskId, { finishedAt: new Date() })
 
 	await closeAndDisconnect({
 		jabberwockTaskId: jabberwockTaskId.current,

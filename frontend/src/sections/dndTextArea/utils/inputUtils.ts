@@ -4,7 +4,7 @@
  */
 
 import type { Command, ModeConfig } from "@jabberwock/types"
-import { ContextMenuOptionType, type SearchResult, getContextMenuOptions } from "./context-mentions/context-mentions"
+import { ContextMenuOptionType, type SearchResult, getContextMenuOptions } from "./context-mentions/main"
 
 /**
  * Finds the next selectable index in the context menu given a direction.
@@ -39,7 +39,7 @@ export function getNextSelectableIndex(
 }
 
 /**
- * Gets the selected option from the context menu at the given index.
+ * Gets the selected option from "the" context menu at the given index.
  */
 export function getSelectedOption(
 	selectedMenuIndex: number,

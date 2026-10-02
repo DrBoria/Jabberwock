@@ -1,0 +1,207 @@
+import { OpenAI } from "openai"
+import { OpenAiNativeHandler } from "@api/providers/openai-native"
+import { ApiHandlerOptions } from "@shared/api"
+import { IEmbedder, EmbeddingResponse, EmbedderInfo } from "@services/code-index/interfaces"
+import {
+	MAX_BATCH_TOKENS,
+	MAX_ITEM_TOKENS,
+	MAX_BATCH_RETRIES as MAX_RETRIES,
+	INITIAL_RETRY_DELAY_MS as INITIAL_DELAY_MS,
+} from "@services/code-index/constants"
+import { getModelQueryPrefix } from "@shared/api/embeddingModels"
+import { t } from "@i18n"
+import {
+	withValidationErrorHandling,
+	formatEmbeddingError,
+	HttpError,
+} from "@services/code-index/shared/validateContent"
+import { TelemetryEventName } from "@jabberwock/types"
+import { getTelemetryService } from "@jabberwock/telemetry"
+import { handleProviderError } from "@api/providers/utils/error-handler"
+
+/**
+ * OpenAI implementation of the embedder interface with batching and rate limiting
+ */
+export function OpenAiEmbedder(options: ApiHandlerOptions & { openAiEmbeddingModelId?: string }): IEmbedder {
+	const apiKey = options.openAiNativeApiKey ?? "not-provided"
+
+	// Wrap OpenAI client creation to handle invalid API key characters
+	let embeddingsClient: OpenAI
+	try {
+		embeddingsClient = new OpenAI({ apiKey })
+	} catch (error) {
+		// Use the error handler to transform ByteString conversion errors
+		throw handleProviderError(error, "OpenAI")
+	}
+
+	const defaultModelId = options.openAiEmbeddingModelId || "text-embedding-3-small"
+
+	const base = OpenAiNativeHandler(options)
+	const handler = {
+		get embedderInfo(): EmbedderInfo {
+			return {
+				name: "openai",
+			}
+		},
+		...base,
+		embeddingsClient: embeddingsClient,
+		defaultModelId: defaultModelId,
+		async createEmbeddings(texts: string[], model?: string): Promise<EmbeddingResponse> {
+			const modelToUse = model || handler.defaultModelId
+			// Apply model-specific query prefix if required
+			const queryPrefix = getModelQueryPrefix("openai", modelToUse)
+			const processedTexts = queryPrefix
+				? texts.map((text, index) => {
+						// Prevent double-prefixing
+						if (text.startsWith(queryPrefix)) {
+							return text
+						}
+						const prefixedText = `${queryPrefix}${text}`
+						const estimatedTokens = Math.ceil(prefixedText.length / 4)
+						if (estimatedTokens > MAX_ITEM_TOKENS) {
+							console.warn(
+								t("embeddings:textWithPrefixExceedsTokenLimit", {
+									index,
+									estimatedTokens,
+									maxTokens: MAX_ITEM_TOKENS,
+								}),
+							)
+							// Return original text if adding prefix would exceed limit
+							return text
+						}
+						return prefixedText
+					})
+				: texts
+			const allEmbeddings: number[][] = []
+			const usage = { promptTokens: 0, totalTokens: 0 }
+			const remainingTexts = [...processedTexts]
+			while (remainingTexts.length > 0) {
+				const currentBatch: string[] = []
+				let currentBatchTokens = 0
+				const processedIndices: number[] = []
+				for (let i = 0; i < remainingTexts.length; i++) {
+					const text = remainingTexts[i]
+					const itemTokens = Math.ceil(text.length / 4)
+					if (itemTokens > MAX_ITEM_TOKENS) {
+						console.warn(
+							t("embeddings:textExceedsTokenLimit", {
+								index: i,
+								itemTokens,
+								maxTokens: MAX_ITEM_TOKENS,
+							}),
+						)
+						processedIndices.push(i)
+						continue
+					}
+					if (currentBatchTokens + itemTokens <= MAX_BATCH_TOKENS) {
+						currentBatch.push(text)
+						currentBatchTokens += itemTokens
+						processedIndices.push(i)
+					} else {
+						break
+					}
+				}
+				// Remove processed items from "remainingTexts" (in reverse order to maintain correct indices)
+				for (let i = processedIndices.length - 1; i >= 0; i--) {
+					remainingTexts.splice(processedIndices[i], 1)
+				}
+				if (currentBatch.length > 0) {
+					const batchResult = await handler._embedBatchWithRetries(currentBatch, modelToUse)
+					allEmbeddings.push(...batchResult.embeddings)
+					usage.promptTokens += batchResult.usage.promptTokens
+					usage.totalTokens += batchResult.usage.totalTokens
+				}
+			}
+			return { embeddings: allEmbeddings, usage }
+		},
+		async _embedBatchWithRetries(
+			batchTexts: string[],
+			model: string,
+		): Promise<{
+			embeddings: number[][]
+			usage: {
+				promptTokens: number
+				totalTokens: number
+			}
+		}> {
+			for (let attempts = 0; attempts < MAX_RETRIES; attempts++) {
+				try {
+					const response = await handler.embeddingsClient.embeddings.create({
+						input: batchTexts,
+						model: model,
+					})
+					return handler._processOpenAiEmbeddingResponse(response)
+				} catch (error) {
+					await handler._handleOpenAiRetryError(error, attempts)
+				}
+			}
+			throw new Error(t("embeddings:failedMaxAttempts", { attempts: MAX_RETRIES }))
+		},
+		_processOpenAiEmbeddingResponse(response: OpenAI.Embeddings.CreateEmbeddingResponse): {
+			embeddings: number[][]
+			usage: {
+				promptTokens: number
+				totalTokens: number
+			}
+		} {
+			return {
+				embeddings: response.data.map((item) => item.embedding),
+				usage: {
+					promptTokens: response.usage?.prompt_tokens || 0,
+					totalTokens: response.usage?.total_tokens || 0,
+				},
+			}
+		},
+		async _handleOpenAiRetryError(error: unknown, attempts: number): Promise<void> {
+			const hasMoreAttempts = attempts < MAX_RETRIES - 1
+			const httpError = error as HttpError
+			if (httpError?.status === 429 && hasMoreAttempts) {
+				const delayMs = INITIAL_DELAY_MS * Math.pow(2, attempts)
+				console.warn(
+					t("embeddings:rateLimitRetry", { delayMs, attempt: attempts + 1, maxRetries: MAX_RETRIES }),
+				)
+				await new Promise((resolve) => setTimeout(resolve, delayMs))
+				return
+			}
+			getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
+				error: error instanceof Error ? error.message : String(error),
+				stack: error instanceof Error ? error.stack : undefined,
+				location: "OpenAiEmbedder:_embedBatchWithRetries",
+				attempt: attempts + 1,
+			})
+			console.error(`[jabberwock] OpenAI embedder error (attempt ${attempts + 1}/${MAX_RETRIES}):`, error)
+			throw formatEmbeddingError(error, MAX_RETRIES)
+		},
+		async validateConfiguration(): Promise<{
+			valid: boolean
+			error?: string
+		}> {
+			return withValidationErrorHandling(async () => {
+				try {
+					// Test with a minimal embedding request
+					const response = await handler.embeddingsClient.embeddings.create({
+						input: ["test"],
+						model: handler.defaultModelId,
+					})
+					// Check if we got a valid response
+					if (!response.data || response.data.length === 0) {
+						return {
+							valid: false,
+							error: t("embeddings:openai.invalidResponseFormat"),
+						}
+					}
+					return { valid: true }
+				} catch (error) {
+					// Capture telemetry for validation errors
+					getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
+						error: error instanceof Error ? error.message : String(error),
+						stack: error instanceof Error ? error.stack : undefined,
+						location: "OpenAiEmbedder:validateConfiguration",
+					})
+					throw error
+				}
+			}, "openai")
+		},
+	}
+	return handler
+}

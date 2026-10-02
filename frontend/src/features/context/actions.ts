@@ -8,7 +8,7 @@
  * frames are handled by the bus subscription in `store-singleton.ts`.
  */
 
-import { getConnectorBus } from "../../connector-bus"
+import { getConnectorBus } from "@src/connector-bus"
 import type { HistoryRangeRequest, RecallRequest, WebviewMessage } from "@jabberwock/types"
 
 export interface HistoryRangeRequestOptions {

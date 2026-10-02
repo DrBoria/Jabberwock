@@ -1,14 +1,14 @@
 import type { Goal, HistoryItem, TodoItem } from "@jabberwock/types"
 import { ArrowLeft } from "lucide-react"
 import { cn } from "@src/lib/utils"
-import { Button } from "@src/shared/ui/buttons/button"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
 import type { IChatStore } from "@src/features/chat/tree/store"
 import type { WindowTypeValue } from "@src/features/foundation/window-manager/store"
 import { TodoListDisplay } from "@src/features/chat/topic/list-display"
-import { CloudUpsellDialog } from "@src/features/cloud/components/CloudUpsellDialog"
-import DismissibleUpsell from "@src/features/foundation/components/ui/display/DismissibleUpsell"
-import { CollapsedTaskBar } from "../task-metrics/collapsed-bar"
-import { TaskCardHeader } from "./card-header"
+import { CloudUpsellDialog } from "@src/features/cloud"
+import { DismissibleUpsell } from "@src/features/foundation"
+import { CollapsedTaskBar } from "@src/features/chat/task/components/task-metrics/collapsed-bar"
+import { TaskCardHeader } from "./card"
 import { ExpandedTaskSection } from "./expanded-section"
 import { ActiveSubagentsList } from "./subagents-list"
 
@@ -21,6 +21,7 @@ interface TaskCardBodyProps {
 	contextWindow: number
 	contextTokens: number
 	reservedForOutput: number
+	condenseThresholdPercent: number
 	totalCost: number | undefined
 	hasSubtasks: boolean
 	aggregatedCost: number | undefined
@@ -68,6 +69,7 @@ export const TaskCardBody = ({
 	contextWindow,
 	contextTokens,
 	reservedForOutput,
+	condenseThresholdPercent,
 	totalCost,
 	hasSubtasks,
 	aggregatedCost,
@@ -147,39 +149,42 @@ export const TaskCardBody = ({
 				contextWindow={contextWindow}
 				contextTokens={contextTokens || 0}
 				reservedForOutput={reservedForOutput}
+				condenseThresholdPercent={condenseThresholdPercent}
 				totalCost={totalCost}
 				hasSubtasks={hasSubtasks}
 				aggregatedCost={aggregatedCost}
 				costBreakdown={costBreakdown}
 			/>
-			<ExpandedTaskSection
-				taskText={taskText}
-				textContainerRef={textContainerRef}
-				textRef={textRef}
-				taskImages={taskImages}
-				goals={goals}
-				isEditingGoals={isEditingGoals}
-				editableGoals={editableGoals}
-				handleAddGoal={handleAddGoal}
-				handleRemoveGoal={handleRemoveGoal}
-				handleUpdateGoal={handleUpdateGoal}
-				handleReorderGoals={handleReorderGoals}
-				setIsEditingGoals={setIsEditingGoals}
-				currentTaskItem={currentTaskItem}
-				buttonsDisabled={buttonsDisabled}
-				contextWindow={contextWindow}
-				contextTokens={contextTokens || 0}
-				maxTokens={maxTokens}
-				condenseButton={condenseButton}
-				tokensIn={tokensIn}
-				tokensOut={tokensOut}
-				cacheReads={cacheReads}
-				cacheWrites={cacheWrites}
-				totalCost={totalCost}
-				hasSubtasks={hasSubtasks}
-				aggregatedCost={aggregatedCost}
-				costBreakdown={costBreakdown}
-			/>
+			{isTaskExpanded && (
+				<ExpandedTaskSection
+					taskText={taskText}
+					textContainerRef={textContainerRef}
+					textRef={textRef}
+					taskImages={taskImages}
+					goals={goals}
+					isEditingGoals={isEditingGoals}
+					editableGoals={editableGoals}
+					handleAddGoal={handleAddGoal}
+					handleRemoveGoal={handleRemoveGoal}
+					handleUpdateGoal={handleUpdateGoal}
+					handleReorderGoals={handleReorderGoals}
+					setIsEditingGoals={setIsEditingGoals}
+					currentTaskItem={currentTaskItem}
+					buttonsDisabled={buttonsDisabled}
+					contextWindow={contextWindow}
+					contextTokens={contextTokens || 0}
+					maxTokens={maxTokens}
+					condenseButton={condenseButton}
+					tokensIn={tokensIn}
+					tokensOut={tokensOut}
+					cacheReads={cacheReads}
+					cacheWrites={cacheWrites}
+					totalCost={totalCost}
+					hasSubtasks={hasSubtasks}
+					aggregatedCost={aggregatedCost}
+					costBreakdown={costBreakdown}
+				/>
+			)}
 			{hasTodos && todos && (
 				<TodoListDisplay todos={todos} onTodoClick={(taskId) => pushWindow("chat", { targetNodeId: taskId })} />
 			)}

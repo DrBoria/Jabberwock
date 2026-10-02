@@ -1,4 +1,5 @@
-export { IntentBus } from "./bus"
+export type { IntentBus } from "./bus"
+export { createIntentBus } from "./bus"
 export { IntentStoreModel, IntentModel } from "./store"
 export type { IIntentStore, IIntent } from "./store"
 export type { IntentHandlerContext } from "./context"

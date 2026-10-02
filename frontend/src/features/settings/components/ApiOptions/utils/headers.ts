@@ -1,5 +1,5 @@
 import type { ProviderSettings } from "@jabberwock/types"
-import { convertHeadersToObject } from "../../utils/headers"
+import { convertHeadersToObject } from "@src/features/settings/components/utils/headers"
 
 export function handleDebouncedHeadersChange(
 	apiConfiguration: ProviderSettings,

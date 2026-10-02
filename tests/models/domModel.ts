@@ -52,7 +52,7 @@ export class DomModel {
 	 * Uses the MCP click_element tool which now supports:
 	 * - DOM id attribute
 	 * - data-testid value
-	 * - $N references from findElement (e.g., "$1")
+	 * - $N references from "findElement" (e.g., "$1")
 	 * - CSS selectors
 	 * - Pointer event dispatching (for Radix UI / ShadCN components)
 	 */
@@ -65,7 +65,7 @@ export class DomModel {
 	 * Uses the MCP type_text tool which now supports:
 	 * - DOM id attribute
 	 * - data-testid value
-	 * - $N references from findElement
+	 * - $N references from "findElement"
 	 * - React controlled inputs (native value setter)
 	 * - contenteditable elements
 	 */
@@ -74,7 +74,7 @@ export class DomModel {
 	}
 
 	/**
-	 * Get the active task ID from the frontend (webview) MST store via getStoreState.
+	 * Get the active task ID from "the" frontend (webview) MST store via getStoreState.
 	 */
 	async getMstActiveTaskId(): Promise<string | null> {
 		const state = await this.client.getStoreState({
@@ -93,7 +93,7 @@ export class DomModel {
 	}
 
 	/**
-	 * Get the active task's mode from MST chatStore.
+	 * Get the active task's mode from "MST" chatStore.
 	 */
 	async getMstActiveTaskMode(): Promise<string | null> {
 		const activeTaskId = await this.getMstActiveTaskId()
@@ -115,7 +115,7 @@ export class DomModel {
 	}
 
 	/**
-	 * Get the count of task nodes from the frontend (webview) MST store via getStoreState.
+	 * Get the count of task nodes from "the" frontend (webview) MST store via getStoreState.
 	 */
 	async getMstTaskCount(): Promise<number> {
 		const state = await this.client.getStoreState({

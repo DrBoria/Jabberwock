@@ -25,14 +25,14 @@ export { LocatorBridge } from "./LocatorBridge.js"
 export { initWebviewConsoleBridge, getWebviewConsoleLogs, clearWebviewConsoleLogs } from "./console.js"
 
 // ── Source map utilities + initializer ──────────────────────────────────
-export type { EnhancedError } from "./sourceMap-utils.js"
+export type { EnhancedError } from "./utils.js"
 export {
 	applySourceMapsToStack,
 	applySourceMapsToComponentStack,
 	enhanceErrorWithSourceMaps,
 	parseStackTrace,
-} from "./sourceMap-utils.js"
-export { initializeSourceMaps, exposeSourceMapsForDebugging } from "./sourceMap.js"
+} from "./utils.js"
+export { initializeSourceMaps, exposeSourceMapsForDebugging } from "./main.js"
 
 // ── DOM message handler for direct initialization (bypasses DevtoolProvider) ─
 export { createDomMessageHandler } from "../dom/index.js"
@@ -42,4 +42,4 @@ export { createWebviewStoreBridge } from "../dom/index.js"
 export type { WebviewStoreBridgeOptions } from "../dom/index.js"
 
 // ── DiagnosticDashboard — webview diagnostic panel ──────────────────────
-export { default as DiagnosticDashboard } from "./diagnostic-dashboard/diagnostic-dashboard.js"
+export { default as DiagnosticDashboard } from "./diagnostic-dashboard/main.js"

@@ -5,7 +5,7 @@ import { useRemark } from "react-remark"
 import { cn } from "@/lib/utils"
 import { Collapsible, CollapsibleTrigger } from "@src/shared/ui/displays/collapsible"
 
-import { StyledMarkdown } from "../shared/styles"
+import { StyledMarkdown } from "@src/features/settings/components/shared/styles"
 
 export const ModelDescriptionMarkdown = memo(
 	({

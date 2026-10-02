@@ -3,15 +3,34 @@ import path from "path"
 import type OpenAI from "openai"
 
 import type { ProviderSettings, ModeConfig, ModelInfo } from "@jabberwock/types"
+
 import { customToolRegistry, formatNative } from "@jabberwock/core"
 
 import { getMcpServerManager } from "@services/mcp/core/McpServerManager"
-import { getHostEnvironment } from "@features/foundation/host-context/context"
-import { getRooDirectoriesForCwd } from "@services/jabberwock-config/index.js"
 
-import { getNativeTools, getMcpServerTools } from "@features/settings/context/tools/native-tools"
-import { filterNativeToolsForMode, filterMcpToolsForMode } from "@features/settings/context/tools/filter-tools-for-mode"
-import { resolveToolAlias } from "@features/settings/context/tools/tool-alias-config"
+import { getHostEnvironment } from "@features/foundation"
+
+import { getRooDirectoriesForCwd } from "@services/jabberwock-config/config.js"
+
+import { getNativeTools, getMcpServerTools } from "@features/settings/context/tools"
+
+import { filterNativeToolsForMode, filterMcpToolsForMode } from "@features/settings"
+
+import { resolveToolAlias } from "@features/settings"
+
+/**
+ * Builds the complete tools array for native protocol requests with optional mode restrictions.
+ * When includeAllToolsWithRestrictions is true, returns ALL tools but also provides
+ * the list of allowed tool names for use with allowedFunctionNames.
+ *
+ * This enables providers like Gemini to pass all tool definitions to the model
+ * (so it can reference historical tool calls) while restricting which tools
+ * can actually be invoked via allowedFunctionNames in toolConfig.
+ *
+ * @param options - Configuration options for building the tools
+ * @returns BuildToolsResult with tools array and optional allowedFunctionNames
+ */
+import { getCodeIndexManager } from "@services/code-index/manager/factory"
 
 interface BuildToolsOptions {
 	cwd: string
@@ -63,20 +82,6 @@ export async function buildNativeToolsArray(options: BuildToolsOptions): Promise
 	const result = await buildNativeToolsArrayWithRestrictions(options)
 	return result.tools
 }
-
-/**
- * Builds the complete tools array for native protocol requests with optional mode restrictions.
- * When includeAllToolsWithRestrictions is true, returns ALL tools but also provides
- * the list of allowed tool names for use with allowedFunctionNames.
- *
- * This enables providers like Gemini to pass all tool definitions to the model
- * (so it can reference historical tool calls) while restricting which tools
- * can actually be invoked via allowedFunctionNames in toolConfig.
- *
- * @param options - Configuration options for building the tools
- * @returns BuildToolsResult with tools array and optional allowedFunctionNames
- */
-import { getCodeIndexManager } from "@services/code-index/manager/manager.factory"
 
 export async function buildNativeToolsArrayWithRestrictions(options: BuildToolsOptions): Promise<BuildToolsResult> {
 	const {

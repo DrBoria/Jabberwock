@@ -18,7 +18,7 @@ import {
 	basetenDefaultModelId,
 } from "@jabberwock/types"
 
-import { MODELS_BY_PROVIDER } from "../shared/constants"
+import { MODELS_BY_PROVIDER } from "@src/features/settings/components/shared/constants"
 
 export interface ProviderServiceConfig {
 	serviceName: string
@@ -105,7 +105,7 @@ export const getStaticModelsForProvider = (
 }
 
 /**
- * Checks if a provider uses static models from MODELS_BY_PROVIDER
+ * Checks if a provider uses static models from "MODELS_BY_PROVIDER"
  */
 export const isStaticModelProvider = (provider: ProviderName): boolean => {
 	return provider in MODELS_BY_PROVIDER

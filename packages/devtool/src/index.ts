@@ -1,7 +1,7 @@
 export { WsMcpServer } from "./server/ws-mcp-server.js"
 export { WebSocketServerTransport } from "./server/transport.js"
 // ══════════════════════════════════════════════════════════════════
-//  MCP API — re-exported from the api/ subtree
+//  MCP API — re-exported from "the" api/ subtree
 // ══════════════════════════════════════════════════════════════════
 
 export type { DevtoolModel, FrontendBridge } from "./api/mst/types.js"
@@ -15,11 +15,11 @@ export type { DevtoolBridgeProvider } from "./api/factories/factory-helpers.js"
 
 export { Devtool } from "./devtool.js"
 
-export type { DevtoolClient, DevtoolClientOptions } from "./client.js"
+export type { DevtoolClient, DevtoolClientOptions } from "./main.js"
 export { CommandRegistry } from "./utils/command-registry.js"
 export type { ExtensionCommand } from "./utils/command-registry.js"
 
-// Diagnostics module (moved from src/core/devtools/)
+// Diagnostics module (moved from "src/core/devtools/")
 export {
 	DiagnosticsManager,
 	diagnosticsManager,
@@ -85,4 +85,4 @@ export { createFrontendBridge } from "./dom/index.js"
 export type { CreateFrontendBridgeOptions } from "./dom/index.js"
 
 // DiagnosticDashboard — webview diagnostic panel
-export { default as DiagnosticDashboard } from "./webview/diagnostic-dashboard/diagnostic-dashboard.js"
+export { default as DiagnosticDashboard } from "./webview/diagnostic-dashboard/main.js"

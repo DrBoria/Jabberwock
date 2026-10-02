@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect } from "react"
-import { streamingStore, type StreamingState } from "../store"
+import { streamingStore, type StreamingState } from "@src/features/api/streaming/store"
 
 /**
  * Subscribe to StreamingStore and return current state.

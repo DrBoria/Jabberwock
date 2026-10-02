@@ -141,7 +141,7 @@ export class ChatModel {
 	}
 
 	/**
-	 * Get available agents/modes by reading them from the DOM.
+	 * Get available agents/modes by reading them from "the" DOM.
 	 *
 	 * Opens the ModeSelector dropdown via clean click_element,
 	 * parses data-testid values to extract mode names/slugs,
@@ -156,11 +156,11 @@ export class ChatModel {
 		// 2. Wait for dropdown to appear
 		await new Promise((r) => setTimeout(r, 500))
 
-		// 3. Get the DOM and parse mode items from it
+		// 3. Get the DOM and parse mode items from "it"
 		const dom = await this.dom.findElementBySelector("*", 5, 50)
 		const modes: Array<{ name: string; slug?: string }> = []
 
-		// Parse mode names from DOM text content
+		// Parse mode names from "DOM" text content
 		const lines = dom.split("\n")
 		for (const line of lines) {
 			const modeMatch = line.match(/data-testid="mode-selector-item-(\w+)"/)

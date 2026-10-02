@@ -2,7 +2,7 @@ import pWaitFor from "p-wait-for"
 
 import { TaskCommandName, type TaskCommand } from "@jabberwock/types"
 
-import type { MutableRef } from "./taskEventHandlerTypes"
+import type { MutableRef } from "./task-event-handler/types"
 
 export async function waitForTaskCompletion(condition: () => boolean, timeoutMs: number): Promise<boolean> {
 	try {

@@ -3,7 +3,7 @@
 ## Tools
 
 1. **DebugMCP** (`mcp--debug-mcp--*`) — запуск/остановка debug, breakpoints, шаги, переменные
-2. **Jabberwock Devtool** — MCP proxy (command-based via `mcp-entry.ts`), автоконнект к extension по запросу: навигация по UI, store state, console
+2. **Jabberwock Devtool** — MCP proxy (command-based via `server.ts` (in mcp-entry/)), автоконнект к extension по запросу: навигация по UI, store state, console
 
 ## CRITICAL
 
@@ -28,6 +28,27 @@
 4. **Root cause найден?** → stop_debugging (иначе реболд на каждый чих)
 5. **NO "known context"/"known files" в delegation.** Предыдущие исследования — догадки, не факты. Debug находит всё через devtool + debugger.
 6. **REPRODUCE FIRST.** Баг не воспроизведён = ты не знаешь где проблема. devtool + debugger — единственный source of truth.
+
+### Когда Devtool сообщает DISCONNECTED / активной сессии нет
+
+**НЕ ретрай `start_debugging` сразу.** Мёртвая сессия обычно оставляет за собой stale-терминалы — убитые пользователем или упавшие посреди запуска (например, TypeScript error в build task). Реальная ошибка сидит в их выводе. Сначала диагностируй, потом перезапускай.
+
+Что один запуск **"Run Extension"** поднимает (`preLaunchTask` = default build task **watch**, 4 терминала):
+
+- `build:webview`: `pnpm --filter @jabberwock/frontend build` — foreground
+- `build:extension`: `pnpm --filter jabberwock bundle` (= из backend/, `node esbuild.mjs`) — foreground; TS/bundle error здесь роняет preLaunchTask → extension host вообще не стартует
+- `watch:tsc`: через `pnpm --filter jabberwock watch:tsc`, запускает repo-root'овый `tsc --noEmit --watch -p backend/tsconfig.json` — background watcher, **обычное место падения TypeScript** (красные diagnostics остаются в этом терминале)
+- `watch:bundle`: `node esbuild.mjs --watch` — background
+
+Процедура восстановления (агент делает всё сам):
+
+1. **Найди stale процессы** через serena shell: `ps aux | grep -E "extensionDevelopmentPath|ExtensionDevHost"` для осиротевших dev host окон; также ищи осиротевшие watchers (`esbuild.mjs --watch`, `tsc --noEmit --watch`). Сначала список PID, потом точечный kill — без blind pkill.
+2. **Прочитай ошибки в терминальных сессиях.** Если launch-терминалы видны в UI VS Code — читай их вывод (TypeScript diagnostics, esbuild failures). Когда devtool отключён и читать нечего — воспроизведи: запусти one-shot эквиваленты через serena shell — `pnpm exec tsc --noEmit -p backend/tsconfig.json` из repo root и/или `node esbuild.mjs` из backend/. Те же ошибки вылезут в вывод.
+3. **Закрой/убей** stale-терминалы + осиротевшие процессы, найденные выше.
+4. **Исправь ошибку при необходимости.** Очевидный compile/bundle failure → чини напрямую (implementation). Баг с неизвестным root cause → делегируй Debug mode по правилам AGENTS.md, без "known context".
+5. **Перезапусти debugger**: debug mode → `start_debugging` c `configurationName: "Run Extension"`; code mode сам НЕ вызывает start_debugging — попроси пользователя F5/launch (или передай шаг в Debug). Потом проверь перед продолжением: devtool `get_current_state()` отвечает и extension host жив.
+
+**Антипаттерн:** DISCONNECTED → ретрай `start_debugging` циклом, пока stale watchers/dev hosts держат состояние; или убить терминалы не прочитав их вывод — реальная ошибка теряется.
 
 ## 🔴 NO USER INTERACTION FOR REPRODUCTION
 

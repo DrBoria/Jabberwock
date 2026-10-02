@@ -48,9 +48,22 @@ When debugger pauses Extension Dev Host at a breakpoint, jabberwock-devtool ALSO
 
 ## 🔴 NO USER INTERACTION FOR REPRODUCTION
 
-**Полное воспроизведение бага лежит на агенте.** Devtool подключается автоматически через stdio MCP proxy (`mcp-entry.ts`). Пользователь НЕ подключает devtool вручную. Всё остальное (навигация, клики, ввод, проверка store/console/DOM, повторный захват на breakpoint) делается через devtool (`click_element`, `type_text`, `find_element`) и DebugMCP.
+**Полное воспроизведение бага лежит на агенте.** Devtool подключается автоматически через stdio MCP proxy (`server.ts` (in mcp-entry/)). Пользователь НЕ подключает devtool вручную. Всё остальное (навигация, клики, ввод, проверка store/console/DOM, повторный захват на breakpoint) делается через devtool (`click_element`, `type_text`, `find_element`) и DebugMCP.
 
 **Антипаттерн:** "отправь сообщение", "нажми кнопку", "посмотри что там", "подключи devtool" — запрещено. Агент делает всё сам.
+
+## 🔴 DEVTOOL TARGET: ВСЕГДА ЗНАЙ, С КАКИМ ОКНОМ ГОВОРИШЬ
+
+Devtool-сервер (WS :60060, HTTP :60061) живёт внутри **одного** extension host = **одного окна VS Code**. Если открыто несколько окон или окно перезагружалось — devtool молча болтает с тем окном, кому принадлежит порт.
+
+**Правила:**
+
+1. **Перед любыми devtool-действиями** (и после каждого реболда/рестарта debug-сессии) вызывай `mcp--jabberwock-devtools--get_target_info` — он отвечает ЛОКАЛЬНО (даже если extension не запущен) и показывает: workspaceFolder, focused (да/нет), pid, build, alive.
+2. **Каждый результат devtool-тула** теперь начинается с префикса `[target: VS Code window "..." (focused/NOT focused) pid=...]` — читай его. Если `NOT focused` — ты можешь говорить не с тем окном, которое видишь.
+3. **После `start_debugging`/`stop_debugging`** — ОБЯЗАТЕЛЬНО `get_target_info` заново: pid должен совпасть с тем, кого ты запустил (проверь через `ss -ltnp | grep :60060`).
+4. **Web-поверхность** (браузер, :3000) НЕ имеет devtool-тулов — только Playwright browser tools. Devtool = только VS Code surface.
+
+**Антипаттерн:** получить "не тот" результат и тыкать дальше — сначала `get_target_info`, потом действия.
 
 ## Debug Workflow (Bug Fixes)
 
@@ -167,12 +180,12 @@ Violation pattern:
 
 ## MCP Tools
 
-| Tool               | Prefix                        | Что делает                                                                                                                        |
-| ------------------ | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| DebugMCP           | `mcp--debug-mcp--*`           | Запуск/остановка debug сессии, breakpoints, шаги, переменные                                                                      |
-| Jabberwock Devtool | `mcp--jabberwock-devtools--*` | Навигация по UI расширения, store state, console. Автоконнект через stdio proxy (`mcp-entry.ts`). Не требует ручного подключения. |
-| Serena LSP         | `mcp--serena--*`              | Навигация по символам, AST-редактирование, memory                                                                                 |
-| RPG Encoder        | `mcp--rpg-encoder--*`         | Граф зависимостей, семантический поиск, impact analysis                                                                           |
+| Tool               | Prefix                        | Что делает                                                                                                                                     |
+| ------------------ | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| DebugMCP           | `mcp--debug-mcp--*`           | Запуск/остановка debug сессии, breakpoints, шаги, переменные                                                                                   |
+| Jabberwock Devtool | `mcp--jabberwock-devtools--*` | Навигация по UI расширения, store state, console. Автоконнект через stdio proxy (`server.ts` (in mcp-entry/)). Не требует ручного подключения. |
+| Serena LSP         | `mcp--serena--*`              | Навигация по символам, AST-редактирование, memory                                                                                              |
+| RPG Encoder        | `mcp--rpg-encoder--*`         | Граф зависимостей, семантический поиск, impact analysis                                                                                        |
 
 ## Navigation Rules
 

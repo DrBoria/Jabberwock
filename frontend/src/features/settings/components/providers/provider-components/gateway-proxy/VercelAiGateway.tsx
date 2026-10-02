@@ -1,4 +1,4 @@
-import { useCallback } from "react"
+import { useHandleInputChange } from "@src/features/settings/components/providers/provider-components/use-handle-input-change"
 import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
 
 import {
@@ -9,10 +9,9 @@ import {
 } from "@jabberwock/types"
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { VSCodeButtonLink } from "@src/features/foundation/components/ui/button/VSCodeButtonLink"
+import { VSCodeButtonLink } from "@src/features/foundation"
 
-import { inputEventTransform } from "../../../shared/transforms"
-import { ModelPicker } from "../../../ModelPicker/ModelPickerComponent"
+import { ModelPicker } from "@src/features/settings/components/ModelPicker/main"
 
 type VercelAiGatewayProps = {
 	apiConfiguration: ProviderSettings
@@ -33,18 +32,7 @@ export const VercelAiGateway = ({
 }: VercelAiGatewayProps) => {
 	const { t } = useAppTranslation()
 
-	const handleInputChange = useCallback(
-		<K extends keyof ProviderSettings, E>(field: K, transform?: (event: E) => ProviderSettings[K]) =>
-			(event: E | Event) => {
-				setApiConfigurationField(
-					field,
-					transform
-						? transform(event as E)
-						: (inputEventTransform(event as { target: HTMLInputElement }) as ProviderSettings[K]),
-				)
-			},
-		[setApiConfigurationField],
-	)
+	const handleInputChange = useHandleInputChange(setApiConfigurationField)
 
 	return (
 		<>

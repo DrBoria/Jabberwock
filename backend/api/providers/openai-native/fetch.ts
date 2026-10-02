@@ -3,7 +3,7 @@ import * as os from "os"
 import { ApiProviderError } from "@jabberwock/types"
 import { getTelemetryService } from "@jabberwock/telemetry"
 
-import { Package } from "@shared/package"
+import { Package } from "@shared/core/package"
 
 import type { OpenAiNativeModel, ResponsesRequestBody, ResponsesClient } from "./types"
 import type { OpenAiNativeStreamContext } from "./stream/index"

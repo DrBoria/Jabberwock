@@ -1,20 +1,20 @@
-// v4 B2 (L14): no host import — version + workspace root come from the capability DI slots.
+// v4 B2 (L14): no host import — version + workspace root come from "the" capability DI slots.
 import { z } from "zod"
 import type { InjectableConfigType } from "@utils/config"
 
 import { injectVariables } from "@utils/config"
 
 import { ServerConfigSchema } from "@services/mcp/config/schemas"
-import { fetchToolsList } from "@services/mcp/features/tools"
+import { fetchToolsList } from "@services/mcp/features/registry"
 import { fetchResourcesList, fetchResourceTemplatesList } from "@services/mcp/features/resources"
 
 import type { McpHubState } from "@services/mcp/core/types"
 import { findConnection, deleteConnection, createPlaceholderConnection } from "./manager"
 import { isMcpEnabled, getProjectMcpPath, showErrorMessage } from "@services/mcp/mcp-hub/init"
-import { createAndConfigureTransport, createTransportErrorHandlers } from "@services/mcp/mcp-hub/transports"
-import { setupStdioStderr, setupElicitationHandler } from "@services/mcp/mcp-hub/transport-handlers"
+import { createAndConfigureTransport, createTransportErrorHandlers } from "@services/mcp/mcp-hub/main"
+import { setupStdioStderr, setupElicitationHandler } from "@services/mcp/mcp-hub/handlers"
 // v4 B2 (L14): workspace root via the host-context DI slot — no vscode import in this file.
-import { getWorkspaceRoot, getHostContext } from "@features/foundation/host-context/context"
+import { getWorkspaceRoot, getHostContext } from "@features/foundation"
 
 import { sanitizeMcpName } from "@utils/mcp"
 import { getMcpSettingsFilePath as getMcpSettingsFilePathFromConfig } from "@services/mcp"

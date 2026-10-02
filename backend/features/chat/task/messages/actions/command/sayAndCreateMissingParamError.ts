@@ -1,5 +1,5 @@
 import type { NotificationSay } from "@jabberwock/types"
-import { systemBroadcast } from "@features/chat/task/messages/actions/say/systemBroadcast"
+import { emitBroadcast } from "@features/chat/task/messages/actions/say"
 
 /**
  * Sends an error message saying a required tool parameter is missing.
@@ -13,7 +13,8 @@ export async function sayAndCreateMissingParamError(
 	paramName: string,
 	relPath?: string,
 ): Promise<string> {
-	await systemBroadcast(
+	await emitBroadcast(
+		"system",
 		taskId,
 		"error" as NotificationSay,
 		`Jabberwock tried to use ${toolName}${

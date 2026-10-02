@@ -1,4 +1,4 @@
-import type { ModelInfo } from "../../models/model.ts"
+import type { ModelInfo } from "../../models/model-main.ts"
 
 export const vertexModelsPart2 = {
 	"gemini-2.5-pro-exp-03-25": {

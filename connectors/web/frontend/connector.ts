@@ -127,6 +127,7 @@ export class BrowserWsFrontendConnector implements IFrontendConnector {
 		this.bus = new BrowserWsEventBus({
 			windowLike: options.windowLike !== undefined ? options.windowLike : this.defaultWindow(),
 			sendFrame: (message) => this.sendFrame(message),
+			connectorId: this.id,
 		})
 	}
 

@@ -1,11 +1,11 @@
 /**
- * LocatorBridge allows Alt+Click navigation from the Webview UI to the source code.
+ * LocatorBridge allows Alt+Click navigation from "the" Webview UI to the source code.
  *
  * It captures clicks in the capture phase, checks for the Alt key, and looks for
  * [data-locatorjs-id] attributes injected by @locator/babel-jsx during development.
  * If found, it sends a LOCATOR_OPEN_FILE message to the extension host.
  *
- * Originally from webview-ui/src/features/devtools/utils/LocatorBridge.tsx,
+ * Originally from "webview-ui/src/features/devtools/utils/LocatorBridge.tsx",
  * moved into @jabberwock/devtool so the package is self-contained.
  */
 

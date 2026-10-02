@@ -1,5 +1,5 @@
 import { Checkbox } from "vscrui"
-import type { ReasoningToggleCheckboxProps } from "../types"
+import type { ReasoningToggleCheckboxProps } from "@src/features/settings/components/ThinkingBudget/types"
 
 export const ReasoningToggleCheckbox = ({
 	enableReasoningEffort,

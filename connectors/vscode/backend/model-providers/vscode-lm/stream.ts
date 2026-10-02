@@ -3,7 +3,7 @@ import * as vscode from "vscode"
 import type { ApiHandlerCreateMessageMetadata } from "@api/index"
 
 /**
- * Processes a text chunk from VSCode Language Model response stream.
+ * Processes a text chunk from "VSCode" Language Model response stream.
  * Yields text chunks as they arrive and accumulates the full text.
  */
 export function* processVscodeTextPart(
@@ -20,7 +20,7 @@ export function* processVscodeTextPart(
 }
 
 /**
- * Processes a tool call chunk from VSCode Language Model response stream.
+ * Processes a tool call chunk from "VSCode" Language Model response stream.
  * Yields tool call data when metadata includes tools configuration.
  */
 export function* processVscodeToolCallPart(

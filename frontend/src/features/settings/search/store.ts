@@ -1,6 +1,6 @@
 import { types, Instance } from "mobx-state-tree"
 
-import type { SearchableSettingData } from "../components/settings-search/useSettingsSearch"
+import type { SearchableSettingData } from "@src/features/settings/components/settings-search/use-search"
 
 export const SettingsSearchStoreModel = types
 	.model("SettingsSearchStore", {

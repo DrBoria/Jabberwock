@@ -6,6 +6,7 @@ import type { IconName } from "../../display/Icon.js"
 
 import type { ToolRendererProps } from "../types.js"
 import { truncateText, sanitizeContent, getToolDisplayName, getToolIconName } from "../utils.js"
+import { ToolPreview } from "../preview.js"
 
 const MAX_PREVIEW_LINES = 12
 
@@ -88,25 +89,18 @@ function SingleFileRead({
 			{previewContent && (
 				<Box flexDirection="column" marginLeft={2} marginTop={1}>
 					{isList ? (
-						<Box flexDirection="column">
-							{previewContent.split("\n").map((line, i) => (
-								<Text key={i} color={theme.toolText}>
-									{line}
-								</Text>
-							))}
-						</Box>
+						<ToolPreview preview={previewContent} truncated={truncated} hiddenLines={hiddenLines} />
 					) : (
 						<Box flexDirection="column">
 							<Box borderStyle="single" borderColor={theme.borderColor} paddingX={1}>
 								<Text color={theme.toolText}>{previewContent}</Text>
 							</Box>
+							{truncated && (
+								<Text color={theme.dimText} dimColor>
+									... ({hiddenLines} more lines)
+								</Text>
+							)}
 						</Box>
-					)}
-
-					{truncated && (
-						<Text color={theme.dimText} dimColor>
-							... ({hiddenLines} more lines)
-						</Text>
 					)}
 				</Box>
 			)}

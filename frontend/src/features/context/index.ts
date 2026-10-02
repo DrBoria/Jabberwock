@@ -2,14 +2,9 @@
 // Pure re-exports only (enforced by local/no-logic-in-index).
 
 export { ContextViewportStore, type IContextViewportStore } from "./store"
-export {
-	contextViewportStore,
-	subscribeContextStore,
-	requestTaskHistory,
-	requestViewportRange,
-} from "./store-singleton"
+export { contextViewportStore, subscribeContextStore, requestTaskHistory, requestViewportRange } from "./viewport"
 export { requestHistoryRange, recallNode, type HistoryRangeRequestOptions, type RecallNodeOptions } from "./actions"
-export { Timeline, type TimelineProps } from "./components/Timeline"
-export { TimelineRow, type TimelineRowProps } from "./components/TimelineRow"
+export { Timeline, type TimelineProps } from "./components/main"
+export { TimelineRow, type TimelineRowProps } from "./components/row"
 export { JumpControls, type JumpControlsProps } from "./components/JumpControls"
 export { ThinkingPanel, type ThinkingPanelProps } from "./components/ThinkingPanel"

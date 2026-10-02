@@ -2,7 +2,7 @@ import { useState } from "react"
 import { litellmDefaultModelId } from "@jabberwock/types"
 import { rootStore } from "@src/features/store"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { ModelPicker } from "../../ModelPicker/ModelPickerComponent"
+import { ModelPicker } from "@src/features/settings/components/ModelPicker/main"
 import { useLiteLLMMessageHandler } from "./useLiteLLMMessageHandler"
 import {
 	LiteLLMBaseUrlField,

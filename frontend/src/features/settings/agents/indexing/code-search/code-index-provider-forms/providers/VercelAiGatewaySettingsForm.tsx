@@ -1,8 +1,10 @@
-import { VSCodeTextField, VSCodeDropdown, VSCodeOption } from "@vscode/webview-ui-toolkit/react"
+import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
 
 import { cn } from "@src/lib/utils"
 
-import type { CodeIndexFormProps } from "../../code-index-popover-logic/code-index-popover-types"
+import { ModelDropdownField } from "./model-dropdown-field"
+
+import type { CodeIndexFormProps } from "@src/features/settings/agents/indexing/code-search/popover-logic/types"
 
 export const VercelAiGatewaySettingsForm = ({
 	currentSettings,
@@ -34,42 +36,15 @@ export const VercelAiGatewaySettingsForm = ({
 				)}
 			</div>
 
-			<div className="space-y-2">
-				<label className="text-sm font-medium">{t("settings:codeIndex.modelLabel")}</label>
-				<VSCodeDropdown
-					value={currentSettings.codebaseIndexEmbedderModelId}
-					onChange={(e) =>
-						updateSetting("codebaseIndexEmbedderModelId", (e.target as HTMLInputElement).value)
-					}
-					className={cn("w-full", {
-						"border-red-500": formErrors.codebaseIndexEmbedderModelId,
-					})}>
-					<VSCodeOption value="" className="p-2">
-						{t("settings:codeIndex.selectModel")}
-					</VSCodeOption>
-					{getAvailableModels().map((modelId) => {
-						const model =
-							codebaseIndexModels?.[
-								currentSettings.codebaseIndexEmbedderProvider as keyof typeof codebaseIndexModels
-							]?.[modelId]
-						return (
-							<VSCodeOption key={modelId} value={modelId} className="p-2">
-								{modelId}{" "}
-								{model
-									? t("settings:codeIndex.modelDimensions", {
-											dimension: model.dimension,
-										})
-									: ""}
-							</VSCodeOption>
-						)
-					})}
-				</VSCodeDropdown>
-				{formErrors.codebaseIndexEmbedderModelId && (
-					<p className="text-xs text-vscode-errorForeground mt-1 mb-0">
-						{formErrors.codebaseIndexEmbedderModelId}
-					</p>
-				)}
-			</div>
+			<ModelDropdownField
+				value={currentSettings.codebaseIndexEmbedderModelId}
+				updateSetting={updateSetting}
+				error={formErrors.codebaseIndexEmbedderModelId}
+				getAvailableModels={getAvailableModels}
+				codebaseIndexModels={codebaseIndexModels}
+				embedderProvider={currentSettings.codebaseIndexEmbedderProvider}
+				t={t}
+			/>
 		</>
 	)
 }

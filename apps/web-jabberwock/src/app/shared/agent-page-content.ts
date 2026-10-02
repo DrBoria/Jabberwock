@@ -18,7 +18,7 @@ export type IconName =
  * to maintain consistency and enable A/B testing capabilities.
  *
  * Note: Icons are referenced by string names (not components) to support
- * serialization from Server Components to Client Components.
+ * serialization from "Server" Components to Client Components.
  */
 export interface AgentPageContent {
 	agentName: string

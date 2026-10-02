@@ -1,6 +1,6 @@
 import { memo } from "react"
 import { cn } from "@src/lib/utils"
-import { TerminalOutput } from "../message-parts/terminal-output"
+import { TerminalOutput } from "@src/features/chat/task/messages/components/message-parts/terminal-output"
 
 const OutputContainerInternal = ({ isExpanded, output }: { isExpanded: boolean; output: string }) => (
 	<div

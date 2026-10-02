@@ -4,7 +4,6 @@ import { type ModelInfo } from "@jabberwock/types"
 import type { ApiHandlerOptions } from "@shared/api"
 import { ApiStream } from "@api/transform/stream"
 import { convertToVsCodeLmMessages } from "./vscode-lm-format"
-import { BaseProvider } from "@api/providers/base-provider"
 import type { SingleCompletionHandler, ApiHandlerCreateMessageMetadata } from "@api/index"
 import { convertToVsCodeLmTools, buildModelInfo } from "./tools"
 import { processVscodeLmStream, handleVscodeLmStreamError } from "./stream"
@@ -13,14 +12,13 @@ import { internalCountTokens, calculateTotalInputTokens, cleanMessageContent } f
 /**
  * Handles interaction with VS Code's Language Model API for chat-based operations.
  */
-export class VsCodeLmHandler extends BaseProvider implements SingleCompletionHandler {
+export class VsCodeLmHandler implements SingleCompletionHandler {
 	protected options: ApiHandlerOptions
 	private client: vscode.LanguageModelChat | null
 	private disposable: vscode.Disposable | null
 	private currentRequestCancellation: vscode.CancellationTokenSource | null
 
 	constructor(options: ApiHandlerOptions) {
-		super()
 		this.options = options
 		this.client = null
 		this.disposable = null
@@ -97,7 +95,7 @@ export class VsCodeLmHandler extends BaseProvider implements SingleCompletionHan
 			this.currentRequestCancellation.dispose()
 		}
 	}
-	override async countTokens(content: Array<Anthropic.Messages.ContentBlockParam>): Promise<number> {
+	async countTokens(content: Array<Anthropic.Messages.ContentBlockParam>): Promise<number> {
 		let textContent = ""
 		for (const block of content) {
 			if (block.type === "text") {
@@ -127,7 +125,7 @@ export class VsCodeLmHandler extends BaseProvider implements SingleCompletionHan
 		}
 		return this.client
 	}
-	override async *createMessage(
+	async *createMessage(
 		systemPrompt: string,
 		messages: Anthropic.Messages.MessageParam[],
 		metadata?: ApiHandlerCreateMessageMetadata,
@@ -170,7 +168,7 @@ export class VsCodeLmHandler extends BaseProvider implements SingleCompletionHan
 			handleVscodeLmStreamError(error)
 		}
 	}
-	override getModel(): { id: string; info: ModelInfo } {
+	getModel(): { id: string; info: ModelInfo } {
 		return buildModelInfo(this.client, this.options)
 	}
 	async completePrompt(prompt: string): Promise<string> {

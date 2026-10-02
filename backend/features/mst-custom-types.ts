@@ -14,8 +14,8 @@ export type HostWebViewRef = { readonly visible?: boolean; readonly webview: IWe
 
 // ─── Non-serializable type aliases ──────────────────────────────────────────
 
-type DomRequestCallback = (result: string) => void
-type ActivePageCallback = (activePage: string) => void
+type DomRequestCallback = (result: string, connector?: string) => void
+type ActivePageCallback = (activePage: string, connector?: string) => void
 export interface ChatNode {
 	addMessage(msg: Record<string, unknown>): void
 	syncUiMessages(msgs: unknown[]): void
@@ -57,7 +57,10 @@ export const DisposablesType = types.custom<string, DisposableLike[]>({
 		return `disposables_${value.length}`
 	},
 	isTargetType(value: unknown): value is DisposableLike[] {
-		return Array.isArray(value) && (value as unknown[]).every((d) => d !== null && typeof d === "object" && "dispose" in d)
+		return (
+			Array.isArray(value) &&
+			(value as unknown[]).every((d) => d !== null && typeof d === "object" && "dispose" in d)
+		)
 	},
 	getValidationMessage() {
 		return ""

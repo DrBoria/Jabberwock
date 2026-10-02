@@ -14,7 +14,7 @@ import {
 } from "@/components/ui"
 
 import { TOOL_GROUP_ICONS } from "../state/constants"
-import { generateGroupId } from "../state/helpers"
+import { generateGroupId } from "../state/table"
 import type { ToolGroup } from "../state/types"
 
 function getInitialValue<T>(value: T | null | undefined, fallback: T): T {

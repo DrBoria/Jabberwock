@@ -1,1 +1,0 @@
-export { VercelAiGatewayHandler } from "./handler"

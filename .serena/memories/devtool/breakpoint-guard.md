@@ -11,13 +11,13 @@ When the Extension Dev Host is paused at a breakpoint during debugging, ALL devt
 
 ## Architecture Change: Stdio MCP Proxy
 
-Replaced direct WebSocket MCP connection with a stdio-based proxy (`mcp-entry.ts`):
+Replaced direct WebSocket MCP connection with a stdio-based proxy (`server.ts` (in mcp-entry/)):
 
 1. **`.roo/mcp.json`** — Changed from `"type": "websocket"` to command-based:
     ```json
     "jabberwock-devtools": {
       "command": "npx",
-      "args": ["--no-install", "tsx", "packages/devtool/src/api/mcp-entry/mcp-entry.ts"],
+      "args": ["--no-install", "tsx", "packages/devtool/src/api/mcp-entry/server.ts"],
       ...
     }
     ```
@@ -26,7 +26,7 @@ Replaced direct WebSocket MCP connection with a stdio-based proxy (`mcp-entry.ts
 
 ## Two-Process Architecture
 
-- **MCP Entry Process** (`packages/devtool/src/api/mcp-entry/mcp-entry.ts`) — SEPARATE child process spawned by Roo via `npx tsx`. Event loop NOT paused during breakpoints. Receives stdio MCP messages and proxies them via WebSocket to the extension host.
+- **MCP Entry Process** (`packages/devtool/src/api/mcp-entry/server.ts`) — SEPARATE child process spawned by Roo via `npx tsx`. Event loop NOT paused during breakpoints. Receives stdio MCP messages and proxies them via WebSocket to the extension host.
 - **Extension Host Process** — Contains WsMcpServer + wrapBridge. Event loop IS paused during breakpoints.
 
 ## Three-Mode Detection in `pollExtensionStatus()`
@@ -50,7 +50,7 @@ Results:
 
 ## Key Files
 
-- `packages/devtool/src/api/mcp-entry/mcp-entry.ts` — The proxy entrypoint (all logic)
+- `packages/devtool/src/api/mcp-entry/server.ts` — The proxy entrypoint (all logic)
 - `packages/devtool/src/api/mcp-entry/schemas.ts` — Tool registration (10 extra tools added)
 
 ## Why TCP socket check instead of fetch error inspection

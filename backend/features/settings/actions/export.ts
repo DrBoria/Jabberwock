@@ -1,9 +1,9 @@
 import * as path from "path"
 import fs from "fs/promises"
 
-import type { ProviderSettingsManager } from "@features/settings/models/provider-settings-manager/ProviderSettingsManager"
+import type { ProviderSettingsManager } from "@features/settings/models/provider-settings-manager"
 import type { SettingsAccess } from "@utils/settings"
-import { getUiDialogs } from "@features/foundation/capabilities/registry"
+import { getUiDialogs } from "@features/foundation"
 import { resolveDefaultSaveUri, saveLastExportPath } from "@utils/io/export"
 import { safeWriteJson } from "@utils/io"
 

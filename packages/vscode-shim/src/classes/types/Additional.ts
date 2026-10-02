@@ -5,7 +5,7 @@
  */
 
 import { Range } from "./Range.ts"
-import type { IUri, IRange, IPosition, DiagnosticSeverity, DiagnosticTag } from "../../types.ts"
+import type { IUri, IRange, IPosition, DiagnosticSeverity, DiagnosticTag } from "../../api-types.ts"
 
 /**
  * Represents a location in source code (URI + Range or Position)

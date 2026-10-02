@@ -1,7 +1,7 @@
 import OpenAI from "openai"
 
 import type { ReasoningDetail } from "@api/transform/openai-format-types"
-import { consolidateReasoningDetails } from "@api/transform/content/consolidate-reasoning"
+import { consolidateReasoningDetails } from "@api/transform/content/consolidate"
 
 function isGeminiModel(modelId: string): boolean {
 	return modelId.includes("gemini")

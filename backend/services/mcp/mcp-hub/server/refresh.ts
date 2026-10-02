@@ -1,16 +1,16 @@
 import delay from "delay"
 
 import { t } from "@i18n"
-import { fetchToolsList } from "@services/mcp/features/tools"
+import { fetchToolsList } from "@services/mcp/features/registry"
 import { fetchResourcesList, fetchResourceTemplatesList } from "@services/mcp/features/resources"
 // v4 B2 (L12): error toasts publish through the pubsub notification stream; host sink renders them.
-import { publishNotificationError } from "@features/foundation/capabilities/notifications"
+import { publishNotificationError } from "@features/foundation/capabilities"
 
 import type { McpHubState } from "@services/mcp/core/types"
 import { findConnection, deleteConnection } from "@services/mcp/mcp-hub/connection/manager"
 import { notifyWebviewOfServerChanges } from "@services/mcp/mcp-hub/notifications"
 import { showErrorMessage, getProjectMcpPath, isMcpEnabled } from "@services/mcp/mcp-hub/init"
-import { getUiDialogs } from "@features/foundation/capabilities/registry"
+import { getUiDialogs } from "@features/foundation/capabilities"
 
 // ─── Handle MCP enabled change ───────────────────────────────────────
 

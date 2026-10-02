@@ -14,7 +14,7 @@ export function isPathInIgnoredDirectory(filePath: string): boolean {
 
 	// Check each directory in the path against DIRS_TO_IGNORE
 	for (const part of pathParts) {
-		// Skip empty parts (from leading or trailing slashes)
+		// Skip empty parts (from "leading" or trailing slashes)
 		if (!part) continue
 
 		// Handle the ".*" pattern for hidden directories

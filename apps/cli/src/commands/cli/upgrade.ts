@@ -83,8 +83,8 @@ function findLatestCliRelease(releases: unknown[]): string | undefined {
 			if (!latestVersion || compareVersions(candidate, latestVersion) > 0) {
 				latestVersion = candidate
 			}
-		} catch {
-			// Ignore malformed CLI tags and keep scanning other releases.
+		} catch (error) {
+			console.error("[CLI] Ignoring malformed CLI release tag:", error)
 		}
 	}
 

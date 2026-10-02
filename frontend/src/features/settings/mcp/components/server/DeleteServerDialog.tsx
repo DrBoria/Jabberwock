@@ -1,5 +1,5 @@
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { Button } from "@src/shared/ui/buttons/button"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
 import {
 	Dialog,
 	DialogContent,

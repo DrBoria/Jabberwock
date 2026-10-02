@@ -3,15 +3,15 @@ import * as os from "node:os"
 
 import { execa } from "execa"
 
-import { updateTask, createTaskMetrics } from "../../db/index"
-import { EVALS_REPO_PATH } from "../../exercises/index"
+import { tasksStore, taskMetricsStore } from "../../db/index"
+import { EVALS_REPO_PATH } from "../../exercises/catalog"
 
 import { type RunTaskOptions } from "../types"
 import { waitForSubprocessWithTimeout } from "../utils"
 import { connectToIpc } from "../helpers/connectToIpc"
 import { setupStdioLogging } from "../helpers/logging/stdioLogging"
-import { registerCliTaskEventHandler } from "../helpers/cliTaskEventHandler"
-import type { TaskEventHandlerOptions, MutableRef } from "../helpers/taskEventHandlerTypes"
+import { registerCliTaskEventHandler } from "../helpers/task-event-handler/cli"
+import type { TaskEventHandlerOptions, MutableRef } from "../helpers/task-event-handler/types"
 import { waitForTaskCompletion, handleTimeout, closeAndDisconnect } from "../helpers/waitForCompletion"
 
 function buildCliArgs(run: RunTaskOptions["run"], promptSourcePath: string, workspacePath: string): string[] {
@@ -87,7 +87,7 @@ export const runTaskWithCli = async ({ run, task, publish, logger, jobToken }: R
 	})
 
 	// For CLI mode, create taskMetrics immediately because the CLI starts the task right away.
-	const taskMetrics = await createTaskMetrics({
+	const taskMetrics = await taskMetricsStore.create({
 		cost: 0,
 		tokensIn: 0,
 		tokensOut: 0,
@@ -97,7 +97,7 @@ export const runTaskWithCli = async ({ run, task, publish, logger, jobToken }: R
 		cacheReads: 0,
 	})
 
-	await updateTask(task.id, { taskMetricsId: taskMetrics.id, startedAt: new Date() })
+	await tasksStore.update(task.id, { taskMetricsId: taskMetrics.id, startedAt: new Date() })
 	logger.info(`created taskMetrics with id ${taskMetrics.id}`)
 
 	const taskStartedAt: MutableRef<number> = { current: Date.now() }
@@ -146,7 +146,7 @@ export const runTaskWithCli = async ({ run, task, publish, logger, jobToken }: R
 	}
 
 	logger.info("setting task finished at")
-	await updateTask(task.id, { finishedAt: new Date() })
+	await tasksStore.update(task.id, { finishedAt: new Date() })
 
 	await closeAndDisconnect({
 		jabberwockTaskId: jabberwockTaskId.current,

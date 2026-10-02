@@ -1,6 +1,6 @@
 import { types, Instance } from "mobx-state-tree"
-import type { EventBridge } from "@features/foundation/webview/EventBridge"
 import { StoreRefType } from "@features/mst-custom-types"
+import type { IBackendRootStore } from "@features/store"
 
 export const MstRefModel = types.model("Mst", {
 	subStoreRefs: types.array(StoreRefType),
@@ -43,12 +43,6 @@ export interface MstState {
 		setServers(servers: unknown[]): void
 	}
 }
-
-export function initMstState(_provider: EventBridge): void {
-	// No-op — state is initialized via MST model defaults
-}
-
-import type { IBackendRootStore } from "@features/store"
 
 export function getMstState(rootStore: IBackendRootStore): MstState {
 	// The as cast is required because MstState is a backward-compatible interface

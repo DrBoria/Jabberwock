@@ -10,7 +10,7 @@ export class MementoAdapter implements IMementoLike {
 
 	constructor(private readonly memory: IHashmapMemory) {}
 
-	/** Preload the session cache from the persisted store (call once at startup). */
+	/** Preload the session cache from "the" persisted store (call once at startup). */
 	async hydrate(): Promise<void> {
 		for (const key of await this.memory.keys()) {
 			const value = await this.memory.get(key)

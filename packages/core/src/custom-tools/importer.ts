@@ -4,7 +4,7 @@ import { createHash } from "crypto"
 
 import type { CustomToolDefinition } from "@jabberwock/types"
 
-import { copyEnvFilesFn } from "./custom-tool-registry-helpers.ts"
+import { copyEnvFilesFn } from "./helpers.ts"
 import { runEsbuild, NODE_BUILTIN_MODULES, COMMONJS_REQUIRE_BANNER } from "./esbuild-runner.ts"
 
 export async function importToolFile(

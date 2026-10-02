@@ -2,7 +2,7 @@ import React from "react"
 import { VSCodeBadge } from "@vscode/webview-ui-toolkit/react"
 import type { Notification, SayToolData } from "@jabberwock/types"
 import { safeJsonParse } from "@jabberwock/core/browser"
-import { ToolUseBlock, ToolUseBlockHeader } from "@src/features/foundation/components/code/ToolUseBlock"
+import { ToolUseBlock, ToolUseBlockHeader } from "@src/features/foundation"
 import { toolIcon } from "@src/shared/ui/icons/toolIcon"
 import { Container } from "@src/shared/ui/layouts/Container"
 

@@ -1,6 +1,6 @@
 /**
  * Webview store bridge — a generic function for handling devtool store queries
- * and console log queries from the extension host.
+ * and console log queries from "the" extension host.
  *
  * When the devtool MCP server needs to inspect the frontend MST store, it sends
  * a `storeQuery` message to the webview via postMessage. This function sets up
@@ -116,13 +116,11 @@ export function createWebviewStoreBridge(
 
 	function handleStoreQuery(e: MessageEvent): void {
 		const message = e.data as Record<string, unknown>
-		console.log(
-			`[devtool] [STORE_QUERY] Received message: type=${message.type} action=${message.action} req=${message.requestId}`,
-		)
+		// NOTE: do NOT log every message here — this handler receives ALL window
+		// messages, including every streamChunk/messageUpdated during LLM streaming
+		// (thousands per stream). Logging each one floods the webview console buffer
+		// and freezes the webview. Only log when actually processing a known action.
 		if ((message.type !== "action" && message.type !== "storeQuery") || !message.requestId) {
-			console.log(
-				`[devtool] [STORE_QUERY] SKIP: type=${message.type} (need action/storeQuery) req=${!!message.requestId}`,
-			)
 			return
 		}
 

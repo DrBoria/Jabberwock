@@ -1,6 +1,6 @@
 import type { IDiffViewProvider } from "@jabberwock/types"
-import type { VirtualWorkspace } from "@features/foundation/time-machine/VirtualWorkspace"
-import type { FileContextTracker } from "@features/foundation/time-machine/file-context/FileContextTracker"
+import type { VirtualWorkspace } from "@features/foundation"
+import type { FileContextTracker } from "@features/foundation"
 
 /**
  * Time-machine state: holds references to instances that were previously
@@ -9,7 +9,7 @@ import type { FileContextTracker } from "@features/foundation/time-machine/file-
  * access them via getters instead of reaching through `task.*`.
  *
  * This delegates lifecycle management to the task layer while letting
- * the rest of the codebase remain decoupled from TaskModel internals.
+ * the rest of the codebase remain decoupled from "TaskModel" internals.
  */
 
 interface TimeMachineState {
@@ -23,35 +23,35 @@ interface TimeMachineState {
 	fileContextTracker: FileContextTracker
 }
 
-let _state: TimeMachineState | undefined
+const _tmState = { value: undefined as TimeMachineState | undefined }
 
 /** Set the current time-machine instances (called during task startup). */
 export function setTimeMachineState(state: TimeMachineState): void {
-	_state = state
+	_tmState.value = state
 }
 
 /** Clear the stored references (called during task teardown). */
 export function clearTimeMachineState(): void {
-	_state = undefined
+	_tmState.value = undefined
 }
 
 /** Get the current DiffViewProvider instance. */
 export function getDiffViewProvider(): IDiffViewProvider {
-	if (!_state) throw new Error("TimeMachine state not initialized — call setTimeMachineState() first")
-	if (!_state.diffViewProvider) {
+	if (!_tmState.value) throw new Error("TimeMachine state not initialized — call setTimeMachineState() first")
+	if (!_tmState.value.diffViewProvider) {
 		throw new Error("DiffViewProvider not available in this host (no hostEditorService capability)")
 	}
-	return _state.diffViewProvider
+	return _tmState.value.diffViewProvider
 }
 
 /** Get the current VirtualWorkspace instance. */
 export function getVirtualWorkspace(): VirtualWorkspace {
-	if (!_state) throw new Error("TimeMachine state not initialized — call setTimeMachineState() first")
-	return _state.virtualWorkspace
+	if (!_tmState.value) throw new Error("TimeMachine state not initialized — call setTimeMachineState() first")
+	return _tmState.value.virtualWorkspace
 }
 
 /** Get the current FileContextTracker instance. */
 export function getFileContextTracker(): FileContextTracker {
-	if (!_state) throw new Error("TimeMachine state not initialized — call setTimeMachineState() first")
-	return _state.fileContextTracker
+	if (!_tmState.value) throw new Error("TimeMachine state not initialized — call setTimeMachineState() first")
+	return _tmState.value.fileContextTracker
 }

@@ -3,7 +3,7 @@ import { useAppTranslation } from "@/i18n/TranslationContext"
 
 import type { Language } from "@jabberwock/types"
 
-import { LANGUAGES } from "@shared/language"
+import { LANGUAGES } from "@shared/core/language"
 
 import { cn } from "@src/lib/utils"
 import {
@@ -13,12 +13,12 @@ import {
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
-} from "@src/shared/ui/selects/select"
+} from "@src/shared/ui/selects/select-primitive"
 
-import { SetCachedStateField } from "../shared/types"
-import { SectionHeader } from "../shared/SectionHeader"
-import { Section } from "../shared/Section"
-import { SearchableSetting } from "../shared/SearchableSetting"
+import { SetCachedStateField } from "@src/features/settings/components/shared/types"
+import { SectionHeader } from "@src/features/settings/components/shared/header"
+import { Section } from "@src/features/settings/components/shared/section"
+import { SearchableSetting } from "@src/features/settings/components/shared/SearchableSetting"
 
 type LanguageSettingsProps = HTMLAttributes<HTMLDivElement> & {
 	language: string

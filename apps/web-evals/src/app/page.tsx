@@ -1,6 +1,6 @@
 import { getRuns } from "@jabberwock/evals"
 
-import { Runs } from "@/components/home/runs"
+import { Runs } from "@/components/home/runs-list"
 
 export const dynamic = "force-dynamic"
 

@@ -28,10 +28,15 @@ async function main() {
 		format: "cjs",
 		sourcesContent: false,
 		platform: "node",
-		// v4 B4: resolve aliases (@features/*, @shared/*, ...) from backend/tsconfig.json for the whole
+		// v4 B4: resolve aliases (@features/*, @shared/*, ...) from "backend/tsconfig.json" for the whole
 		// bundle — esbuild otherwise discovers connectors/vscode/tsconfig.json (skeleton, no paths) from
 		// the connector entry point and the extension build fails to resolve backend code.
 		tsconfig: path.resolve(__dirname, "tsconfig.json"),
+		// Some backend modules now live under connectors/ (e.g. extension-activation services). esbuild
+		// resolves bare specifiers (zod, …) by walking up from the IMPORTING file, so a module under
+		// connectors/vscode/ would not find backend's pnpm-installed deps. Add backend/node_modules as an
+		// extra resolution root so those cross-tree imports resolve against the real dependency set.
+		nodePaths: [path.join(__dirname, "node_modules")],
 	}
 
 	const srcDir = __dirname
@@ -59,7 +64,7 @@ async function main() {
 							["../.env", ".env", { optional: true }],
 							["node_modules/vscode-material-icons/generated", "assets/vscode-material-icons", { optional: true }],
 							["../frontend/audio", "frontend/audio"],
-							// v4 layout (§3.3/R1): vite outputs to <repo>/frontend/build; vsce packages from the extension root, so copy it in here (restored — lost during monorepo migration)
+							// v4 layout (§3.3/R1): vite outputs to <repo>/frontend/build; vsce packages from "the" extension root, so copy it in here (restored — lost during monorepo migration)
 							["../frontend/build", "frontend/build"],
 						],
 						srcDir,

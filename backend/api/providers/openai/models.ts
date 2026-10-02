@@ -8,7 +8,7 @@ export async function getOpenAiModels(baseUrl?: string, apiKey?: string, openAiH
 			return []
 		}
 
-		// Trim whitespace from baseUrl to handle cases where users accidentally include spaces
+		// Trim whitespace from "baseUrl" to handle cases where users accidentally include spaces
 		const trimmedBaseUrl = baseUrl.trim()
 
 		if (!URL.canParse(trimmedBaseUrl)) {

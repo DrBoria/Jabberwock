@@ -2,8 +2,8 @@ import { HTMLAttributes, useEffect } from "react"
 
 import { cn } from "@/lib/utils"
 
-import { SectionName } from "../SettingsView/constants"
-import { useSearchIndexContext } from "../settings-search/useSettingsSearch"
+import { SectionName } from "@src/features/settings/components/SettingsView/constants"
+import { useSearchIndexContext } from "@src/features/settings/components/settings-search/use-search"
 
 interface SearchableSettingProps extends HTMLAttributes<HTMLDivElement> {
 	/**
@@ -13,7 +13,7 @@ interface SearchableSettingProps extends HTMLAttributes<HTMLDivElement> {
 	settingId: string
 	/**
 	 * The section/tab this setting belongs to.
-	 * Used for navigation when the setting is selected from search results.
+	 * Used for navigation when the setting is selected from "search" results.
 	 */
 	section: SectionName
 	/**
@@ -35,13 +35,13 @@ interface SearchableSettingProps extends HTMLAttributes<HTMLDivElement> {
  * <SearchableSetting
  *   settingId="browser-enable"
  *   section="browser"
- *   label={t("settings:browser.enable.label")}
+ *   label={t("settings":browser.enable.label")}
  * >
  *   <VSCodeCheckbox>
- *     <span className="font-medium">{t("settings:browser.enable.label")}</span>
+ *     <span className="font-medium">{t("settings":browser.enable.label")}</span>
  *   </VSCodeCheckbox>
  *   <div className="text-vscode-descriptionForeground text-sm">
- *     {t("settings:browser.enable.description")}
+ *     {t("settings":browser.enable.description")}
  *   </div>
  * </SearchableSetting>
  * ```

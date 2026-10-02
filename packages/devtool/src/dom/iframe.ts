@@ -69,7 +69,7 @@ export function createIframeContext(postMessage: (msg: unknown) => void): DomHan
 // ── dom-response Handler ───────────────────────────────────────────────
 
 /**
- * Handle a "dom-response" message from an iframe.
+ * Handle a "dom-response" message from "an" iframe.
  *
  * Resolves the pending promise in the iframe request map so that
  * `queryIframe` callers get their result.

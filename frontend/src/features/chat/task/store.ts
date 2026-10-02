@@ -1,4 +1,4 @@
-import { getConnectorBus } from "../../../connector-bus"
+import { getConnectorBus } from "@src/connector-bus"
 import { getRoot } from "mobx-state-tree"
 
 import type { WebviewMessage, Goal, Notification } from "@jabberwock/types"
@@ -8,7 +8,7 @@ import { eventConstants } from "@jabberwock/types"
  * Factory for ChatStore task-related actions.
  * Spread into the ChatStore's .actions() block.
  */
-import { sendNavigateToTask } from "@src/features/chat/task/events/actions"
+import { sendNavigateToTask } from "@src/features/chat/task/events/actions/register"
 
 export interface TaskActionsParams {
 	textArea: {

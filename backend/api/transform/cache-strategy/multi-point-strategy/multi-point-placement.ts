@@ -73,7 +73,7 @@ export function findOptimalPlacementForRange(
 	}
 
 	if (lastUserMessageIndex >= 0) {
-		// Calculate the total tokens covered from the previous cache point (or start of conversation)
+		// Calculate the total tokens covered from "the" previous cache point (or start of conversation)
 		// to this cache point. This ensures tokensCovered represents the full span of tokens
 		// that will be cached by this cache point.
 		let totalTokensCovered = 0
@@ -87,7 +87,7 @@ export function findOptimalPlacementForRange(
 			}
 		}
 
-		// Calculate tokens from previous cache point (or start) to this cache point
+		// Calculate tokens from "previous" cache point (or start) to this cache point
 		const tokenStartIndex = previousCachePointIndex + 1
 		totalTokensCovered = messages
 			.slice(tokenStartIndex, lastUserMessageIndex + 1)

@@ -1,11 +1,11 @@
 import type { ITaskModel } from "@features/chat/task/store"
-import { formatResponse } from "@features/settings/context/responses"
+import { formatResponse } from "@features/settings"
 import { getMcpServerManager } from "@services/mcp/core/McpServerManager"
 import type { ToolResponse } from "@shared/tools"
 import { processToolContent, sendExecutionStatus } from "./processToolContent"
-import { processDeterministicDelegation } from "./deterministicDelegation"
+import { processDeterministicDelegation } from "./delegation"
 import { ask } from "@features/chat/task/notifications/actions/ask"
-import { mcpBroadcast } from "@features/chat/task/messages/actions/say"
+import { emitBroadcast } from "@features/chat/task/messages/actions/say"
 
 /**
  * Result of tool execution, indicating whether delegation occurred.
@@ -121,7 +121,7 @@ async function finalizeInteractiveApp(
 	})
 
 	const sayText = JSON.stringify({ _interactiveMeta: interactiveAppMeta, response: toolResultPretty })
-	await mcpBroadcast(task.taskId, "mcp_server_response", sayText)
+	await emitBroadcast("mcp", task.taskId, "mcp_server_response", sayText)
 	pushToolResult(formatResponse.toolResult(toolResultPretty, []))
 }
 
@@ -150,7 +150,7 @@ export async function executeToolAndProcessResult(
 	executionId: string,
 	pushToolResult: (content: ToolResponse) => void,
 ): Promise<ExecutionResult | void> {
-	await mcpBroadcast(task.taskId, "mcp_server_request_started")
+	await emitBroadcast("mcp", task.taskId, "mcp_server_request_started")
 	await sendExecutionStatus(task, { executionId, status: "started", serverName, toolName })
 
 	const activeAgentRole = await getTaskWithMode(task).getTaskMode()
@@ -164,7 +164,7 @@ export async function executeToolAndProcessResult(
 
 	if (!toolResult) {
 		await sendExecutionStatus(task, { executionId, status: "error", error: "No response from MCP server" })
-		await mcpBroadcast(task.taskId, "mcp_server_response", "(No response)")
+		await emitBroadcast("mcp", task.taskId, "mcp_server_response", "(No response)")
 		pushToolResult(formatResponse.toolResult("(No response)", []))
 		return
 	}
@@ -198,6 +198,6 @@ export async function executeToolAndProcessResult(
 		error: toolResult.isError ? "Error executing MCP tool" : undefined,
 	})
 
-	await mcpBroadcast(task.taskId, "mcp_server_response", toolResultPretty, images)
+	await emitBroadcast("mcp", task.taskId, "mcp_server_response", toolResultPretty, images)
 	pushToolResult(formatResponse.toolResult(toolResultPretty, images))
 }

@@ -1,12 +1,11 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
-
+import type { IntentBus } from "@features/intents"
 /**
- * Handles tool.execution.required intent — executes a tool call from the assistant.
+ * Handles tool.execution.required intent — executes a tool call from "the" assistant.
  * Delegates to the existing executeTools pipeline which processes the assistant's
- * tool_use blocks from the streaming content.
+ * tool_use blocks from "the" streaming content.
  */
-import { executeTools } from "@features/chat/tools/actions/executeTools"
+import { executeTools } from "@features/chat"
 
 export function registerOnToolExecutionRequired(bus: IntentBus): void {
 	bus.register(IntentType.ToolExecutionRequired, async (intent, _ctx) => {

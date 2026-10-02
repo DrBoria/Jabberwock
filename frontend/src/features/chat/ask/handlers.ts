@@ -1,6 +1,6 @@
 import type { Notification, SayToolData, AudioType } from "@jabberwock/types"
-import type { IChatUIStore } from "../store"
-import { getToolButtonLabels } from "./tool-labels"
+import type { IChatUIStore } from "@src/features/chat/store"
+import { getToolButtonLabels } from "@/features/chat/task/notifications/ask/tool-labels"
 
 export function handleApiReqFailedAsk(
 	ui: IChatUIStore,

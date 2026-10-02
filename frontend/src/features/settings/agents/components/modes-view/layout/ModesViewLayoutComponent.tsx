@@ -1,8 +1,8 @@
 import React from "react"
-import { HeaderSection } from "../sections/header-section"
-import { ConfigSection } from "../sections/config-section"
-import { GlobalSection } from "../sections/global-section"
-import { Section } from "@src/features/settings/components/shared/Section"
+import { HeaderSection } from "@src/features/settings/agents/components/modes-view/sections/header"
+import { ConfigSection } from "@src/features/settings/agents/components/modes-view/sections/config"
+import { GlobalSection } from "@src/features/settings/agents/components/modes-view/sections/global"
+import { Section } from "@src/features/settings"
 import { ModesViewDialogs } from "./ModesViewDialogs"
 import type { ModesViewLayoutProps } from "./types"
 

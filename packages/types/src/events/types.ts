@@ -2,8 +2,8 @@ import { z } from "zod"
 
 import { notificationSchema } from "../messages/notification.ts"
 import { queuedMessageSchema, tokenUsageSchema } from "../messages/types.ts"
-import { modelInfoSchema } from "../models/model.ts"
-import { toolNamesSchema, toolUsageSchema } from "../tool/tool.ts"
+import { modelInfoSchema } from "../models/model-main.ts"
+import { toolNamesSchema, toolUsageSchema } from "../tool/definitions.ts"
 
 /**
  * JabberwockEventName

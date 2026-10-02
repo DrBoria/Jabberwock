@@ -5,7 +5,7 @@ import { fileURLToPath } from "url"
 import { FlagOptions, CliSettings, DEFAULT_FLAGS, SupportedProvider } from "@/types/index.js"
 
 import type { ExtensionHostOptions } from "@/agent/index.js"
-import { readWorkspaceTaskSessions, resolveWorkspaceResumeSessionId } from "@/lib/task-history/index.js"
+import { readWorkspaceTaskSessions, resolveWorkspaceResumeSessionId } from "@/lib/task-history.js"
 import { getApiKeyFromEnv } from "@/lib/utils/validation/provider.js"
 import { getDefaultExtensionPath } from "@/lib/utils/env/extension.js"
 import { validateTerminalShellPath } from "@/lib/utils/env/shell.js"

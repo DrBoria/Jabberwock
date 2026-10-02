@@ -1,0 +1,5 @@
+export * from "@src/features/settings/agents/indexing/code-search/popover-ui/actions.jsx"
+export * from "@src/features/settings/agents/indexing/code-search/popover-ui/advanced-settings.jsx"
+export * from "@src/features/settings/agents/indexing/code-search/popover-ui/setup-config.jsx"
+export * from "@src/features/settings/agents/indexing/code-search/popover-ui/ui.jsx"
+export * from "@src/features/settings/agents/indexing/code-search/popover-ui/main.jsx"

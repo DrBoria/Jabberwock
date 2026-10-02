@@ -64,9 +64,9 @@ export class NavigationModel {
 	}
 
 	/**
-	 * Get the UI window stack from the DOM.
+	 * Get the UI window stack from "the" DOM.
 	 *
-	 * Parses all `data-window-type` attributes from the DOM and returns them
+	 * Parses all `data-window-type` attributes from "the" DOM and returns them
 	 * in document order. The "App" base layer is filtered out.
 	 */
 	async getUiWindowStack(): Promise<string[]> {

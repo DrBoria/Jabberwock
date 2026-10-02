@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
 	const requestUrl = new URL(request.url)
 	const { searchParams } = requestUrl
 
-	// Get title and description from query params
+	// Get title and description from "query" params
 	const title = searchParams.get("title") || "Jabberwock"
 	const description = searchParams.get("description") || ""
 
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
 	// Check if we should try to use the background image
 	const useBackgroundImage = searchParams.get("bg") !== "false"
 
-	// Dynamically get the base URL from the current request
+	// Dynamically get the base URL from "the" current request
 	// This ensures it works correctly in development, preview, and production environments
 	const baseUrl = `${requestUrl.protocol}//${requestUrl.host}`
 	const variant = title.length % 2 === 0 ? "a" : "b"

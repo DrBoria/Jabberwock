@@ -1,19 +1,19 @@
-import { onWebviewMessage } from "@features/foundation/webview/events/handlers/on-webview-message"
+import { onWebviewMessage } from "@features/foundation"
 import { IntentStatus } from "@jabberwock/types"
-import { getBackendRootStore } from "@features/storeSingleton"
+import { getStore } from "@features/singleton"
 import {
 	CHAT_TASK_GOAL_ADD,
 	CHAT_TASK_GOAL_REMOVE,
 	CHAT_TASK_GOAL_UPDATE,
 	CHAT_TASK_GOAL_REORDER,
-} from "@features/chat/task/events/constants"
+} from "@features/chat"
 
 /**
  * Handles GOAL_ADD event — creates an intent to add a goal.
  */
 export function registerOnGoalAdd(): void {
 	onWebviewMessage(CHAT_TASK_GOAL_ADD, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -30,7 +30,7 @@ export function registerOnGoalAdd(): void {
  */
 export function registerOnGoalRemove(): void {
 	onWebviewMessage(CHAT_TASK_GOAL_REMOVE, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -47,7 +47,7 @@ export function registerOnGoalRemove(): void {
  */
 export function registerOnGoalUpdate(): void {
 	onWebviewMessage(CHAT_TASK_GOAL_UPDATE, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -69,7 +69,7 @@ export function registerOnGoalUpdate(): void {
  */
 export function registerOnGoalReorder(): void {
 	onWebviewMessage(CHAT_TASK_GOAL_REORDER, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),

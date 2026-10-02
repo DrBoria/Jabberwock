@@ -4,120 +4,140 @@ export interface TagMatcherResult {
 }
 
 /**
+ * Structural shape of a tag matcher instance.
+ */
+export interface TagMatcherShape<Result> {
+	tagName: string
+	transform?: (chunks: TagMatcherResult) => Result
+	position: number
+	final(chunk?: string): Result[]
+	update(chunk: string): Result[]
+}
+
+/**
  * Streaming matcher for lightweight tag-delimited regions.
  *
- * Used to separate content inside `<tag>...</tag>` from surrounding text.
- * This is used for reasoning tags like `<think>...</think>` in provider streams.
+ * Used to separate content inside `<tag>...</tag>` from "surrounding" text.
+ * This is used for reasoning tags like `think.../think` in provider streams.
  */
-export class TagMatcher<Result = TagMatcherResult> {
-	index = 0
-	chunks: TagMatcherResult[] = []
-	cached: string[] = []
-	matched: boolean = false
-	state: "TEXT" | "TAG_OPEN" | "TAG_CLOSE" = "TEXT"
-	depth = 0
-	pointer = 0
-	constructor(
-		readonly tagName: string,
-		readonly transform?: (chunks: TagMatcherResult) => Result,
-		readonly position = 0,
-	) {}
-	private collect() {
-		if (!this.cached.length) {
+export function TagMatcher<Result = TagMatcherResult>(
+	tagName: string,
+	transform?: (chunks: TagMatcherResult) => Result,
+	position = 0,
+): TagMatcherShape<Result> {
+	let index = 0
+	let chunks: TagMatcherResult[] = []
+	let cached: string[] = []
+	let matched: boolean = false
+	let state: "TEXT" | "TAG_OPEN" | "TAG_CLOSE" = "TEXT"
+	let depth = 0
+	let pointer = 0
+
+	function collect() {
+		if (!cached.length) {
 			return
 		}
-		const last = this.chunks.at(-1)
-		const data = this.cached.join("")
-		const matched = this.matched
-		if (last?.matched === matched) {
+		const last = chunks.at(-1)
+		const data = cached.join("")
+		const isMatched = matched
+		if (last?.matched === isMatched) {
 			last.data += data
 		} else {
-			this.chunks.push({
+			chunks.push({
 				data,
-				matched,
+				matched: isMatched,
 			})
 		}
-		this.cached = []
-	}
-	private pop() {
-		const chunks = this.chunks
-		this.chunks = []
-		if (!this.transform) {
-			return chunks as Result[]
-		}
-		return chunks.map(this.transform)
+		cached = []
 	}
 
-	private handleTextState(char: string): void {
-		if (char === "<" && (this.pointer <= this.position + 1 || this.matched)) {
-			this.state = "TAG_OPEN"
-			this.index = 0
+	function pop(): Result[] {
+		const currentChunks = chunks
+		chunks = []
+		if (!transform) {
+			return currentChunks as Result[]
+		}
+		return currentChunks.map(transform)
+	}
+
+	function handleTextState(char: string): void {
+		if (char === "<" && (pointer <= position + 1 || matched)) {
+			state = "TAG_OPEN"
+			index = 0
 		} else {
-			this.collect()
+			collect()
 		}
 	}
 
-	private handleTagOpenState(char: string): void {
-		if (char === ">" && this.index === this.tagName.length) {
-			this.state = "TEXT"
-			if (!this.matched) {
-				this.cached = []
+	function handleTagOpenState(char: string): void {
+		if (char === ">" && index === tagName.length) {
+			state = "TEXT"
+			if (!matched) {
+				cached = []
 			}
-			this.depth++
-			this.matched = true
-		} else if (this.index === 0 && char === "/") {
-			this.state = "TAG_CLOSE"
-		} else if (char === " " && (this.index === 0 || this.index === this.tagName.length)) {
+			depth++
+			matched = true
+		} else if (index === 0 && char === "/") {
+			state = "TAG_CLOSE"
+		} else if (char === " " && (index === 0 || index === tagName.length)) {
 			return
-		} else if (this.tagName[this.index] === char) {
-			this.index++
+		} else if (tagName[index] === char) {
+			index++
 		} else {
-			this.state = "TEXT"
-			this.collect()
+			state = "TEXT"
+			collect()
 		}
 	}
 
-	private handleTagCloseState(char: string): void {
-		if (char === ">" && this.index === this.tagName.length) {
-			this.state = "TEXT"
-			this.depth--
-			this.matched = this.depth > 0
-			if (!this.matched) {
-				this.cached = []
+	function handleTagCloseState(char: string): void {
+		if (char === ">" && index === tagName.length) {
+			state = "TEXT"
+			depth--
+			matched = depth > 0
+			if (!matched) {
+				cached = []
 			}
-		} else if (char === " " && (this.index === 0 || this.index === this.tagName.length)) {
+		} else if (char === " " && (index === 0 || index === tagName.length)) {
 			return
-		} else if (this.tagName[this.index] === char) {
-			this.index++
+		} else if (tagName[index] === char) {
+			index++
 		} else {
-			this.state = "TEXT"
-			this.collect()
+			state = "TEXT"
+			collect()
 		}
 	}
 
-	private _update(chunk: string) {
+	function _update(chunk: string) {
 		for (const char of chunk) {
-			this.cached.push(char)
-			this.pointer++
+			cached.push(char)
+			pointer++
 
-			if (this.state === "TEXT") {
-				this.handleTextState(char)
-			} else if (this.state === "TAG_OPEN") {
-				this.handleTagOpenState(char)
-			} else if (this.state === "TAG_CLOSE") {
-				this.handleTagCloseState(char)
+			if (state === "TEXT") {
+				handleTextState(char)
+			} else if (state === "TAG_OPEN") {
+				handleTagOpenState(char)
+			} else if (state === "TAG_CLOSE") {
+				handleTagCloseState(char)
 			}
 		}
 	}
-	final(chunk?: string) {
-		if (chunk) {
-			this._update(chunk)
-		}
-		this.collect()
-		return this.pop()
-	}
-	update(chunk: string) {
-		this._update(chunk)
-		return this.pop()
+
+	return {
+		tagName,
+		transform,
+		position,
+		final(chunk?: string): Result[] {
+			if (chunk) {
+				_update(chunk)
+			}
+			collect()
+			return pop()
+		},
+		update(chunk: string): Result[] {
+			_update(chunk)
+			return pop()
+		},
 	}
 }
+
+export type TagMatcher<Result = TagMatcherResult> = TagMatcherShape<Result>

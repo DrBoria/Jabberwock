@@ -1,7 +1,7 @@
 import React, { useCallback } from "react"
 import { useAppTranslation } from "@/i18n/TranslationContext"
 import { useTooManyTools } from "@src/hooks/useTooManyTools"
-import WarningRow from "../warning-row"
+import WarningRow from "@src/features/chat/task/messages/components/row/warning-row"
 
 /**
  * Displays a warning when the user has too many MCP tools enabled.

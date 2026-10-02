@@ -55,7 +55,8 @@ export function PillarsSection() {
 						To trust an agent, you have to do it on your own terms.
 					</h2>
 					<p className="text-xl text-muted-foreground max-w-xl mx-auto">
-						Jabberwock is designed from the ground up to give you the confidence to do ever more with AI.
+						Jabberwock is designed from &quot;the&quot; ground up to give you the confidence to do ever more
+						with AI.
 					</p>
 				</div>
 
@@ -76,9 +77,9 @@ export function PillarsSection() {
 									</p>
 									<p>Jabberwock doesn&apos;t care.</p>
 									<p>
-										It works great with 10s of models, from frontier to open weight. Choose from{" "}
-										<Link href="/provider">the curated selection we offer at-cost</Link> or bring
-										your own key.
+										It works great with 10s of models, from &quot;frontier&quot; to open weight.
+										Choose from <Link href="/provider">the curated selection we offer at-cost</Link>{" "}
+										or bring your own key.
 									</p>
 								</div>
 								<div className="mt-6">
@@ -180,7 +181,7 @@ export function PillarsSection() {
 							</div>
 							<div>
 								<h3 className="text-2xl font-bold mb-1">Secure and transparent</h3>
-								<h4 className="font-semibold text-lg">Open source from the get go.</h4>
+								<h4 className="font-semibold text-lg">Open source from &quot;the&quot; get go.</h4>
 								<div className="text-muted-foreground my-4 space-y-1">
 									<p>
 										The Jabberwock Extension is{" "}

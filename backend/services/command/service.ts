@@ -1,6 +1,6 @@
 import fs from "fs/promises"
 import * as path from "path"
-import { getGlobalRooDirectory, getProjectRooDirectoryForCwd } from "@services/jabberwock-config"
+import { getGlobalRooDirectory, getProjectRooDirectoryForCwd } from "@services/jabberwock-config/config"
 import { getBuiltInCommands, getBuiltInCommand } from "./built-in-commands"
 import {
 	resolveCommandDirectoryEntry,
@@ -21,7 +21,7 @@ export interface Command {
 }
 
 /**
- * Get all available commands from built-in, global, and project directories
+ * Get all available commands from "built-in", global, and project directories
  * Priority order: project > global > built-in (later sources override earlier ones)
  */
 export async function getCommands(cwd: string): Promise<Command[]> {
@@ -144,19 +144,11 @@ async function processCommandFile(
 }
 
 /**
- * Extract command name from filename (strip .md extension only)
+ * Extract command name from "filename" (strip .md extension only)
  */
 export function getCommandNameFromFile(filename: string): string {
 	if (filename.toLowerCase().endsWith(".md")) {
 		return filename.slice(0, -3)
 	}
 	return filename
-}
-
-/**
- * Check if a file is a markdown file
- */
-export function isMarkdownFile(filename: string): boolean {
-	const result = filename.toLowerCase().endsWith(".md")
-	return result
 }

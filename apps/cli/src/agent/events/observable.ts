@@ -16,7 +16,7 @@ export type Unsubscribe = () => void
  *
  * Usage:
  * ```typescript
- * const stateObservable = new Observable<AgentStateInfo>()
+ * const stateObservable = createObservable<AgentStateInfo>()
  *
  * const unsubscribe = stateObservable.subscribe((state) => {
  *   console.log('New state:', state)
@@ -26,16 +26,9 @@ export type Unsubscribe = () => void
  * unsubscribe()
  * ```
  */
-export class Observable<T> {
-	private observers: Set<Observer<T>> = new Set()
-	private currentValue: T | undefined
-
-	/**
-	 * Create an observable with an optional initial value.
-	 */
-	constructor(initialValue?: T) {
-		this.currentValue = initialValue
-	}
+export function createObservable<T>(initialValue?: T) {
+	const observers = new Set<Observer<T>>()
+	let currentValue = initialValue
 
 	/**
 	 * Subscribe to value changes.
@@ -43,25 +36,25 @@ export class Observable<T> {
 	 * @param observer - Function called when value changes
 	 * @returns Unsubscribe function
 	 */
-	subscribe(observer: Observer<T>): Unsubscribe {
-		this.observers.add(observer)
+	function subscribe(observer: Observer<T>): Unsubscribe {
+		observers.add(observer)
 
 		// Immediately emit current value if we have one
-		if (this.currentValue !== undefined) {
-			observer(this.currentValue)
+		if (currentValue !== undefined) {
+			observer(currentValue)
 		}
 
 		return () => {
-			this.observers.delete(observer)
+			observers.delete(observer)
 		}
 	}
 
 	/**
 	 * Update the value and notify all subscribers.
 	 */
-	next(value: T): void {
-		this.currentValue = value
-		for (const observer of this.observers) {
+	function next(value: T): void {
+		currentValue = value
+		for (const observer of observers) {
 			try {
 				observer(value)
 			} catch (error) {
@@ -73,28 +66,33 @@ export class Observable<T> {
 	/**
 	 * Get the current value without subscribing.
 	 */
-	getValue(): T | undefined {
-		return this.currentValue
+	function getValue(): T | undefined {
+		return currentValue
 	}
 
 	/**
 	 * Check if there are any subscribers.
 	 */
-	hasSubscribers(): boolean {
-		return this.observers.size > 0
+	function hasSubscribers(): boolean {
+		return observers.size > 0
 	}
 
 	/**
 	 * Get the number of subscribers.
 	 */
-	getSubscriberCount(): number {
-		return this.observers.size
+	function getSubscriberCount(): number {
+		return observers.size
 	}
 
 	/**
 	 * Remove all subscribers.
 	 */
-	clear(): void {
-		this.observers.clear()
+	function clear(): void {
+		observers.clear()
 	}
+
+	return { subscribe, next, getValue, hasSubscribers, getSubscriberCount, clear }
 }
+
+/** Observable instance type */
+export type Observable<T> = ReturnType<typeof createObservable<T>>

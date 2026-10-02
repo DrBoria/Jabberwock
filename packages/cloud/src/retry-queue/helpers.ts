@@ -101,7 +101,7 @@ export async function loadPersistedQueue(
 			stored.forEach((request) => {
 				queue.set(request.id, request)
 			})
-			log(`[RetryQueue] Loaded ${stored.length} persisted requests from workspace storage`)
+			log(`[RetryQueue] Loaded ${stored.length} persisted requests from "workspace" storage`)
 		}
 	} catch (error) {
 		log("[RetryQueue] Failed to load persisted queue:", error)

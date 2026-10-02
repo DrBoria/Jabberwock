@@ -8,8 +8,8 @@ export {
 	mistralTransform,
 	openaiTransform,
 } from "./format"
-export { r1Format } from "./r1"
-export { zaiFormat } from "./zai"
+export { convertToR1Format } from "./r1"
+export { convertToZAiFormat } from "./zai"
 export {
 	consolidateReasoningDetails,
 	mapReasoningDetails,

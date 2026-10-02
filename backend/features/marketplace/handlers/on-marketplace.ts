@@ -1,18 +1,33 @@
-import type { EventBridge, ProviderHandle } from "@features/foundation/webview/EventBridge"
+import type { EventBridge, ProviderHandle } from "@features/foundation"
+import type { IntentBus } from "@features/intents"
 import { IntentType } from "@jabberwock/types"
+
 import type { MarketplaceItem } from "@jabberwock/types"
+
 import { MarketplaceManager, MarketplaceItemType } from "@services/marketplace"
+
 import * as path from "path"
 
-import type { IntentBus } from "@features/intents/bus.js"
-import { postStateToWebview } from "@features/foundation/window-manager/store"
-import { getRooDirectoriesForCwd } from "@services/jabberwock-config/index.js"
+import { postStateToWebview } from "@features/foundation"
+
+import { getRooDirectoriesForCwd } from "@services/jabberwock-config/config.js"
+
 import { customToolRegistry } from "@jabberwock/core"
+
+import { publishNotificationError } from "@features/foundation"
+
+import {
+	sendCustomToolsResult,
+	sendMarketplaceButtonClicked,
+	sendMarketplaceInstallResult,
+	sendMarketplaceRemoveResult,
+} from "@features/settings"
 
 /**
  * Register all marketplace-related intent handlers on the bus.
  */
-export function registerOnMarketplace(bus: IntentBus): void {
+
+function registerOnMarketplaceMarketplaceItemsFilter(bus: IntentBus): void {
 	bus.register(IntentType.MarketplaceItemsFilter, async (intent, ctx) => {
 		const provider = ctx.provider
 		if (!provider) return
@@ -37,7 +52,9 @@ export function registerOnMarketplace(bus: IntentBus): void {
 			}
 		}
 	})
+}
 
+function registerOnMarketplaceMarketplaceItemInstall(bus: IntentBus): void {
 	bus.register(IntentType.MarketplaceItemInstall, async (intent, ctx) => {
 		const provider = ctx.provider
 		if (!provider) return
@@ -58,15 +75,13 @@ export function registerOnMarketplace(bus: IntentBus): void {
 				)
 				await postStateToWebview(provider)
 				console.log(`Marketplace item installed and config file opened`)
-				provider.postMessageToWebview({
-					type: "marketplaceInstallResult",
+				sendMarketplaceInstallResult(provider, {
 					success: true,
 					slug: mpItem.id as string,
 				})
 			} catch (error) {
 				console.error(`[jabberwock] Error installing marketplace item: ${error}`)
-				provider.postMessageToWebview({
-					type: "marketplaceInstallResult",
+				sendMarketplaceInstallResult(provider, {
 					success: false,
 					error: error instanceof Error ? error.message : String(error),
 					slug: mpItem!.id as string,
@@ -74,7 +89,9 @@ export function registerOnMarketplace(bus: IntentBus): void {
 			}
 		}
 	})
+}
 
+function registerOnMarketplaceMarketplaceItemInstallWithParameters(bus: IntentBus): void {
 	bus.register(IntentType.MarketplaceItemInstallWithParameters, async (intent, ctx) => {
 		const provider = ctx.provider
 		if (!provider) return
@@ -100,14 +117,13 @@ export function registerOnMarketplace(bus: IntentBus): void {
 			}
 		}
 	})
+}
 
+function registerOnMarketplaceMarketplaceItemRemove(bus: IntentBus): void {
 	bus.register(IntentType.MarketplaceItemRemove, handleMarketplaceItemRemove)
+}
 
-	bus.register(IntentType.MarketplaceDataFetch, async () => {
-		// fetchMarketplaceData was removed from EventBridge - no-op for now
-		console.warn("[jabberwock] fetchMarketplaceData handler called but method is no longer available")
-	})
-
+function registerOnMarketplaceMarketplaceToolsRefresh(bus: IntentBus): void {
 	bus.register(IntentType.MarketplaceToolsRefresh, async (_intent, ctx) => {
 		const provider = ctx.provider
 		if (!provider) return
@@ -118,29 +134,34 @@ export function registerOnMarketplace(bus: IntentBus): void {
 			const toolDirs = getRooDirectoriesForCwd(cwd).map((dir: string) => path.join(dir, "tools"))
 			await customToolRegistry.loadFromDirectories(toolDirs)
 
-			await provider.postMessageToWebview({
-				type: "customToolsResult",
+			await sendCustomToolsResult(provider, {
 				tools: customToolRegistry.getAllSerialized(),
 			})
 		} catch (error) {
-			await provider.postMessageToWebview({
-				type: "customToolsResult",
+			await sendCustomToolsResult(provider, {
 				tools: [],
 				error: error instanceof Error ? error.message : String(error),
 			})
 		}
 	})
+}
 
-	bus.register(IntentType.MarketplaceInstallCancel, async () => {
-		// No-op or future implementation
-	})
-
+function registerOnMarketplaceMarketplaceButtonClicked(bus: IntentBus): void {
 	bus.register(IntentType.MarketplaceButtonClicked, async (_intent, ctx) => {
 		const provider = ctx.provider
 		if (!provider) return
 
-		provider.postMessageToWebview({ type: "action", action: "marketplaceButtonClicked" })
+		sendMarketplaceButtonClicked(provider)
 	})
+}
+
+export function registerOnMarketplace(_bus: IntentBus): void {
+	registerOnMarketplaceMarketplaceItemsFilter(_bus)
+	registerOnMarketplaceMarketplaceItemInstall(_bus)
+	registerOnMarketplaceMarketplaceItemInstallWithParameters(_bus)
+	registerOnMarketplaceMarketplaceItemRemove(_bus)
+	registerOnMarketplaceMarketplaceToolsRefresh(_bus)
+	registerOnMarketplaceMarketplaceButtonClicked(_bus)
 }
 
 async function handleMarketplaceItemRemove(
@@ -177,8 +198,7 @@ async function removeMarketplaceItem(
 			mpInstallOptions as { target?: "global" | "project" },
 		)
 		await postStateToWebview(provider)
-		provider.postMessageToWebview({
-			type: "marketplaceRemoveResult",
+		sendMarketplaceRemoveResult(provider, {
 			success: true,
 			slug: mpItem.id as string,
 		})
@@ -187,8 +207,7 @@ async function removeMarketplaceItem(
 		publishNotificationError(
 			`Failed to remove marketplace item: ${error instanceof Error ? error.message : String(error)}`,
 		)
-		provider.postMessageToWebview({
-			type: "marketplaceRemoveResult",
+		sendMarketplaceRemoveResult(provider, {
 			success: false,
 			error: error instanceof Error ? error.message : String(error),
 			slug: mpItem.id as string,
@@ -208,13 +227,10 @@ async function handleMarketplaceRemoveError(
 	publishNotificationError(errorMessage)
 
 	if (mpItem?.id) {
-		provider.postMessageToWebview({
-			type: "marketplaceRemoveResult",
+		sendMarketplaceRemoveResult(provider, {
 			success: false,
 			error: errorMessage,
 			slug: mpItem.id as string,
 		})
 	}
 }
-
-import { publishNotificationError } from "@features/foundation/capabilities/notifications"

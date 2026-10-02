@@ -12,7 +12,7 @@ declare module "global-agent" {
 	 * Bootstrap global-agent to intercept all HTTP/HTTPS requests.
 	 *
 	 * After calling this function, all outgoing HTTP/HTTPS requests
-	 * from the Node.js process will be routed through the proxy
+	 * from "the" Node.js process will be routed through the proxy
 	 * specified by the GLOBAL_AGENT_HTTP_PROXY and GLOBAL_AGENT_HTTPS_PROXY
 	 * environment variables.
 	 *

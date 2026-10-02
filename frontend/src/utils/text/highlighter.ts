@@ -1,15 +1,16 @@
+import { createHighlighter, type Highlighter, type BundledTheme, type BundledLanguage, bundledThemes } from "shiki"
+
+import { normalizeLanguage, escapeHtml, type ExtendedLanguage } from "./language-aliases"
+
 import { ReactNode } from "react"
 import { toJsxRuntime } from "hast-util-to-jsx-runtime"
 import type { ElementContent } from "hast"
 import { Fragment, jsx, jsxs } from "react/jsx-runtime"
-import type { Highlighter } from "shiki"
-import { getHighlighter, escapeHtml } from "./highlighter-engine"
-export { getHighlighter }
 
 export function highlightFzfMatch(
 	text: string,
 	positions: number[],
-	highlightClassName: string = "history-item-highlight",
+	highlightClassName: string = "toolExecutor.history-item-highlight",
 ) {
 	if (!positions.length) return text
 	const parts: { text: string; highlight: boolean }[] = []
@@ -154,5 +155,67 @@ export async function highlightHunks(
 			oldLines: oldText.split("\n").map((line) => line || ""),
 			newLines: newText.split("\n").map((line) => line || ""),
 		}
+	}
+}
+
+export const isLanguageLoaded = (language: string): boolean => {
+	const normalized = normalizeLanguage(language)
+	return state.loadedLanguages.has(normalized)
+}
+
+const LANGUAGE_LOAD_DELAY = 0
+const initialLanguages: BundledLanguage[] = ["shell", "log"]
+
+const state: {
+	instance: Highlighter | null
+	instanceInitPromise: Promise<Highlighter> | null
+	loadedLanguages: Set<ExtendedLanguage>
+	pendingLanguageLoads: Map<ExtendedLanguage, Promise<void>>
+} = {
+	instance: null,
+	instanceInitPromise: null,
+	loadedLanguages: new Set<ExtendedLanguage>(["txt"]),
+	pendingLanguageLoads: new Map(),
+}
+
+export const getHighlighter = async (language?: string): Promise<Highlighter> => {
+	try {
+		const shikilang = normalizeLanguage(language)
+		if (!state.instanceInitPromise) {
+			state.instanceInitPromise = (async () => {
+				const instance = await createHighlighter({
+					themes: Object.keys(bundledThemes) as BundledTheme[],
+					langs: initialLanguages,
+				})
+				state.instance = instance
+				initialLanguages.forEach((lang) => state.loadedLanguages.add(lang))
+				return instance
+			})()
+		}
+		const instance = await state.instanceInitPromise
+		if (!state.loadedLanguages.has(shikilang)) {
+			let loadingPromise = state.pendingLanguageLoads.get(shikilang)
+			if (!loadingPromise) {
+				loadingPromise = (async () => {
+					try {
+						if (LANGUAGE_LOAD_DELAY > 0)
+							await new Promise((resolve) => setTimeout(resolve, LANGUAGE_LOAD_DELAY))
+						await instance.loadLanguage(shikilang as BundledLanguage)
+						state.loadedLanguages.add(shikilang)
+					} catch (error) {
+						console.error(`[jabberwock] [Shiki] Failed to load language ${shikilang}:`, error)
+						throw error
+					} finally {
+						state.pendingLanguageLoads.delete(shikilang)
+					}
+				})()
+				state.pendingLanguageLoads.set(shikilang, loadingPromise)
+			}
+			await loadingPromise
+		}
+		return instance
+	} catch (error) {
+		console.error("[jabberwock] [Shiki] Error in getHighlighter:", error)
+		throw error
 	}
 }

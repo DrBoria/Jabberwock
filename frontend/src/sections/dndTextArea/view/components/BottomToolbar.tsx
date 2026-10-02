@@ -1,15 +1,28 @@
 import React from "react"
-import { Activity, VolumeX } from "lucide-react"
+import { Activity, Settings, VolumeX } from "lucide-react"
 import { cn } from "@src/lib/utils"
-import { StandardTooltip } from "@src/shared/ui/tooltips/standard-tooltip"
-import { Button } from "@src/shared/ui/buttons/button"
+import { StandardTooltip } from "@src/shared/ui/tooltips/standard"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
 import { Container } from "@src/shared/ui/layouts/Container"
 import { ModeSelector } from "@src/features/settings/agents/mode-selector/ModeSelector"
 import { ApiConfigSelector } from "@src/features/settings/agents/api-config/api-config-selector/index"
 import { AutoApproveDropdown } from "@src/features/settings/agents/auto-approve/index"
-import { IndexingStatusBadge } from "@src/features/settings/agents/indexing/status-badge"
-import { CloudAccountSwitcher } from "@src/features/cloud/components/CloudAccountSwitcher"
+import { IndexingStatusBadge } from "@src/features/settings"
+import { CloudAccountSwitcher } from "@src/features/cloud"
+import { rootStore } from "@src/features/store"
 import type { BottomToolbarProps } from "../types"
+
+const SettingsButton: React.FC<{ t: (key: string, params?: Record<string, string>) => string }> = ({ t }) => (
+	<StandardTooltip content={t("chat:retiredProvider.openSettings")}>
+		<Button
+			variant="iconButton"
+			size="icon"
+			aria-label={t("chat:retiredProvider.openSettings")}
+			onClick={() => rootStore.windowManager.pushWindow("settings")}>
+			<Settings className="w-4 h-4" />
+		</Button>
+	</StandardTooltip>
+)
 
 const DevToolsButton: React.FC<{
 	devtoolEnabled: boolean
@@ -97,6 +110,7 @@ export const BottomToolbar: React.FC<BottomToolbarProps> = ({
 				"flex flex-shrink-0 items-center gap-0.5 h-5 leading-none",
 				!isEditMode && cloudUserInfo ? "" : "pr-2",
 			)}>
+			<SettingsButton t={t} />
 			<DevToolsButton devtoolEnabled={devtoolEnabled} toggleDevtool={toggleDevtool} />
 			{isTtsPlaying && <TtsStopButton stopTts={stopTts} t={t} />}
 			{!isEditMode ? <IndexingStatusBadge /> : null}

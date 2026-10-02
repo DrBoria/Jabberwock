@@ -1,5 +1,5 @@
 import type { Notification } from "@jabberwock/types"
-import { findLast } from "@shared/array"
+import { findLast } from "@shared/core/array"
 
 import { streamingStore } from "@/features/api/streaming/store"
 

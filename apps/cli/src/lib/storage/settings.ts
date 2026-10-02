@@ -4,6 +4,7 @@ import path from "path"
 import type { CliSettings } from "@/types/index.js"
 
 import { getConfigDir } from "./index.js"
+import { readJsonFile } from "./json-file.js"
 
 export function getSettingsPath(): string {
 	const settingsPath = path.join(getConfigDir(), "cli-settings.json")
@@ -11,17 +12,8 @@ export function getSettingsPath(): string {
 }
 
 export async function loadSettings(): Promise<CliSettings> {
-	try {
-		const settingsPath = getSettingsPath()
-		const data = await fs.readFile(settingsPath, "utf-8")
-		return JSON.parse(data) as CliSettings
-	} catch (error) {
-		if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-			return {}
-		}
-
-		throw error
-	}
+	const settings = await readJsonFile<CliSettings>(getSettingsPath())
+	return settings ?? {}
 }
 
 export async function saveSettings(settings: Partial<CliSettings>): Promise<void> {

@@ -2,6 +2,7 @@ import React, { Fragment } from "react"
 import { Plus } from "lucide-react"
 import { DraggableGoal } from "./DraggableGoal"
 import type { GoalsSectionProps } from "../types"
+import { useCommitGoal } from "../hooks/use-commit-goal"
 
 export const GoalsSection: React.FC<GoalsSectionProps> = ({
 	goals,
@@ -14,6 +15,7 @@ export const GoalsSection: React.FC<GoalsSectionProps> = ({
 	textAreaStore,
 	t,
 }) => {
+	const commitGoal = useCommitGoal(textAreaStore, onAddGoal)
 	const showArea = goals.length > 0 || (!isEditMode && onAddGoal && hasContent)
 	if (!showArea) {
 		return null
@@ -36,12 +38,7 @@ export const GoalsSection: React.FC<GoalsSectionProps> = ({
 			{!isEditMode && onAddGoal && hasContent && (
 				<div
 					className="flex items-center gap-1.5 px-2 py-1.5 cursor-pointer text-vscode-descriptionForeground hover:text-vscode-list-activeSelectionForeground rounded transition-colors"
-					onClick={() => {
-						if (textAreaStore.inputValue.trim()) {
-							onAddGoal(textAreaStore.inputValue.trim())
-							textAreaStore.setInputValue("")
-						}
-					}}>
+					onClick={commitGoal}>
 					<Plus className="w-3.5 h-3.5 shrink-0" />
 					<span className="text-xs">{t("chat:addGoal")}</span>
 				</div>

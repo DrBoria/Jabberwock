@@ -5,10 +5,10 @@ import { Trans } from "react-i18next"
 import { buildDocLink } from "@/utils/misc/docLinks"
 import { Slider } from "@src/shared/ui/inputs/slider"
 
-import { SetCachedStateField } from "../shared/types"
-import { SectionHeader } from "../shared/SectionHeader"
-import { Section } from "../shared/Section"
-import { SearchableSetting } from "../shared/SearchableSetting"
+import { SetCachedStateField } from "@src/features/settings/components/shared/types"
+import { SectionHeader } from "@src/features/settings/components/shared/header"
+import { Section } from "@src/features/settings/components/shared/section"
+import { SearchableSetting } from "@src/features/settings/components/shared/SearchableSetting"
 import {
 	DEFAULT_CHECKPOINT_TIMEOUT_SECONDS,
 	MAX_CHECKPOINT_TIMEOUT_SECONDS,

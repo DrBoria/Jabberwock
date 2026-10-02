@@ -1,7 +1,7 @@
 import type { NotificationAsk, NotificationSay, TodoItem } from "@jabberwock/types"
 
 import type { TUIMessage, ToolData } from "../types.js"
-import { extractToolData, formatToolOutput, formatToolAskMessage } from "./tools.js"
+import { extractToolData, formatToolOutput, formatToolAskMessage } from "./main.js"
 import { parseTodosFromToolInfo } from "./todo-parser.js"
 
 export function shouldSkipSay(
@@ -129,8 +129,8 @@ export function buildToolMessage(
 				setTodos(parsedTodos)
 			}
 		}
-	} catch {
-		// Use raw text if not valid JSON
+	} catch (error) {
+		console.error("[CLI] Tool message is not valid JSON, using raw text:", error)
 	}
 
 	addMessage({

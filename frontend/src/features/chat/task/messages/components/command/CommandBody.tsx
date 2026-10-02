@@ -1,4 +1,4 @@
-import CodeBlock from "@src/features/foundation/components/code/CodeBlock"
+import { CodeBlock } from "@src/features/foundation"
 import { CommandPatternSelector } from "./pattern-selector"
 import { OutputContainer } from "./CommandOutput"
 

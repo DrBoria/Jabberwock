@@ -1,4 +1,4 @@
-import { type ProviderSettings, PROVIDER_SETTINGS_KEYS, providerSettingsSchema } from "../provider/combined-schemas.ts"
+import { type ProviderSettings, PROVIDER_SETTINGS_KEYS, providerSettingsSchema } from "../provider/settings.ts"
 import { globalSettingsSchema, type GlobalSettings, GLOBAL_SETTINGS_KEYS } from "./schema.ts"
 import { type Keys } from "../../utils/type-fu.ts"
 import { type SecretState, isSecretStateKey } from "./state.ts"

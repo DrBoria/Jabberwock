@@ -5,7 +5,7 @@ import * as path from "node:path"
 import archiver from "archiver"
 import type { Archiver } from "archiver"
 
-import { findRun, getTasks } from "@jabberwock/evals"
+import { runsStore, getTasks } from "@jabberwock/evals"
 import type { Task } from "@jabberwock/evals"
 
 export const dynamic = "force-dynamic"
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 			return NextResponse.json({ error: "Invalid run ID" }, { status: 400 })
 		}
 
-		await findRun(runId)
+		await runsStore.find(runId)
 
 		const tasks = await getTasks(runId)
 		const failedTasks = tasks.filter((task) => task.passed === false)

@@ -1,5 +1,5 @@
 export { truncateDeep, paginateSnapshot, isPlainObject } from "./truncate.js"
 export { discoverStoreTree, resolvePath, resolveNestedPath } from "./tree.js"
 export { getBackendStoreGuide, getFrontendStoreGuide, getBackendStoreHelper, getFrontendStoreHelper } from "./store.js"
-export { getStoreState } from "./snapshot.js"
-export type { GetStoreStateParams } from "./snapshot.js"
+export { getStoreState } from "./state.js"
+export type { GetStoreStateParams } from "./state.js"

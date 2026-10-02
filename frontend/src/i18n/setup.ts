@@ -9,7 +9,7 @@ const localeFiles = import.meta.glob("./locales/**/*.json", { eager: true })
 
 // Process all locale files
 Object.entries(localeFiles).forEach(([path, module]) => {
-	// Extract language and namespace from path
+	// Extract language and namespace from "path"
 	// Example path: './locales/en/common.json' -> language: 'en', namespace: 'common'
 	const match = path.match(/\.\/locales\/([^/]+)\/([^/]+)\.json/)
 

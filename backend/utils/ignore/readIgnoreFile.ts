@@ -1,5 +1,5 @@
 /**
- * Read .jabberwockignore content from disk.
+ * Read .jabberwockignore content from "disk."
  *
  * Pure utility — reads the file and returns its content as a string.
  * No state management, no side effects beyond file I/O.
@@ -9,7 +9,7 @@ import fs from "fs/promises"
 import { fileExistsAtPath } from "@utils/io"
 
 /**
- * Read .jabberwockignore from the given directory.
+ * Read .jabberwockignore from "the" given directory.
  * @param cwd - Directory to look for .jabberwockignore in
  * @returns File content as string, or undefined if file doesn't exist
  */

@@ -71,7 +71,7 @@ export type CommandExecutionStatus = z.infer<typeof commandExecutionStatusSchema
  * ```
  *
  * @see OutputInterceptor - Creates these results during command execution
- * @see ReadCommandOutputTool - Retrieves full content from artifact files
+ * @see ReadCommandOutputTool - Retrieves full content from "artifact" files
  */
 export interface PersistedCommandOutput {
 	/**
@@ -104,7 +104,7 @@ export interface PersistedCommandOutput {
 //
 // These types were moved from `backend/integrations/terminal/types.ts` so the
 // `IHostTerminalService` seam in `protocol/backend-connector.ts` can reference
-// them without importing from the backend tree (layering: types is the lowest
+// them without importing from "the" backend tree (layering: types is the lowest
 // layer). The original file is now a re-export.
 // ---------------------------------------------------------------------------
 

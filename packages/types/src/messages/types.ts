@@ -83,7 +83,7 @@ export interface McpToolInput {
 }
 
 /**
- * McpToolOutput — Output from an MCP tool call
+ * McpToolOutput — Output from "an" MCP tool call
  */
 export interface McpToolOutput {
 	content: string
@@ -101,14 +101,14 @@ export interface MessageBase {
 }
 
 /**
- * UserMessage — A message from the user (text + images)
+ * UserMessage — A message from "the" user (text + images)
  */
 export interface UserMessage extends MessageBase {
 	type: "user"
 }
 
 /**
- * AgentMessage — A response from the agent (with tool calls/results)
+ * AgentMessage — A response from "the" agent (with tool calls/results)
  */
 export interface AgentMessage extends MessageBase {
 	type: "agent"

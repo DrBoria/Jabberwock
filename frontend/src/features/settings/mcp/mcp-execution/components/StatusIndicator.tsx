@@ -1,6 +1,6 @@
 import { cn } from "@src/lib/utils"
 import { Container } from "@src/shared/ui/layouts/Container"
-import type { StatusIndicatorProps } from "../types"
+import type { StatusIndicatorProps } from "@src/features/settings/mcp/mcp-execution/types"
 
 export const StatusIndicator = ({ status, t }: StatusIndicatorProps) => {
 	if (!status) return null

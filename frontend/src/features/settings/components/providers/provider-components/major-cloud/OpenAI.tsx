@@ -1,14 +1,13 @@
-import { useCallback, useState } from "react"
+import { useState } from "react"
+import { useHandleInputChange } from "@src/features/settings/components/providers/provider-components/use-handle-input-change"
 import { Checkbox } from "vscrui"
 import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
 import type { ModelInfo, ProviderSettings } from "@jabberwock/types"
 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@src/shared/ui/selects/select"
-import { StandardTooltip } from "@src/shared/ui/tooltips/standard-tooltip"
-import { VSCodeButtonLink } from "@src/features/foundation/components/ui/button/VSCodeButtonLink"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@src/shared/ui/selects/select-primitive"
+import { StandardTooltip } from "@src/shared/ui/tooltips/standard"
+import { VSCodeButtonLink } from "@src/features/foundation"
 import { useAppTranslation } from "@/i18n/TranslationContext"
-
-import { inputEventTransform } from "../../../shared/transforms"
 
 type OpenAIProps = {
 	apiConfiguration: ProviderSettings
@@ -24,18 +23,7 @@ export const OpenAI = ({ apiConfiguration, setApiConfigurationField, selectedMod
 		!!apiConfiguration?.openAiNativeBaseUrl,
 	)
 
-	const handleInputChange = useCallback(
-		<K extends keyof ProviderSettings, E>(field: K, transform?: (event: E) => ProviderSettings[K]) =>
-			(event: E | Event) => {
-				setApiConfigurationField(
-					field,
-					transform
-						? transform(event as E)
-						: (inputEventTransform(event as { target: HTMLInputElement }) as ProviderSettings[K]),
-				)
-			},
-		[setApiConfigurationField],
-	)
+	const handleInputChange = useHandleInputChange(setApiConfigurationField)
 
 	return (
 		<>

@@ -74,7 +74,7 @@ export function copyWasms(srcDir: string, distDir: string): void {
 		throw new Error(`Directory does not exist: ${languageWasmDir}`)
 	}
 
-	// Dynamically read all WASM files from the directory instead of using a hardcoded list.
+	// Dynamically read all WASM files from "the" directory instead of using a hardcoded list.
 	const wasmFiles = fs.readdirSync(languageWasmDir).filter((file) => file.endsWith(".wasm"))
 
 	wasmFiles.forEach((filename) => {
@@ -111,7 +111,7 @@ function copyEsbuildWasmFiles(nodeModulesDir: string, distDir: string): void {
 	fs.mkdirSync(binDir, { recursive: true })
 
 	// Files to copy - the esbuild CLI script expects wasm_exec_node.js and esbuild.wasm
-	// to be one directory level up from the bin directory (i.e., in distDir directly).
+	// to be one directory level up from "the" bin directory (i.e., in distDir directly).
 	// wasm_exec_node.js requires wasm_exec.js, so we need to copy that too.
 	const filesToCopy = [
 		{ src: path.join(esbuildWasmDir, "bin", "esbuild"), dest: path.join(binDir, "esbuild") },

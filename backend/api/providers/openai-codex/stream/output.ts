@@ -1,6 +1,7 @@
 import type { ApiStream } from "@api/transform/stream"
 import type { OpenAiCodexModel, StreamState, StreamDeps } from "@api/providers/openai-codex/types"
 import { getExtractedString } from "@api/providers/openai-codex/utils"
+import { yieldTextDelta } from "./yielders"
 
 export function isTextOutput(outputItem: Record<string, unknown>): boolean {
 	const isText = outputItem.type === "text" || outputItem.type === "output_text"
@@ -64,12 +65,7 @@ export async function* handleCompleteResponseOutput(
 }
 
 export async function* handleTextDeltaOutput(parsed: Record<string, unknown>, state: StreamState): ApiStream {
-	const delta = parsed.delta as string | undefined
-	if (delta) {
-		state.sawTextOutputInCurrentResponse = true
-		yield { type: "text", text: delta }
-	}
-	return void 0
+	yield* yieldTextDelta(parsed, state)
 }
 
 export async function* handleTextDoneOutput(
@@ -83,30 +79,6 @@ export async function* handleTextDoneOutput(
 	if (doneText) {
 		state.sawTextOutputInCurrentResponse = true
 		yield { type: "text", text: doneText }
-	}
-	return void 0
-}
-
-export async function* handleReasoningDeltaOutput(parsed: Record<string, unknown>): ApiStream {
-	const delta = parsed.delta as string | undefined
-	if (delta) {
-		yield { type: "reasoning", text: delta }
-	}
-	return void 0
-}
-
-export async function* handleReasoningSummaryOutput(parsed: Record<string, unknown>): ApiStream {
-	const delta = parsed.delta as string | undefined
-	if (delta) {
-		yield { type: "reasoning", text: delta }
-	}
-	return void 0
-}
-
-export async function* handleRefusalDeltaOutput(parsed: Record<string, unknown>, state: StreamState): ApiStream {
-	if (parsed.delta) {
-		state.sawTextOutputInCurrentResponse = true
-		yield { type: "text", text: `[Refusal] ${parsed.delta}` }
 	}
 	return void 0
 }

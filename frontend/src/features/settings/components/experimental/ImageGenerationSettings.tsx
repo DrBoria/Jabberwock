@@ -1,7 +1,9 @@
 import React, { useMemo } from "react"
-import { VSCodeCheckbox, VSCodeTextField, VSCodeDropdown, VSCodeOption } from "@vscode/webview-ui-toolkit/react"
+import { VSCodeTextField, VSCodeDropdown, VSCodeOption } from "@vscode/webview-ui-toolkit/react"
 import { IMAGE_GENERATION_MODELS, type ImageGenerationProvider, getImageGenerationProvider } from "@jabberwock/types"
 import { useAppTranslation } from "@/i18n/TranslationContext"
+
+import { FeatureToggleHeader } from "./feature-toggle"
 
 interface ImageGenerationSettingsProps {
 	enabled: boolean
@@ -92,18 +94,12 @@ export const ImageGenerationSettings = ({
 
 	return (
 		<div className="space-y-4">
-			<div>
-				<div className="flex items-center gap-2">
-					<VSCodeCheckbox
-						checked={enabled}
-						onChange={(e) => onChange((e.target as HTMLInputElement).checked)}>
-						<span className="font-medium">{t("settings:experimental.IMAGE_GENERATION.name")}</span>
-					</VSCodeCheckbox>
-				</div>
-				<p className="text-vscode-descriptionForeground text-sm mt-0">
-					{t("settings:experimental.IMAGE_GENERATION.description")}
-				</p>
-			</div>
+			<FeatureToggleHeader
+				enabled={enabled}
+				onChange={onChange}
+				name={t("settings:experimental.IMAGE_GENERATION.name")}
+				description={t("settings:experimental.IMAGE_GENERATION.description")}
+			/>
 
 			{enabled && (
 				<div className="ml-2 space-y-3">

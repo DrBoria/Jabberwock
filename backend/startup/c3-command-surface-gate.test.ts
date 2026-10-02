@@ -22,7 +22,7 @@ import { PROTOCOL_VERSION, IntentStatus } from "@jabberwock/types"
 
 import { bootGateEnvironment, sleep, waitFor, asRecord, readStreamChunks } from "./c3-gate-boot"
 import type { GateBootResult } from "./c3-gate-boot"
-import { IntentPriority } from "@features/intents/IntentConstants"
+import { IntentPriority } from "@features/intents"
 
 // -- Module state (single boot shared by both tests in this file) ------------------
 

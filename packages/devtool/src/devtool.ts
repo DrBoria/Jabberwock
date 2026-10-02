@@ -9,7 +9,7 @@ import { registerStateTools } from "./api/tools/state.js"
 import { registerEventBusTools } from "./api/tools/eventBus.js"
 import { registerCommandTools } from "./api/tools/commands.js"
 import { MessageInterceptor } from "./api/utils/interceptor.js"
-import { startHttpStatusServer, stopHttpStatusServer } from "./api/http-server.js"
+import { startHttpStatusServer, stopHttpStatusServer, type TargetIdentity } from "./api/http-server.js"
 
 /**
  * Devtool is the main wrapper class that combines a WebSocket MCP server with
@@ -33,6 +33,7 @@ export class Devtool {
 	private model?: DevtoolModel
 	private interceptor?: MessageInterceptor
 	private statusPort: number
+	private identity?: TargetIdentity
 
 	constructor(
 		bridge?: ExtensionBridge,
@@ -40,12 +41,14 @@ export class Devtool {
 		port: number = 60060,
 		interceptor?: MessageInterceptor,
 		statusPort: number = 60061,
+		identity?: TargetIdentity,
 	) {
 		this.wsServer = new WsMcpServer(port)
 		this.bridge = bridge
 		this.model = model
 		this.interceptor = interceptor
 		this.statusPort = statusPort
+		this.identity = identity
 	}
 
 	/**
@@ -55,9 +58,14 @@ export class Devtool {
 	 * Generic tools are registered first, then the model's domain-specific tools.
 	 */
 	async start(): Promise<void> {
-		// Start HTTP status server first (stdio proxy polls this)
+		// Start HTTP status server first (stdio proxy polls this).
+		// Pass the window identity so the MCP proxy can tell the agent WHICH
+		// window/surface it is talking to (prevents debugging the wrong window).
+		// The identity is injected by the caller (the vscode connector), because
+		// this package must stay vscode-free (it is also reachable from the
+		// standalone web server bundle, where "vscode" is not resolvable).
 		try {
-			await startHttpStatusServer(this.statusPort)
+			await startHttpStatusServer(this.statusPort, this.identity)
 		} catch (err) {
 			console.warn(`[devtool] Failed to start HTTP status server on port ${this.statusPort}:`, err)
 		}
@@ -78,7 +86,7 @@ export class Devtool {
 			registerEventBusTools(mcpServer, this.interceptor)
 		}
 
-		// Register domain-specific tools from the model
+		// Register domain-specific tools from "the" model
 		if (this.model?.registerTools) {
 			this.model.registerTools(mcpServer)
 		}
@@ -110,7 +118,7 @@ export class Devtool {
 	}
 
 	/**
-	 * Stop the global Devtool instance (used from extension.ts deactivate()).
+	 * Stop the global Devtool instance (used from "extension.ts" deactivate()).
 	 * This is a convenience wrapper around WsMcpServer's global state cleanup.
 	 */
 	static async stopGlobalInstance(): Promise<void> {

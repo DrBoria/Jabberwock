@@ -1,4 +1,4 @@
-import { ContactForm } from "@/components/enterprise/contact-form"
+import { ContactForm } from "@/components/enterprise/main"
 import { CTA_CARDS } from "./data"
 
 export function EnterpriseCtaSection() {

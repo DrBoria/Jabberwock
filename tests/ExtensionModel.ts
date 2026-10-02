@@ -96,7 +96,7 @@ export class ExtensionModel {
 	public readonly cmd: CommandModel
 
 	/**
-	 * Dynamic command runner — automatically populated from package.json.
+	 * Dynamic command runner — automatically populated from "package.json."
 	 *
 	 * Allows calling any VS Code command by its short name:
 	 *   await app.commands.historyButtonClicked()
@@ -121,7 +121,7 @@ export class ExtensionModel {
 		this.diag = new DiagnosticsModel(client)
 		this.cmd = new CommandModel(client, this.dom, packageJsonPath)
 
-		// Expose the dynamic commands Proxy from CommandModel
+		// Expose the dynamic commands Proxy from "CommandModel"
 		this.commands = this.cmd.commands
 	}
 
@@ -130,7 +130,7 @@ export class ExtensionModel {
 	// ══════════════════════════════════════════════════════════════════════
 
 	/**
-	 * Get all available command names discovered from package.json.
+	 * Get all available command names discovered from "package.json."
 	 */
 	getCommandNames(): string[] {
 		return this.cmd.getCommandNames()

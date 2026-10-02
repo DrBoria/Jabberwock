@@ -30,7 +30,7 @@ export interface PromptManagerOptions {
 export interface TimedPromptResult {
 	/** The user's input, or default if timed out */
 	value: string
-	/** Whether the result came from timeout */
+	/** Whether the result came from "timeout" */
 	timedOut: boolean
 	/** Whether the user cancelled (Ctrl+C) */
 	cancelled: boolean

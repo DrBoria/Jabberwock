@@ -1,7 +1,7 @@
 import { useCallback } from "react"
 
-import { Button } from "@src/shared/ui/buttons/button"
-import { StandardTooltip } from "@src/shared/ui/tooltips/standard-tooltip"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
+import { StandardTooltip } from "@src/shared/ui/tooltips/standard"
 import { useAppTranslation } from "@/i18n/TranslationContext"
 import { rootStore } from "@src/features/store"
 

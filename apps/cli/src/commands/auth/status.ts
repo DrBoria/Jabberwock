@@ -1,5 +1,6 @@
-import { loadToken, loadCredentials, getCredentialsPath } from "@/lib/storage/index.js"
-import { isTokenExpired, isTokenValid, getTokenExpirationDate } from "@/lib/auth/index.js"
+import { loadToken, readJsonFile, getCredentialsPath } from "@/lib/storage/index.js"
+import type { Credentials } from "@/lib/storage/index.js"
+import { isTokenExpired, isTokenValid, getTokenExpirationDate } from "@/lib/auth/token.js"
 
 export interface StatusOptions {
 	verbose?: boolean
@@ -63,7 +64,7 @@ export async function status(options: StatusOptions = {}): Promise<StatusResult>
 		return { authenticated: false, expired: true, expiresAt: expiresAt ?? undefined }
 	}
 
-	const credentials = await loadCredentials()
+	const credentials = await readJsonFile<Credentials>(getCredentialsPath())
 	const createdAt = credentials?.createdAt ? new Date(credentials.createdAt) : undefined
 
 	printAuthenticatedStatus(expiringSoon, expiresAt, createdAt, verbose)

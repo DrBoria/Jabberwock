@@ -1,5 +1,5 @@
 import { TypicalProvider } from "../settings/provider/categories.ts"
-import { ProviderSettings } from "../settings/provider/combined-schemas.ts"
+import { ProviderSettings } from "../settings/provider/settings.ts"
 
 /**
  * ModelIdKey

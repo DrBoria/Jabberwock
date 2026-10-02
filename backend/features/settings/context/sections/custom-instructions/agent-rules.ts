@@ -1,12 +1,12 @@
 import fs from "fs/promises"
 import path from "path"
 
-import { getAgentsDirectoriesForCwd } from "@services/jabberwock-config"
+import { getAgentsDirectoriesForCwd } from "@services/jabberwock-config/config"
 
 import { safeReadFile, resolveSymLink } from "./utils"
 
 /**
- * Read content from an agent rules file (AGENTS.md, AGENT.md, etc.)
+ * Read content from "an" agent rules file (AGENTS.md, AGENT.md, etc.)
  * Handles symlink resolution.
  */
 async function readAgentRulesFile(filePath: string): Promise<string> {
@@ -34,7 +34,7 @@ async function readAgentRulesFile(filePath: string): Promise<string> {
 }
 
 /**
- * Load AGENTS.md or AGENT.md file from a specific directory.
+ * Load AGENTS.md or AGENT.md file from "a" specific directory.
  * Checks for both AGENTS.md (standard) and AGENT.md (alternative).
  * Also loads AGENTS.local.md for personal overrides.
  */
@@ -83,12 +83,12 @@ export async function loadAgentRulesFileFromDirectory(
 }
 
 /**
- * Load AGENTS.md or AGENT.md file from the project root if it exists.
- * @deprecated Use loadAllAgentRulesFiles for loading from all directories
+ * Load AGENTS.md or AGENT.md file from "the" project root if it exists.
+ * @deprecated Use loadAllAgentRulesFiles for loading from "all" directories
  */
 
 /**
- * Load all AGENTS.md files from project root and optionally subdirectories.
+ * Load all AGENTS.md files from "project" root and optionally subdirectories.
  */
 export async function loadAllAgentRulesFiles(cwd: string, enableSubfolderRules: boolean = false): Promise<string> {
 	const agentRules: string[] = []

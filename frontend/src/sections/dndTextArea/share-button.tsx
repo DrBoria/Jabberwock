@@ -8,11 +8,11 @@ import { rootStore } from "@src/features/store"
 import { telemetryClient } from "@/features/cloud/utils/TelemetryClient"
 import { observer } from "mobx-react-lite"
 import { useCloudUpsell } from "@/hooks/useCloudUpsell"
-import { CloudUpsellDialog } from "@/features/cloud/components/CloudUpsellDialog"
+import { CloudUpsellDialog } from "@/features/cloud/components/upsell-dialog"
 import { Popover, PopoverTrigger } from "@src/shared/ui/overlays/popover"
 import { SharePopoverContent } from "./share-popover-content"
-import { StandardTooltip } from "@src/shared/ui/tooltips/standard-tooltip"
-import { IconButton } from "@src/shared/ui/buttons/icon-button"
+import { StandardTooltip } from "@src/shared/ui/tooltips/standard"
+import { IconButton } from "@src/shared/ui/buttons/icon-button-primary"
 
 interface ShareButtonProps {
 	item?: HistoryItem
@@ -43,7 +43,7 @@ export const ShareButton = observer(({ item, disabled = false }: ShareButtonProp
 		},
 	})
 
-	// Auto-open popover when user becomes authenticated after clicking Connect from share button
+	// Auto-open popover when user becomes authenticated after clicking Connect from "share" button
 	useEffect(() => {
 		if (wasConnectInitiatedFromShare && cloudIsAuthenticated) {
 			setShareDropdownOpen(true)
@@ -51,7 +51,7 @@ export const ShareButton = observer(({ item, disabled = false }: ShareButtonProp
 		}
 	}, [wasConnectInitiatedFromShare, cloudIsAuthenticated])
 
-	// Listen for share success messages from the extension
+	// Listen for share success messages from "the" extension
 	useEffect(() => {
 		const handleMessage = (event: MessageEvent) => {
 			const message = event.data

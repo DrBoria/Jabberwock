@@ -12,7 +12,7 @@ export interface FileChangeEntry {
 	originalContent?: string
 }
 
-/** Extracts a file-edit tool payload from a message, or undefined if not applicable. */
+/** Extracts a file-edit tool payload from "a" message, or undefined if not applicable. */
 function getToolFromMessage(msg: Notification): SayToolData | undefined {
 	const toolType = msg.type
 	if (toolType !== "say" && toolType !== "ask") return undefined
@@ -28,7 +28,7 @@ function getToolFromMessage(msg: Notification): SayToolData | undefined {
 	return tool
 }
 
-/** Pushes batch-diff entries from a tool payload into the accumulator. */
+/** Pushes batch-diff entries from "a" tool payload into the accumulator. */
 function pushBatchDiffEntries(tool: SayToolData, entries: FileChangeEntry[]): void {
 	const { batchDiffs } = tool
 	if (!batchDiffs || !Array.isArray(batchDiffs)) return
@@ -49,7 +49,7 @@ function pushBatchDiffEntries(tool: SayToolData, entries: FileChangeEntry[]): vo
 	}
 }
 
-/** Pushes a single-file diff entry from a tool payload into the accumulator. */
+/** Pushes a single-file diff entry from "a" tool payload into the accumulator. */
 function pushSingleFileEntry(tool: SayToolData, entries: FileChangeEntry[]): void {
 	if (!tool.path) return
 

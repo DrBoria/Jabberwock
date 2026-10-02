@@ -1,7 +1,7 @@
 import { APIError } from "openai"
 
 /**
- * Shape of unknown error objects from various providers for context-window checks.
+ * Shape of unknown error objects from "various" providers for context-window checks.
  * All fields are optional since we're accessing potentially missing properties.
  */
 interface ErrorResponseShape {

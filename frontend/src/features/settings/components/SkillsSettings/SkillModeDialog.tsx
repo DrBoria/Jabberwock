@@ -1,5 +1,5 @@
 import { Checkbox } from "@src/shared/ui/inputs/checkbox"
-import { Button } from "@src/shared/ui/buttons/button"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
 import {
 	Dialog,
 	DialogContent,

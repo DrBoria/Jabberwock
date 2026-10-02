@@ -15,40 +15,39 @@ type QueueItem = {
 	options: PlayTtsOptions
 }
 
-let isTtsEnabled = false
+const __moduleState = {
+	isTtsEnabled: false,
+	speed: 1.0,
+	sayInstance: undefined as Say | undefined,
+	queue: [] as QueueItem[],
+}
+export const setTtsEnabled = (enabled: boolean) => (__moduleState.isTtsEnabled = enabled)
 
-export const setTtsEnabled = (enabled: boolean) => (isTtsEnabled = enabled)
-
-let speed = 1.0
-
-export const setTtsSpeed = (newSpeed: number) => (speed = newSpeed)
-
-let sayInstance: Say | undefined
-let queue: QueueItem[] = []
+export const setTtsSpeed = (newSpeed: number) => (__moduleState.speed = newSpeed)
 
 export const playTts = async (message: string, options: PlayTtsOptions = {}) => {
-	if (!isTtsEnabled) {
+	if (!__moduleState.isTtsEnabled) {
 		return
 	}
 
 	try {
-		queue.push({ message, options })
+		__moduleState.queue.push({ message, options })
 		await processQueue()
 	} catch (_error) {}
 }
 
 export const stopTts = () => {
-	sayInstance?.stop()
-	sayInstance = undefined
-	queue = []
+	__moduleState.sayInstance?.stop()
+	__moduleState.sayInstance = undefined
+	__moduleState.queue = []
 }
 
 const processQueue = async (): Promise<void> => {
-	if (!isTtsEnabled || sayInstance) {
+	if (!__moduleState.isTtsEnabled || __moduleState.sayInstance) {
 		return
 	}
 
-	const item = queue.shift()
+	const item = __moduleState.queue.shift()
 
 	if (!item) {
 		return
@@ -58,10 +57,10 @@ const processQueue = async (): Promise<void> => {
 		const { message: nextUtterance, options } = item
 
 		await new Promise<void>((resolve, reject) => {
-			sayInstance = say
+			__moduleState.sayInstance = say
 			options.onStart?.()
 
-			say.speak(nextUtterance, undefined, speed, (err) => {
+			say.speak(nextUtterance, undefined, __moduleState.speed, (err) => {
 				options.onStop?.()
 
 				if (err) {
@@ -70,13 +69,13 @@ const processQueue = async (): Promise<void> => {
 					resolve()
 				}
 
-				sayInstance = undefined
+				__moduleState.sayInstance = undefined
 			})
 		})
 
 		await processQueue()
 	} catch (_error) {
-		sayInstance = undefined
+		__moduleState.sayInstance = undefined
 		await processQueue()
 	}
 }

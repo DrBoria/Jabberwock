@@ -1,7 +1,7 @@
 import { useCallback, type RefObject } from "react"
 import type { Notification, SuggestionItem, HistoryItem } from "@jabberwock/types"
 import type { IChatUIStore, IChatStore } from "@src/features/chat/store"
-import { isInputEmpty, isSendBlocked, handleAskResponse, handleModeNavigation } from "./message-area.utils"
+import { isInputEmpty, isSendBlocked, handleAskResponse, handleModeNavigation } from "./utils"
 
 interface UseChatAreaCallbacksOptions {
 	ui: IChatUIStore

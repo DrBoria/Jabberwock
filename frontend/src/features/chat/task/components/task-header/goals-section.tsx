@@ -1,6 +1,6 @@
 import type { Goal } from "@jabberwock/types"
 import { SquarePen } from "lucide-react"
-import { DndTextArea } from "@sections/dndTextArea/view"
+import { DndTextArea } from "@sections/dndTextArea/text-area-aliases"
 
 interface GoalsSectionProps {
 	goals: Goal[]

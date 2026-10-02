@@ -8,16 +8,16 @@ import { customToolRegistry } from "@jabberwock/core"
 
 import type { ToolResponse, ToolUse } from "@shared/tools"
 
-import type { ITaskModel } from "@features/chat/task/store"
+import type { ITaskModel } from "@features/chat/task"
 
 import { AskIgnoredError } from "@features/chat/task/notifications/actions"
-import { systemBroadcast, userBroadcast } from "@features/chat/task/messages/actions/say"
+import { emitBroadcast } from "@features/chat/task/messages/actions/say"
 
-import { pushToolResultToUserContent } from "@features/api/handlers/helpers/process/streaming"
-import { formatResponse } from "@features/settings/context/responses"
-import { sanitizeToolUseId } from "@utils/mcp"
-import { getBackendRootStore } from "@features/storeSingleton"
-import { delegateParentAndOpenChild } from "@features/chat/task/actions/delegateTask"
+import { pushToolResultToUserContent } from "@features/api"
+import { formatResponse } from "@features/settings"
+import { sanitizeMcpName } from "@utils/mcp"
+import { getStore } from "@features/singleton"
+import { delegateParentAndOpenChild } from "@features/chat/task/actions"
 
 import { ask } from "@features/chat/task/notifications/actions/ask"
 
@@ -42,7 +42,7 @@ function createAskApproval(
 
 		if (response !== "yesButtonClicked") {
 			if (text) {
-				await userBroadcast(task.taskId, "user_feedback", text, images)
+				await emitBroadcast("user", task.taskId, "user_feedback", text, images)
 				pushResult(formatResponse.toolResult(formatResponse.toolDeniedWithFeedback(text), images))
 			} else {
 				pushResult(formatResponse.toolDenied())
@@ -52,7 +52,7 @@ function createAskApproval(
 		}
 
 		if (text) {
-			await userBroadcast(task.taskId, "user_feedback", text, images)
+			await emitBroadcast("user", task.taskId, "user_feedback", text, images)
 		}
 
 		return true
@@ -76,7 +76,8 @@ async function handleToolError(
 
 	const errorString = `Error ${action}: ${JSON.stringify(serializeError(error))}`
 
-	await systemBroadcast(
+	await emitBroadcast(
+		"system",
 		task.taskId,
 		"error",
 		`Error ${action}:\n${error.message ?? JSON.stringify(serializeError(error), null, 2)}`,
@@ -84,7 +85,7 @@ async function handleToolError(
 
 	pushResult(formatResponse.toolError(errorString))
 	try {
-		getBackendRootStore().chat.toolCallError(blockName, errorString)
+		getStore().chat.toolCallError(blockName, errorString)
 	} catch {
 		// Silently ignore - store may not be initialized yet
 	}
@@ -127,17 +128,15 @@ interface ToolResultState {
 	approvalFeedback?: { text: string; images?: string[] }
 }
 
-function handleToolResult(
-	task: ITaskModel,
-	toolCallId: string,
-	content: ToolResponse,
-	blockName: string,
-	state: ToolResultState,
-): void {
-	if (state.hasToolResult) {
-		return
-	}
-
+/**
+ * Splits a `ToolResponse` into its rendered text and image blocks.  Shared by
+ * the regular tool-result path and the MCP tool-result path so the
+ * string-vs-array content handling is written once.
+ */
+export function extractToolResultContent(content: ToolResponse): {
+	resultContent: string
+	imageBlocks: Anthropic.ImageBlockParam[]
+} {
 	let resultContent: string
 	let imageBlocks: Anthropic.ImageBlockParam[] = []
 
@@ -151,6 +150,24 @@ function handleToolResult(
 			"(tool did not return anything)"
 	}
 
+	return { resultContent, imageBlocks }
+}
+
+function handleToolResult(
+	task: ITaskModel,
+	toolCallId: string,
+	content: ToolResponse,
+	blockName: string,
+	state: ToolResultState,
+): void {
+	if (state.hasToolResult) {
+		return
+	}
+
+	const { resultContent: rawContent, imageBlocks: rawImageBlocks } = extractToolResultContent(content)
+	let resultContent = rawContent
+	let imageBlocks = rawImageBlocks
+
 	if (state.approvalFeedback) {
 		const feedbackText = formatResponse.toolApprovedWithFeedback(state.approvalFeedback.text)
 		resultContent = `${feedbackText}\n\n${resultContent}`
@@ -162,7 +179,7 @@ function handleToolResult(
 
 	pushToolResultToUserContent(task.userMessageContent, {
 		type: "tool_result",
-		tool_use_id: sanitizeToolUseId(toolCallId),
+		tool_use_id: sanitizeMcpName(toolCallId),
 		content: resultContent,
 	})
 
@@ -172,7 +189,7 @@ function handleToolResult(
 
 	state.hasToolResult = true
 	try {
-		getBackendRootStore().chat.toolCallCompleted(blockName, resultContent)
+		getStore().chat.toolCallCompleted(blockName, resultContent)
 	} catch {
 		// Silently ignore - store may not be initialized yet
 	}

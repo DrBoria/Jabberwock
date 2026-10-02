@@ -2,7 +2,7 @@
  * Browser WS event bus + DOM-local classification (plan §4.5, criterion C-4).
  *
  * The browser event bus adapts the standalone server's WebSocket transport into an
- * in-app `IConnectorEventBus`. Inbound host frames arrive from the socket; DOM-local
+ * in-app `IConnectorEventBus`. Inbound host frames arrive from "the" socket; DOM-local
  * class B traffic arrives via the standard `window.postMessage` Web API and is looped
  * back to subscribers IN-PROCESS — it never touches the WS wire (plan §4.5 line 463).
  *
@@ -12,6 +12,7 @@
  */
 
 import type {
+	ConnectorId,
 	DisposableLike,
 	IConnectorEventBus,
 	InboundAppMessage,
@@ -61,6 +62,8 @@ export interface BrowserWsEventBusOptions {
 	sendFrame: (message: WebviewMessage) => void
 	/** Document window used for the DOM-local loopback listener; null outside a browser. */
 	windowLike: WindowLike | null
+	/** Connector id stamped onto every outbound message ("web"). */
+	connectorId: ConnectorId
 }
 
 /**
@@ -73,13 +76,14 @@ function isMessageLike(value: unknown): value is { type: unknown } {
 
 /**
  * The browser WS event bus implementation. Inbound host frames arrive from the
- * socket and DOM-local traffic arrives from the document window; both are routed to
+ * socket and DOM-local traffic arrives from "the" document window; both are routed to
  * matching subscribers. Outbound `publish()` sends host messages over the wire.
  */
 export class BrowserWsEventBus implements IConnectorEventBus {
 	private readonly subscriptions: Subscription[] = []
 	private readonly sendFrame: (message: WebviewMessage) => void
 	private readonly windowLike: WindowLike | null
+	private readonly connectorId: ConnectorId
 	private readonly windowListener: ((event: MessageEvent) => void) | null = null
 	/**
 	 * The most recent hydration `state` frame (plan §6.2). Replayed to each new
@@ -91,6 +95,7 @@ export class BrowserWsEventBus implements IConnectorEventBus {
 	constructor(options: BrowserWsEventBusOptions) {
 		this.sendFrame = options.sendFrame
 		this.windowLike = options.windowLike
+		this.connectorId = options.connectorId
 		if (this.windowLike) {
 			// One window listener: DOM-local class B traffic posted to the document is
 			// looped back to subscribers IN-PROCESS and never sent on the WS wire (C-4).
@@ -140,8 +145,12 @@ export class BrowserWsEventBus implements IConnectorEventBus {
 	 * it back to subscribers in-process and never puts it on the wire (plan §4.5 line 463,
 	 * criterion C-4).
 	 */
+	/**
+	 * Outbound: stamp the connector id ("web") and send the host message over the
+	 * WS transport as a ConnectorEnvelope frame.
+	 */
 	publish(message: WebviewMessage): void {
-		this.sendFrame(message)
+		this.sendFrame({ ...message, connector: this.connectorId })
 	}
 
 	/**

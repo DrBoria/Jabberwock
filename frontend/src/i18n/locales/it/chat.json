@@ -152,6 +152,8 @@
 		"title": "Richiesta API",
 		"failed": "Richiesta API fallita",
 		"streaming": "Richiesta API...",
+		"loadingContext": "Caricamento contesto...",
+		"loadingContextPercent": "Caricamento contesto... {{percent}}%",
 		"cancelled": "Richiesta API annullata",
 		"streamingFailed": "Streaming API fallito",
 		"rateLimitWait": "Limitazione della frequenza",

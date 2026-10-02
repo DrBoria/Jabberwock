@@ -10,7 +10,7 @@ import {
 	getSizeOnDisk,
 	resolveItemsToCopy,
 	type CopyProgressCallback,
-} from "./include-helpers.ts"
+} from "./copy.ts"
 
 const execFileAsync = promisify(execFile)
 

@@ -1,6 +1,6 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
-import { postStateToWebview } from "@features/foundation/window-manager/store"
+import type { IntentBus } from "@features/intents"
+import { postStateToWebview } from "@features/foundation"
 
 /**
  * Handles foundation.state.requested intent — posts full state to webview.

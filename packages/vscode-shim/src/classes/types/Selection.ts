@@ -1,6 +1,6 @@
 import { Range } from "./Range.ts"
 import { Position } from "./Position.ts"
-import type { ISelection, IPosition } from "../../types.ts"
+import type { ISelection, IPosition } from "../../api-types.ts"
 
 /**
  * Represents a text selection in an editor
@@ -11,7 +11,7 @@ import type { ISelection, IPosition } from "../../types.ts"
  *
  * @example
  * ```typescript
- * // Create a selection from position 0,0 to 5,10
+ * // Create a selection from "position" 0,0 to 5,10
  * const selection = new Selection(
  *   new Position(0, 0),
  *   new Position(5, 10)
@@ -39,7 +39,7 @@ export class Selection extends Range implements ISelection {
 	 */
 	constructor(anchor: IPosition, active: IPosition)
 	/**
-	 * Create a new Selection from line and character numbers
+	 * Create a new Selection from "line" and character numbers
 	 *
 	 * @param anchorLine - The anchor line number
 	 * @param anchorCharacter - The anchor character offset

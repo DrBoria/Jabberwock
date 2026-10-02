@@ -48,16 +48,29 @@ export async function searchFrontendState(
 		return JSON.stringify({ error: "Frontend bridge not available" })
 	}
 	try {
-		const snapshot = await frontendBridge.getRootSnapshot()
-		const rootStore = params.store ? (snapshot as Record<string, unknown>)[params.store] : snapshot
+		const { data, connector } = await frontendBridge.getRootSnapshot()
+		const rootStore = params.store ? (data as Record<string, unknown>)[params.store] : data
 		if (!rootStore) {
 			return JSON.stringify({ error: `Store "${params.store}" not found` })
 		}
 		const results = searchSnapshot(rootStore as Record<string, unknown>, params.query.toLowerCase())
-		return paginateSearchResults(results, params.limit, params.cursor)
+		return withConnector(paginateSearchResults(results, params.limit, params.cursor), connector)
 	} catch (err) {
 		return JSON.stringify({ error: `Failed to search frontend state: ${(err as Error).message}` })
 	}
+}
+
+/** Merge the connector id into a JSON object string (no-op on parse failure). */
+function withConnector(json: string, connector?: string): string {
+	try {
+		const obj = JSON.parse(json) as Record<string, unknown>
+		if (obj && typeof obj === "object" && !Array.isArray(obj)) {
+			return JSON.stringify({ ...obj, connector: connector ?? null })
+		}
+	} catch {
+		/* fall through */
+	}
+	return json
 }
 
 /**

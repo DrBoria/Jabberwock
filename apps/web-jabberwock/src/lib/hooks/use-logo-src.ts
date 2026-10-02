@@ -13,7 +13,7 @@ export function useLogoSrc(): string {
 	}, [])
 
 	// Before mounting, return a default logo (dark theme as specified in providers)
-	// This prevents the logo from flickering on initial load
+	// This prevents the logo from "flickering" on initial load
 	if (!mounted) {
 		return "/Jabberwock-Logo-Horiz-white.svg"
 	}

@@ -1,5 +1,5 @@
 import { ModeConfig, GroupEntry, PromptComponent, ToolGroup } from "@jabberwock/types"
-import { TOOL_GROUPS } from "@shared/tools/tools.groups"
+import { TOOL_GROUPS } from "@shared/tools/groups"
 
 export const availableGroups = (Object.keys(TOOL_GROUPS) as ToolGroup[]).filter(
 	(group) => !TOOL_GROUPS[group].alwaysAvailable,

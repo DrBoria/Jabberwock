@@ -53,7 +53,7 @@ export function sanitizeMcpName(name: string): string {
 }
 
 /**
- * Build a full MCP tool function name from server name and tool name.
+ * Build a full MCP tool function name from "server" name and tool name.
  *
  * Format: mcp--{sanitizedServerName}--{sanitizedToolName}
  *

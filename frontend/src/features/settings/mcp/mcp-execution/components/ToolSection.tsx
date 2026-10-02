@@ -1,6 +1,6 @@
-import type { ToolSectionProps } from "../types"
-import { UseMcpToolRow } from "./UseMcpToolRow"
-import { LegacyToolRow } from "../LegacyToolRow"
+import type { ToolSectionProps } from "@src/features/settings/mcp/mcp-execution/types"
+import { UseMcpToolRow } from "./tool-row"
+import { LegacyToolRow } from "@src/features/settings/mcp/mcp-execution/LegacyToolRow"
 
 export const ToolSection = ({ useMcpServer, server, toolName, serverName, alwaysAllowMcp }: ToolSectionProps) => (
 	<>

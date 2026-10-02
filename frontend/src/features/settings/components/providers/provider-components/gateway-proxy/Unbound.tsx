@@ -1,4 +1,4 @@
-import { useCallback } from "react"
+import { useHandleInputChange } from "@src/features/settings/components/providers/provider-components/use-handle-input-change"
 import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
 
 import {
@@ -10,10 +10,9 @@ import {
 
 import { rootStore } from "@src/features/store"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { Button } from "@src/shared/ui/buttons/button"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
 
-import { inputEventTransform } from "../../../shared/transforms"
-import { ModelPicker } from "../../../ModelPicker/ModelPickerComponent"
+import { ModelPicker } from "@src/features/settings/components/ModelPicker/main"
 
 type UnboundProps = {
 	apiConfiguration: ProviderSettings
@@ -35,18 +34,7 @@ export const Unbound = ({
 }: UnboundProps) => {
 	const { t } = useAppTranslation()
 
-	const handleInputChange = useCallback(
-		<K extends keyof ProviderSettings, E>(field: K, transform?: (event: E) => ProviderSettings[K]) =>
-			(event: E | Event) => {
-				setApiConfigurationField(
-					field,
-					transform
-						? transform(event as E)
-						: (inputEventTransform(event as { target: HTMLInputElement }) as ProviderSettings[K]),
-				)
-			},
-		[setApiConfigurationField],
-	)
+	const handleInputChange = useHandleInputChange(setApiConfigurationField)
 
 	return (
 		<>

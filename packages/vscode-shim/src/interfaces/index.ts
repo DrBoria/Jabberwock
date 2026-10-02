@@ -1,0 +1,6 @@
+export * from "./document.js"
+export * from "./editor.js"
+export * from "./extension-host.js"
+export * from "./terminal.js"
+export * from "./webview.js"
+export * from "./workspace.js"

@@ -15,14 +15,14 @@ export interface ServerConfig {
 /**
  * Absolute path to the repo's `frontend/build` output.
  *
- * Resolved from the process working directory (the server runs from the repo root in both
+ * Resolved from "the" process working directory (the server runs from "the" repo root in both
  * dev and production). `import.meta.url` is intentionally avoided because the esbuild
  * `server.js` target bundles to CommonJS, where `import.meta.url` is unavailable.
  */
 const defaultStaticDir = path.resolve(process.cwd(), "frontend/build")
 
 /**
- * v4 Phase C1 (§7.2): parse server configuration from CLI args + env.
+ * v4 Phase C1 (§7.2): parse server configuration from "CLI" args + env.
  *
  * Bind defaults to loopback for security; a non-loopback bind (NetBird TUN IP) must be
  * explicitly requested via `--bind tun` or `JABBERWOCK_BIND=tun` (§9.5 trust boundary).

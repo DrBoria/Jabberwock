@@ -3,10 +3,9 @@ import * as vscode from "vscode"
 import { TerminalActionId, TerminalActionPromptType } from "@jabberwock/types"
 
 import { getTerminalCommand } from "@utils/mcp/commands"
-import { EventBridge } from "@features/foundation/webview/EventBridge"
+import { EventBridge, getFirstAvailableInstance } from "@features/foundation/webview/EventBridge"
 import { Terminal } from "@connectors/vscode/backend/integrations/terminal/terminal-core/Terminal"
 import { t } from "@i18n"
-import { handleTerminalAction } from "@features/settings/agents/handlers"
 
 export const registerTerminalActions = (context: vscode.ExtensionContext) => {
 	registerTerminalAction(context, "terminalAddToContext", "TERMINAL_ADD_TO_CONTEXT")
@@ -32,9 +31,9 @@ const registerTerminalAction = (
 				return
 			}
 
-			const provider = EventBridge.getFirstAvailableInstance()
+			const provider = getFirstAvailableInstance()
 			if (provider) {
-				await handleTerminalAction(provider, {
+				await provider.postMessageToWebview({
 					type: "handleTerminalAction",
 					command,
 					promptType,

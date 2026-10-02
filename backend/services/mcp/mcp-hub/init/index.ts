@@ -5,6 +5,6 @@ export {
 	isMcpEnabled,
 	getProjectMcpPath,
 	initializeMcpServers,
-} from "./init"
+} from "./main"
 export type { HubDeps } from "./setup"
 export { setupWatchers, initializeAllServers } from "./setup"

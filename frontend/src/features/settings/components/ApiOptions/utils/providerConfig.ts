@@ -1,8 +1,8 @@
 import type { OrganizationAllowList, ProviderName, ProviderSettings } from "@jabberwock/types"
-import { filterModels } from "../../utils/organizationFilters"
-import { MODELS_BY_PROVIDER } from "../../shared/constants"
-import { PROVIDER_MODEL_CONFIG, getZaiDefaultModelId } from "../constants"
-import type { ProviderModelConfig } from "../types"
+import { filterModels } from "@src/features/settings/components/utils/organizationFilters"
+import { MODELS_BY_PROVIDER } from "@src/features/settings/components/shared/constants"
+import { PROVIDER_MODEL_CONFIG, getZaiDefaultModelId } from "@src/features/settings/components/ApiOptions/constants"
+import type { ProviderModelConfig } from "@src/features/settings/components/ApiOptions/types"
 
 export function getProviderModelConfig(
 	provider: ProviderName,

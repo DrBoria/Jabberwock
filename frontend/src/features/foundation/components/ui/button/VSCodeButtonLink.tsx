@@ -1,5 +1,5 @@
 import React from "react"
-import { Button } from "@src/shared/ui/buttons/button"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
 
 interface VSCodeButtonLinkProps {
 	href: string

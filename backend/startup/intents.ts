@@ -1,19 +1,19 @@
 import { createTelemetryService } from "@jabberwock/telemetry"
 
-import { Package } from "@shared/package"
-import { getBackendRootStore } from "@features/storeSingleton"
-import { getHostContext } from "@features/foundation/host-context/context"
+import { Package } from "@shared/core/package"
+import { getStore } from "@features/singleton"
+import { getHostContext } from "@features/foundation"
 import { getIntentBus } from "@features/store"
-import { registerOnTaskIntents } from "@features/chat/task/events/handlers/index.ts"
-import { registerOnMessagesIntents } from "@features/chat/task/messages/events/handlers/index.ts"
-import { registerOnNotificationsIntents } from "@features/chat/task/notifications/events/handlers/index.ts"
-import { registerOnSettingsIntents } from "@features/settings/events/handlers/index.ts"
-import { registerOnWindowManagerIntents } from "@features/foundation/window-manager/events/handlers/index.ts"
-import { registerOnContextManagementIntents } from "@features/foundation/time-machine/file-context/events/handlers/index.ts"
-import { registerOnCloudIntents } from "@features/cloud/events/handlers/index.ts"
-import { registerOnHistoryIntents } from "@features/hist/events/handlers/index.ts"
-import { registerOnMarketplaceIntents } from "@features/marketplace/events/handlers/index.ts"
-import { EventBridge } from "@features/foundation/webview/EventBridge"
+import { registerOnTaskIntents } from "@features/chat"
+import { registerOnMessagesIntents } from "@features/chat"
+import { registerOnNotificationsIntents } from "@features/chat"
+import { registerOnSettingsIntents } from "@features/settings"
+import { registerOnWindowManagerIntents } from "@features/foundation"
+import { registerOnContextManagementIntents } from "@features/foundation"
+import { registerOnCloudIntents } from "@features/cloud"
+import { registerOnHistoryIntents } from "@features/hist"
+import { registerOnMarketplaceIntents } from "@features/marketplace"
+import { EventBridge } from "@features/foundation"
 
 export async function setupIntentBus(
 	provider: EventBridge,
@@ -39,7 +39,7 @@ export async function setupIntentBus(
 	telemetryService.setProvider({
 		getTelemetryProperties: async () => {
 			const hostContext = getHostContext()
-			const store = getBackendRootStore()
+			const store = getStore()
 			let mode = "ask"
 			if (store !== undefined) {
 				const activeTask = store.chat.activeTask

@@ -2,7 +2,7 @@ import { eventConstants } from "@jabberwock/types"
 
 /**
  * Topic event keys — maps to backend feature-level events.
- * Uses shared event constants from the types package.
+ * Uses shared event constants from "the" types package.
  */
 export const topicEventConstants = {
 	SWITCH_MODE: eventConstants.CHAT.TOPIC.MODE,

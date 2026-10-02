@@ -8,10 +8,9 @@ import { revalidatePath } from "next/cache"
 
 import {
 	deleteRun as _deleteRun,
-	updateRun as _updateRun,
+	runsStore,
 	getIncompleteRuns as _getIncompleteRuns,
 	deleteRunsByIds as _deleteRunsByIds,
-	createRun as _createRun,
 	getRuns,
 } from "@jabberwock/evals"
 
@@ -33,7 +32,7 @@ export async function createRun({
 	executionMethod = "vscode",
 	...values
 }: CreateRun) {
-	const run = await _createRun({
+	const run = await runsStore.create({
 		...values,
 		timeout,
 		executionMethod,
@@ -219,7 +218,7 @@ export async function deleteOldRuns(): Promise<DeleteIncompleteRunsResult> {
 
 export async function updateRunDescription(runId: number, description: string | null): Promise<{ success: boolean }> {
 	try {
-		await _updateRun(runId, { description })
+		await runsStore.update(runId, { description })
 		revalidatePath("/runs")
 		revalidatePath(`/runs/${runId}`)
 		return { success: true }

@@ -19,7 +19,7 @@ const DEFAULT_CONFIG: CompactTransportConfig = {
 
 /**
  * Determines if a log entry should be processed based on configured minimum level
- * @param configLevel - The minimum log level from configuration
+ * @param configLevel - The minimum log level from "configuration"
  * @param entryLevel - The level of the current log entry
  * @returns Whether the entry should be processed
  */
@@ -33,23 +33,18 @@ function isLevelEnabled(configLevel: LogLevel, entryLevel: string): boolean {
  * Implements the compact logging transport with file output support
  * @implements {ICompactTransport}
  */
-export class CompactTransport implements ICompactTransport {
-	private sessionStart: number
-	private lastTimestamp: number
-	private filePath?: string
-	private initialized: boolean = false
+export interface CompactTransportInstance extends ICompactTransport {
+	config: CompactTransportConfig
+}
 
-	/**
-	 * Creates a new CompactTransport instance
-	 * @param config - Optional transport configuration
-	 */
-	constructor(readonly config: CompactTransportConfig = DEFAULT_CONFIG) {
-		this.sessionStart = Date.now()
-		this.lastTimestamp = this.sessionStart
+export function CompactTransport(config: CompactTransportConfig = DEFAULT_CONFIG): CompactTransportInstance {
+	let sessionStart: number = Date.now()
+	let lastTimestamp: number = sessionStart
+	let filePath: string | undefined
+	let initialized: boolean = false
 
-		if (config.fileOutput?.enabled) {
-			this.filePath = config.fileOutput.path
-		}
+	if (config.fileOutput?.enabled) {
+		filePath = config.fileOutput.path
 	}
 
 	/**
@@ -57,22 +52,22 @@ export class CompactTransport implements ICompactTransport {
 	 * @private
 	 * @throws {Error} If file initialization fails
 	 */
-	private ensureInitialized(): void {
-		if (this.initialized || !this.filePath) return
+	function ensureInitialized(): void {
+		if (initialized || !filePath) return
 
 		try {
-			mkdirSync(dirname(this.filePath), { recursive: true })
-			writeFileSync(this.filePath, "", { flag: "w" })
+			mkdirSync(dirname(filePath), { recursive: true })
+			writeFileSync(filePath, "", { flag: "w" })
 
-			const sessionStart = {
+			const sessionStartEntry = {
 				t: 0,
 				l: "info",
 				m: "Log session started",
-				d: { timestamp: new Date(this.sessionStart).toISOString() },
+				d: { timestamp: new Date(sessionStart).toISOString() },
 			}
-			writeFileSync(this.filePath, JSON.stringify(sessionStart) + "\n", { flag: "w" })
+			writeFileSync(filePath, JSON.stringify(sessionStartEntry) + "\n", { flag: "w" })
 
-			this.initialized = true
+			initialized = true
 		} catch (err) {
 			throw new Error(`Failed to initialize log file: ${(err as Error).message}`)
 		}
@@ -82,9 +77,9 @@ export class CompactTransport implements ICompactTransport {
 	 * Writes a log entry to configured outputs (console and/or file)
 	 * @param entry - The log entry to write
 	 */
-	write(entry: CompactLogEntry): void {
-		const deltaT = entry.t - this.lastTimestamp
-		this.lastTimestamp = entry.t
+	function write(entry: CompactLogEntry): void {
+		const deltaT = entry.t - lastTimestamp
+		lastTimestamp = entry.t
 
 		const compact = {
 			...entry,
@@ -94,29 +89,37 @@ export class CompactTransport implements ICompactTransport {
 		const output = JSON.stringify(compact) + "\n"
 
 		// Write to console if level is enabled
-		if (this.config.level && isLevelEnabled(this.config.level, entry.l)) {
+		if (config.level && isLevelEnabled(config.level, entry.l)) {
 			process.stdout.write(output)
 		}
 
 		// Write to file if enabled
-		if (this.filePath) {
-			this.ensureInitialized()
-			writeFileSync(this.filePath, output, { flag: "a" })
+		if (filePath) {
+			ensureInitialized()
+			writeFileSync(filePath, output, { flag: "a" })
 		}
 	}
 
 	/**
 	 * Closes the transport and writes session end marker
 	 */
-	close(): void {
-		if (this.filePath && this.initialized) {
+	function close(): void {
+		if (filePath && initialized) {
 			const sessionEnd = {
-				t: Date.now() - this.lastTimestamp,
+				t: Date.now() - lastTimestamp,
 				l: "info",
 				m: "Log session ended",
 				d: { timestamp: new Date().toISOString() },
 			}
-			writeFileSync(this.filePath, JSON.stringify(sessionEnd) + "\n", { flag: "a" })
+			writeFileSync(filePath, JSON.stringify(sessionEnd) + "\n", { flag: "a" })
 		}
 	}
+
+	return {
+		config,
+		write,
+		close,
+	}
 }
+
+export type CompactTransport = CompactTransportInstance

@@ -1,20 +1,17 @@
-import type { EventBridge } from "@features/foundation/webview/EventBridge"
-import { getBackendRootStore } from "@features/storeSingleton"
-
-function getViewLaunched(): boolean {
-	const state = getBackendRootStore()
-	return state.foundation.windowManager.viewLaunched
-}
+import type { EventBridge } from "@features/foundation"
+import { healthcheck } from "@features/foundation"
+import { getStore } from "@features/singleton"
+import { sendSendMessageInvoke } from "@features/chat"
 
 /**
  * Sends a message to the current task.
  * In headless/sandbox flows the webview may not be launched.
  */
 export async function sendMessage(provider: EventBridge, text?: string, images?: string[]): Promise<void> {
-	const currentTask = getBackendRootStore().chat.activeTask
+	const currentTask = getStore().chat.activeTask
 
 	// In headless/sandbox flows the webview may not be launched
-	if (!getViewLaunched()) {
+	if (!healthcheck()) {
 		if (!currentTask) {
 			return
 		}
@@ -23,5 +20,5 @@ export async function sendMessage(provider: EventBridge, text?: string, images?:
 		return
 	}
 
-	await provider.postMessageToWebview({ type: "invoke", invoke: "sendMessage", text, images })
+	await sendSendMessageInvoke(provider, text, images)
 }

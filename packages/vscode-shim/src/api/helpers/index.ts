@@ -1,4 +1,4 @@
-export { CancellationTokenClass, DisposableClass } from "./create-vscode-api-mock-helpers.ts"
-export { createVSCodeAPIMock } from "./create-vscode-api-mock.ts"
-export { createPlaceholderEditor, registerWebviewProvider } from "./window-api-helpers.ts"
-export { applyEditsToFile, updateDocumentAfterEdit } from "./workspace-api-helpers.ts"
+export { CancellationTokenClass, DisposableClass } from "./mocks.ts"
+export { createVSCodeAPIMock } from "./main.ts"
+export { createPlaceholderEditor, registerWebviewProvider } from "./window.ts"
+export { applyEditsToFile, updateDocumentAfterEdit } from "./workspace.ts"

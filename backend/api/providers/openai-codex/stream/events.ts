@@ -1,6 +1,7 @@
 import type { ApiStream } from "@api/transform/stream"
 import { extractTextFromEvent, extractPartText } from "@api/providers/openai-codex/utils"
 import type { StreamState } from "@api/providers/openai-codex/types"
+import { isTextContent } from "./yielders"
 
 export async function* handleTextDeltaEvent(event: Record<string, unknown>, state: StreamState): ApiStream {
 	const delta = event.delta as string | undefined
@@ -30,21 +31,6 @@ export async function* handleContentPartEvent(event: Record<string, unknown>, st
 	if (partText) {
 		state.sawTextOutputInCurrentResponse = true
 		yield { type: "text", text: partText }
-	}
-}
-
-export async function* handleReasoningEvent(event: Record<string, unknown>): ApiStream {
-	const delta = event.delta as string | undefined
-	if (delta) {
-		yield { type: "reasoning", text: delta }
-	}
-}
-
-export async function* handleRefusalDeltaEvent(event: Record<string, unknown>, state: StreamState): ApiStream {
-	const delta = event.delta as string | undefined
-	if (delta) {
-		state.sawTextOutputInCurrentResponse = true
-		yield { type: "text", text: `[Refusal] ${delta}` }
 	}
 }
 
@@ -115,10 +101,6 @@ export async function* handleOutputItemDoneToolCall(item: Record<string, unknown
 	}
 }
 
-export function isTextContent(content: Record<string, unknown>): boolean {
-	return ((content.type as string) === "text" || (content.type as string) === "output_text") && !!content.text
-}
-
 export async function* handleOutputItemAdded(item: Record<string, unknown>, state: StreamState): ApiStream {
 	const itemType = item.type as string | undefined
 	const isTextItem = (itemType === "text" || itemType === "output_text") && item.text
@@ -129,27 +111,6 @@ export async function* handleOutputItemAdded(item: Record<string, unknown>, stat
 	}
 	if (itemType === "reasoning" && item.text) {
 		yield { type: "reasoning", text: item.text as string }
-		return
-	}
-	if (itemType === "message") {
-		const itemContent = item.content as Record<string, unknown>[] | undefined
-		if (Array.isArray(itemContent)) {
-			for (const content of itemContent) {
-				if (isTextContent(content)) {
-					state.sawTextOutputInCurrentResponse = true
-					yield { type: "text", text: content.text as string }
-				}
-			}
-		}
-	}
-}
-
-export async function* handleOutputItemFallback(item: Record<string, unknown>, state: StreamState): ApiStream {
-	const itemType = item.type as string | undefined
-	const isTextItem = (itemType === "text" || itemType === "output_text") && item.text
-	if (isTextItem) {
-		state.sawTextOutputInCurrentResponse = true
-		yield { type: "text", text: item.text as string }
 		return
 	}
 	if (itemType === "message") {

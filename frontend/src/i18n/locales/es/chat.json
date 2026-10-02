@@ -149,6 +149,8 @@
 		"title": "Solicitud API",
 		"failed": "Solicitud API falló",
 		"streaming": "Solicitud API...",
+		"loadingContext": "Cargando contexto...",
+		"loadingContextPercent": "Cargando contexto... {{percent}}%",
 		"cancelled": "Solicitud API cancelada",
 		"streamingFailed": "Transmisión API falló",
 		"rateLimitWait": "Limitación de tasa",

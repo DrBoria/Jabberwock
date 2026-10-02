@@ -1,10 +1,10 @@
 import { IntentType, IntentStatus } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
+import type { IntentBus } from "@features/intents"
 
 /**
  * Handles task.resume.requested intent — resumes a task from history.
  */
-import { getTaskWithId } from "@features/hist/actions/index"
+import { getTaskWithId } from "@features/hist/actions"
 import { createTaskWithHistoryItem } from "@features/chat/task/actions/startTask"
 
 export function registerOnTaskResumeRequested(bus: IntentBus): void {

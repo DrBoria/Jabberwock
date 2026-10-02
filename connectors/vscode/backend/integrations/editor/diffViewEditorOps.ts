@@ -1,6 +1,6 @@
 import * as vscode from "vscode"
 import * as path from "path"
-import { arePathsEqual } from "@utils/io/path"
+import { arePathsEqual } from "@utils/io/main"
 import { type DecorationController } from "./DecorationController"
 import {
 	DIFF_VIEW_URI_SCHEME_JABBERWOCK,

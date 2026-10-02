@@ -1,6 +1,6 @@
 // Export existing hooks
-export { TerminalSizeProvider, useTerminalSize } from "./TerminalSizeContext.js"
-export { useToast } from "./ui/index.js"
+export { TerminalSizeProvider, useTerminalSize } from "./context.js"
+export { useToast } from "./ui/useToast.js"
 export { useInputHistory } from "./input/index.js"
 
 // Export new extracted hooks

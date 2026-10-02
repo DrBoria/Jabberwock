@@ -1,6 +1,6 @@
 import { type TaskEvent, JabberwockEventName } from "@jabberwock/types"
 
-import { findRun, findTask, updateTask } from "../db/index"
+import { runsStore, tasksStore } from "../db/index"
 
 import { Logger } from "./helpers/logging/logger"
 import { getTag, isDockerContainer } from "./utils"
@@ -20,9 +20,9 @@ export const processTask = async ({
 	jobToken: string | null
 	logger?: Logger
 }) => {
-	const task = await findTask(taskId)
+	const task = await tasksStore.find(taskId)
 	const { language, exercise } = task
-	const run = await findRun(task.runId)
+	const run = await runsStore.find(task.runId)
 	await registerRunner({ runId: run.id, taskId, timeoutSeconds: (run.timeout || 5) * 60 })
 
 	const containerized = isDockerContainer()
@@ -54,7 +54,7 @@ export const processTask = async ({
 		const passed = await runUnitTest({ task, logger })
 
 		logger.info(`task ${task.id} (${language}/${exercise}) -> ${passed}`)
-		await updateTask(task.id, { passed })
+		await tasksStore.update(task.id, { passed })
 
 		await publish({
 			eventName: passed ? JabberwockEventName.EvalPass : JabberwockEventName.EvalFail,

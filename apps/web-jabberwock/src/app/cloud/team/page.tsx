@@ -128,8 +128,8 @@ export default function CloudTeamPage() {
 					<div className="text-center mb-16">
 						<h2 className="text-4xl font-bold tracking-tight mb-4">Complete Team Management</h2>
 						<p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-							Access all capabilities from your Organization Settings. Everything you need to manage your
-							team in one place.
+							Access all capabilities from &quot;your&quot; Organization Settings. Everything you need to
+							manage your team in one place.
 						</p>
 					</div>
 					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto relative">

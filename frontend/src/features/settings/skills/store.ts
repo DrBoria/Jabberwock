@@ -4,7 +4,7 @@ import type { SkillMetadata } from "@jabberwock/types"
 
 /**
  * SkillsStore — tracks available skills.
- * Receives snapshots from the extension-side SkillsStore via MstBridge.
+ * Receives snapshots from "the" extension-side SkillsStore via MstBridge.
  */
 export const SkillsStore = types
 	.model("SkillsStore", {

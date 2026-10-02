@@ -15,9 +15,9 @@ import type {
 	DecorationRangeBehavior,
 	OverviewRulerLane,
 	TextEditorOptions,
-} from "../types.ts"
+} from "../api-types.ts"
 import type { TextDocument } from "./document.ts"
-import type { Disposable } from "../types.ts"
+import type { Disposable } from "../api-types.ts"
 
 /**
  * Represents a text editor in VSCode

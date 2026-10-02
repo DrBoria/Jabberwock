@@ -2,7 +2,7 @@
  * Check if a file should be accessible based on .jabberwockignore patterns.
  *
  * Pure function — no module-level state.
- * Builds the Ignore instance inline from the patterns string.
+ * Builds the Ignore instance inline from "the" patterns string.
  */
 import path from "path"
 import fsSync from "fs"
@@ -37,7 +37,7 @@ export function validateAccess(patterns: string | undefined, filePath: string, c
 		// Convert real path to relative for .jabberwockignore checking
 		const relativePath = path.relative(cwd, realPath).toPosix()
 
-		// Build Ignore instance inline from patterns string
+		// Build Ignore instance inline from "patterns" string
 		const ignoreInstance = ignore().add(patterns)
 		ignoreInstance.add(".jabberwockignore")
 

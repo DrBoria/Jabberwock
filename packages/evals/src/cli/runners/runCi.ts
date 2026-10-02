@@ -1,7 +1,7 @@
 import pMap from "p-map"
 
-import { EVALS_REPO_PATH, exerciseLanguages, getExercisesForLanguage } from "../../exercises/index"
-import { createRun, createTask } from "../../db/index"
+import { EVALS_REPO_PATH, exerciseLanguages, getExercisesForLanguage } from "../../exercises/catalog"
+import { runsStore, tasksStore } from "../../db/index"
 
 import { runEvals } from "./runEvals"
 
@@ -14,7 +14,7 @@ export const runCi = async ({
 } = {}) => {
 	console.log("Running evals in CI mode.")
 
-	const run = await createRun({ model: "anthropic/claude-sonnet-4", socketPath: "", concurrency })
+	const run = await runsStore.create({ model: "anthropic/claude-sonnet-4", socketPath: "", concurrency })
 
 	for (const language of exerciseLanguages) {
 		let exercises = await getExercisesForLanguage(EVALS_REPO_PATH, language)
@@ -23,7 +23,7 @@ export const runCi = async ({
 			exercises = exercises.slice(0, exercisesPerLanguage)
 		}
 
-		await pMap(exercises, (exercise) => createTask({ runId: run.id, language, exercise }), { concurrency })
+		await pMap(exercises, (exercise) => tasksStore.create({ runId: run.id, language, exercise }), { concurrency })
 	}
 
 	await runEvals(run.id)

@@ -149,6 +149,8 @@
 		"title": "APIリクエスト",
 		"failed": "APIリクエスト失敗",
 		"streaming": "APIリクエスト...",
+		"loadingContext": "コンテキストを読み込み中...",
+		"loadingContextPercent": "コンテキストを読み込み中... {{percent}}%",
 		"cancelled": "APIリクエストキャンセル",
 		"streamingFailed": "APIストリーミング失敗",
 		"rateLimitWait": "レート制限中",

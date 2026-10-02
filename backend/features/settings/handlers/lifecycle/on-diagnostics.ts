@@ -1,14 +1,22 @@
 import * as path from "path"
-import * as os from "os"
-import * as fs from "fs/promises"
-import { getHostContext } from "@features/foundation/host-context/context"
-import { IntentType } from "@jabberwock/types"
-import { getTaskDirectoryPath } from "@utils/io"
-import { fileExistsAtPath } from "@utils/io/fs"
-import { diagnosticsManager } from "@jabberwock/devtool"
-import { postStateToWebview } from "@features/foundation/window-manager/store"
 
-import type { IntentBus } from "@features/intents/bus"
+import * as os from "os"
+
+import * as fs from "fs/promises"
+
+import { getHostContext } from "@features/foundation"
+
+import { IntentType } from "@jabberwock/types"
+
+import { getTaskDirectoryPath } from "@utils/io"
+
+import { fileExistsAtPath } from "@utils/io/fs"
+
+import { diagnosticsManager } from "@jabberwock/devtool"
+
+import { postStateToWebview } from "@features/foundation"
+import type { IntentBus } from "@features/intents"
+import { publishNotificationError } from "@features/foundation"
 
 // ── Exported Types ────────────────────────────────────────────────
 
@@ -38,7 +46,7 @@ interface GenerateDiagnosticsResult {
  * The file is created in the system temp directory and opened in VS Code for the user to review
  * before sharing with support.
  */
-/** Load API conversation history from the task directory */
+/** Load API conversation history from "the" task directory */
 async function loadApiConversationHistory(taskDirPath: string): Promise<unknown[]> {
 	const apiHistoryPath = path.join(taskDirPath, "api_conversation_history.json")
 
@@ -55,7 +63,7 @@ async function loadApiConversationHistory(taskDirPath: string): Promise<unknown[
 	}
 }
 
-/** Build diagnostics content object from params */
+/** Build diagnostics content object from "params" */
 function buildDiagnosticsContent(
 	taskDirPath: string,
 	history: unknown[],
@@ -128,5 +136,3 @@ export function registerOnSettingsDiagnostics(bus: IntentBus): void {
 		await postStateToWebview(provider)
 	})
 }
-
-import { publishNotificationError } from "@features/foundation/capabilities/notifications"

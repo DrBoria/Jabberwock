@@ -3,7 +3,7 @@ import * as dotenvx from "@dotenvx/dotenvx"
 import * as fs from "fs"
 import * as path from "path"
 
-// Load environment variables from .env file
+// Load environment variables from ".env" file
 const envPath = path.join(__dirname, "..", ".env")
 if (fs.existsSync(envPath)) {
 	try {
@@ -17,11 +17,11 @@ import { hasTelemetryService, getTelemetryService } from "@jabberwock/telemetry"
 import { createCloudService, getCloudService, hasCloudService, setVscodeModule } from "@jabberwock/cloud"
 import type { ICheckpointDiffEntry } from "@jabberwock/types"
 
-import { Package } from "@shared/package"
+import { Package } from "@shared/core/package"
 import { getSettingsAccess } from "@utils/settings"
-import { arePathsEqual } from "@utils/io/path"
+import { arePathsEqual } from "@utils/io/main"
 import { autoImportSettings } from "@utils/settings/autoImportSettings"
-import { EventBridge } from "@features/foundation/webview/EventBridge"
+import { EventBridge, sideBarId } from "@features/foundation/webview/EventBridge"
 import {
 	DIFF_VIEW_URI_SCHEME_JABBERWOCK,
 	DiffViewProvider,
@@ -38,7 +38,7 @@ import {
 	getProviderSettingsManager,
 	ProviderSettingsManager,
 } from "@features/settings/models/provider-settings-manager"
-import { initializeStoreApiConfig } from "@features/chat/task/handlers/on-webview-launched/webview-api-config"
+import { initializeStoreApiConfig } from "@features/chat/task/handlers/webview-launched/api-config"
 import { createMcpServerManager } from "@services/mcp/core/McpServerManager"
 import { initializeCoreSetup, initializeCodeIndexManagers } from "@extension-activation/modules/core/core"
 import { setupAgentsFileService } from "@extension-activation/modules/services/agents"
@@ -51,6 +51,7 @@ import {
 } from "@extension-activation/modules/services/cloud"
 import { setupIpcServer } from "@extension-activation/modules/services/ipc"
 import { startBackend } from "@startup/bootstrap"
+import { installBackendState } from "@features/foundation/host-context/context"
 import { registerProvider } from "@api/providers/registry"
 import { VsCodeLmHandler } from "@connectors/vscode/backend/model-providers/vscode-lm"
 import { getVsCodeLmModels } from "@connectors/vscode/backend/model-providers/vscode-lm/tools"
@@ -59,7 +60,7 @@ import { VscodeFileWatcherFactory } from "@connectors/vscode/backend/file-watche
 import { installExtensionCapabilities } from "@features/foundation/capabilities/bootstrap"
 import { NOTIFICATION_ERROR_TOPIC } from "@features/foundation/capabilities/notifications"
 import type { NotificationErrorPayload } from "@features/foundation/capabilities/pubsub"
-import { setBackendCapabilities } from "@features/foundation/capabilities/registry"
+import { setBackendCapabilities } from "@features/foundation/capabilities"
 import { getContextArchiveReady, syncContextWindowMetaToStore } from "@features/context"
 import { buildApi, setupDevWatchers } from "@extension-activation/modules/core/api"
 import { checkWorktreeAutoOpen } from "@extension-activation/modules/services/worktree"
@@ -233,6 +234,12 @@ export async function activate(context: vscode.ExtensionContext) {
 			},
 			update: (section: string, key: string, value: unknown): Promise<void> =>
 				vscode.workspace.getConfiguration(section).update(key, value, vscode.ConfigurationTarget.Global),
+			// D4b-2: config-change subscription — the shared backend (network-proxy) subscribes
+			// through this slot instead of importing `vscode.workspace.onDidChangeConfiguration`.
+			onDidChange: (listener) =>
+				vscode.workspace.onDidChangeConfiguration((event) => {
+					listener({ affectsConfiguration: (section: string) => event.affectsConfiguration(section) })
+				}),
 		},
 		// D4c (plan §3.2 Strategy C): UI dialog slot backed by the host window dialog APIs.
 		// The shared backend calls dialogs through this slot instead of importing "vscode".
@@ -391,10 +398,14 @@ export async function activate(context: vscode.ExtensionContext) {
 	// + inbound wiring + logger slot. The vscode-specific application composition (root store,
 	// intent handlers, telemetry, cloud/devtool/agents services, commands, IpcServer) stays below
 	// as the extension layer over the common core.
+	// Install the global-state slots BEFORE startBackend(): the shared bootstrap restores persisted
+	// task history from getGlobalState("taskHistory") at boot, which requires the memento slots to
+	// be present (initializeCoreSetup re-installs them idempotently later).
+	installBackendState(context)
 	const provider = await startBackend({ connector, capabilities })
 	activeConnector = connector
 
-	// D4g-2 (batch 4): terminal registry initialization moved here from core.ts (a vscode-connector
+	// D4g-2 (batch 4): terminal registry initialization moved here from "core.ts" (a vscode-connector
 	// concern) so the shared backend does not import the connector's TerminalRegistry (which would
 	// pull the vscode-importing Terminal.ts + its p-wait-for dependency into the backend tsc graph).
 	TerminalRegistry.initialize()
@@ -408,10 +419,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	createMcpServerManager()
 
-	const providerSettingsManager = new ProviderSettingsManager(context)
+	const providerSettingsManager = ProviderSettingsManager(context)
 	setProviderSettingsManager(providerSettingsManager)
 
-	// Populate MST store's apiConfig from PSM immediately so tasks have
+	// Populate MST store's apiConfig from "PSM" immediately so tasks have
 	// the correct API configuration at creation time, not just after webview launch.
 	void initializeStoreApiConfig()
 
@@ -422,7 +433,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	_cloudService = cloudService
 
 	context.subscriptions.push(
-		vscode.window.registerWebviewViewProvider(EventBridge.sideBarId, connector, {
+		vscode.window.registerWebviewViewProvider(sideBarId, connector, {
 			webviewOptions: { retainContextWhenHidden: true },
 		}),
 	)
@@ -491,7 +502,7 @@ function cleanupCloudServiceHandlers(): void {
 		}
 
 		if (settingsUpdatedHandler) {
-			getCloudService().off("settings-updated", settingsUpdatedHandler)
+			getCloudService().off("manager.settings-updated", settingsUpdatedHandler)
 		}
 
 		if (userInfoHandler) {

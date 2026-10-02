@@ -2,9 +2,9 @@ import React from "react"
 import type { Notification, SayToolData } from "@jabberwock/types"
 import { toolIcon } from "@src/shared/ui/icons/toolIcon"
 import { Container } from "@src/shared/ui/layouts/Container"
-import { ToolUseBlock } from "@src/features/foundation/components/code/ToolUseBlock"
-import { TodoChangeDisplay } from "../../../../topic/change-display"
-import { getPreviousTodos } from "../responders/utils"
+import { ToolUseBlock } from "@src/features/foundation"
+import { TodoChangeDisplay } from "@src/features/chat/topic/change-display"
+import { getPreviousTodos } from "@src/features/chat/task/messages/components/responders/utils"
 
 interface ToolRendererProps {
 	message: Notification

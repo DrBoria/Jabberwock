@@ -1,22 +1,10 @@
 import { cn } from "@/lib/utils"
 import { t } from "i18next"
-import { ArrowRight, Check, ListChecks, SquareDashed } from "lucide-react"
+import { ArrowRight, ListChecks } from "lucide-react"
 import { useState, useRef, useCallback } from "react"
-import { useScrollIndex, useMostImportantTodo, useScrollToActive } from "./todo-scroll-hooks"
+import { useScrollIndex, useMostImportantTodo, useScrollToActive, isCompleted } from "./todo-scroll-hooks"
 import type { TodoItem } from "./todo-scroll-hooks"
-
-type TodoStatus = "completed" | "in_progress" | "pending"
-
-function getTodoIcon(status: TodoStatus | null) {
-	switch (status) {
-		case "completed":
-			return <Check className="size-3 mt-1 shrink-0" />
-		case "in_progress":
-			return <ArrowRight className="size-3 mt-1 shrink-0" />
-		default:
-			return <SquareDashed className="size-3 mt-1 shrink-0" />
-	}
-}
+import { getTodoIcon, type TodoStatus } from "./todo/icon"
 
 function TodoListItem({
 	todo,
@@ -143,11 +131,11 @@ export function TodoListDisplay({ todos, onTodoClick }: { todos: TodoItem[]; onT
 	const ulRef = useRef<HTMLUListElement>(null)
 	const itemRefs = useRef<(HTMLLIElement | null)[]>([])
 	const scrollIndex = useScrollIndex(todos)
-	const mostImportantTodo = useMostImportantTodo(todos)
+	const mostImportantTodo = useMostImportantTodo(todos, scrollIndex)
 	useScrollToActive({ isCollapsed, scrollIndex, ulRef, itemRefs })
 	if (!Array.isArray(todos) || todos.length === 0) return null
 	const totalCount = todos.length
-	const completedCount = todos.filter((todo) => todo.status === "completed").length
+	const completedCount = todos.filter(isCompleted).length
 	const allCompleted = completedCount === totalCount && totalCount > 0
 	return (
 		<div

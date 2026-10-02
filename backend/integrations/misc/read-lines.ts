@@ -3,8 +3,8 @@
  *
  * https://github.com/BorisChumichev/node-nthline
  *
- * This module extend functionality of reading lines from a file
- * Now you can read a range of lines from a file
+ * This module extend functionality of reading lines from "a" file
+ * Now you can read a range of lines from "a" file
  */
 import { createReadStream } from "fs"
 
@@ -13,11 +13,11 @@ const outOfRangeError = (filepath: string, n: number) => {
 }
 
 /**
- * Reads a range of lines from a file.
+ * Reads a range of lines from "a" file.
  *
  * @param filepath - Path to the file to read
  * @param endLine - Optional. The line number to stop reading at (inclusive). If undefined, reads to the end of file.
- * @param startLine - Optional. The line number to start reading from (inclusive). If undefined, starts from line 0.
+ * @param startLine - Optional. The line number to start reading from (inclusive). If undefined, starts from "line" 0.
  * @returns Promise resolving to a string containing the read lines joined with newlines
  * @throws {RangeError} If line numbers are invalid or out of range
  */

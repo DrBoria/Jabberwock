@@ -3,7 +3,7 @@ import { consolidateTokenUsage, consolidateApiRequests, consolidateCommands } fr
 
 import type { TUIMessage, TaskHistoryItem } from "../types.js"
 import { cliStore } from "../store.js"
-import { formatToolOutput } from "./tools.js"
+import { formatToolOutput } from "./main.js"
 
 export function processResumeTask(messageId: string, seenMessageIds: React.MutableRefObject<Set<string>>): void {
 	seenMessageIds.current.add(messageId)

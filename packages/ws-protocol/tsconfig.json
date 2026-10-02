@@ -1,0 +1,8 @@
+{
+	"extends": "@jabberwock/config-typescript/base.json",
+	"compilerOptions": {
+		"types": ["node"]
+	},
+	"include": ["src"],
+	"exclude": ["node_modules"]
+}

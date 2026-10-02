@@ -1,0 +1,304 @@
+TOTAL parsed: 299  ds: 58  du: 241
+
+=== NO-DIRECT-STORE-IMPORT ===
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/app-shell/message-utils.ts:5:10  Direct store import: '@src/features/chat'. Never import a store module
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/bootstrap.tsx:16:10  Direct store import: './features/chat/tree/store'. Never import a stor
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/bootstrap.tsx:17:10  Direct store import: './features/settings/models/store'. Never import 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/api/streaming/hooks/useStreamingStore.ts:9:10  Direct store import: '../store'. Never import a store module (models, 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/chat/store.tsx:4:57  Direct store import: '@src/features/chat/tree/store'. Never import a s
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/chat/store.tsx:6:30  Direct store import: '@src/features/chat/notifications/store'. Never i
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/chat/store.tsx:8:10  Direct store import: '@src/features/chat/task/store'. Never import a s
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/chat/store.tsx:9:10  Direct store import: '@src/features/chat/topic/store'. Never import a 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/chat/task/components/task-header/header.tsx:10:10  Direct store import: '@src/features/chat/tree/store'. Never import a s
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/chat/task/components/task-header/header.tsx:11:10  Direct store import: '@src/features/foundation/window-manager/store'. 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/chat/task/components/task-header/header.tsx:13:10  Direct store import: '@src/features/chat/store'. Never import a store 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/chat/task/messages/view-main.tsx:10:10  Direct store import: '@src/features/chat/store'. Never import a store 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/context/viewport.ts:1:10  Direct store import: './store'. Never import a store module (models, a
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/foundation/ui/hooks/useModelProviders/lmstudio.ts:7:10  Direct store import: '@src/features/settings'. Never import a store mo
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/foundation/ui/hooks/useModelProviders/main.ts:7:10  Direct store import: '@src/features/settings'. Never import a store mo
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/foundation/ui/hooks/useModelProviders/ollama.ts:7:10  Direct store import: '@src/features/settings'. Never import a store mo
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/foundation/window-manager/store.tsx:175:10  Direct store import: '../../store'. Never import a store module (model
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/foundation/window-manager/window-layer.tsx:2:10  Direct store import: './store'. Never import a store module (models, a
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/root-store/helpers.ts:3:10  Direct store import: '../api/streaming/store'. Never import a store mo
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/providers/LiteLLM/useLiteLLMMessageHandler.ts:5:10  Direct store import: '@src/features/settings'. Never import a store mo
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/settings-search/use-search.ts:5:10  Direct store import: '../../search/store'. Never import a store module
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/settings-store/actions.ts:4:10  Direct store import: './store'. Never import a store module (models, a
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/settings-store/store.ts:4:10  Direct store import: './actions'. Never import a store module (models,
+/home/llm/Documents/Work/fun/Jabberwock/backend/features/api/handlers/request/prepare/helpers.ts:14:10  Direct store import: '@features/settings/skills'. Never import a store
+/home/llm/Documents/Work/fun/Jabberwock/backend/features/api/store.ts:2:10  Direct store import: './streamingstore/store'. Never import a store mo
+/home/llm/Documents/Work/fun/Jabberwock/backend/features/chat/model.ts:3:10  Direct store import: '@features/chat/task/task-store'. Never import a 
+/home/llm/Documents/Work/fun/Jabberwock/backend/features/chat/task/handlers/request/on-commands-requested.ts:5:10  Direct store import: '@features/settings/skills'. Never import a store
+/home/llm/Documents/Work/fun/Jabberwock/backend/features/chat/task/handlers/webview-launched/mcp.ts:2:10  Direct store import: '@features/foundation'. Never import a store modu
+/home/llm/Documents/Work/fun/Jabberwock/backend/features/chat/task/messages/actions/presentAssistantMessage/validation.ts:20:10  Direct store import: '@features/settings/agents'. Never import a store
+/home/llm/Documents/Work/fun/Jabberwock/backend/features/chat/task/task-store/task-model/goals.ts:2:10  Direct store import: './task-runtime'. Never import a store module (mo
+/home/llm/Documents/Work/fun/Jabberwock/backend/features/chat/task/task-store/task-model/task-runtime.ts:5:10  Direct store import: './lifecycle'. Never import a store module (model
+/home/llm/Documents/Work/fun/Jabberwock/backend/features/chat/task/task-store/task-model/views.ts:5:10  Direct store import: '@features/chat/task'. Never import a store modul
+/home/llm/Documents/Work/fun/Jabberwock/backend/features/chat/task/task-store/task-state/actions-goals.ts:2:10  Direct store import: './actions-main'. Never import a store module (mo
+/home/llm/Documents/Work/fun/Jabberwock/backend/features/chat/task/task-store/task-state/actions-main.ts:3:10  Direct store import: '@features/chat/task'. Never import a store modul
+/home/llm/Documents/Work/fun/Jabberwock/backend/features/chat/tools/engine/execute/output.ts:3:10  Direct store import: '@features/foundation'. Never import a store modu
+/home/llm/Documents/Work/fun/Jabberwock/backend/features/chat/tools/mcp/processToolContent.ts:4:10  Direct store import: '@features/foundation'. Never import a store modu
+/home/llm/Documents/Work/fun/Jabberwock/backend/features/chat/tools/n-r/RunSlashCommandTool.ts:9:10  Direct store import: '@features/settings/skills'. Never import a store
+/home/llm/Documents/Work/fun/Jabberwock/backend/features/chat/tools/s/SkillTool.ts:6:10  Direct store import: '@features/settings/skills'. Never import a store
+/home/llm/Documents/Work/fun/Jabberwock/backend/features/chat/tools/t-w/ThinkTool.ts:3:10  Direct store import: '@features/settings'. Never import a store module
+/home/llm/Documents/Work/fun/Jabberwock/backend/features/chat/tools/t-w/validateToolUse.ts:8:10  Direct store import: '@features/settings/agents'. Never import a store
+/home/llm/Documents/Work/fun/Jabberwock/backend/features/chat/views.ts:1:10  Direct store import: '@features/chat'. Never import a store module (mo
+/home/llm/Documents/Work/fun/Jabberwock/backend/features/cloud/init-cloud.ts:2:10  Direct store import: './store'. Never import a store module (models, a
+/home/llm/Documents/Work/fun/Jabberwock/backend/features/foundation/store.ts:3:27  Direct store import: '@features/settings/agents'. Never import a store
+/home/llm/Documents/Work/fun/Jabberwock/backend/features/foundation/store.ts:7:10  Direct store import: './mst/store'. Never import a store module (model
+/home/llm/Documents/Work/fun/Jabberwock/backend/features/foundation/time-machine/actions/checkGit.ts:10:10  Direct store import: '@features/foundation'. Never import a store modu
+/home/llm/Documents/Work/fun/Jabberwock/backend/features/foundation/time-machine/actions/handleCheckpoints.ts:11:10  Direct store import: '@features/foundation'. Never import a store modu
+/home/llm/Documents/Work/fun/Jabberwock/backend/features/hist/actions/initHistory.ts:6:10  Direct store import: '@features/hist'. Never import a store module (mo
+/home/llm/Documents/Work/fun/Jabberwock/backend/features/hist/handlers/on-history.ts:17:10  Direct store import: '@features/foundation'. Never import a store modu
+/home/llm/Documents/Work/fun/Jabberwock/backend/features/hist/handlers/on-history.ts:18:10  Direct store import: '@features/settings'. Never import a store module
+/home/llm/Documents/Work/fun/Jabberwock/backend/features/hist/handlers/on-history.ts:20:10  Direct store import: '@features/marketplace'. Never import a store mod
+/home/llm/Documents/Work/fun/Jabberwock/backend/features/settings/context/system/core.ts:11:10  Direct store import: '@features/settings/skills'. Never import a store
+/home/llm/Documents/Work/fun/Jabberwock/backend/features/settings/context/system/generate.ts:10:10  Direct store import: '@features/settings/skills'. Never import a store
+/home/llm/Documents/Work/fun/Jabberwock/backend/features/settings/context/system/main.ts:40:10  Direct store import: '@features/settings/agents'. Never import a store
+/home/llm/Documents/Work/fun/Jabberwock/backend/features/settings/handlers/api-config/handlers.ts:8:10  Direct store import: '@features/foundation'. Never import a store modu
+/home/llm/Documents/Work/fun/Jabberwock/backend/features/settings/handlers/settings-core/register-commands.ts:6:10  Direct store import: '@features/foundation'. Never import a store modu
+/home/llm/Documents/Work/fun/Jabberwock/backend/features/settings/handlers/ui/on-settings-skills.ts:5:10  Direct store import: '@features/settings/skills'. Never import a store
+/home/llm/Documents/Work/fun/Jabberwock/backend/features/settings/handlers/ui/on-settings-skills.ts:7:10  Direct store import: '@features/foundation'. Never import a store modu
+/home/llm/Documents/Work/fun/Jabberwock/backend/features/settings/models/api-config-main.ts:8:10  Direct store import: './store'. Never import a store module (models, a
+
+=== RELATIVE-UP (no-deep) ===
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/api/streaming/hooks/useStreamingStore.ts:9:53  Relative import above the current directory: '../store'. Only `./` imp
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/chat/events/handlers/chat-received.ts:4:30  Relative import above the current directory: '../../../root-store'. On
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/chat/notifications/store.ts:107:33  Relative import above the current directory: '../../../connector-bus'.
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/chat/task/actions/condenseContext.ts:1:33  Relative import above the current directory: '../../../../connector-bu
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/chat/task/actions/summarizeConversation.ts:1:33  Relative import above the current directory: '../../../../connector-bu
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/chat/task/components/task-header/expanded-section.tsx:3:29  Relative import above the current directory: '../../messages/component
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/chat/task/components/task-header/expanded-section.tsx:5:34  Relative import above the current directory: '../task-metrics/rows'. O
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/chat/task/components/task-header/header.tsx:6:33  Relative import above the current directory: '../../../../../connector
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/chat/task/components/task-header/panels.tsx:10:34  Relative import above the current directory: '../task-metrics/collapse
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/chat/task/events/actions/register.ts:9:33  Relative import above the current directory: '../../../../../connector
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/chat/task/events/actions/register.ts:11:43  Relative import above the current directory: '../constants'. Only `./`
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/chat/task/notifications/mcp/execution-status-ui.tsx:10:26  Relative import above the current directory: '../../messages/component
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/chat/task/notifications/mcp/execution-view.tsx:5:30  Relative import above the current directory: '../../../../root-store'.
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/chat/task/store.ts:1:33  Relative import above the current directory: '../../../connector-bus'.
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/chat/topic/store.ts:1:33  Relative import above the current directory: '../../../connector-bus'.
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/chat/topic/view/task-header.tsx:6:33  Relative import above the current directory: '../list-display'. Only `
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/chat/tree/store.tsx:127:33  Relative import above the current directory: '../../../connector-bus'.
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/cloud/events/handlers/cloud-received.ts:4:30  Relative import above the current directory: '../../../root-store'. On
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/cloud/store.ts:3:33  Relative import above the current directory: '../../connector-bus'. On
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/context/actions.ts:11:33  Relative import above the current directory: '../../connector-bus'. On
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/context/components/JumpControls.tsx:3:38  Relative import above the current directory: '../viewport'. Only `./` 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/context/components/main.tsx:5:38  Relative import above the current directory: '../viewport'. Only `./` 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/context/components/main.tsx:6:58  Relative import above the current directory: '../viewport'. Only `./` 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/context/components/row.tsx:5:38  Relative import above the current directory: '../viewport'. Only `./` 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/context/components/row.tsx:6:28  Relative import above the current directory: '../actions'. Only `./` i
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/context/viewport.ts:5:33  Relative import above the current directory: '../../connector-bus'. On
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/diagnostics/events/handlers/diagnostics-received.ts:4:30  Relative import above the current directory: '../../../root-store'. On
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/foundation/components/code/CodeAccordion.tsx:10:22  Relative import above the current directory: '../diff/main'. Only `./`
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/foundation/components/code/code-block/hooks.tsx:4:34  Relative import above the current directory: '../hooks/useCodeHighligh
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/foundation/components/code/code-block/hooks.tsx:5:36  Relative import above the current directory: '../hooks/useCodeBlockScr
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/foundation/components/code/hooks/useCodeBlockScroll.tsx:2:39  Relative import above the current directory: '../code-block/constants'
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/foundation/components/image/ImageZoomModal.tsx:1:23  Relative import above the current directory: '../ui/layout/Modal'. Onl
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/foundation/components/image/ImageZoomModal.tsx:2:27  Relative import above the current directory: '../ui/button/TabButton'.
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/foundation/components/image/ImageZoomModal.tsx:3:28  Relative import above the current directory: '../ui/button/IconButton'
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/foundation/components/image/ZoomControls.tsx:1:28  Relative import above the current directory: '../ui/button/IconButton'
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/foundation/components/image/preview.tsx:1:38  Relative import above the current directory: '../mermaid/buttons'. Onl
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/foundation/components/markdown/MarkdownBlock.tsx:9:23  Relative import above the current directory: '../code/CodeBlock-main'.
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/foundation/components/markdown/MarkdownBlock.tsx:10:26  Relative import above the current directory: '../mermaid/MermaidBlock'
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/foundation/components/mermaid/MermaidBlock.tsx:8:23  Relative import above the current directory: '../code/CodeBlock-main'.
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/foundation/components/mermaid/MermaidModal.tsx:2:23  Relative import above the current directory: '../ui/layout/Modal'. Onl
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/foundation/components/mermaid/MermaidModal.tsx:3:27  Relative import above the current directory: '../ui/button/TabButton'.
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/foundation/components/mermaid/MermaidModal.tsx:4:28  Relative import above the current directory: '../ui/button/IconButton'
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/foundation/components/mermaid/MermaidModal.tsx:5:30  Relative import above the current directory: '../image/ZoomControls'. 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/foundation/components/mermaid/buttons.tsx:3:28  Relative import above the current directory: '../ui/button/IconButton'
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/foundation/components/mermaid/buttons.tsx:4:30  Relative import above the current directory: '../image/ZoomControls'. 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/foundation/events/handlers/foundation-received.ts:4:30  Relative import above the current directory: '../../../root-store'. On
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/foundation/events/handlers/foundation-received.ts:7:33  Relative import above the current directory: '../../../../connector-bu
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/foundation/ui/hooks/useSelectedModel/main.ts:2:33  Relative import above the current directory: '../useModelProviders/mai
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/foundation/ui/hooks/useSelectedModel/main.ts:3:45  Relative import above the current directory: '../useModelProviders/ope
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/foundation/ui/hooks/useSelectedModel/main.ts:4:35  Relative import above the current directory: '../useModelProviders/lms
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/foundation/ui/hooks/useSelectedModel/main.ts:5:33  Relative import above the current directory: '../useModelProviders/oll
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/foundation/window-manager/store.tsx:3:33  Relative import above the current directory: '../../../connector-bus'.
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/foundation/window-manager/store.tsx:175:30  Relative import above the current directory: '../../store'. Only `./` 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/history/components/list-view/utils.tsx:5:22  Relative import above the current directory: '../task-rows/task/main'.
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/history/components/list-view/utils.tsx:6:27  Relative import above the current directory: '../task-rows/task/group'
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/history/components/task-rows/subtask/main.tsx:6:34  Relative import above the current directory: '../../types'. Only `./` 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/history/components/task-rows/task/footer.tsx:4:28  Relative import above the current directory: '../../action-buttons/Cop
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/history/components/task-rows/task/footer.tsx:5:30  Relative import above the current directory: '../../action-buttons/Exp
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/history/components/task-rows/task/footer.tsx:6:30  Relative import above the current directory: '../../action-buttons/Del
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/history/components/task-rows/task/group.tsx:4:34  Relative import above the current directory: '../../types'. Only `./` 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/history/components/task-rows/task/group.tsx:6:35  Relative import above the current directory: '../subtask/collapsible'.
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/history/components/task-rows/task/group.tsx:7:24  Relative import above the current directory: '../subtask/main'. Only `
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/history/events/handlers/history-received.ts:4:30  Relative import above the current directory: '../../../root-store'. On
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/history/store.ts:3:33  Relative import above the current directory: '../../connector-bus'. On
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/intents/registrations.ts:2:53  Relative import above the current directory: '../foundation/events/han
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/intents/registrations.ts:3:47  Relative import above the current directory: '../chat/events/handlers/
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/intents/registrations.ts:4:47  Relative import above the current directory: '../chat/task/events/hand
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/intents/registrations.ts:5:51  Relative import above the current directory: '../settings/events/handl
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/intents/registrations.ts:6:54  Relative import above the current directory: '../marketplace/events/ha
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/intents/registrations.ts:7:48  Relative import above the current directory: '../cloud/events/handlers
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/intents/registrations.ts:8:50  Relative import above the current directory: '../history/events/handle
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/intents/registrations.ts:9:54  Relative import above the current directory: '../diagnostics/events/ha
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/marketplace/components/item-card/components.tsx:4:27  Relative import above the current directory: '../state/main'. Only `./
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/marketplace/components/item-card/components.tsx:6:28  Relative import above the current directory: '../../../../utils/misc/u
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/marketplace/components/item-card/main.tsx:5:27  Relative import above the current directory: '../state/main'. Only `./
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/marketplace/components/item-card/main.tsx:8:41  Relative import above the current directory: '../install/main'. Only `
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/marketplace/components/state/main.ts:2:45  Relative import above the current directory: '../filters/utils'. Only 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/marketplace/components/state/transitions.ts:3:45  Relative import above the current directory: '../filters/utils'. Only 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/marketplace/events/handlers/marketplace-received.ts:4:30  Relative import above the current directory: '../../../root-store'. On
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/marketplace/store.ts:10:33  Relative import above the current directory: '../../connector-bus'. On
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/root-store/bootstrap/singleton.ts:3:30  Relative import above the current directory: '../../intents'. Only `./
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/root-store/bootstrap/singleton.ts:5:27  Relative import above the current directory: '../store'. Only `./` imp
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/root-store/helpers.ts:3:32  Relative import above the current directory: '../api/streaming/store'.
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/root-store/helpers.ts:4:31  Relative import above the current directory: '../../utils/misc/jabberw
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/root-store/store.ts:12:33  Relative import above the current directory: '../../connector-bus'. On
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/root-store/store.ts:25:27  Relative import above the current directory: '../chat/store'. Only `./
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/root-store/store.ts:26:31  Relative import above the current directory: '../settings/settings-sto
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/root-store/store.ts:27:34  Relative import above the current directory: '../marketplace/store'. O
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/root-store/store.ts:28:28  Relative import above the current directory: '../cloud/store'. Only `.
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/root-store/store.ts:29:34  Relative import above the current directory: '../history/store'. Only 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/root-store/store.ts:30:36  Relative import above the current directory: '../foundation/window-man
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/root-store/store.ts:31:34  Relative import above the current directory: '../intents'. Only `./` i
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/root-store/store.ts:32:35  Relative import above the current directory: '../chat/mcp/store'. Only
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/root-store/store.ts:33:29  Relative import above the current directory: '../settings/skills/store
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/root-store/store.ts:34:33  Relative import above the current directory: '../settings/agents/store
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/components/AdvancedSettingsSection.tsx:3:36  Relative import above the current directory: '../../provider-controls/
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/components/AdvancedSettingsSection.tsx:4:41  Relative import above the current directory: '../../provider-controls/
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/components/AdvancedSettingsSection.tsx:5:48  Relative import above the current directory: '../../provider-controls/
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/components/AdvancedSettingsSection.tsx:6:29  Relative import above the current directory: '../../shared/transforms'
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/components/ApiOptions.tsx:3:33  Relative import above the current directory: '../../provider-controls/
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/components/ApiOptions.tsx:5:31  Relative import above the current directory: '../useApiOptions'. Only 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/components/ExtraSettingsSection.tsx:1:32  Relative import above the current directory: '../../ThinkingBudget/com
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/components/ExtraSettingsSection.tsx:2:27  Relative import above the current directory: '../../about-general/Verb
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/components/ModelPickerSection.tsx:7:8  Relative import above the current directory: '../../utils/providerMode
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/components/ModelPickerSection.tsx:8:29  Relative import above the current directory: '../../ModelPicker/main'.
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/components/ModelPickerSection.tsx:9:34  Relative import above the current directory: '../../providers/bedrock/
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/components/ProviderHeaderSection.tsx:5:42  Relative import above the current directory: '../../providers/balance-
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/providerRenderers.tsx:3:27  Relative import above the current directory: '../providers/provider-co
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/providerRenderers.tsx:4:25  Relative import above the current directory: '../providers/provider-co
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/providerRenderers.tsx:5:25  Relative import above the current directory: '../providers/bedrock/mai
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/providerRenderers.tsx:6:26  Relative import above the current directory: '../providers/provider-co
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/providerRenderers.tsx:7:27  Relative import above the current directory: '../providers/provider-co
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/providerRenderers.tsx:8:24  Relative import above the current directory: '../providers/provider-co
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/providerRenderers.tsx:9:28  Relative import above the current directory: '../providers/provider-co
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/providerRenderers.tsx:10:25  Relative import above the current directory: '../providers/LiteLLM/Lit
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/providerRenderers.tsx:11:26  Relative import above the current directory: '../providers/provider-co
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/providerRenderers.tsx:12:25  Relative import above the current directory: '../providers/provider-co
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/providerRenderers.tsx:13:25  Relative import above the current directory: '../providers/provider-co
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/providerRenderers.tsx:14:26  Relative import above the current directory: '../providers/provider-co
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/providerRenderers.tsx:15:24  Relative import above the current directory: '../providers/provider-co
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/providerRenderers.tsx:16:24  Relative import above the current directory: '../providers/provider-co
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/providerRenderers.tsx:17:34  Relative import above the current directory: '../providers/openai-comp
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/providerRenderers.tsx:18:29  Relative import above the current directory: '../providers/openai-code
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/providerRenderers.tsx:19:28  Relative import above the current directory: '../providers/provider-co
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/providerRenderers.tsx:20:26  Relative import above the current directory: '../providers/provider-co
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/providerRenderers.tsx:21:26  Relative import above the current directory: '../providers/provider-co
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/providerRenderers.tsx:22:27  Relative import above the current directory: '../providers/provider-co
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/providerRenderers.tsx:23:25  Relative import above the current directory: '../providers/provider-co
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/providerRenderers.tsx:24:33  Relative import above the current directory: '../providers/provider-co
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/providerRenderers.tsx:25:24  Relative import above the current directory: '../providers/provider-co
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/providerRenderers.tsx:26:26  Relative import above the current directory: '../providers/provider-co
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/providerRenderers.tsx:27:21  Relative import above the current directory: '../providers/provider-co
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/providerRenderers.tsx:28:21  Relative import above the current directory: '../providers/provider-co
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/utils/docLinks.ts:2:27  Relative import above the current directory: '../../shared/constants'.
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/utils/headers.ts:2:40  Relative import above the current directory: '../../utils/headers'. On
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/utils/providerConfig.ts:2:30  Relative import above the current directory: '../../utils/organization
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/utils/providerConfig.ts:3:36  Relative import above the current directory: '../../shared/constants'.
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/utils/providerConfig.ts:4:61  Relative import above the current directory: '../constants'. Only `./`
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/utils/providerOptions.ts:2:47  Relative import above the current directory: '../../utils/organization
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/utils/providerOptions.ts:3:47  Relative import above the current directory: '../../shared/constants'.
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ApiOptions/utils/requests.ts:2:40  Relative import above the current directory: '../../utils/headers'. On
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/AutoApproveSettings/AutoApproveSettingsComponent.tsx:9:31  Relative import above the current directory: '../shared/header'. Only 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/AutoApproveSettings/AutoApproveSettingsComponent.tsx:10:25  Relative import above the current directory: '../shared/section'. Only
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/AutoApproveSettings/AutoApproveSettingsComponent.tsx:11:35  Relative import above the current directory: '../shared/SearchableSett
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/AutoApproveSettings/AutoApproveSettingsComponent.tsx:12:35  Relative import above the current directory: '../auto-approve-controls
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/AutoApproveSettings/AutoApproveSettingsComponent.tsx:13:32  Relative import above the current directory: '../auto-approve-controls
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/AutoApproveSettings/AutoApproveSettingsComponent.tsx:14:43  Relative import above the current directory: '../auto-approve-controls
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/AutoApproveSettings/FollowupSection.tsx:2:35  Relative import above the current directory: '../shared/SearchableSett
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/AutoApproveSettings/ReadOnlySection.tsx:2:35  Relative import above the current directory: '../shared/SearchableSett
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/AutoApproveSettings/WriteSection.tsx:2:35  Relative import above the current directory: '../shared/SearchableSett
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/AutoApproveSettings/types.ts:2:37  Relative import above the current directory: '../shared/types'. Only `
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ContextManagementSettings/CheckboxFields.tsx:3:35  Relative import above the current directory: '../shared/SearchableSett
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ContextManagementSettings/ContextManagementSettingsComponent.tsx:3:31  Relative import above the current directory: '../shared/header'. Only 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ContextManagementSettings/ContextManagementSettingsComponent.tsx:4:25  Relative import above the current directory: '../shared/section'. Only
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ContextManagementSettings/ContextManagementSettingsComponent.tsx:5:34  Relative import above the current directory: '../context-management-co
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ContextManagementSettings/ContextManagementSettingsComponent.tsx:6:38  Relative import above the current directory: '../context-management-co
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ContextManagementSettings/ContextManagementSettingsComponent.tsx:7:38  Relative import above the current directory: '../context-management-co
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ContextManagementSettings/ImageSizeSettings.tsx:3:35  Relative import above the current directory: '../shared/SearchableSett
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ContextManagementSettings/SliderSettings.tsx:3:35  Relative import above the current directory: '../shared/SearchableSett
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ContextManagementSettings/types.ts:2:37  Relative import above the current directory: '../shared/types'. Only `
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ModelInfoView/main.tsx:2:42  Relative import above the current directory: '../provider-controls/Mod
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ModelPicker/ModelInfoSection.tsx:1:31  Relative import above the current directory: '../ModelInfoView/main'. 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ModelPicker/helpers.ts:3:30  Relative import above the current directory: '../utils/organizationFil
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ModelPicker/main.tsx:7:33  Relative import above the current directory: '../provider-controls/Api
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/PromptsSettings/main.tsx:11:31  Relative import above the current directory: '../shared/header'. Only 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/PromptsSettings/main.tsx:12:25  Relative import above the current directory: '../shared/section'. Only
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/PromptsSettings/main.tsx:13:35  Relative import above the current directory: '../shared/SearchableSett
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/PromptsSettings/system.tsx:12:31  Relative import above the current directory: '../shared/header'. Only 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/PromptsSettings/system.tsx:13:25  Relative import above the current directory: '../shared/section'. Only
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/PromptsSettings/system.tsx:14:35  Relative import above the current directory: '../shared/SearchableSett
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/SettingsView/components/SettingsTabSidebar.tsx:5:93  Relative import above the current directory: '../constants'. Only `./`
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/SettingsView/hooks/use-navigation.ts:21:66  Relative import above the current directory: '../constants'. Only `./`
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/SettingsView/hooks/use-search-index.ts:2:40  Relative import above the current directory: '../../settings-search/us
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/SettingsView/hooks/use-search-index.ts:3:43  Relative import above the current directory: '../constants'. Only `./`
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/SettingsView/hooks/use-setters.ts:10:52  Relative import above the current directory: '../utils'. Only `./` imp
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/SettingsView/hooks/use-settings-view.ts:5:38  Relative import above the current directory: '../utils'. Only `./` imp
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/SettingsView/main.tsx:18:32  Relative import above the current directory: '../settings-search/main'
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/SkillsSettings/main.tsx:18:31  Relative import above the current directory: '../shared/header'. Only 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/SkillsSettings/main.tsx:19:35  Relative import above the current directory: '../CreateSkillDialog/Cre
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/TerminalSettings/advanced.tsx:4:35  Relative import above the current directory: '../shared/SearchableSett
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/TerminalSettings/main.tsx:10:31  Relative import above the current directory: '../shared/header'. Only 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/TerminalSettings/main.tsx:11:25  Relative import above the current directory: '../shared/section'. Only
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/TerminalSettings/main.tsx:12:35  Relative import above the current directory: '../shared/SearchableSett
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ThinkingBudget/components/ReasoningEffortSelector.tsx:4:32  Relative import above the current directory: '../helpers'. Only `./` i
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ThinkingBudget/components/main.tsx:8:104  Relative import above the current directory: '../helpers'. Only `./` i
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/ThinkingBudget/components/main.tsx:9:103  Relative import above the current directory: '../hooks'. Only `./` imp
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/WorktreesView/content.tsx:4:37  Relative import above the current directory: '../CreateWorktreeModal/m
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/about-general/About.tsx:15:31  Relative import above the current directory: '../shared/header'. Only 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/about-general/About.tsx:16:25  Relative import above the current directory: '../shared/section'. Only
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/about-general/About.tsx:17:35  Relative import above the current directory: '../shared/SearchableSett
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/about-general/CheckpointSettings.tsx:8:37  Relative import above the current directory: '../shared/types'. Only `
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/about-general/CheckpointSettings.tsx:9:31  Relative import above the current directory: '../shared/header'. Only 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/about-general/CheckpointSettings.tsx:10:25  Relative import above the current directory: '../shared/section'. Only
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/about-general/CheckpointSettings.tsx:11:35  Relative import above the current directory: '../shared/SearchableSett
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/about-general/LanguageSettings.tsx:18:37  Relative import above the current directory: '../shared/types'. Only `
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/about-general/LanguageSettings.tsx:19:31  Relative import above the current directory: '../shared/header'. Only 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/about-general/LanguageSettings.tsx:20:25  Relative import above the current directory: '../shared/section'. Only
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/about-general/LanguageSettings.tsx:21:35  Relative import above the current directory: '../shared/SearchableSett
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/about-general/NotificationSettings.tsx:5:37  Relative import above the current directory: '../shared/types'. Only `
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/about-general/NotificationSettings.tsx:6:31  Relative import above the current directory: '../shared/header'. Only 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/about-general/NotificationSettings.tsx:7:25  Relative import above the current directory: '../shared/section'. Only
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/about-general/NotificationSettings.tsx:8:35  Relative import above the current directory: '../shared/SearchableSett
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/about-general/UISettings.tsx:6:37  Relative import above the current directory: '../shared/types'. Only `
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/about-general/UISettings.tsx:7:31  Relative import above the current directory: '../shared/header'. Only 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/about-general/UISettings.tsx:8:25  Relative import above the current directory: '../shared/section'. Only
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/about-general/UISettings.tsx:9:35  Relative import above the current directory: '../shared/SearchableSett
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/auto-approve-controls/AutoApproveExecuteSection.tsx:7:35  Relative import above the current directory: '../shared/SearchableSett
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/context-management-controls/AutoCondenseSettings.tsx:10:35  Relative import above the current directory: '../shared/SearchableSett
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/context-management-controls/AutoCondenseSettings.tsx:11:37  Relative import above the current directory: '../shared/types'. Only `
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/context-management-controls/CondensePromptEditor.tsx:8:35  Relative import above the current directory: '../shared/SearchableSett
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/context-management-controls/DiagnosticSlider.tsx:4:35  Relative import above the current directory: '../shared/SearchableSett
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/context-management-controls/DiagnosticSlider.tsx:5:37  Relative import above the current directory: '../shared/types'. Only `
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/experimental/ExperimentalSettings.tsx:10:38  Relative import above the current directory: '../shared/types'. Only `
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/experimental/ExperimentalSettings.tsx:11:31  Relative import above the current directory: '../shared/header'. Only 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/experimental/ExperimentalSettings.tsx:12:25  Relative import above the current directory: '../shared/section'. Only
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/experimental/ExperimentalSettings.tsx:13:35  Relative import above the current directory: '../shared/SearchableSett
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/provider-controls/ModelDescriptionMarkdown.tsx:8:32  Relative import above the current directory: '../shared/styles'. Only 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/providers/LiteLLM/LiteLLMComponent.tsx:5:29  Relative import above the current directory: '../../ModelPicker/main'.
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/providers/LiteLLM/helpers.ts:2:37  Relative import above the current directory: '../../shared/transforms'
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/providers/bedrock/main.tsx:10:37  Relative import above the current directory: '../../shared/transforms'
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/providers/bedrock/sections.tsx:7:29  Relative import above the current directory: '../../shared/transforms'
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/providers/openai-codex/main.tsx:9:29  Relative import above the current directory: '../../ModelPicker/main'.
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/providers/openai-compatible/OpenAICompatible.tsx:5:40  Relative import above the current directory: '../../utils/headers'. On
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/providers/openai-compatible/OpenAICompatible.tsx:6:29  Relative import above the current directory: '../../ModelPicker/main'.
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/providers/openai-compatible/OpenAICompatible.tsx:7:33  Relative import above the current directory: '../../provider-controls/
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/providers/openai-compatible/sections.tsx:10:32  Relative import above the current directory: '../../ThinkingBudget/com
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/providers/provider-components/use-handle-input-change.ts:5:37  Relative import above the current directory: '../../shared/transforms'
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/settings-search/main.tsx:5:29  Relative import above the current directory: '../SettingsView/constant
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/settings-search/results.tsx:7:29  Relative import above the current directory: '../SettingsView/constant
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/settings-search/use-search.ts:5:42  Relative import above the current directory: '../../search/store'. Onl
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/shared/SearchableSetting.tsx:5:29  Relative import above the current directory: '../SettingsView/constant
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/shared/SearchableSetting.tsx:6:39  Relative import above the current directory: '../settings-search/use-s
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/slash-commands/SlashCommandsSettings.tsx:29:31  Relative import above the current directory: '../shared/header'. Only 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/components/utils/providerModelConfig.ts:21:36  Relative import above the current directory: '../shared/constants'. On
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/events/handlers/settings-received.ts:4:30  Relative import above the current directory: '../../../root-store'. On
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/events/handlers/settings-received.ts:5:39  Relative import above the current directory: '../../../../utils/text/c
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/mcp/components/server/info-tabs.tsx:11:8  Relative import above the current directory: '../panels'. Only `./` im
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/mcp/mcp-execution/components/StatusBar.tsx:5:31  Relative import above the current directory: '../ExpandChevron'. Only 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/mcp/mcp-execution/components/ToolSection.tsx:3:31  Relative import above the current directory: '../LegacyToolRow'. Only 
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/mcp/mcp-execution/components/main.tsx:8:38  Relative import above the current directory: '../useMcpExecutionState'
+/home/llm/Documents/Work/fun/Jabberwock/frontend/src/features/settings/settings-store/actions.ts:3:33  Relative import above the current directory: '../../../connector-bus'.

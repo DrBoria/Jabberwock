@@ -13,18 +13,17 @@ import {
 	openRouterModelEndpointsResponseSchema,
 	type ParseOpenRouterModelParams,
 	openRouterModelsResponseSchema,
-} from "@api/providers/fetchers/shared/openrouter-schemas"
+} from "@api/providers/fetchers/shared/schemas"
 import {
 	logOpenRouterParseError,
 	extractModelFromRaw,
 	extractRawDataFromResponse,
 	logInvalidResponse,
 	logEndpointsParseError,
-	computeCacheWritePrice,
-	computeCacheReadPrice,
+	computeCachePrice,
 	computeReasoningFields,
 	applyOpenRouterModelOverrides,
-} from "@api/providers/fetchers/shared/openrouter-helpers"
+} from "@api/providers/fetchers/shared/helpers"
 
 export {
 	openRouterModelSchema,
@@ -193,8 +192,8 @@ export const parseOpenRouterModel = ({
 	maxTokens,
 	supportedParameters,
 }: ParseOpenRouterModelParams): ModelInfo => {
-	const cacheWritesPrice = computeCacheWritePrice(model.pricing)
-	const cacheReadsPrice = computeCacheReadPrice(model.pricing)
+	const cacheWritesPrice = computeCachePrice(model.pricing, "input_cache_write")
+	const cacheReadsPrice = computeCachePrice(model.pricing, "input_cache_read")
 
 	const modelInfo: ModelInfo = {
 		maxTokens: maxTokens || Math.ceil(model.context_length * 0.2),

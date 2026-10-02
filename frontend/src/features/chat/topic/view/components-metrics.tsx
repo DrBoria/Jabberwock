@@ -1,4 +1,4 @@
-import { StandardTooltip } from "@src/shared/ui/tooltips/standard-tooltip"
+import { StandardTooltip } from "@src/shared/ui/tooltips/standard"
 import { formatLargeNumber } from "@src/utils/format/formatNumber"
 import { ContextWindowProgress } from "@/features/chat/topic/progress/context-window-progress"
 import { prettyBytes } from "./helpers"

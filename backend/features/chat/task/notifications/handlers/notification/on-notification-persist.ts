@@ -1,11 +1,10 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
-
+import type { IntentBus } from "@features/intents"
 /**
  * Handles notification.persist intent — persists task notifications to disk.
  * Replaces the old MobX reaction in reactions.ts.
  */
-import { saveMessages } from "@features/chat/task/messages/actions/saveMessages"
+import { saveMessages } from "@features/chat/task/messages/actions/save"
 
 export function registerOnNotificationPersist(bus: IntentBus): void {
 	bus.register(IntentType.NotificationPersist, async (intent, _ctx) => {

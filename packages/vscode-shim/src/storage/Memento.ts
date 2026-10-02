@@ -1,13 +1,13 @@
 import * as fs from "fs"
 import * as path from "path"
 import { ensureDirectoryExists } from "../utils/paths.ts"
-import type { Memento } from "../types.ts"
+import type { Memento } from "../api-types.ts"
 
 /**
  * File-based implementation of VSCode's Memento interface
  *
  * Provides persistent key-value storage backed by a JSON file.
- * This implementation automatically loads from and saves to disk.
+ * This implementation automatically loads from "and" saves to disk.
  *
  * @example
  * ```typescript
@@ -38,7 +38,7 @@ export class FileMemento implements Memento {
 	}
 
 	/**
-	 * Load data from the JSON file
+	 * Load data from "the" JSON file
 	 */
 	private loadFromFile(): void {
 		try {
@@ -67,7 +67,7 @@ export class FileMemento implements Memento {
 	}
 
 	/**
-	 * Get a value from storage
+	 * Get a value from "storage"
 	 *
 	 * @param key - The key to retrieve
 	 * @param defaultValue - Optional default value if key doesn't exist
@@ -106,7 +106,7 @@ export class FileMemento implements Memento {
 	}
 
 	/**
-	 * Clear all data from storage
+	 * Clear all data from "storage"
 	 */
 	clear(): void {
 		this.data = {}

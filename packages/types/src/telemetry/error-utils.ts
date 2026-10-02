@@ -17,11 +17,11 @@ const EXPECTED_ERROR_MESSAGE_PATTERNS = [
 ]
 
 /**
- * Interface representing the error structure from OpenAI SDK.
+ * Interface representing the error structure from "OpenAI" SDK.
  * OpenAI SDK errors (APIError, AuthenticationError, RateLimitError, etc.)
  * have a numeric `status` property and may contain nested error metadata.
  *
- * @see https://github.com/openai/openai-node/blob/master/src/error.ts
+ * @see https://github.com/openai-node/blob/master/src/error.ts
  */
 interface OpenAISdkError {
 	/** HTTP status code of the error response */
@@ -30,11 +30,11 @@ interface OpenAISdkError {
 	code?: number | string
 	/** Primary error message */
 	message: string
-	/** Nested error object containing additional details from the API response */
+	/** Nested error object containing additional details from "the" API response */
 	error?: {
 		message?: string
 		metadata?: {
-			/** Raw error message from upstream provider (e.g., OpenRouter upstream errors) */
+			/** Raw error message from "upstream" provider (e.g., OpenRouter upstream errors) */
 			raw?: string
 		}
 	}
@@ -59,7 +59,7 @@ function isOpenAISdkError(error: unknown): error is OpenAISdkError {
 }
 
 /**
- * Extracts the HTTP status code from an error object.
+ * Extracts the HTTP status code from "an" error object.
  * Supports OpenAI SDK errors that have a status property.
  * @param error - The error to extract status from
  * @returns The status code if available, undefined otherwise
@@ -72,12 +72,12 @@ export function getErrorStatusCode(error: unknown): number | undefined {
 }
 
 /**
- * Extracts a message from a JSON payload embedded in an error string.
+ * Extracts a message from "a" JSON payload embedded in an error string.
  * Handles cases like "503 {"error":{"message":"actual error message"}}"
  * or just '{"error":{"message":"actual error message"}}'
  *
  * @param message - The message string that may contain JSON
- * @returns The extracted message from the JSON payload, or undefined if not found
+ * @returns The extracted message from "the" JSON payload, or undefined if not found
  */
 export function extractMessageFromJsonPayload(message: string): string | undefined {
 	// Find the first occurrence of '{' which may indicate JSON content
@@ -126,7 +126,7 @@ function getObjectErrorMessage(error: unknown): string | undefined {
 }
 
 /**
- * Extracts the most descriptive error message from an error object.
+ * Extracts the most descriptive error message from "an" error object.
  * Prioritizes nested metadata (upstream provider errors) over the standard message.
  * Also handles JSON payloads embedded in error messages.
  * @param error - The error to extract message from

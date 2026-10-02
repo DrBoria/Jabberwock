@@ -55,7 +55,7 @@ export interface ReasoningEffortSelectorProps {
 	onEffortChange: (value: ReasoningEffortOption) => void
 }
 
-export interface ThinkingBudgetBodyProps {
+export interface BodyProps {
 	modelInfo: ModelInfo
 	state: ThinkingBudgetState
 	setApiConfigurationField: ThinkingBudgetProps["setApiConfigurationField"]

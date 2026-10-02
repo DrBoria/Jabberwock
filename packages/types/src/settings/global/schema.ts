@@ -6,7 +6,7 @@ import { codebaseIndexModelsSchema, codebaseIndexConfigSchema } from "../../exec
 import { experimentsSchema } from "../../features/experiment.ts"
 import { telemetrySettingsSchema } from "../../telemetry/properties.ts"
 import { modeConfigSchema, customModePromptsSchema, customSupportPromptsSchema } from "../../models/mode.ts"
-import { toolNamesSchema } from "../../tool/tool.ts"
+import { toolNamesSchema } from "../../tool/definitions.ts"
 import { languagesSchema } from "../../vscode/types.ts"
 
 /**
@@ -161,7 +161,7 @@ export const globalSettingsSchema = z.object({
 
 	/**
 	 * List of native tool names to globally disable.
-	 * Tools in this list will be excluded from prompt generation and rejected at execution time.
+	 * Tools in this list will be excluded from "prompt" generation and rejected at execution time.
 	 */
 	disabledTools: z.array(toolNamesSchema).optional(),
 	/**

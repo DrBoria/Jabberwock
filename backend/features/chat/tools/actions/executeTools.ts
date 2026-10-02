@@ -1,19 +1,19 @@
 import { Anthropic } from "@anthropic-ai/sdk"
 
-import type { ITaskModel } from "@features/chat/task/store"
+import type { ITaskModel } from "@features/chat/task"
 import { ask } from "@features/chat/task/notifications/actions/ask"
-import { systemBroadcast } from "@features/chat/task/messages/actions/say"
-import { getBackendRootStore } from "@features/storeSingleton"
-import { addToApiConversationHistory } from "@features/chat/task/messages/actions/save/saveApiConversationHistory"
-import { getTask as getRegisteredTask } from "@features/chat/task/actions/taskRegistry"
-import { type TaskDelegate } from "@features/chat/task/condense/actions/types"
-import type { AssistantMessageContent } from "@features/chat/task/messages/actions/types"
-import { waitForToolExecutionAndPrepareNextContent } from "./tool-executor"
+import { emitBroadcast } from "@features/chat/task/messages/actions/say"
+import { getStore } from "@features/singleton"
+import { addToApiConversationHistory } from "@features/chat"
+import { getTask as getRegisteredTask } from "@features/chat"
+import { type TaskDelegate } from "@features/chat/task/condense/types"
+import type { AssistantMessageContent } from "@features/chat/task/messages/actions/buildMessageTypes"
+import { waitForToolExecutionAndPrepareNextContent } from "./toolExecutor"
 
 // ── E.5: executeTools ──────────────────────────────────────────────────────────
 
 /**
- * Executes tool calls from the assistant message and returns the next user content.
+ * Executes tool calls from "the" assistant message and returns the next user content.
  *
  * Calls waitForToolExecutionAndPrepareNextContent() which handles:
  * - Tool execution orchestration
@@ -30,7 +30,7 @@ export async function executeTools(
 ): Promise<Anthropic.Messages.ContentBlockParam[] | null> {
 	const task = getRegisteredTask(taskId)!
 	const delegate = task as ITaskModel & TaskDelegate
-	const store = getBackendRootStore()
+	const store = getStore()
 
 	const hasTextContent = assistantMessage.length > 0
 	const assistantMsgContentFinal = delegate.assistantMessageContent
@@ -48,7 +48,7 @@ export async function executeTools(
 
 			// Create a UserMessageReceived intent for the next iteration.
 			// Pass the content blocks directly so the handler can use them
-			// without reading from the notification cursor.
+			// without reading from "the" notification cursor.
 			store.intentStore.createIntent({
 				id: crypto.randomUUID(),
 				type: IntentType.UserMessageReceived,
@@ -65,10 +65,25 @@ export async function executeTools(
 	}
 
 	// No assistant responses — empty response from API
+	await handleNoAssistantMessages(delegate, store, taskId)
+	return null
+}
+
+/**
+ * Handles the "model returned no assistant messages" case: tracks the consecutive
+ * no-response count, removes the dangling user message, and either schedules a retry
+ * (UserMessageReceived intent) or records the failure in the conversation history.
+ * Extracted from executeTools so the action creator stays a thin orchestrator.
+ */
+async function handleNoAssistantMessages(
+	task: ITaskModel & TaskDelegate,
+	store: ReturnType<typeof getStore>,
+	taskId: string,
+): Promise<void> {
 	task._state.setConsecutiveNoAssistantMessagesCount(task._state.consecutiveNoAssistantMessagesCount + 1)
 
 	if (task._state.consecutiveNoAssistantMessagesCount >= 2) {
-		await systemBroadcast(task.taskId, "error", "MODEL_NO_ASSISTANT_MESSAGES")
+		await emitBroadcast("system", task.taskId, "error", "MODEL_NO_ASSISTANT_MESSAGES")
 	}
 
 	// Remove the user message we added earlier to avoid consecutive user messages
@@ -87,7 +102,7 @@ export async function executeTools(
 	)
 
 	if (response === "yesButtonClicked") {
-		await systemBroadcast(task.taskId, "api_req_retried")
+		await emitBroadcast("system", task.taskId, "api_req_retried")
 		// Create a UserMessageReceived intent for retry instead of calling continuePipeline
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -101,7 +116,8 @@ export async function executeTools(
 			role: "user",
 			content: [{ type: "text" as const, text: "" }],
 		})
-		await systemBroadcast(
+		await emitBroadcast(
+			"system",
 			task.taskId,
 			"error",
 			"Unexpected API Response: The language model did not provide any assistant messages. This may indicate an issue with the API or the model's output.",
@@ -111,6 +127,4 @@ export async function executeTools(
 			content: [{ type: "text", text: "Failure: I did not provide a response." }],
 		})
 	}
-
-	return null
 }

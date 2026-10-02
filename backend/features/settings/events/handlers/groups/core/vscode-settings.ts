@@ -1,17 +1,17 @@
-import type { IntentBus } from "@features/intents/bus"
-import { onWebviewMessage } from "@features/foundation/webview/events/handlers/on-webview-message"
+import type { IntentBus } from "@features/intents"
+import { onWebviewMessage } from "@features/foundation"
 import { IntentStatus } from "@jabberwock/types"
-import { getBackendRootStore } from "@features/storeSingleton"
+import { getStore } from "@features/singleton"
 import {
 	AGENT_STATE_UPDATE_VS_CODE_SETTING,
 	AGENT_STATE_GET_VS_CODE_SETTING,
 	AGENT_STATE_AUTO_APPROVAL_ENABLED,
 	AGENT_STATE_DEBUG_SETTING,
-} from "@features/settings/events/constants"
+} from "@features/settings"
 
-export function registerVscodeSettingsHandlers(_bus: IntentBus): void {
+function registerVscodeSettingsHandlersAGENTSTATEUPDATEVSCODESETTING(): void {
 	onWebviewMessage(AGENT_STATE_UPDATE_VS_CODE_SETTING, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -21,9 +21,11 @@ export function registerVscodeSettingsHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerVscodeSettingsHandlersAGENTSTATEGETVSCODESETTING(): void {
 	onWebviewMessage(AGENT_STATE_GET_VS_CODE_SETTING, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -33,9 +35,11 @@ export function registerVscodeSettingsHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerVscodeSettingsHandlersAGENTSTATEAUTOAPPROVALENABLED(): void {
 	onWebviewMessage(AGENT_STATE_AUTO_APPROVAL_ENABLED, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -45,9 +49,11 @@ export function registerVscodeSettingsHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerVscodeSettingsHandlersAGENTSTATEDEBUGSETTING(): void {
 	onWebviewMessage(AGENT_STATE_DEBUG_SETTING, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -57,4 +63,11 @@ export function registerVscodeSettingsHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
+
+export function registerVscodeSettingsHandlers(_bus: IntentBus): void {
+	registerVscodeSettingsHandlersAGENTSTATEUPDATEVSCODESETTING()
+	registerVscodeSettingsHandlersAGENTSTATEGETVSCODESETTING()
+	registerVscodeSettingsHandlersAGENTSTATEAUTOAPPROVALENABLED()
+	registerVscodeSettingsHandlersAGENTSTATEDEBUGSETTING()
 }

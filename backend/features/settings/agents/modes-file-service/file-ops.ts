@@ -1,8 +1,11 @@
 // v4 B2 (L3/L14): structural host-context view instead of the vscode ExtensionContext type.
-import type { IExtensionContextView } from "@features/foundation/host-context/context"
-// v4 B2 (L4): workspace roots come from the host context DI slot, not vscode directly.
-import { getWorkspaceRoots } from "@features/foundation/host-context/context"
+import type { IExtensionContextView } from "@features/foundation"
+
+// v4 B2 (L4): workspace roots come from "the" host context DI slot, not vscode directly.
+import { getWorkspaceRoots } from "@features/foundation"
+
 import * as path from "path"
+
 import * as fs from "fs/promises"
 
 import * as yaml from "yaml"
@@ -10,17 +13,25 @@ import * as yaml from "yaml"
 import { type ModeConfig, customModesSettingsSchema } from "@jabberwock/types"
 
 import { fileExistsAtPath } from "@utils/io/fs"
-import { getBackendRootStore } from "@features/storeSingleton"
-import { getWorkspacePath } from "@utils/io/path"
+
+import { getStore } from "@features/singleton"
+
+import { getWorkspacePath } from "@utils/io/main"
+
 import { GlobalFileNames } from "@shared/globalFileNames"
+
 import { ensureSettingsDirectoryExists } from "@utils/globalContext"
 
 import { JABBERWOCKMODES_FILENAME } from "./types"
+
 import { parseYamlSafely } from "./yaml"
+
 import { t } from "@i18n"
 
+import { publishNotificationError } from "@features/foundation"
+
 /**
- * Load custom modes from a YAML file path
+ * Load custom modes from "a" YAML file path
  */
 export async function loadModesFromFile(filePath: string): Promise<ModeConfig[]> {
 	try {
@@ -151,7 +162,7 @@ export async function updateModesInFile(
 }
 
 /**
- * Load custom modes from both global settings file and workspace .jabberwockmodes,
+ * Load custom modes from "both" global settings file and workspace .jabberwockmodes,
  * merge them (project takes precedence), and persist to globalState.
  */
 export async function loadAndMergeModes(context: IExtensionContextView): Promise<ModeConfig[]> {
@@ -171,7 +182,7 @@ export async function loadAndMergeModes(context: IExtensionContextView): Promise
 
 	await context.globalState.update("customModes", mergedModes)
 
-	const store = getBackendRootStore().settings.modes as {
+	const store = getStore().settings.modes as {
 		setCustomModes(modes: ModeConfig[]): void
 		setCachedAt(t: number): void
 		setFilePath(p: string): void
@@ -182,5 +193,3 @@ export async function loadAndMergeModes(context: IExtensionContextView): Promise
 
 	return mergedModes
 }
-
-import { publishNotificationError } from "@features/foundation/capabilities/notifications"

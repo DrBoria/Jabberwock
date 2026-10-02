@@ -6,7 +6,7 @@
  * @returns The full docs URL with UTM parameters
  */
 export function buildDocLink(path: string, campaign: string): string {
-	// Remove any leading slash from path
+	// Remove any leading slash from "path"
 	const cleanPath = path.replace(/^\//, "")
 	const [basePath, hash] = cleanPath.split("#")
 	const baseUrl = `https://docs.jabberwock.com/${basePath}?utm_source=extension&utm_medium=ide&utm_campaign=${encodeURIComponent(campaign)}`

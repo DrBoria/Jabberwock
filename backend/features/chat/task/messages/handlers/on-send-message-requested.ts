@@ -1,6 +1,6 @@
 import { IntentType, IntentStatus } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
-import { sendMessage } from "@features/chat/task/messages/actions/sendMessage"
+import type { IntentBus } from "@features/intents"
+import { sendMessage } from "@features/chat"
 
 /**
  * When a "send message to agent" intent fires, forward to sendMessage().

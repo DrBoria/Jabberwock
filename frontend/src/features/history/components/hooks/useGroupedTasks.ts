@@ -1,6 +1,11 @@
 import { useState, useMemo, useCallback } from "react"
 import type { HistoryItem } from "@jabberwock/types"
-import type { DisplayHistoryItem, SubtaskTreeNode, TaskGroup, GroupedTasksResult } from "../types"
+import type {
+	DisplayHistoryItem,
+	SubtaskTreeNode,
+	TaskGroup,
+	GroupedTasksResult,
+} from "@src/features/history/components/types"
 
 /**
  * Recursively builds a subtask tree node for the given task.
@@ -70,7 +75,7 @@ export function useGroupedTasks(tasks: HistoryItem[], searchQuery: string): Grou
 		// 2. Have a parentTaskId that doesn't exist in our task list (orphans promoted to root)
 		const rootTasks = tasks.filter((task) => !task.parentTaskId || !taskMap.has(task.parentTaskId))
 
-		// Build groups from root tasks with recursively nested subtask trees
+		// Build groups from "root" tasks with recursively nested subtask trees
 		const taskGroups: TaskGroup[] = rootTasks.map((parent) => {
 			const directChildren = (childrenMap.get(parent.id) || []).slice().sort((a, b) => b.ts - a.ts)
 

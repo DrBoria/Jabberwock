@@ -3,8 +3,8 @@ import { Edit, Trash2 } from "lucide-react"
 
 import type { Command } from "@jabberwock/types"
 
-import { Button } from "@src/shared/ui/buttons/button"
-import { StandardTooltip } from "@src/shared/ui/tooltips/standard-tooltip"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
+import { StandardTooltip } from "@src/shared/ui/tooltips/standard"
 
 interface SlashCommandItemRowProps {
 	command: Command

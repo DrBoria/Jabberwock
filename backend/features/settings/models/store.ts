@@ -1,5 +1,8 @@
 import { types, Instance } from "mobx-state-tree"
-import type { EventBridge } from "@features/foundation/webview/EventBridge"
+
+import type { EventBridge } from "@features/foundation"
+
+import type { IBackendRootStore } from "@features/store"
 
 export const ModelsModel = types.model("Models", {})
 
@@ -33,7 +36,7 @@ export const ApiConfigModel = types
 		apiModelId: types.string,
 		baseUrl: types.string,
 
-		// Common base settings (from baseProviderSettingsSchema)
+		// Common base settings (from "baseProviderSettingsSchema")
 		includeMaxTokens: types.boolean,
 		todoListEnabled: types.boolean,
 		modelTemperature: types.number,
@@ -130,12 +133,14 @@ export const ApiConfigModel = types
 			return result
 		},
 	}))
+
+export type IApiConfigModel = Instance<typeof ApiConfigModel>
+
 export type IModelsModel = Instance<typeof ModelsModel>
+
 export type ModelsState = object
 
 export function initModelsState(_provider: EventBridge): void {}
-
-import type { IBackendRootStore } from "@features/store"
 
 export function getModelsState(rootStore: IBackendRootStore): ModelsState {
 	return rootStore.settings.models as ModelsState

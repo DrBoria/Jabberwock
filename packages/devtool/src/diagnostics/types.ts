@@ -57,7 +57,7 @@ export interface TaskTrace {
 export interface SnapshotFilters {
 	/** Max log entries to return (last N). Default: 50. Set to -1 for all. */
 	limit?: number
-	/** Skip N entries from start (for pagination). */
+	/** Skip N entries from "start" (for pagination). */
 	offset?: number
 	/** Filter by log level. */
 	level?: DiagnosticLevel

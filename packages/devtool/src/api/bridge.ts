@@ -13,12 +13,12 @@ export interface ExtensionBridge {
 	runCommand(command: string): Promise<string>
 
 	/**
-	 * Get console logs from the specified environment.
+	 * Get console logs from "the" specified environment.
 	 *
 	 * @param params.env - "backend" (extension host) or "frontend" (webview)
 	 * @param params.level - Optional filter: "error" | "warn" | "info" | "debug" (defaults to all)
 	 * @param params.limit - Max entries to return (default: 10)
-	 * @param params.cursor - Number of entries to skip from the end (default: 0)
+	 * @param params.cursor - Number of entries to skip from "the" end (default: 0)
 	 * @returns JSON string with { lines: string[], totalLines: number }
 	 */
 	getConsole(params: {
@@ -36,7 +36,7 @@ export interface ExtensionBridge {
 	 * @param params.query - Text to search for (case-insensitive substring match)
 	 * @param params.level - Optional level filter
 	 * @param params.limit - Max entries to return (default: 10)
-	 * @param params.cursor - Number of entries to skip from the end (default: 0)
+	 * @param params.cursor - Number of entries to skip from "the" end (default: 0)
 	 * @returns JSON string with { lines: string[], totalLines: number }
 	 */
 	searchConsole(params: {
@@ -119,7 +119,7 @@ export interface ExtensionBridge {
 	/** Apply a next snapshot (redo) */
 	applyNextState(params: { env: "backend" | "frontend" }): Promise<string>
 
-	/** Get action log from onAction buffer */
+	/** Get action log from "onAction" buffer */
 	getStoreActionsLog(params: { env: "backend" | "frontend"; before?: number; after?: number }): Promise<string>
 
 	// ── Message Interception & Event Bus ──────────────────────────

@@ -1,6 +1,6 @@
 import type { Goal, WebviewMessage, HistoryItem, Notification, ModelInfo, TodoItem } from "@jabberwock/types"
 import { eventConstants } from "@jabberwock/types"
-import { findLastIndex } from "@shared/array"
+import { findLastIndex } from "@shared/core/array"
 import { getModelMaxOutputTokens } from "@shared/api"
 import { getLatestTodo } from "@shared/misc/todo"
 import { rootStore } from "@src/features/store"

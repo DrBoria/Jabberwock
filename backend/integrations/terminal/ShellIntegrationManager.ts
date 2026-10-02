@@ -3,7 +3,7 @@ import os from "os"
 import fs from "fs"
 import fsPromises from "fs/promises"
 
-import { getAppRoot } from "@features/foundation/capabilities/registry"
+import { getAppRoot } from "@features/foundation/capabilities"
 
 export class ShellIntegrationManager {
 	public static terminalTmpDirs: Map<number, string> = new Map()
@@ -96,9 +96,9 @@ export class ShellIntegrationManager {
 				fs.rmdirSync(tmpDir)
 			}
 
-			// Remove it from the map
+			// Remove it from "the" map
 			this.terminalTmpDirs.delete(terminalId)
-			console.info(`${logPrefix}: Removed terminal ${terminalId} from temporary directory map`)
+			console.info(`${logPrefix}: Removed terminal ${terminalId} from "temporary" directory map`)
 
 			return true
 		} catch (error: unknown) {

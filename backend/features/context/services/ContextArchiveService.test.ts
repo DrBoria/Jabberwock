@@ -91,7 +91,7 @@ describe("context archive service (ICG-C1 acceptance)", () => {
 			"SELECT COUNT(*) AS n, COALESCE(MIN(seq), 0) AS minSeq, COALESCE(MAX(seq), 0) AS maxSeq FROM context_messages WHERE task_id = ?",
 			["task-a"],
 		)
-		expect(rows[0]).toEqual({ n: 58, minSeq: 1, maxSeq: 58 }) // contiguous seqs from 1 - zero loss across all branches above
+		expect(rows[0]).toEqual({ n: 58, minSeq: 1, maxSeq: 58 }) // contiguous seqs from "1" - zero loss across all branches above
 	})
 
 	it("A2: reconciliation on start imports the gap left by a crash between JSON write and archive ingest", async () => {

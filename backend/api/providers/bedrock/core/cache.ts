@@ -62,7 +62,7 @@ function getCacheStrategyResult(
 		previousCachePointPlacements: previousPlacements,
 	}
 
-	const strategy = new MultiPointStrategy(config)
+	const strategy = MultiPointStrategy(config)
 	return strategy.determineOptimalCachePoints()
 }
 

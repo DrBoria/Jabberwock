@@ -2,7 +2,8 @@ import type { ApiStream, ApiStreamUsageChunk } from "@api/transform/stream"
 
 import type { OpenAiNativeModel, RawUsage } from "@api/providers/openai-native/types"
 import type { OpenAiNativeStreamContext } from "./core/context"
-import { isTextContent } from "./core/helpers"
+import { isTextContent, yieldTextFromItem } from "./core/helpers"
+import { yieldReasoningFromOutputItem } from "./yielders"
 
 export async function* handleNonCoreFallbacks(
 	parsed: Record<string, unknown>,
@@ -85,7 +86,11 @@ async function* handleCompleteResponseOutput(
 
 	let _localHasContent = hasContent
 	for (const outputItem of output) {
-		if (yield* yieldTextFromOutputItem(outputItem, ctx)) {
+		if (
+			yield* yieldTextFromItem(outputItem, "text", isTextContent, () => {
+				ctx.sawTextOutputInCurrentResponse = true
+			})
+		) {
 			_localHasContent = true
 		}
 		if (yield* yieldReasoningFromOutputItem(outputItem)) {
@@ -99,38 +104,6 @@ async function* handleCompleteResponseOutput(
 		}
 	}
 	return void 0
-}
-
-async function* yieldTextFromOutputItem(
-	outputItem: Record<string, unknown>,
-	ctx: OpenAiNativeStreamContext,
-): ApiStream {
-	if (outputItem.type !== "text") return false
-	if (!outputItem.content) return false
-	let didYield = false
-	const contentArray = outputItem.content as Record<string, unknown>[]
-	for (const content of contentArray) {
-		if (isTextContent(content)) {
-			didYield = true
-			ctx.sawTextOutputInCurrentResponse = true
-			yield { type: "text", text: content.text as string }
-		}
-	}
-	return didYield
-}
-
-async function* yieldReasoningFromOutputItem(outputItem: Record<string, unknown>): ApiStream {
-	if (outputItem.type !== "reasoning") return false
-	if (!Array.isArray(outputItem.summary)) return false
-	let didYield = false
-	const summaryArray = outputItem.summary as Record<string, unknown>[]
-	for (const summary of summaryArray) {
-		if (summary?.type === "summary_text" && typeof summary.text === "string") {
-			didYield = true
-			yield { type: "reasoning", text: summary.text }
-		}
-	}
-	return didYield
 }
 
 export async function* handleUsageEvent(

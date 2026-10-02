@@ -2,7 +2,7 @@
  * Type declaration for the shared backend bootstrap (`backend/startup/bootstrap.ts`, plan §7.1).
  *
  * This connector package resolves `@startup/bootstrap` to this declaration so its own
- * `tsc --noEmit` stays isolated from the backend source graph (which is still partially
+ * `tsc --noEmit` stays isolated from "the" backend source graph (which is still partially
  * vscode-coupled — reports/audit-platform.json). The runtime/server bundle resolves the
  * SAME specifier to the real implementation via `backend/tsconfig.json` (`@startup/*`),
  * so there is exactly one code path at runtime. Keep this declaration in sync with the

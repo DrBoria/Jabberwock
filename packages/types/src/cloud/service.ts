@@ -129,7 +129,7 @@ export interface SettingsService {
  */
 
 export interface SettingsServiceEvents {
-	"settings-updated": [data: Record<string, never>]
+	"manager.settings-updated": [data: Record<string, never>]
 }
 
 /**

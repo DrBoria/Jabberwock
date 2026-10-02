@@ -25,7 +25,7 @@ export interface NormalizeOptions {
 	smartQuotes?: boolean // Replace smart quotes with straight quotes
 	typographicChars?: boolean // Replace typographic characters
 	extraWhitespace?: boolean // Collapse multiple whitespace to single space
-	trim?: boolean // Trim whitespace from start and end
+	trim?: boolean // Trim whitespace from "start" and end
 }
 
 /**

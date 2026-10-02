@@ -18,72 +18,36 @@ const mcpMarketplaceResponse = z.object({
 	items: z.array(mcpMarketplaceItemSchema),
 })
 
-export class RemoteConfigLoader {
-	private apiBaseUrl: string
-	private cache: Map<string, { data: MarketplaceItem[]; timestamp: number }> = new Map()
-	private cacheDuration = 5 * 60 * 1000 // 5 minutes
+/**
+ * RemoteConfigLoader — loads marketplace items from the Jabberwock API
+ * with a short-lived in-memory cache.
+ */
+export function RemoteConfigLoader() {
+	const apiBaseUrl = getJabberwockApiUrl()
+	const cache = new Map<string, { data: MarketplaceItem[]; timestamp: number }>()
+	const cacheDuration = 5 * 60 * 1000 // 5 minutes
 
-	constructor() {
-		this.apiBaseUrl = getJabberwockApiUrl()
-	}
+	function getFromCache(key: string): MarketplaceItem[] | null {
+		const cached = cache.get(key)
+		if (!cached) return null
 
-	async loadAllItems(hideMarketplaceMcps = false): Promise<MarketplaceItem[]> {
-		const items: MarketplaceItem[] = []
-
-		const modesPromise = this.fetchModes()
-		const mcpsPromise = hideMarketplaceMcps ? Promise.resolve([]) : this.fetchMcps()
-
-		const [modes, mcps] = await Promise.all([modesPromise, mcpsPromise])
-
-		items.push(...modes, ...mcps)
-		return items
-	}
-
-	private async fetchModes(): Promise<MarketplaceItem[]> {
-		const cacheKey = "modes"
-		const cached = this.getFromCache(cacheKey)
-
-		if (cached) {
-			return cached
+		const now = Date.now()
+		if (now - cached.timestamp > cacheDuration) {
+			cache.delete(key)
+			return null
 		}
 
-		const data = await this.fetchWithRetry<string>(`${this.apiBaseUrl}/api/marketplace/modes`)
-
-		const yamlData = yaml.parse(data)
-		const validated = modeMarketplaceResponse.parse(yamlData)
-
-		const items: MarketplaceItem[] = validated.items.map((item) => ({
-			type: "mode" as const,
-			...item,
-		}))
-
-		this.setCache(cacheKey, items)
-		return items
+		return cached.data
 	}
 
-	private async fetchMcps(): Promise<MarketplaceItem[]> {
-		const cacheKey = "mcps"
-		const cached = this.getFromCache(cacheKey)
-
-		if (cached) {
-			return cached
-		}
-
-		const data = await this.fetchWithRetry<string>(`${this.apiBaseUrl}/api/marketplace/mcps`)
-
-		const yamlData = yaml.parse(data)
-		const validated = mcpMarketplaceResponse.parse(yamlData)
-
-		const items: MarketplaceItem[] = validated.items.map((item) => ({
-			type: "mcp" as const,
-			...item,
-		}))
-
-		this.setCache(cacheKey, items)
-		return items
+	function setCache(key: string, data: MarketplaceItem[]): void {
+		cache.set(key, {
+			data,
+			timestamp: Date.now(),
+		})
 	}
 
-	private async fetchWithRetry<T>(url: string, maxRetries = 3): Promise<T> {
+	async function fetchWithRetry<T>(url: string, maxRetries = 3): Promise<T> {
 		let lastError: Error
 
 		for (let i = 0; i < maxRetries; i++) {
@@ -109,32 +73,73 @@ export class RemoteConfigLoader {
 		throw lastError!
 	}
 
-	async getItem(id: string, type: MarketplaceItemType): Promise<MarketplaceItem | null> {
-		const items = await this.loadAllItems()
-		return items.find((item) => item.id === id && item.type === type) || null
-	}
+	async function fetchModes(): Promise<MarketplaceItem[]> {
+		const cacheKey = "modes"
+		const cached = getFromCache(cacheKey)
 
-	private getFromCache(key: string): MarketplaceItem[] | null {
-		const cached = this.cache.get(key)
-		if (!cached) return null
-
-		const now = Date.now()
-		if (now - cached.timestamp > this.cacheDuration) {
-			this.cache.delete(key)
-			return null
+		if (cached) {
+			return cached
 		}
 
-		return cached.data
+		const data = await fetchWithRetry<string>(`${apiBaseUrl}/api/marketplace/modes`)
+
+		const yamlData = yaml.parse(data)
+		const validated = modeMarketplaceResponse.parse(yamlData)
+
+		const items: MarketplaceItem[] = validated.items.map((item) => ({
+			type: "mode" as const,
+			...item,
+		}))
+
+		setCache(cacheKey, items)
+		return items
 	}
 
-	private setCache(key: string, data: MarketplaceItem[]): void {
-		this.cache.set(key, {
-			data,
-			timestamp: Date.now(),
-		})
+	async function fetchMcps(): Promise<MarketplaceItem[]> {
+		const cacheKey = "mcps"
+		const cached = getFromCache(cacheKey)
+
+		if (cached) {
+			return cached
+		}
+
+		const data = await fetchWithRetry<string>(`${apiBaseUrl}/api/marketplace/mcps`)
+
+		const yamlData = yaml.parse(data)
+		const validated = mcpMarketplaceResponse.parse(yamlData)
+
+		const items: MarketplaceItem[] = validated.items.map((item) => ({
+			type: "mcp" as const,
+			...item,
+		}))
+
+		setCache(cacheKey, items)
+		return items
 	}
 
-	clearCache(): void {
-		this.cache.clear()
+	return {
+		async loadAllItems(hideMarketplaceMcps = false): Promise<MarketplaceItem[]> {
+			const items: MarketplaceItem[] = []
+
+			const modesPromise = fetchModes()
+			const mcpsPromise = hideMarketplaceMcps ? Promise.resolve([]) : fetchMcps()
+
+			const [modes, mcps] = await Promise.all([modesPromise, mcpsPromise])
+
+			items.push(...modes, ...mcps)
+			return items
+		},
+
+		async getItem(id: string, type: MarketplaceItemType): Promise<MarketplaceItem | null> {
+			const items = await this.loadAllItems()
+			return items.find((item) => item.id === id && item.type === type) || null
+		},
+
+		clearCache(): void {
+			cache.clear()
+		},
 	}
 }
+
+/** RemoteConfigLoader instance type */
+export type RemoteConfigLoader = ReturnType<typeof RemoteConfigLoader>

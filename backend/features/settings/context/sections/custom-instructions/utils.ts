@@ -2,6 +2,10 @@ import fs from "fs/promises"
 import path from "path"
 import { Dirent } from "fs"
 
+import { directoryExists } from "@services/jabberwock-config/config"
+
+export { directoryExists }
+
 /**
  * Safely read a file and return its trimmed content
  */
@@ -15,18 +19,6 @@ export async function safeReadFile(filePath: string): Promise<string> {
 			throw err
 		}
 		return ""
-	}
-}
-
-/**
- * Check if a directory exists
- */
-export async function directoryExists(dirPath: string): Promise<boolean> {
-	try {
-		const stats = await fs.stat(dirPath)
-		return stats.isDirectory()
-	} catch (_err) {
-		return false
 	}
 }
 
@@ -93,7 +85,7 @@ export async function resolveSymLink(
 }
 
 /**
- * Read all text files from a directory in alphabetical order
+ * Read all text files from "a" directory in alphabetical order
  */
 export async function readTextFilesFromDirectory(
 	dirPath: string,
@@ -148,7 +140,7 @@ export async function readTextFilesFromDirectory(
 }
 
 /**
- * Format content from multiple files with filenames as headers
+ * Format content from "multiple" files with filenames as headers
  */
 export function formatDirectoryContent(files: Array<{ filename: string; content: string }>, cwd: string): string {
 	if (files.length === 0) return ""

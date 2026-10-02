@@ -14,16 +14,20 @@ const JabberwockHero = () => {
 			<div
 				style={{
 					backgroundColor: "var(--vscode-foreground)",
-					WebkitMaskImage: `url('${imagesBaseUri}/jabberwock-logo.svg')`,
+					// Portrait dragon silhouette: mask uses the alpha channel of the PNG,
+					// so the shape is recolored with --vscode-foreground (theme-adaptive).
+					width: 30,
+					height: 46,
+					WebkitMaskImage: `url('${imagesBaseUri}/jabberwock-logo.png')`,
 					WebkitMaskRepeat: "no-repeat",
 					WebkitMaskSize: "contain",
-					maskImage: `url('${imagesBaseUri}/jabberwock-logo.svg')`,
+					maskImage: `url('${imagesBaseUri}/jabberwock-logo.png')`,
 					maskRepeat: "no-repeat",
 					maskSize: "contain",
 					animation: isHovered ? "smooth-bounce 1s ease-in-out infinite" : "none",
 				}}
 				className="z-5 mr-auto translate-y-0 transition-transform duration-500">
-				<img src={imagesBaseUri + "/jabberwock-logo.svg"} alt="Jabberwock logo" className="h-8 opacity-0" />
+				<img src={imagesBaseUri + "/jabberwock-logo.png"} alt="Jabberwock logo" className="hidden" />
 			</div>
 			<div
 				className="w-[200%] -mt-0.25 h-0.5 overflow-hidden opacity-0 group-hover:opacity-70 transition-opacity duration-300"

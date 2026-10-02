@@ -1,4 +1,4 @@
-import { findLastIndex } from "@shared/array"
+import { findLastIndex } from "@shared/core/array"
 import { getModelMaxOutputTokens } from "@shared/api"
 import type { ModelInfo, Notification } from "@jabberwock/types"
 import { getLatestTodo } from "@shared/misc/todo"

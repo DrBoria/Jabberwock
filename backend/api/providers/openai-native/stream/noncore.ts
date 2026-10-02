@@ -4,6 +4,8 @@ import type { OpenAiNativeModel, RawUsage } from "@api/providers/openai-native/t
 import type { OpenAiNativeStreamContext } from "./core/context"
 import { captureResponseMetadata } from "./events"
 import { handleNonCoreFallbacks, handleUsageEvent } from "./fallback"
+import { yieldTextFromItem } from "./core/helpers"
+import { yieldReasoningFromOutputItem } from "./yielders"
 
 async function handleErrorEvent(parsed: Record<string, unknown>, message: string): Promise<boolean> {
 	if (parsed.error || parsed.message) {
@@ -13,41 +15,13 @@ async function handleErrorEvent(parsed: Record<string, unknown>, message: string
 	return false
 }
 
-async function* yieldTextFromMessageItem(outputItem: Record<string, unknown>): ApiStream {
-	if (outputItem.type !== "message") return false
-	if (!outputItem.content) return false
-	let didYield = false
-	const contentArray = outputItem.content as Record<string, unknown>[]
-	for (const content of contentArray) {
-		if (content.type === "output_text" && content.text) {
-			didYield = true
-			yield { type: "text", text: content.text as string }
-		}
-	}
-	return didYield
-}
-
-async function* yieldReasoningFromMessageItem(outputItem: Record<string, unknown>): ApiStream {
-	if (outputItem.type !== "reasoning") return false
-	if (!Array.isArray(outputItem.summary)) return false
-	let didYield = false
-	const summaryArray = outputItem.summary as Record<string, unknown>[]
-	for (const summary of summaryArray) {
-		if (summary?.type === "summary_text" && typeof summary.text === "string") {
-			didYield = true
-			yield { type: "reasoning", text: summary.text }
-		}
-	}
-	return didYield
-}
-
 async function* handleCompleteResponse(parsed: Record<string, unknown>, _hasContent: boolean): ApiStream {
 	const response = parsed.response as Record<string, unknown> | undefined
 	const output = response?.output as Record<string, unknown>[] | undefined
 	if (!Array.isArray(output)) return void 0
 	for (const outputItem of output) {
-		yield* yieldTextFromMessageItem(outputItem)
-		yield* yieldReasoningFromMessageItem(outputItem)
+		yield* yieldTextFromItem(outputItem, "message", (content) => content.type === "output_text" && !!content.text)
+		yield* yieldReasoningFromOutputItem(outputItem)
 	}
 	return void 0
 }

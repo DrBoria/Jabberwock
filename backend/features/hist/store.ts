@@ -1,4 +1,4 @@
-import { types, Instance } from "mobx-state-tree"
+import { types, Instance, SnapshotIn } from "mobx-state-tree"
 
 /**
  * MST model for a single task history item.
@@ -30,13 +30,13 @@ export const HistoryModel = types
 		currentTaskId: types.string,
 	})
 	.actions((self) => ({
-		setItems(items: Instance<typeof HistoryTaskModel>[]) {
-			self.items.replace(items)
+		setItems(items: Array<SnapshotIn<typeof HistoryTaskModel>>) {
+			self.items.splice(0, self.items.length, ...items)
 		},
-		addItem(item: Instance<typeof HistoryTaskModel>) {
+		addItem(item: SnapshotIn<typeof HistoryTaskModel>) {
 			self.items.push(item)
 		},
-		updateItem(id: string, update: Partial<Instance<typeof HistoryTaskModel>>) {
+		updateItem(id: string, update: Partial<SnapshotIn<typeof HistoryTaskModel>>) {
 			const idx = self.items.findIndex((i) => i.id === id)
 			if (idx !== -1) {
 				Object.assign(self.items[idx], update)

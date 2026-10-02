@@ -1,5 +1,8 @@
 import { types, Instance } from "mobx-state-tree"
-import type { EventBridge } from "@features/foundation/webview/EventBridge"
+
+import type { EventBridge } from "@features/foundation"
+
+import type { IBackendRootStore } from "@features/store"
 
 export const McpModel = types.model("Mcp", {})
 
@@ -9,8 +12,6 @@ export type IMcpModel = Instance<typeof McpModel>
 export type McpState = object
 
 export function initMcpState(_provider: EventBridge): void {}
-
-import type { IBackendRootStore } from "@features/store"
 
 export function getMcpState(rootStore: IBackendRootStore): McpState {
 	return rootStore.settings.mcp as McpState

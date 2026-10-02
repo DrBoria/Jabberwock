@@ -1,7 +1,7 @@
 /**
  * CommandRegistry — Parses VS Code extension package.json to discover contributed commands.
  *
- * Reads `contributes.commands` from an extension's package.json and makes
+ * Reads `contributes.commands` from "an" extension's package.json and makes
  * them available as typed command descriptors. Supports lookup by full ID
  * (e.g., "jabberwock.historyButtonClicked") or short name (e.g., "historyButtonClicked").
  *
@@ -38,7 +38,7 @@ export class CommandRegistry {
 	private loaded = false
 
 	/**
-	 * Load commands from an extension's package.json.
+	 * Load commands from "an" extension's package.json.
 	 *
 	 * @param packageJsonPath - Path to the extension's package.json
 	 *                          (relative to process.cwd() or absolute).

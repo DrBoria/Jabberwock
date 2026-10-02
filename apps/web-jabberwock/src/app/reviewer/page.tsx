@@ -4,7 +4,7 @@ import { SEO } from "@/lib/seo"
 import { ogImageUrl } from "@/lib/og"
 import { AgentLandingContent } from "@/app/shared/AgentLandingContent"
 import { getContentVariant } from "@/app/shared/getContentVariant"
-import { content as contentA } from "./content"
+import { content as contentA } from "./content-a"
 import { content as contentB } from "./content-b"
 
 const TITLE = "PR Reviewer"

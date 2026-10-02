@@ -1,7 +1,202 @@
 import { z } from "zod"
 
-import { notificationAskSchema } from "./notification-ask.ts"
-import { notificationSaySchema } from "./notification-say.ts"
+/**
+ * NotificationAsk
+ *
+ * Array of possible ask types that the LLM can use to request user interaction or approval.
+ * These represent different scenarios where the assistant needs user input to proceed.
+ *
+ * @constant
+ * @readonly
+ *
+ * Ask type descriptions:
+ * - `followup`: LLM asks a clarifying question to gather more information needed to complete the task
+ * - `command`: Permission to execute a terminal/shell command
+ * - `command_output`: Permission to read the output from "a" previously executed command
+ * - `completion_result`: Task has been completed, awaiting user feedback or a new task
+ * - `tool`: Permission to use a tool for file operations (read, write, search, etc.)
+ * - `api_req_failed`: API request failed, asking user whether to retry
+ * - `resume_task`: Confirmation needed to resume a previously paused task
+ * - `resume_completed_task`: Confirmation needed to resume a task that was already marked as completed
+ * - `mistake_limit_reached`: Too many errors encountered, needs user guidance on how to proceed
+ * - `use_mcp_server`: Permission to use Model Context Protocol (MCP) server functionality
+ * - `auto_approval_max_req_reached`: Auto-approval limit has been reached, manual approval required
+ */
+export const notificationAskTypes = [
+	"followup",
+	"command",
+	"command_output",
+	"completion_result",
+	"tool",
+	"api_req_failed",
+	"resume_task",
+	"resume_completed_task",
+	"mistake_limit_reached",
+	"use_mcp_server",
+	"interactive_app",
+	"auto_approval_max_req_reached",
+] as const
+
+export const notificationAskSchema = z.enum(notificationAskTypes)
+
+export type NotificationAsk = z.infer<typeof notificationAskSchema>
+
+/**
+ * IdleAsk
+ *
+ * Asks that put the task into an "idle" state.
+ */
+
+export const idleAsks = [
+	"completion_result",
+	"api_req_failed",
+	"resume_completed_task",
+	"mistake_limit_reached",
+	"auto_approval_max_req_reached",
+] as const satisfies readonly NotificationAsk[]
+
+export type IdleAsk = (typeof idleAsks)[number]
+
+/**
+ * ResumableAsk
+ *
+ * Asks that put the task into an "resumable" state.
+ */
+
+export const resumableAsks = ["resume_task"] as const satisfies readonly NotificationAsk[]
+
+export type ResumableAsk = (typeof resumableAsks)[number]
+
+/**
+ * InteractiveAsk
+ *
+ * Asks that put the task into an "user interaction required" state.
+ */
+
+export const interactiveAsks = [
+	"followup",
+	"command",
+	"tool",
+	"use_mcp_server",
+	"interactive_app",
+] as const satisfies readonly NotificationAsk[]
+
+export type InteractiveAsk = (typeof interactiveAsks)[number]
+
+/**
+ * NonBlockingAsk
+ *
+ * Asks that are not associated with an actual approval, and are only used
+ * to update chat messages.
+ */
+
+export const nonBlockingAsks = ["command_output"] as const satisfies readonly NotificationAsk[]
+
+export type NonBlockingAsk = (typeof nonBlockingAsks)[number]
+
+/**
+ * Type guard to check if a NotificationAsk is an idle ask type.
+ */
+export const isIdleAsk = (ask: NotificationAsk): ask is IdleAsk =>
+	ask === "completion_result" ||
+	ask === "api_req_failed" ||
+	ask === "resume_completed_task" ||
+	ask === "mistake_limit_reached" ||
+	ask === "auto_approval_max_req_reached"
+
+/**
+ * Type guard to check if a NotificationAsk is a resumable ask type.
+ */
+export const isResumableAsk = (ask: NotificationAsk): ask is ResumableAsk => ask === "resume_task"
+
+/**
+ * Type guard to check if a NotificationAsk is an interactive ask type.
+ */
+export const isInteractiveAsk = (ask: NotificationAsk): ask is InteractiveAsk =>
+	ask === "followup" || ask === "command" || ask === "tool" || ask === "use_mcp_server" || ask === "interactive_app"
+
+/**
+ * Type guard to check if a NotificationAsk is a non-blocking ask type.
+ */
+export const isNonBlockingAsk = (ask: NotificationAsk): ask is NonBlockingAsk => ask === "command_output"
+
+/**
+ * @deprecated "say" type is being replaced by ChatMessage discriminated union types.
+ * Use packages/types/src/message.ts ChatMessage (UserMessage | AgentMessage | McpToolMessage | SystemMessage).
+ * All new code should produce ChatMessage instead of Notification with type "say".
+ *
+ * See architectural-restructure-v2.md §3 for migration guide.
+ */
+
+/**
+ * @deprecated Use ChatMessage types instead.
+ * Array of possible say types that represent different kinds of messages the assistant can send.
+ * These are used to categorize and handle various types of communication from "the" LLM to the user.
+ *
+ * @constant
+ * @readonly
+ *
+ * Say type descriptions:
+ * - `error`: General error message
+ * - `api_req_started`: Indicates an API request has been initiated
+ * - `api_req_finished`: Indicates an API request has completed successfully
+ * - `api_req_retried`: Indicates an API request is being retried after a failure
+ * - `api_req_retry_delayed`: Indicates an API request retry has been delayed
+ * - `api_req_rate_limit_wait`: Indicates a configured rate-limit wait (not an error)
+ * - `api_req_deleted`: Indicates an API request has been deleted/cancelled
+ * - `text`: General text message or assistant response
+ * - `reasoning`: Assistant's reasoning or thought process (often hidden from "user")
+ * - `completion_result`: Final result of task completion
+ * - `user_feedback`: Message containing user feedback
+ * - `user_feedback_diff`: Diff-formatted feedback from "user" showing requested changes
+ * - `command_output`: Output from "an" executed command
+ * - `shell_integration_warning`: Warning about shell integration issues or limitations
+ * - `mcp_server_request_started`: MCP server request has been initiated
+ * - `mcp_server_response`: Response received from "MCP" server
+ * - `subtask_result`: Result of a completed subtask
+ * - `checkpoint_saved`: Indicates a checkpoint has been saved
+ * - `rooignore_error`: Error related to .jabberwockignore file processing
+ * - `diff_error`: Error occurred while applying a diff/patch
+ * - `condense_context`: Context condensation/summarization has started
+ * - `condense_context_error`: Error occurred during context condensation
+ * - `codebase_search_result`: Results from "searching" the codebase
+ * - `too_many_tools_warning`: Warning that too many MCP tools are enabled, which may confuse the LLM
+ */
+export const notificationSayTypes = [
+	"error",
+	"api_req_started",
+	"api_req_finished",
+	"api_req_retried",
+	"api_req_retry_delayed",
+	"api_req_rate_limit_wait",
+	"api_req_deleted",
+	"text",
+	"image",
+	"reasoning",
+	"completion_result",
+	"user_feedback",
+	"user_feedback_diff",
+	"command_output",
+	"shell_integration_warning",
+	"mcp_server_request_started",
+	"mcp_server_response",
+	"subtask_result",
+	"checkpoint_saved",
+	"rooignore_error",
+	"diff_error",
+	"condense_context",
+	"condense_context_error",
+	"sliding_window_truncation",
+	"codebase_search_result",
+	"user_edit_todos",
+	"too_many_tools_warning",
+	"tool",
+	"api_req_feedback",
+] as const
+
+export const notificationSaySchema = z.enum(notificationSayTypes)
+
+export type NotificationSay = z.infer<typeof notificationSaySchema>
 
 /**
  * ToolProgressStatus

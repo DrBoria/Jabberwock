@@ -1,2 +1,2 @@
-export { supportPrompt, createPrompt } from "./support-prompt"
-export type { CustomSupportPrompts, SupportPromptType, PromptParams } from "./support-prompt"
+export { supportPrompt, createPrompt } from "./main"
+export type { CustomSupportPrompts, SupportPromptType, PromptParams } from "./main"

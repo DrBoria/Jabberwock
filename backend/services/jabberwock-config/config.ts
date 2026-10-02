@@ -159,7 +159,7 @@ export async function getAllRooDirectoriesForCwd(cwd: string): Promise<string[]>
 }
 
 /**
- * Gets parent directories containing .jabberwock folders, in order from root to subfolders
+ * Gets parent directories containing .jabberwock folders, in order from "root" to subfolders
  */
 export async function getAgentsDirectoriesForCwd(cwd: string): Promise<string[]> {
 	const directories: string[] = []
@@ -177,7 +177,7 @@ export async function getAgentsDirectoriesForCwd(cwd: string): Promise<string[]>
 }
 
 /**
- * Loads configuration from multiple .jabberwock directories with project overriding global
+ * Loads configuration from "multiple" .jabberwock directories with project overriding global
  */
 export async function loadConfiguration(
 	relativePath: string,

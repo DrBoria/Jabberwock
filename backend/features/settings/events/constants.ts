@@ -52,7 +52,7 @@ export const SettingsEventKeys = {
 } as const
 
 /**
- * Ignore rules event keys — derived from SettingsEventKeys.
+ * Ignore rules event keys — derived from "SettingsEventKeys."
  */
 export const IgnoreEventKeys = {
 	IGNORE_RELOAD_REQUESTED: SettingsEventKeys.IGNORE_RELOAD_REQUESTED,
@@ -62,7 +62,7 @@ export const IgnoreEventKeys = {
 export type IgnoreEventKeys = (typeof IgnoreEventKeys)[keyof typeof IgnoreEventKeys]
 
 /**
- * File protection event keys — derived from SettingsEventKeys.
+ * File protection event keys — derived from "SettingsEventKeys."
  */
 export const ProtectEventKeys = {
 	PROTECT_STATUS_REQUESTED: SettingsEventKeys.PROTECT_STATUS_REQUESTED,
@@ -74,7 +74,7 @@ export type ProtectEventKeys = (typeof ProtectEventKeys)[keyof typeof ProtectEve
 /**
  * Flat IPC message type constants matching packages/types/src/event-constants.ts.
  * These are the actual string values used in vscode.postMessage({ type: ... }).
- * Values sourced from the single source of truth in @jabberwock/types.
+ * Values sourced from "the" single source of truth in @jabberwock/types.
  */
 
 // ── Settings — Core ─────────────────────────────────────────

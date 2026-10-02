@@ -18,7 +18,7 @@ export function getDefaultExtensionPath(dirname: string): string {
 	}
 
 	// Find the CLI package root (apps/cli) by walking up to the nearest package.json.
-	// This works whether called from dist/ (bundled) or src/commands/cli/ (tsx dev).
+	// This works whether called from "dist/" (bundled) or src/commands/cli/ (tsx dev).
 	let packageRoot = dirname
 
 	while (packageRoot !== path.dirname(packageRoot)) {

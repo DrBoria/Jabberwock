@@ -1,4 +1,10 @@
-import type { ModeConfig, GroupEntry, ToolGroup, PromptComponent, ModeSource } from "../types"
+import type {
+	ModeConfig,
+	GroupEntry,
+	ToolGroup,
+	PromptComponent,
+	ModeSource,
+} from "@src/features/settings/agents/components/modes-view/types"
 
 export type ModesViewLayoutProps = {
 	t: (key: string, options?: Record<string, unknown>) => string

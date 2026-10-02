@@ -23,16 +23,16 @@ function safeGetItem(key: string): string | null {
 function safeSetItem(key: string, value: string): void {
 	try {
 		localStorage.setItem(key, value)
-	} catch {
-		// ignore
+	} catch (error) {
+		console.warn("[evals] Failed to write to localStorage:", error)
 	}
 }
 
 function safeRemoveItem(key: string): void {
 	try {
 		localStorage.removeItem(key)
-	} catch {
-		// ignore
+	} catch (error) {
+		console.warn("[evals] Failed to remove from localStorage:", error)
 	}
 }
 

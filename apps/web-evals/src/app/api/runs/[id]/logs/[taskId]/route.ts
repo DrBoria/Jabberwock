@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server"
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
 
-import { findTask, findRun } from "@jabberwock/evals"
+import { tasksStore, runsStore } from "@jabberwock/evals"
 
 export const dynamic = "force-dynamic"
 
@@ -27,10 +27,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 		}
 
 		// Verify the run exists
-		await findRun(runId)
+		await runsStore.find(runId)
 
 		// Get the task to find its language and exercise
-		const task = await findTask(taskIdNum)
+		const task = await tasksStore.find(taskIdNum)
 
 		// Verify the task belongs to this run
 		if (task.runId !== runId) {

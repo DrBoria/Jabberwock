@@ -83,21 +83,23 @@ const STREAM_HANDLERS: Record<string, StreamHandler> = {
 	error: handleError,
 }
 
-const SILENT_EVENTS = new Set([
-	"text-start",
-	"text-end",
-	"reasoning-start",
-	"reasoning-end",
-	"start-step",
-	"finish-step",
-	"start",
-	"finish",
-	"abort",
-	"file",
-	"tool-result",
-	"tool-error",
-	"raw",
-])
+const __moduleState = {
+	SILENT_EVENTS: new Set([
+		"text-start",
+		"text-end",
+		"reasoning-start",
+		"reasoning-end",
+		"start-step",
+		"finish-step",
+		"start",
+		"finish",
+		"abort",
+		"file",
+		"tool-result",
+		"tool-error",
+		"raw",
+	]),
+}
 
 /**
  * Extended stream part type that includes additional fullStream event types
@@ -117,7 +119,7 @@ export type ExtendedStreamPart =
  * @yields ApiStreamChunk objects corresponding to the stream part
  */
 export function* processAiSdkStreamPart(part: ExtendedStreamPart): Generator<ApiStreamChunk> {
-	if (SILENT_EVENTS.has(part.type)) {
+	if (__moduleState.SILENT_EVENTS.has(part.type)) {
 		return
 	}
 	const handler = STREAM_HANDLERS[part.type]

@@ -7,9 +7,9 @@ import {
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { rootStore } from "@src/features/store"
-import { Button } from "@src/shared/ui/buttons/button"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
 
-import { ModelPicker } from "../../../ModelPicker/ModelPickerComponent"
+import { ModelPicker } from "@src/features/settings/components/ModelPicker/main"
 
 type RooProps = {
 	apiConfiguration: ProviderSettings

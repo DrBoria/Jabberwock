@@ -1,4 +1,4 @@
-export { serializeDomToTree } from "./serialization.js"
+export { serializeDomToTree } from "./dom-tree.js"
 export {
 	getNodeKey,
 	getRelevantAttributes,

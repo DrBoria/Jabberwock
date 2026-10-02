@@ -5,9 +5,9 @@ import { getLanguageFromPath } from "@src/utils/helpers/getLanguageFromPath"
 import { formatPathTooltip } from "@src/utils/format/formatPathTooltip"
 
 import { ToolUseBlock, ToolUseBlockHeader } from "./ToolUseBlock"
-import CodeBlock from "./CodeBlock"
-import { PathTooltip } from "@src/shared/ui/tooltips/PathTooltip"
-import DiffView from "../diff/DiffView"
+import CodeBlock from "./CodeBlock-main"
+import { PathTooltip } from "@src/shared/ui/tooltips/path"
+import DiffView from "@src/features/foundation/components/diff/main"
 
 interface CodeAccordionProps {
 	path?: string

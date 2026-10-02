@@ -3,3 +3,4 @@
  */
 export { frontendCloudEventConstants } from "./constants"
 export type { FrontendCloudEventKey } from "./constants"
+export { registerOnFrontendCloudIntents } from "./handlers/cloud-received"

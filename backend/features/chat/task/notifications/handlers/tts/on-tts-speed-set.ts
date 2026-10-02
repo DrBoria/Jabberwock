@@ -1,8 +1,8 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
+import type { IntentBus } from "@features/intents"
 import { setTtsSpeed } from "@utils/token/tts"
-import { getHostEnvironment } from "@features/foundation/host-context/context"
-import { postStateToWebview } from "@features/foundation/window-manager/store"
+import { getHostEnvironment } from "@features/foundation"
+import { postStateToWebview } from "@features/foundation"
 
 /**
  * Handles notification.tts.speed.set intent — sets TTS playback speed.

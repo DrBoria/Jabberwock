@@ -2,7 +2,7 @@ import { types, Instance } from "mobx-state-tree"
 
 /**
  * ApiConfigStore — tracks API configuration list and current selection.
- * Receives snapshots from the extension-side store via MstBridge.
+ * Receives snapshots from "the" extension-side store via MstBridge.
  */
 const ApiConfigStore = types.model("ApiConfigStore", {
 	listApiConfigMeta: types.array(types.frozen<Record<string, unknown>>()),
@@ -11,7 +11,7 @@ const ApiConfigStore = types.model("ApiConfigStore", {
 
 /**
  * AutoApproveStore — tracks auto-approval settings.
- * Receives snapshots from the extension-side store via MstBridge.
+ * Receives snapshots from "the" extension-side store via MstBridge.
  */
 const AutoApproveStore = types.model("AutoApproveStore", {
 	autoApproveSettings: types.frozen<Record<string, boolean>>(),
@@ -20,7 +20,7 @@ const AutoApproveStore = types.model("AutoApproveStore", {
 
 /**
  * IndexingStore — tracks code indexing status and search results.
- * Receives snapshots from the extension-side store via MstBridge.
+ * Receives snapshots from "the" extension-side store via MstBridge.
  */
 const IndexingStore = types.model("IndexingStore", {
 	indexingStatus: types.frozen<Record<string, unknown>>(),
@@ -29,7 +29,7 @@ const IndexingStore = types.model("IndexingStore", {
 
 /**
  * ModeSelectorStore — tracks available modes and current mode selection.
- * Receives snapshots from the extension-side store via MstBridge.
+ * Receives snapshots from "the" extension-side store via MstBridge.
  */
 const ModeSelectorStore = types
 	.model("ModeSelectorStore", {

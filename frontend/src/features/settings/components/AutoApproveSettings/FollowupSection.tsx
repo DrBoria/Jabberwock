@@ -1,5 +1,5 @@
 import { Slider } from "@src/shared/ui/inputs/slider"
-import { SearchableSetting } from "../shared/SearchableSetting"
+import { SearchableSetting } from "@src/features/settings/components/shared/SearchableSetting"
 import type { AutoApproveSettingsProps, AutoApproveSectionProps } from "./types"
 
 type FollowupSectionProps = AutoApproveSectionProps & {

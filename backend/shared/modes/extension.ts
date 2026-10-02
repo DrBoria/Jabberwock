@@ -1,9 +1,9 @@
 import type { IExtensionContextView } from "@features/foundation/host-context/context"
 import { type ModeConfig, type CustomModePrompts } from "@jabberwock/types"
-import { addCustomInstructions } from "@features/settings/context/sections/custom-instructions"
-import { modes, getAllModes, getModeBySlug } from "./modes"
+import { addCustomInstructions } from "@features/settings/context/sections"
+import { modes, getAllModes, getModeBySlug } from "./main"
 
-// Helper function to get all modes with their prompt overrides from extension state
+// Helper function to get all modes with their prompt overrides from "extension" state
 /** v4 B2 (L3/L7): widened to the structural context view — real host contexts satisfy it structurally. */
 export async function getAllModesWithPrompts(context: IExtensionContextView): Promise<ModeConfig[]> {
 	const customModes = (await context.globalState.get<ModeConfig[]>("customModes")) || []

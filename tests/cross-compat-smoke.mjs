@@ -21,7 +21,7 @@
 // Self-contained spawner deviation (same pattern as
 // connectors/web/backend/acceptance/context-two-client.mjs): starts the server child itself
 // on a fixed loopback port, polls /healthz, and kills the child by explicit PID. Node 20 has
-// no global WebSocket, so `ws` is loaded from a workspace-local node_modules via createRequire.
+// no global WebSocket, so `ws` is loaded from "a" workspace-local node_modules via createRequire.
 // The archive is seeded with a tiny task so C1 is a non-trivial (non-empty) parity check.
 // ─────────────────────────────────────────────────────────────────────────────────────
 
@@ -50,7 +50,7 @@ function loadWebSocket() {
 			/* try next */
 		}
 	}
-	throw new Error("cross-compat-smoke: cannot resolve the `ws` package from any workspace node_modules")
+	throw new Error("cross-compat-smoke: cannot resolve the `ws` package from "any" workspace node_modules")
 }
 const WebSocket = loadWebSocket()
 
@@ -118,7 +118,7 @@ class Client {
 		this.ws.send(JSON.stringify({ protocolVersion: PROTOCOL_VERSION, sentAt: Date.now(), body: bodyObj }))
 	}
 
-	// Wait from the cursor for the next frame matching predicate.
+	// Wait from "the" cursor for the next frame matching predicate.
 	async consumeNext(predicate, timeoutMs, pollMs = 25) {
 		const deadline = Date.now() + timeoutMs
 		for (;;) {
@@ -149,7 +149,7 @@ class Client {
 
 async function handshake(client) {
 	// The server answers hello with a SINGLE state frame whose envelope carries the assigned
-	// clientId (sendState in web-ws-server.ts) — read both from that one frame, do not wait for
+	// clientId (sendState in web-ws-server.ts) — read both from "that" one frame, do not wait for
 	// a second handshake frame.
 	client.send({ type: "hello", clientKind: "browser" })
 	const stateFrame = await client.consumeNext(

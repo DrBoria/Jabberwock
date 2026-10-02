@@ -1,7 +1,7 @@
-import type { IntentBus } from "@features/intents/bus"
-import { onWebviewMessage } from "@features/foundation/webview/events/handlers/on-webview-message"
+import type { IntentBus } from "@features/intents"
+import { onWebviewMessage } from "@features/foundation"
 import { IntentStatus } from "@jabberwock/types"
-import { getBackendRootStore } from "@features/storeSingleton"
+import { getStore } from "@features/singleton"
 import {
 	CHAT_TEXT_AREA_ENHANCE_PROMPT,
 	CHAT_TEXT_AREA_SELECT_IMAGES,
@@ -11,7 +11,7 @@ import {
 	CHAT_TOPIC_SWITCH_MODE,
 	CHAT_TOPIC_REQUEST_COMMANDS,
 	CHAT_TOPIC_UPDATE_TODO_LIST,
-} from "@features/chat/events/constants"
+} from "@features/chat"
 
 /**
  * Register all chat-level event handlers on the given IntentBus.
@@ -20,9 +20,10 @@ import {
  * and chat/task/notifications/ — this function additionally registers
  * webview message → intent routing for chat-level events.
  */
-export function registerOnChatIntents(_bus: IntentBus): void {
+
+function registerOnChatCHATTEXTAREAENHANCEPROMPT(): void {
 	onWebviewMessage(CHAT_TEXT_AREA_ENHANCE_PROMPT, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -32,9 +33,11 @@ export function registerOnChatIntents(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnChatCHATTEXTAREASELECTIMAGES(): void {
 	onWebviewMessage(CHAT_TEXT_AREA_SELECT_IMAGES, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -44,9 +47,11 @@ export function registerOnChatIntents(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnChatCHATTEXTAREASEARCHFILES(): void {
 	onWebviewMessage(CHAT_TEXT_AREA_SEARCH_FILES, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -56,9 +61,11 @@ export function registerOnChatIntents(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnChatCHATTEXTAREADRAGGEDIMAGES(): void {
 	onWebviewMessage(CHAT_TEXT_AREA_DRAGGED_IMAGES, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -68,9 +75,11 @@ export function registerOnChatIntents(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnChatCHATTOPICMODE(): void {
 	onWebviewMessage(CHAT_TOPIC_MODE, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -80,9 +89,11 @@ export function registerOnChatIntents(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnChatCHATTOPICSWITCHMODE(): void {
 	onWebviewMessage(CHAT_TOPIC_SWITCH_MODE, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -92,9 +103,11 @@ export function registerOnChatIntents(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnChatCHATTOPICREQUESTCOMMANDS(): void {
 	onWebviewMessage(CHAT_TOPIC_REQUEST_COMMANDS, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -104,9 +117,11 @@ export function registerOnChatIntents(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnChatCHATTOPICUPDATETODOLIST(): void {
 	onWebviewMessage(CHAT_TOPIC_UPDATE_TODO_LIST, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -116,4 +131,15 @@ export function registerOnChatIntents(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
+
+export function registerOnChatIntents(_bus: IntentBus): void {
+	registerOnChatCHATTEXTAREAENHANCEPROMPT()
+	registerOnChatCHATTEXTAREASELECTIMAGES()
+	registerOnChatCHATTEXTAREASEARCHFILES()
+	registerOnChatCHATTEXTAREADRAGGEDIMAGES()
+	registerOnChatCHATTOPICMODE()
+	registerOnChatCHATTOPICSWITCHMODE()
+	registerOnChatCHATTOPICREQUESTCOMMANDS()
+	registerOnChatCHATTOPICUPDATETODOLIST()
 }

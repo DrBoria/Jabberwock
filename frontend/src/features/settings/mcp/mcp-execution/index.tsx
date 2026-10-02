@@ -1,1 +1,1 @@
-export { McpExecution } from "./components/McpExecutionComponent"
+export { McpExecution } from "./components/main"

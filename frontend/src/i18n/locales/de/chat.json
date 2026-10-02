@@ -149,6 +149,8 @@
 		"title": "API-Anfrage",
 		"failed": "API-Anfrage fehlgeschlagen",
 		"streaming": "API-Anfrage...",
+		"loadingContext": "Kontext wird geladen...",
+		"loadingContextPercent": "Kontext wird geladen... {{percent}}%",
 		"cancelled": "API-Anfrage abgebrochen",
 		"streamingFailed": "API-Streaming fehlgeschlagen",
 		"rateLimitWait": "Ratenbegrenzung",

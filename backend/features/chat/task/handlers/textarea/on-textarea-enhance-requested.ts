@@ -1,10 +1,16 @@
 import { IntentType } from "@jabberwock/types"
+
 import type { ProviderSettings } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
-import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
-import { MessageEnhancer } from "@features/chat/task/handlers/messageEnhancer"
-import { getProviderSettingsManager } from "@features/settings/models/provider-settings-manager/ProviderSettingsManager"
+import type { IntentBus } from "@features/intents"
+import { log as backendLog } from "@features/foundation"
+
+import { enhanceMessage, captureTelemetry, sendEnhancedPrompt } from "@features/chat"
+
+import { getProviderSettingsManager } from "@features/settings/models/provider-settings-manager"
+
 import { t } from "@i18n"
+
+import { publishNotificationError } from "@features/foundation"
 
 /**
  * Handles textarea.enhance.requested intent — enhances a prompt using AI.
@@ -12,12 +18,12 @@ import { t } from "@i18n"
 export function registerOnTextareaEnhanceRequested(bus: IntentBus): void {
 	bus.register(IntentType.TextareaEnhanceRequested, async (intent, ctx) => {
 		handleEnhanceRequested(intent as { payload: { text: string } }, ctx as never).catch((error) => {
-			backendLog.info(
-				`Error enhancing prompt: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`,
-			)
+			backendLog.info(`Error enhancing prompt: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`)
 
 			publishNotificationError(t("common:errors.enhance_prompt"))
-			ctx.provider?.postMessageToWebview({ type: "enhancedPrompt" })
+			if (ctx.provider) {
+				sendEnhancedPrompt(ctx.provider)
+			}
 		})
 	})
 }
@@ -54,7 +60,7 @@ async function handleEnhanceRequested(
 
 	const currentCline = ctx.rootStore.chat.activeTask
 
-	const result = await MessageEnhancer.enhanceMessage({
+	const result = await enhanceMessage({
 		text,
 		apiConfiguration,
 		listApiConfigMeta,
@@ -63,11 +69,9 @@ async function handleEnhanceRequested(
 	})
 
 	if (result.success && result.enhancedText) {
-		MessageEnhancer.captureTelemetry(currentCline?.taskId)
-		await provider.postMessageToWebview({ type: "enhancedPrompt", text: result.enhancedText })
+		captureTelemetry(currentCline?.taskId)
+		await sendEnhancedPrompt(provider, result.enhancedText)
 	} else {
 		throw new Error(result.error || "Unknown error")
 	}
 }
-
-import { publishNotificationError } from "@features/foundation/capabilities/notifications"

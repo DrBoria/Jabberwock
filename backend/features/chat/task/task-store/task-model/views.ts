@@ -1,8 +1,8 @@
 import type { TaskStatus } from "@features/chat/task/task-store/task-state/task-types"
-import type { ITaskModel } from "./actions/task-model-actions-goals"
+import type { ITaskModel } from "./goals"
 import type { TokenUsage } from "@jabberwock/types"
 import type { Notification } from "@jabberwock/types"
-import { TaskModelBase } from "@features/chat/task/store"
+import { TaskModelBase } from "@features/chat/task"
 
 export const TaskModelWithViews = TaskModelBase.views((self) => ({
 	// ── Computed state ────────────────────────────────────────────────
@@ -34,7 +34,7 @@ export const TaskModelWithViews = TaskModelBase.views((self) => ({
 		return self as ITaskModel
 	},
 
-	// ── Token usage (from snapshot cache) ─────────────────────────────
+	// ── Token usage (from "snapshot" cache) ─────────────────────────────
 	get tokenUsage(): TokenUsage | undefined {
 		if (self.tokenUsageSnapshot && self.tokenUsageSnapshotAt) {
 			return self.tokenUsageSnapshot

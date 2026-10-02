@@ -1,14 +1,13 @@
 import * as path from "path"
 import * as os from "os"
 
-import { Package } from "@shared/package"
+import { Package } from "@shared/core/package"
 import { fileExistsAtPath } from "@utils/io/fs"
 import { t } from "@i18n"
-import { getBackendLogger, getConfiguration, getUiDialogs } from "@features/foundation/capabilities/registry"
+import { getBackendLogger, getConfiguration, getUiDialogs } from "@features/foundation"
 
-import { importSettingsFromPath } from "@features/settings/actions/importSettings"
-import type { ImportOptions } from "@features/settings/actions/importSettings.types"
-
+import { importSettingsFromPath } from "@features/settings"
+import type { ImportOptions } from "@features/settings/actions"
 /**
  * Automatically imports Jabberwock settings from a specified path if it exists.
  * This function is called during extension activation to allow users to pre-configure

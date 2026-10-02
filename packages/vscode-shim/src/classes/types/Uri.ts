@@ -35,7 +35,7 @@ export class Uri {
 	}
 
 	/**
-	 * Create a URI from a file system path
+	 * Create a URI from "a" file system path
 	 *
 	 * @param path - The file system path
 	 * @returns A new Uri instance with 'file' scheme

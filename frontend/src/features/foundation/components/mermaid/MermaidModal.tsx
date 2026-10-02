@@ -1,9 +1,9 @@
 import React from "react"
-import { Modal } from "../ui/layout/Modal"
-import { TabButton } from "../ui/button/TabButton"
-import { IconButton } from "../ui/button/IconButton"
-import { ZoomControls } from "../image/ZoomControls"
-import { StandardTooltip } from "@src/shared/ui/tooltips/standard-tooltip"
+import { Modal } from "@src/features/foundation/components/ui/layout/Modal"
+import { TabButton } from "@src/features/foundation/components/ui/button/TabButton"
+import { IconButton } from "@src/features/foundation/components/ui/button/IconButton"
+import { ZoomControls } from "@src/features/foundation/components/image/ZoomControls"
+import { StandardTooltip } from "@src/shared/ui/tooltips/standard"
 
 interface MermaidModalProps {
 	code: string

@@ -1,6 +1,6 @@
 import pdf from "pdf-parse/lib/pdf-parse"
 import mammoth from "mammoth"
-import { virtualWorkspace } from "@features/foundation/time-machine/VirtualWorkspace"
+import { virtualWorkspace } from "@features/foundation/time-machine"
 import { extractTextFromXLSX } from "./from-xlsx"
 
 export async function extractTextFromPDF(filePath: string): Promise<string> {

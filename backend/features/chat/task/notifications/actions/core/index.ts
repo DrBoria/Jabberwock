@@ -5,7 +5,6 @@ export {
 	approveAsk,
 	cancelAutoApprovalTimeout,
 	denyAsk,
-	handleWebviewAskResponse,
 	isAccidentalFastClick,
 	markFollowUpAsAnswered,
 	markToolApprovalAsAnswered,
@@ -14,5 +13,5 @@ export {
 	FOLLOW_UP_RESPONSES,
 	TOOL_APPROVAL_RESPONSES,
 	TOOL_ASK_TYPES,
-} from "./respondToAsk"
+} from "@features/chat/task/notifications/actions/core/respondToAsk"
 export { updateNotification } from "./updateNotification"

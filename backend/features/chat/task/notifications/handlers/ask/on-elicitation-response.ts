@@ -1,7 +1,7 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
-import { resolveElicitation } from "@features/settings/mcp/mcpIntegration"
-import type { ITaskModel } from "@features/chat/task/store"
+import type { IntentBus } from "@features/intents"
+import { resolveElicitation } from "@features/settings"
+import type { ITaskModel } from "@features/chat/task"
 
 /**
  * Handles notification.elicitation.response intent — resolves an elicitation prompt.

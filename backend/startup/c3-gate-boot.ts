@@ -1,7 +1,7 @@
 /**
  * C3 GATE boot helper - hermetic server bootstrap for the command-surface gate test.
  *
- * Extracted from c3-command-surface-gate.test.ts to keep the test file under the
+ * Extracted from "c3-command-surface-gate.test.ts" to keep the test file under the
  * max-lines limit and the beforeAll callback under the complexity limit.
  *
  * The handler registration (registerOnTaskIntents, registerOnMessagesIntents, etc.)
@@ -20,17 +20,16 @@ import nock from "nock"
 import { createMcpServerManager } from "@services/mcp/core/McpServerManager"
 import { getSettingsAccess } from "@utils/settings"
 import { createServerCapabilities } from "@connectors/web/backend/capabilities"
-import { WebWsServer } from "@connectors/web/backend/ws/web-ws-server"
+import { WebWsServer } from "@connectors/web/backend/web-ws-server"
 
 import { startBackend } from "./bootstrap"
-import { installBackendState } from "@features/foundation/host-context/context"
-import { setBackendCapabilities } from "@features/foundation/capabilities/registry"
+import { installBackendState } from "@features/foundation"
+import { setBackendCapabilities } from "@features/foundation"
 import { FakeAIHandler } from "@api/providers/fake-ai/handler"
-import { getIntentBus } from "@features/backendroot/store"
-import { getBackendRootStore } from "@features/storeSingleton"
-import type { IntentBus } from "@features/intents/bus"
-
-// -- Small helpers (no `any`; frames are narrowed at the boundary) ----------------
+import { getIntentBus } from "@features/store"
+import { getStore } from "@features/singleton"
+import type { IntentBus } from "@features/intents"
+// Small helpers (no `any`; frames are narrowed at the boundary) ----------------
 
 export const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -58,7 +57,7 @@ function toUtf8(data: RawData): string {
 	return Buffer.from(new Uint8Array(data)).toString("utf8")
 }
 
-/** Extract `body` from a received server->client envelope frame (undefined on malformed frames). */
+/** Extract `body` from "a" received server->client envelope frame (undefined on malformed frames). */
 export function extractBody(data: RawData): Record<string, unknown> | undefined {
 	const text = toUtf8(data)
 	let parsed: unknown
@@ -77,7 +76,7 @@ export interface StreamChunkRef {
 	text: string
 }
 
-/** Collect streamChunk frames from a slice of received bodies. */
+/** Collect streamChunk frames from "a" slice of received bodies. */
 export function readStreamChunks(bodies: Array<Record<string, unknown>>): StreamChunkRef[] {
 	const out: StreamChunkRef[] = []
 	for (const body of bodies) {
@@ -122,7 +121,7 @@ export interface GateBootResult {
 	httpServer: http.Server
 	connector: WebWsServer
 	bridge: Awaited<ReturnType<typeof startBackend>>
-	rootStore: ReturnType<typeof getBackendRootStore>
+	rootStore: ReturnType<typeof getStore>
 	bus: IntentBus
 	wsClient: WebSocket
 }
@@ -173,11 +172,22 @@ export async function bootGateEnvironment(receivedBodies: Array<Record<string, u
 	// registers handlers itself (IntentBus.register chains, so a second registration would
 	// double-execute every handler).
 	const bridge = await startBackend({ connector, capabilities })
-	const rootStore = getBackendRootStore()
+	// The gate harness passes its own httpServer to WebWsServer (caller owns the server
+	// lifecycle), so startBackend → connector.start() attaches the WSS but does not listen.
+	// Bind to an ephemeral port here so the WS client below can reach the handshake.
+	await new Promise<void>((resolve, reject) => {
+		const onError = (error: Error): void => reject(error)
+		httpServer.once("error", onError)
+		httpServer.listen(0, "127.0.0.1", () => {
+			httpServer.off("error", onError)
+			resolve()
+		})
+	})
+	const rootStore = getStore()
 	const bus = getIntentBus()
 	if (!bus || !bridge) throw new Error("C3 gate test: intent bus or bridge missing after boot")
 
-	new FakeAIHandler({ fakeAi: makeFakeAI() })
+	FakeAIHandler({ fakeAi: makeFakeAI() })
 	rootStore.settings.apiConfig.setConfiguration({
 		apiProvider: "fake-ai",
 		apiModelId: "gate-model",

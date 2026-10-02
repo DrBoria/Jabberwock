@@ -1,2 +1,2 @@
-export * from "./tools.js"
+export * from "./main.js"
 export * from "./views.js"

@@ -19,7 +19,7 @@ import { setBackendLogger } from "./backend-logger"
 import { EventBusPubSub } from "./pubsub"
 import { InMemoryMessageQueue } from "./in-memory-queue"
 import { MementoBackedMemory } from "./memory/memento-hashmap-memory"
-import { setHostContext } from "@features/foundation/host-context/context"
+import { setHostContext } from "@features/foundation"
 
 /** Structural secret-store view (host SecretStorage satisfies it; Thenable returns). */
 export interface ISecretStoreLike {
@@ -35,7 +35,7 @@ export interface ILogSink {
 
 /**
  * Inputs for installing extension-mode capabilities. All values are plain/structural —
- * this module never imports the host; activation code reads them from its own context and passes them in.
+ * this module never imports the host; activation code reads them from "its" own context and passes them in.
  */
 export interface ExtensionCapabilityInput {
 	/** Host globalState memento (the persistent state backend of extension mode). */
@@ -48,7 +48,7 @@ export interface ExtensionCapabilityInput {
 	secrets?: ISecretStoreLike | undefined
 	/** Log sink for the module-level backend logger slot (L8); console fallback when omitted. */
 	logSink?: ILogSink | undefined
-	/** Workspace-folder change event adapter from the host (plan §2.3 L6; C-5 zero-host-API). Absent in server mode. */
+	/** Workspace-folder change event adapter from "the" host (plan §2.3 L6; C-5 zero-host-API). Absent in server mode. */
 	onWorkspaceFoldersChanged?: ((handler: () => void) => DisposableLike) | undefined
 	/** Host extension version (`context.extension.packageJSON.version`); absent in server mode. */
 	extensionVersion?: string
@@ -168,15 +168,15 @@ function toProtocolSecrets(store: ISecretStoreLike): ISecretStore {
  *
  * - `hashmapMemory` routes through the host globalState memento so legacy facade reads and capability
  *   consumers see ONE store (no split-brain); server mode swaps in FileHashmapMemory instead (§4.3).
- * - `queue`/`pubsub` are the v1 in-memory implementations; transports consume them from B3 onward.
+ * - `queue`/`pubsub` are the v1 in-memory implementations; transports consume them from "B3" onward.
  * - `config` is the D4b configuration slot (plan §3.2 Strategy B), backed by the host configuration API.
  * - `hostContext` carries storageDir/workspaceRoot/memento/secrets for L3–L7 DI slots.
  * - The module-level logger slot (L8) is installed here so all backend logging flows through one sink.
  */
 export function installExtensionCapabilities(input: ExtensionCapabilityInput): BackendCapabilities {
-	const hashmapMemory = new MementoBackedMemory(input.globalMemento)
-	const queue = new InMemoryMessageQueue()
-	const pubsub = new EventBusPubSub()
+	const hashmapMemory = MementoBackedMemory(input.globalMemento)
+	const queue = InMemoryMessageQueue()
+	const pubsub = EventBusPubSub()
 
 	const hostContext: IHostContext = {
 		storageDir: input.storageDir,

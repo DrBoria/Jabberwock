@@ -1,5 +1,5 @@
 import type { DomHandlerContext } from "./types.js"
-import { handleFindElement } from "./handlers/finding/findElement.js"
+import { handleFindElement } from "./handlers/finding/main.js"
 import { handleRunCommand } from "./handlers/runCommand.js"
 import { handleClickElement } from "./handlers/interaction/clickElement.js"
 import { handleTypeText } from "./handlers/interaction/typeText.js"

@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { McpSettings, mcpSettingsSchema } from "@packages/types/src/mcp"
+import { McpSettings, mcpSettingsSchema } from "@jabberwock/types"
 
 /**
  * Migrates legacy MCP settings to Jabberwock format

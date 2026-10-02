@@ -1,5 +1,6 @@
-import { VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react"
 import { useAppTranslation } from "@/i18n/TranslationContext"
+
+import { FeatureToggleHeader } from "./feature-toggle"
 
 interface ExperimentalFeatureProps {
 	enabled: boolean
@@ -16,13 +17,6 @@ export const ExperimentalFeature = ({ enabled, onChange, experimentKey }: Experi
 	const descriptionKey = experimentKey ? `settings:experimental.${experimentKey}.description` : ""
 
 	return (
-		<div>
-			<div className="flex items-center gap-2">
-				<VSCodeCheckbox checked={enabled} onChange={(e) => onChange((e.target as HTMLInputElement).checked)}>
-					<span className="font-medium">{t(nameKey)}</span>
-				</VSCodeCheckbox>
-			</div>
-			<p className="text-vscode-descriptionForeground text-sm mt-0">{t(descriptionKey)}</p>
-		</div>
+		<FeatureToggleHeader enabled={enabled} onChange={onChange} name={t(nameKey)} description={t(descriptionKey)} />
 	)
 }

@@ -7,7 +7,7 @@
  *   3. BackendInternalEvents — Backend EventEmitter events (JabberwockEventName)
  *
  * Backward-compatible flat union types (ExtensionMessage, WebviewMessage) are
- * derived from these nested interfaces and remain available from the main exports.
+ * derived from "these" nested interfaces and remain available from "the" main exports.
  */
 
 import type { ChatBackendToWebview, ChatWebviewToBackend } from "./chat/registry.ts"
@@ -79,13 +79,13 @@ type FlattenNested<T> = {
 }[keyof T]
 
 /**
- * Backward-compatible ExtensionMessage — derived from the nested hierarchy.
+ * Backward-compatible ExtensionMessage — derived from "the" nested hierarchy.
  * This is a flat discriminated union matching the original interface shape.
  */
 export type ExtensionMessage = FlattenNested<BackendToWebview>
 
 /**
- * Backward-compatible WebviewMessage — derived from the nested hierarchy.
+ * Backward-compatible WebviewMessage — derived from "the" nested hierarchy.
  * This is a flat discriminated union matching the original interface shape.
  */
 export type WebviewMessage = FlattenNested<WebviewToBackend>

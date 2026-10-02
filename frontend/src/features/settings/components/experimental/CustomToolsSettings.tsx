@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { useEvent } from "react-use"
-import { VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react"
 import { RefreshCw, Loader2, FileCode } from "lucide-react"
 
 import type { SerializedCustomToolDefinition } from "@jabberwock/types"
@@ -9,7 +8,9 @@ import { useAppTranslation } from "@/i18n/TranslationContext"
 
 import { rootStore } from "@src/features/store"
 
-import { Button } from "@src/shared/ui/buttons/button"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
+
+import { FeatureToggleHeader } from "./feature-toggle"
 
 interface ToolParameter {
 	name: string
@@ -84,18 +85,12 @@ export const CustomToolsSettings = ({ enabled, onChange }: CustomToolsSettingsPr
 
 	return (
 		<div className="space-y-4">
-			<div>
-				<div className="flex items-center gap-2">
-					<VSCodeCheckbox
-						checked={enabled}
-						onChange={(e) => onChange((e.target as HTMLInputElement).checked)}>
-						<span className="font-medium">{t("settings:experimental.CUSTOM_TOOLS.name")}</span>
-					</VSCodeCheckbox>
-				</div>
-				<p className="text-vscode-descriptionForeground text-sm mt-0">
-					{t("settings:experimental.CUSTOM_TOOLS.description")}
-				</p>
-			</div>
+			<FeatureToggleHeader
+				enabled={enabled}
+				onChange={onChange}
+				name={t("settings:experimental.CUSTOM_TOOLS.name")}
+				description={t("settings:experimental.CUSTOM_TOOLS.description")}
+			/>
 
 			{enabled && (
 				<div className="ml-2 space-y-3">

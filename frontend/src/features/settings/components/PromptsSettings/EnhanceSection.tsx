@@ -1,7 +1,7 @@
 import { VSCodeCheckbox, VSCodeTextArea } from "@vscode/webview-ui-toolkit/react"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { Button } from "@src/shared/ui/buttons/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@src/shared/ui/selects/select"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@src/shared/ui/selects/select-primitive"
 import { rootStore } from "@src/features/store"
 
 interface EnhanceSectionProps {
@@ -40,7 +40,7 @@ export const EnhanceSection = ({
 						setEnhancementApiConfigId(newConfigId)
 						rootStore.settings.setEnhancementApiConfigId(value)
 					}}>
-					<SelectTrigger data-testid="api-config-select" className="w-full">
+					<SelectTrigger data-testid="toolExecutor.api-config-select" className="w-full">
 						<SelectValue placeholder={t("prompts:supportPrompts.enhance.useCurrentConfig")} />
 					</SelectTrigger>
 					<SelectContent>

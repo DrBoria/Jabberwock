@@ -1,15 +1,15 @@
 import { useState, useCallback, useMemo, useEffect } from "react"
+import { useHandleInputChange } from "@src/features/settings/components/providers/provider-components/use-handle-input-change"
 import { useEvent } from "react-use"
 import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
 
 import type { ProviderSettings, ExtensionMessage, ModelRecord } from "@jabberwock/types"
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { useRouterModels } from "@src/features/foundation/ui/hooks/useModelProviders/useRouterModels"
+import { useRouterModels } from "@src/features/foundation"
 import { rootStore } from "@src/features/store"
 
-import { inputEventTransform } from "../../../shared/transforms"
-import { ModelPicker } from "../../../ModelPicker/ModelPickerComponent"
+import { ModelPicker } from "@src/features/settings/components/ModelPicker/main"
 
 type OllamaProps = {
 	apiConfiguration: ProviderSettings
@@ -45,18 +45,7 @@ export const Ollama = ({ apiConfiguration, setApiConfigurationField }: OllamaPro
 	const [ollamaModels, setOllamaModels] = useState<ModelRecord>({})
 	const routerModels = useRouterModels()
 
-	const handleInputChange = useCallback(
-		<K extends keyof ProviderSettings, E>(field: K, transform?: (event: E) => ProviderSettings[K]) =>
-			(event: E | Event) => {
-				setApiConfigurationField(
-					field,
-					transform
-						? transform(event as E)
-						: (inputEventTransform(event as { target: HTMLInputElement }) as ProviderSettings[K]),
-				)
-			},
-		[setApiConfigurationField],
-	)
+	const handleInputChange = useHandleInputChange(setApiConfigurationField)
 
 	const onMessage = useCallback((event: MessageEvent) => {
 		const message: ExtensionMessage = event.data

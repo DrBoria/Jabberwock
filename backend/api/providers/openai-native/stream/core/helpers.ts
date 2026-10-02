@@ -1,7 +1,36 @@
+import type { ApiStream } from "@api/transform/stream"
+
 import type { OpenAiNativeStreamContext } from "./context"
 
 export function isTextContent(content: { type?: string; text?: unknown }): boolean {
 	return content.type === "text" && !!content.text
+}
+
+/**
+ * Shared text-yield loop for a single output item.  The item is gated by an
+ * `expectedType`, its `content` array is walked, and every part matching the
+ * `isText` predicate is yielded as a text event.  Returns whether anything was
+ * yielded.  An optional `markSeen` callback lets callers flip stream state
+ * (e.g. `sawTextOutputInCurrentResponse`) without duplicating the loop.
+ */
+export async function* yieldTextFromItem(
+	outputItem: Record<string, unknown>,
+	expectedType: string,
+	isText: (content: Record<string, unknown>) => boolean,
+	markSeen?: () => void,
+): ApiStream {
+	if (outputItem.type !== expectedType) return false
+	if (!outputItem.content) return false
+	let didYield = false
+	const contentArray = outputItem.content as Record<string, unknown>[]
+	for (const content of contentArray) {
+		if (isText(content)) {
+			didYield = true
+			markSeen?.()
+			yield { type: "text", text: content.text as string }
+		}
+	}
+	return didYield
 }
 
 export function isTextOrOutputText(outputItem: Record<string, unknown>): boolean {

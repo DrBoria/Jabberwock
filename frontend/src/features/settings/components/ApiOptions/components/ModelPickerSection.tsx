@@ -4,10 +4,10 @@ import {
 	shouldUseGenericModelPicker,
 	handleModelChangeSideEffects,
 	getProviderServiceConfig,
-} from "../../utils/providerModelConfig"
-import { ModelPicker } from "../../ModelPicker/ModelPickerComponent"
-import { BedrockCustomArn } from "../../providers/bedrock/BedrockCustomArn"
-import type { ModelPickerSectionProps } from "../types"
+} from "@src/features/settings/components/utils/providerModelConfig"
+import { ModelPicker } from "@src/features/settings/components/ModelPicker/main"
+import { BedrockCustomArn } from "@src/features/settings/components/providers/bedrock/custom-arn"
+import type { ModelPickerSectionProps } from "@src/features/settings/components/ApiOptions/types"
 
 export const ModelPickerSection = ({
 	activeSelectedProvider,

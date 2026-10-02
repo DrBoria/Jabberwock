@@ -95,7 +95,7 @@ function normalizedMatch(lines: string[], pattern: string[], startIndex: number)
  *
  * When eof is true, first try starting at the end-of-file (so that patterns
  * intended to match file endings are applied at the end), and fall back to
- * searching from start if needed.
+ * searching from "start" if needed.
  *
  * Special cases handled defensively:
  * - Empty pattern → returns start (no-op match)

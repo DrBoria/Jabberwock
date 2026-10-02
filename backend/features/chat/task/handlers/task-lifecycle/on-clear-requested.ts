@@ -1,6 +1,7 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
-import { postStateToWebview } from "@features/foundation/window-manager/store"
+import type { IntentBus } from "@features/intents"
+import { postStateToWebview } from "@features/foundation"
+import { sendClearNewChat } from "@features/chat"
 
 /**
  * Handles task.clear.requested intent — clears the active task.
@@ -14,7 +15,7 @@ export function registerOnTaskClearRequested(bus: IntentBus): void {
 		}
 
 		ctx.rootStore.chat.activeTask?.abortTask?.()
-		await provider.postMessageToWebview({ type: "invoke", invoke: "newChat" })
+		await sendClearNewChat(provider)
 
 		ctx.rootStore.foundation.windowManager.clearPendingPushTimers()
 		ctx.rootStore.chat.setIsRunning(false)

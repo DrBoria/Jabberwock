@@ -1,9 +1,9 @@
 import { OutputFormat } from "@/types/index.js"
-import { ExtensionHost, ExtensionHostOptions } from "@/agent/index.js"
+import { createExtensionHost, ExtensionHostOptions } from "@/agent/index.js"
 import { isExpectedControlFlowError } from "../../cancellation.js"
 import { normalizeError } from "./errors.js"
-import type { FlagOptionsWithDebug } from "../core/core.js"
-import { warmupHost, executeTaskWithResume, createPrintModeHelpers } from "../core/core.js"
+import type { FlagOptionsWithDebug } from "../core/runner.js"
+import { warmupHost, executeTaskWithResume, createPrintModeHelpers } from "../core/runner.js"
 
 export async function runPrintMode(
 	e: ExtensionHostOptions,
@@ -18,7 +18,7 @@ export async function runPrintMode(
 ): Promise<void> {
 	const ujo = o === "json" || o === "stream-json"
 	e.disableOutput = ujo
-	const host = new ExtensionHost(e)
+	const host = createExtensionHost(e)
 	let isd = false,
 		hd = false
 	const {

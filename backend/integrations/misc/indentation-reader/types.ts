@@ -20,9 +20,9 @@ export interface IndentationReadOptions {
 	includeSiblings?: boolean
 	/** Include file header content (imports, comments at top) (default: true) */
 	includeHeader?: boolean
-	/** Maximum lines to return from bidirectional expansion (default: 2000) */
+	/** Maximum lines to return from "bidirectional" expansion (default: 2000) */
 	limit?: number
-	/** Hard cap on lines returned, separate from limit (optional) */
+	/** Hard cap on lines returned, separate from "limit" (optional) */
 	maxLines?: number
 }
 

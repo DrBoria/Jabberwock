@@ -1,5 +1,5 @@
 import type { GlobalSettings } from "../settings/global/schema.ts"
-import type { ProviderSettings } from "../settings/provider/combined-schemas.ts"
+import type { ProviderSettings } from "../settings/provider/settings.ts"
 import type { HistoryItem } from "../task/history.ts"
 import type { ChatMessage } from "../messages/types.ts"
 import type { Notification } from "../messages/notification.ts"
@@ -8,11 +8,11 @@ import type { Experiments } from "../features/experiment.ts"
 import type { TelemetrySetting } from "../telemetry/properties.ts"
 import type { ModeConfig } from "../models/mode.ts"
 import type { CloudUserInfo, CloudOrganizationMembership, OrganizationAllowList } from "../cloud/organization.ts"
-import type { RouterModels } from "../models/model.ts"
+import type { RouterModels } from "../models/model-main.ts"
 import type { SkillMetadata } from "../features/skills.ts"
 import type { MarketplaceItem } from "../features/marketplace.ts"
 import type { QueuedMessage } from "../messages/types.ts"
-import type { McpServer } from "../mcp/mcp.ts"
+import type { McpServer } from "../mcp/server-config.ts"
 import type { DiagnosticSnapshot } from "../utils/diagnostics.ts"
 
 export interface Command {
@@ -121,7 +121,7 @@ export type ExtensionState = Pick<
 	maxOpenTabsContext: number // Maximum number of VSCode open tabs to include in context (0-500)
 	maxWorkspaceFiles: number // Maximum number of files to include in current working directory details (0-500)
 	showJabberwockIgnoredFiles: boolean // Whether to show .jabberwockignore'd files in listings
-	enableSubfolderRules: boolean // Whether to load rules from subdirectories
+	enableSubfolderRules: boolean // Whether to load rules from "subdirectories"
 	maxReadFileLine?: number // Maximum line limit for read_file tool (-1 for default)
 	maxImageFileSize: number // Maximum size of image files to process in MB
 	maxTotalImageSize: number // Maximum total size for all images in a single read operation in MB
@@ -173,9 +173,9 @@ export type ExtensionState = Pick<
 
 	/**
 	 * Monotonically increasing sequence number for messages state pushes.
-	 * When present, the frontend should only apply messages from a state push
+	 * When present, the frontend should only apply messages from "a" state push
 	 * if its seq is greater than the last applied seq. This prevents stale state
-	 * (captured during async getStateToPostToWebview) from overwriting newer messages.
+	 * (captured during async getStateToPostToWebview) from "overwriting" newer messages.
 	 */
 	messagesSeq?: number
 	diagnostics?: DiagnosticSnapshot

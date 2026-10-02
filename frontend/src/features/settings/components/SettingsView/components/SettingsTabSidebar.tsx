@@ -1,10 +1,15 @@
 import React from "react"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@src/shared/ui/tooltips/tooltip"
-import { TabList, TabTrigger } from "@src/features/foundation/components/ui/layout/Tab"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@src/shared/ui/tooltips/main"
+import { TabList, TabTrigger } from "@src/features/foundation"
 import { cn } from "@src/lib/utils"
-import { settingsTabList, settingsTabTrigger, settingsTabTriggerActive, sectionNames } from "../constants"
-import type { SectionName } from "../constants"
-import type { TabSidebarProps } from "../types"
+import {
+	settingsTabList,
+	settingsTabTrigger,
+	settingsTabTriggerActive,
+	sectionNames,
+} from "@src/features/settings/components/SettingsView/constants"
+import type { SectionName } from "@src/features/settings/components/SettingsView/constants"
+import type { TabSidebarProps } from "@src/features/settings/components/SettingsView/types"
 
 export function SettingsTabSidebar({ sections, activeTab, isCompactMode, onTabChange, tabRefs, t }: TabSidebarProps) {
 	return (
@@ -15,7 +20,7 @@ export function SettingsTabSidebar({ sections, activeTab, isCompactMode, onTabCh
 			}
 			className={cn(settingsTabList)}
 			data-compact={isCompactMode}
-			data-testid="settings-tab-list">
+			data-testid="manager.settings-tab-list">
 			{sections.map(({ id, icon: Icon }) => {
 				const isSelected = id === activeTab
 				const triggerComponent = (

@@ -1,4 +1,4 @@
-import type { ModelInfo } from "../../models/model.ts"
+import type { ModelInfo } from "../../models/model-main.ts"
 
 export const vertexModelsPart3 = {
 	"claude-opus-4@20250514": {

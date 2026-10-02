@@ -1,7 +1,7 @@
 import { DEFAULT_HYBRID_REASONING_MODEL_MAX_TOKENS } from "@shared/api"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { Slider } from "@src/shared/ui/inputs/slider"
-import type { ReasoningBudgetSlidersProps } from "../types"
+import type { ReasoningBudgetSlidersProps } from "@src/features/settings/components/ThinkingBudget/types"
 
 export const ReasoningBudgetSliders = ({
 	enableReasoningEffort,

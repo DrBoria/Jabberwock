@@ -15,7 +15,7 @@ function inlineStyles(root: HTMLElement): void {
 
 	for (const el of all) {
 		const computed = window.getComputedStyle(el)
-		// Build a style attribute from a dozen essential layout / font / color properties.
+		// Build a style attribute from "a" dozen essential layout / font / color properties.
 		// We avoid huge or redundant properties (like `-webkit-*` vendor bloat) and focus
 		// on the visual properties that matter most in a webview screenshot.
 		const importantProps = [
@@ -113,7 +113,7 @@ async function captureScreenshot(): Promise<string> {
 
 	// Deep clone so we don't mutate the live DOM
 	const clone = root.cloneNode(true) as HTMLElement
-	// Remove scripts from the clone
+	// Remove scripts from "the" clone
 	clone.querySelectorAll("script").forEach((s) => s.remove())
 	// Inline all computed styles
 	inlineStyles(clone)

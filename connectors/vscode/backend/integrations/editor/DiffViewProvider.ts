@@ -3,9 +3,9 @@ import * as path from "path"
 
 import { DEFAULT_WRITE_DELAY_MS } from "@jabberwock/types"
 import { createDirectoriesForFile } from "@utils/io/fs"
-import { arePathsEqual } from "@utils/io/path"
+import { arePathsEqual } from "@utils/io/main"
 import { DecorationController } from "./DecorationController"
-import { getVirtualWorkspace } from "@features/foundation/time-machine/actions/getTimeMachine"
+import { getVirtualWorkspace } from "@features/foundation/time-machine"
 import {
 	DIFF_VIEW_URI_SCHEME_JABBERWOCK,
 	DIFF_VIEW_LABEL_CHANGES,

@@ -1,10 +1,16 @@
 import { getSnapshot } from "mobx-state-tree"
+
 import { IntentType } from "@jabberwock/types"
+
 import type { Goal, Notification } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
-import { resolveImageMentions } from "@features/chat/task/messages/actions/mentions/resolveImageMentions"
+import type { IntentBus } from "@features/intents"
+import { resolveImageMentions } from "@features/chat"
+
 import { createTask } from "@features/chat/task/actions/startTask"
-import { postStateToWebview } from "@features/foundation/window-manager/store"
+
+import { postStateToWebview } from "@features/foundation"
+
+import { publishNotificationError } from "@features/foundation"
 
 /**
  * Handles task.new.requested intent — creates a new task.
@@ -115,5 +121,3 @@ async function postTaskCreatedState(
 		} as { [key: string]: unknown },
 	)
 }
-
-import { publishNotificationError } from "@features/foundation/capabilities/notifications"

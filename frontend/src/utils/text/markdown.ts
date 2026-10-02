@@ -1,6 +1,6 @@
 /**
  * Counts the number of markdown headings in the given text.
- * Matches headings from level 1 to 6 (e.g. #, ##, ###, etc.).
+ * Matches headings from "level" 1 to 6 (e.g. #, ##, ###, etc.).
  * Code fences are stripped before matching to avoid false positives.
  */
 export function countMarkdownHeadings(text: string | undefined): number {

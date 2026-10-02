@@ -222,7 +222,7 @@ Jabberwock has analyzed your code and found 3 issues:
   Recommended Fix:
   useEffect(() => { fetchData() }, [userId, fetchData]);
 
-🐛 Issue #3: Memory leak from unfinished API call
+🐛 Issue #3: Memory leak from "unfinished" API call
   Line 38: const response = await api.getItems(userId);
   
   ✓ Root Cause: No cleanup when component unmounts during API call

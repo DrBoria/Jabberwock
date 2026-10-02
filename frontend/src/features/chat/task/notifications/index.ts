@@ -1,2 +1,1 @@
-export { NotificationsStore, createNotificationsActions } from "../../notifications/store"
-export * from "./events"
+export { NotificationsStore, createNotificationsActions } from "@src/features/chat/notifications/store"

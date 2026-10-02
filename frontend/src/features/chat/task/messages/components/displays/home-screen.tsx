@@ -1,18 +1,18 @@
 import React, { useCallback } from "react"
 import { observer } from "mobx-react-lite"
-import { Activity, Cloud } from "lucide-react"
+import { Activity, Cloud, Settings } from "lucide-react"
 import { Trans } from "react-i18next"
 import { VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { rootStore } from "@src/features/store"
 import { useChatUI } from "@src/features/chat/store"
 import { Container } from "@src/shared/ui/layouts/Container"
-import JabberwockHero from "@src/features/chat/extension-state/components/JabberwockHero"
-import JabberwockTips from "@src/features/chat/extension-state/components/JabberwockTips"
-import HistoryPreview from "@src/features/history/components/HistoryPreview"
-import VersionIndicator from "@src/features/foundation/components/ui/display/VersionIndicator"
-import DismissibleUpsell from "@src/features/foundation/components/ui/display/DismissibleUpsell"
-import { ChatTextArea } from "@sections/dndTextArea/view"
+import { JabberwockHero } from "@src/features/chat"
+import { JabberwockTips } from "@src/features/chat"
+import { HistoryPreview } from "@src/features/history"
+import { VersionIndicator } from "@src/features/foundation"
+import { DismissibleUpsell } from "@src/features/foundation"
+import { ChatTextArea } from "@sections/dndTextArea/text-area-aliases"
 
 export interface HomeScreenProps {
 	openUpsell: () => void
@@ -34,6 +34,11 @@ const HomeScreenComponent: React.FC<HomeScreenProps> = ({ openUpsell }) => {
 			const goals = ui.textArea.pendingGoals.slice()
 			ui.textArea.clearPendingGoals()
 			rootStore.chat.sendMessage(text, images, goals)
+			// Clear the input after sending so the sent prompt doesn't linger
+			// in the box. The task view's send path (handleSendMessage) already
+			// does this; the welcome screen was missing it, leaving the sent
+			// text as a stray fragment below the task.
+			ui.textArea.clearInput()
 		}
 	}, [ui])
 
@@ -45,6 +50,13 @@ const HomeScreenComponent: React.FC<HomeScreenProps> = ({ openUpsell }) => {
 		<Container className="flex flex-col h-full justify-center p-6 min-h-0 overflow-y-auto gap-4 relative">
 			<Container className="flex flex-col items-start gap-2 justify-center h-full min-[400px]:px-6">
 				<Container className="absolute top-2 right-3 z-10 flex gap-2 items-center">
+					<button
+						onClick={() => rootStore.windowManager.pushWindow("settings")}
+						className="flex items-center gap-1 px-2 py-1 rounded-md transition-colors cursor-pointer border-none font-sans text-[11px] font-semibold bg-vscode-badge-background text-vscode-badge-foreground opacity-70 hover:opacity-100"
+						title="Open Settings">
+						<Settings size={12} />
+						Settings
+					</button>
 					<button
 						onClick={() => rootStore.settings.toggleDevtool()}
 						className={`flex items-center gap-1 px-2 py-1 rounded-md transition-colors cursor-pointer border-none font-sans text-[11px] font-semibold ${

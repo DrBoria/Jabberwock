@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-import { TaskStatus, taskMetadataSchema } from "../task/task.ts"
+import { TaskStatus, taskMetadataSchema } from "../task/provider.ts"
 import { notificationSchema } from "../messages/notification.ts"
 import { queuedMessageSchema, tokenUsageSchema } from "../messages/types.ts"
 import { staticAppPropertiesSchema, gitPropertiesSchema } from "../telemetry/properties.ts"

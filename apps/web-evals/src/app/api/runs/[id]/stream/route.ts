@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server"
 
 import { taskEventSchema } from "@jabberwock/types"
-import { findRun } from "@jabberwock/evals"
+import { runsStore } from "@jabberwock/evals"
 
 import { SSEStream } from "@/lib/server/sse-stream"
 import { redisClient } from "@/lib/server/redis"
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 	const { id } = await params
 	const requestId = crypto.randomUUID()
 	const stream = new SSEStream()
-	const run = await findRun(Number(id))
+	const run = await runsStore.find(Number(id))
 	const redis = await redisClient()
 
 	let isStreamClosed = false

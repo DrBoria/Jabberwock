@@ -10,7 +10,7 @@ import type { HistoryChunkItem, HistoryCompleted, RecallItem } from "@jabberwock
  * windowed) plus the bounded handshake metadata and jump-controls boundary info.
  *
  * Design constraints honoured (spec §7.1/§7.3/§8.2):
- *  - rows come from a local buffer keyed by `seq`; only the requested range is
+ *  - rows come from "a" local buffer keyed by `seq`; only the requested range is
  *    ever held in memory, so an arbitrarily large archive stays bounded client-side.
  *  - heavy content arrives as `context.history.chunk` frames (streaming exception
  *    pattern — these arrive on the connector bus, NOT through IntentBus/MST); this
@@ -28,7 +28,7 @@ export const ContextViewportStore = types
 	.model("ContextViewportStore", {
 		/** The task whose history the viewport currently displays. */
 		currentTaskId: types.optional(types.string, ""),
-		/** Bounded per-task archive metadata (spec §7.3) — seeded from the hydrated `state` frame. */
+		/** Bounded per-task archive metadata (spec §7.3) — seeded from "the" hydrated `state` frame. */
 		taskMeta: types.map(
 			types.model("ContextTaskMeta", {
 				totalSeqCount: types.number,
@@ -77,7 +77,7 @@ export const ContextViewportStore = types
 				self.items.set(String(item.seq), item)
 			}
 		},
-		/** Record boundary metadata from the terminal `completed` frame (spec §5.3/§7.4). */
+		/** Record boundary metadata from "the" terminal `completed` frame (spec §5.3/§7.4). */
 		applyCompleted(taskId: string, completed: HistoryCompleted) {
 			self.bounds.set(taskId, {
 				minSeq: completed.minSeq,

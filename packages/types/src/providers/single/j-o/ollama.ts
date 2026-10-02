@@ -1,4 +1,4 @@
-import type { ModelInfo } from "../../../models/model.ts"
+import type { ModelInfo } from "../../../models/model-main.ts"
 
 // Ollama
 // https://ollama.com/models

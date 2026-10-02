@@ -1,6 +1,6 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
-import { postMessageToWebview } from "@features/foundation/window-manager/store"
+import type { IntentBus } from "@features/intents"
+import { sendSwitchTab } from "@features/chat"
 import { getTelemetryService, hasTelemetryService } from "@jabberwock/telemetry"
 
 /**
@@ -18,9 +18,7 @@ export function registerOnTabSwitch(bus: IntentBus): void {
 				getTelemetryService().captureTabShown(payload.tab)
 			}
 
-			await postMessageToWebview(provider, {
-				type: "action",
-				action: "switchTab",
+			await sendSwitchTab(provider, {
 				tab: payload.tab,
 				values: payload.values,
 				fromMCP: payload.fromMCP === true,

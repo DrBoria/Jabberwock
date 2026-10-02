@@ -4,8 +4,8 @@ import type { Notification, SayToolData } from "@jabberwock/types"
 import { rootStore } from "@src/features/store"
 import { toolIcon } from "@src/shared/ui/icons/toolIcon"
 import { Container } from "@src/shared/ui/layouts/Container"
-import CodeAccordion from "@src/features/foundation/components/code/CodeAccordion"
-import { BatchDiffApproval } from "../../../notifications/batch/diff-approval"
+import { CodeAccordion } from "@src/features/foundation"
+import { BatchDiffApproval } from "@src/features/chat/task/notifications/batch/diff-approval"
 
 interface ToolRendererProps {
 	message: Notification

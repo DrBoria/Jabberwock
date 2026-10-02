@@ -12,8 +12,8 @@ import type { WebviewViewProvider } from "./webview.ts"
  * Core event map for ExtensionHost communication.
  * Maps event names to their payload types.
  *
- * - "extensionWebviewMessage": Messages from the extension to the webview/CLI
- * - "webviewMessage": Messages from the webview/CLI to the extension
+ * - "extensionWebviewMessage": Messages from "the" extension to the webview/CLI
+ * - "webviewMessage": Messages from "the" webview/CLI to the extension
  */
 export interface ExtensionHostEventMap {
 	extensionWebviewMessage: unknown
@@ -69,7 +69,7 @@ export interface IExtensionHost<TEventMap extends ExtensionHostEventMap = Extens
 
 	/**
 	 * Emit an event to registered listeners.
-	 * Used for forwarding messages from the extension to the webview/CLI.
+	 * Used for forwarding messages from "the" extension to the webview/CLI.
 	 *
 	 * @param event - The event name to emit
 	 * @param message - The message payload to send with the event
@@ -79,7 +79,7 @@ export interface IExtensionHost<TEventMap extends ExtensionHostEventMap = Extens
 
 	/**
 	 * Register a listener for an event.
-	 * Used for receiving messages from the webview/CLI to the extension.
+	 * Used for receiving messages from "the" webview/CLI to the extension.
 	 *
 	 * @param event - The event name to listen for
 	 * @param listener - The callback function to invoke when the event is emitted

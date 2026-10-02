@@ -1,5 +1,6 @@
 export { IntentBus } from "./bus"
 export { IntentStoreModel, IntentModel } from "./store"
-export type { IIntentStore, IIntent } from "./store"
+export type { IIntentStore, IIntent, IIntentPayload } from "./store"
 export type { IntentHandlerContext } from "./context"
 export { setupIntents } from "./setup"
+export { IntentPriority } from "./IntentConstants"

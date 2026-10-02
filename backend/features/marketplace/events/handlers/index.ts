@@ -1,1 +1,0 @@
-export { registerOnMarketplaceIntents } from "./register"

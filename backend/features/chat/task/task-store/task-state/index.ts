@@ -1,3 +1,3 @@
-export { TaskStateWithActions } from "./actions"
+export { TaskStateWithActions } from "./actions-main"
 export { TaskStateModel, type ITaskStateModel } from "./actions-goals"
 export type { TaskStatus, LoopStackItem } from "./task-types"

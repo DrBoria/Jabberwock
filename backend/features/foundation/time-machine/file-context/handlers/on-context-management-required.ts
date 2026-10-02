@@ -1,6 +1,6 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
-import type { ITaskModel } from "@features/chat/task/store"
+import type { IntentBus } from "@features/intents"
+import type { ITaskModel } from "@features/chat/task"
 import { manageContext } from "@features/foundation/time-machine/file-context/index"
 import type { ContextManagementResult } from "@features/foundation/time-machine/file-context/index"
 
@@ -8,7 +8,7 @@ import type { ContextManagementResult } from "@features/foundation/time-machine/
  * Handles context.management.required intent — triggers context management
  * (condensation or sliding-window truncation) for a task.
  *
- * The handler fetches the task from the store, extracts current context data,
+ * The handler fetches the task from "the" store, extracts current context data,
  * and delegates to the standalone manageContext() utility.
  */
 export function registerOnContextManagementRequired(bus: IntentBus): void {
@@ -69,21 +69,5 @@ function handleTruncationResult(task: ITaskModel, truncateResult: ContextManagem
 	if (truncateResult.messages !== task.apiConversationHistory) {
 		task.apiConversationHistory.length = 0
 		task.apiConversationHistory.push(...truncateResult.messages)
-	}
-
-	if (truncateResult.summary) {
-		task.emit?.("context.condensed", {
-			summary: truncateResult.summary,
-			cost: truncateResult.cost,
-			prevContextTokens: truncateResult.prevContextTokens,
-			newContextTokens: truncateResult.newContextTokens ?? 0,
-		})
-	} else if (truncateResult.truncationId) {
-		task.emit?.("context.truncated", {
-			truncationId: truncateResult.truncationId,
-			messagesRemoved: truncateResult.messagesRemoved ?? 0,
-			prevContextTokens: truncateResult.prevContextTokens,
-			newContextTokens: truncateResult.newContextTokensAfterTruncation ?? 0,
-		})
 	}
 }

@@ -3,12 +3,12 @@
 		"jabberwock-devtools": {
 			"type": "stdio",
 			"command": "node",
-			"args": ["--experimental-websocket", "--import", "tsx", "packages/devtool/src/api/mcp-entry/mcp-entry.ts"]
+			"args": ["--experimental-websocket", "--import", "tsx", "packages/devtool/src/api/mcp-entry/index.ts"]
 		},
 		"debug-mcp": {
 			"type": "stdio",
 			"command": "node",
-			"args": ["packages/devtool/src/api/debug-mcp-bridge.mjs"]
+			"args": ["packages/devtool/src/api/debug-mcp-proxy.mjs"]
 		},
 		"serena": {
 			"type": "stdio",

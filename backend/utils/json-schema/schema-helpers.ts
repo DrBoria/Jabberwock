@@ -3,17 +3,20 @@
  * Unsupported format values will be stripped during schema normalization.
  * @see https://platform.openai.com/docs/guides/structured-outputs#supported-schemas
  */
-export const OPENAI_SUPPORTED_FORMATS = new Set([
-	"date-time",
-	"time",
-	"date",
-	"duration",
-	"email",
-	"hostname",
-	"ipv4",
-	"ipv6",
-	"uuid",
-])
+const __moduleState = {
+	OPENAI_SUPPORTED_FORMATS: new Set([
+		"date-time",
+		"time",
+		"date",
+		"duration",
+		"email",
+		"hostname",
+		"ipv4",
+		"ipv6",
+		"uuid",
+	]),
+}
+export const { OPENAI_SUPPORTED_FORMATS } = __moduleState
 
 /**
  * Array-specific JSON Schema properties that must be nested inside array type variants
@@ -22,7 +25,7 @@ export const OPENAI_SUPPORTED_FORMATS = new Set([
 export const ARRAY_SPECIFIC_PROPERTIES = ["items", "minItems", "maxItems", "uniqueItems"] as const
 
 /**
- * Applies array-specific properties from source to target object.
+ * Applies array-specific properties from "source" to target object.
  * Only copies properties that are defined in the source.
  */
 export function applyArrayProperties(
@@ -71,7 +74,7 @@ export function handleTypeField(
 }
 
 export function handleFormatField(result: Record<string, unknown>, format: unknown): void {
-	if (format && OPENAI_SUPPORTED_FORMATS.has(format as string)) {
+	if (format && __moduleState.OPENAI_SUPPORTED_FORMATS.has(format as string)) {
 		result.format = format
 	}
 }

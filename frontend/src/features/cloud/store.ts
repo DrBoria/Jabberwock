@@ -1,6 +1,6 @@
 import { types, Instance } from "mobx-state-tree"
 
-import { getConnectorBus } from "../../connector-bus"
+import { getConnectorBus } from "@src/connector-bus"
 import { eventConstants } from "@jabberwock/types"
 import type { WebviewMessage, CloudOrganizationMembership } from "@jabberwock/types"
 

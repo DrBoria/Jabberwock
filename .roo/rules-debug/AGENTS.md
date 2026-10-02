@@ -47,7 +47,7 @@ When debugger pauses Extension Dev Host at a breakpoint, jabberwock-devtool ALSO
 
 ## 🔴 NO USER INTERACTION FOR REPRODUCTION
 
-**Полное воспроизведение бага лежит на агенте.** Devtool подключается автоматически через stdio MCP proxy (`mcp-entry.ts`). Пользователь НЕ подключает devtool вручную. Всё остальное (навигация, клики, ввод, проверка store/console/DOM, повторный захват на breakpoint) делается через devtool (`click_element`, `type_text`, `find_element`) и DebugMCP.
+**Полное воспроизведение бага лежит на агенте.** Devtool подключается автоматически через stdio MCP proxy (`server.ts` (in mcp-entry/)). Пользователь НЕ подключает devtool вручную. Всё остальное (навигация, клики, ввод, проверка store/console/DOM, повторный захват на breakpoint) делается через devtool (`click_element`, `type_text`, `find_element`) и DebugMCP.
 
 **Антипаттерн:** "отправь сообщение", "нажми кнопку", "посмотри что там", "подключи devtool" — запрещено. Агент делает всё сам.
 

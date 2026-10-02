@@ -7,9 +7,9 @@ export {
 	hasConfig,
 	setModeConfig,
 	getModeConfigId,
-} from "./ProviderSettingsManager-crud"
-export { exportProviderProfiles, importProviderProfiles } from "./ProviderSettingsManager-export-import"
-export { getSeedId, applyModelMigrations, cleanModelId, initializeCore } from "./ProviderSettingsManager-initialize"
+} from "./crud"
+export { exportProviderProfiles, importProviderProfiles } from "./export-import"
+export { getSeedId, applyModelMigrations, cleanModelId, initializeCore } from "./initialize"
 export {
 	migrateRateLimitSeconds,
 	migrateOpenAiHeaders,
@@ -17,13 +17,8 @@ export {
 	migrateTodoListEnabled,
 	migrateClaudeCodeLegacySettings,
 	buildMigrationPlan,
-} from "./ProviderSettingsManager-migrations"
-export {
-	secretsKey,
-	sanitizeProviderConfig,
-	loadProviderProfiles,
-	storeProviderProfiles,
-} from "./ProviderSettingsManager-persistence"
+} from "./migrations"
+export { secretsKey, sanitizeProviderConfig, loadProviderProfiles, storeProviderProfiles } from "./persistence"
 export {
 	findUniqueProfileName,
 	deleteRemovedCloudProfiles,
@@ -31,5 +26,5 @@ export {
 	handleCloudProfileRename,
 	addNewCloudProfile,
 	handlePostSyncSteps,
-} from "./ProviderSettingsManager-sync-helpers"
-export { syncCloudProfiles } from "./ProviderSettingsManager-sync"
+	syncCloudProfiles,
+} from "./sync"

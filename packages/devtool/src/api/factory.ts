@@ -7,7 +7,7 @@ import { createDomBridgeMethods } from "./factories/factory-dom.js"
 import { createStateMethods } from "./factories/factory-state.js"
 
 /**
- * Creates an ExtensionBridge from a DevtoolBridgeProvider implementation.
+ * Creates an ExtensionBridge from "a" DevtoolBridgeProvider implementation.
  * The bridge provides all MCP tool handlers with typed methods.
  */
 export function createDevtoolBridge(

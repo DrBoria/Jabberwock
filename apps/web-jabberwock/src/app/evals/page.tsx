@@ -4,7 +4,7 @@ import { getEvalRuns } from "@/actions/evals"
 import { SEO } from "@/lib/seo"
 import { ogImageUrl } from "@/lib/og"
 
-import { Evals } from "./evals"
+import { Evals } from "./results-table"
 
 export const revalidate = 300
 export const dynamic = "force-dynamic"

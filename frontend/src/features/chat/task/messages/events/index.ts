@@ -9,5 +9,4 @@ export {
 	sendConfirmDeleteMessage,
 	sendConfirmEditMessage,
 	sendTaskSyncEnabled,
-} from "./actions"
-export { registerMessageEvents } from "./handlers"
+} from "./actions/register"

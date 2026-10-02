@@ -1,5 +1,5 @@
 import { VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react"
-import { SearchableSetting } from "../shared/SearchableSetting"
+import { SearchableSetting } from "@src/features/settings/components/shared/SearchableSetting"
 import type { AutoApproveSettingsProps, AutoApproveSectionProps } from "./types"
 
 type ReadOnlySectionProps = AutoApproveSectionProps & {

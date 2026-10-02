@@ -1,5 +1,5 @@
-export { extractTextFromFile, extractTextFromFileWithMetadata } from "./extract-text"
+export { extractTextFromFile, extractTextFromFileWithMetadata } from "./main"
 export { extractTextFromXLSX } from "./from-xlsx"
 export { SUPPORTED_BINARY_FORMATS, addLineNumbers, stripLineNumbers } from "./helpers"
-export { processCarriageReturns, processBackspaces } from "./terminal-helpers"
+export { processCarriageReturns, processBackspaces } from "./terminal"
 export type { ExtractTextResult } from "./types"

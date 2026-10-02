@@ -5,6 +5,7 @@ import { Icon } from "../../display/Icon.js"
 
 import type { ToolRendererProps } from "../types.js"
 import { truncateText, sanitizeContent, getToolIconName } from "../utils.js"
+import { ToolPreview } from "../preview.js"
 
 const MAX_OUTPUT_LINES = 10
 
@@ -29,22 +30,7 @@ export function CommandTool({ toolData }: ToolRendererProps) {
 					</Box>
 				)}
 			</Box>
-			{previewOutput && (
-				<Box flexDirection="column">
-					<Box flexDirection="column" borderStyle="single" borderColor={theme.borderColor} paddingX={1}>
-						{previewOutput.split("\n").map((line, i) => (
-							<Text key={i} color={theme.toolText}>
-								{line}
-							</Text>
-						))}
-					</Box>
-					{truncated && (
-						<Text color={theme.dimText} dimColor>
-							... ({hiddenLines} more lines)
-						</Text>
-					)}
-				</Box>
-			)}
+			<ToolPreview preview={previewOutput} truncated={truncated} hiddenLines={hiddenLines} bordered />
 		</Box>
 	)
 }

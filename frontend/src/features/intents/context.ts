@@ -1,4 +1,4 @@
-import type { IRootStore } from "../root-store"
+import type { IRootStore } from "@src/features/root-store"
 import type { IIntentStore } from "./store"
 
 /**

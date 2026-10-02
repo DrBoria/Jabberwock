@@ -1,8 +1,7 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
-import { postMessageToWebview } from "@features/foundation/window-manager/store"
+import type { IntentBus } from "@features/intents"
 import { getTaskWithId } from "@features/hist/actions"
-import { aggregateTaskCostsRecursive } from "@features/chat/task/actions/aggregateTaskCosts"
+import { aggregateTaskCostsRecursive, sendTaskWithAggregatedCosts } from "@features/chat"
 
 /**
  * Handles foundation.task.aggregated.costs intent — gets task with aggregated costs.
@@ -16,11 +15,7 @@ export function registerOnTaskAggregatedCosts(bus: IntentBus): void {
 		const taskId = payload.text
 
 		if (!taskId) {
-			await postMessageToWebview(provider, {
-				type: "taskWithAggregatedCosts",
-				text: taskId,
-				error: "Task ID is required",
-			})
+			await sendTaskWithAggregatedCosts(provider, { text: taskId, error: "Task ID is required" })
 			return
 		}
 
@@ -32,17 +27,11 @@ export function registerOnTaskAggregatedCosts(bus: IntentBus): void {
 			}
 			const aggregatedCosts = await aggregateTaskCostsRecursive(taskId, getTaskHistory)
 
-			await postMessageToWebview(provider, {
-				type: "taskWithAggregatedCosts",
-				text: taskId,
-				historyItem,
-				aggregatedCosts,
-			})
+			await sendTaskWithAggregatedCosts(provider, { text: taskId, historyItem, aggregatedCosts })
 		} catch (error) {
 			console.error("[jabberwock] Error getting task with aggregated costs:", error)
 
-			await postMessageToWebview(provider, {
-				type: "taskWithAggregatedCosts",
+			await sendTaskWithAggregatedCosts(provider, {
 				text: taskId,
 				error: error instanceof Error ? error.message : String(error),
 			})

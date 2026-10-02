@@ -1,9 +1,10 @@
 import * as fs from "fs/promises"
 
 // v4 B2 (L11): workspace root via the host-context DI slot — no dynamic require("vscode").
-import { getWorkspaceRoot } from "@features/foundation/host-context/context"
+import { getWorkspaceRoot } from "@features/foundation"
 
 import type { McpHubState } from "@services/mcp/core/types"
+import { sendMcpServerEvent } from "@services/mcp/events/actions/sendMcpServerEvent"
 
 // ─── Notify webview of server changes ────────────────────────────────
 
@@ -55,7 +56,7 @@ export async function notifyWebviewOfServerChanges(
 		}
 
 		try {
-			await targetProvider.postMessageToWebview(message)
+			await sendMcpServerEvent(targetProvider, message)
 		} catch (error) {
 			console.error("[jabberwock] [McpHub] Error calling targetProvider.postMessageToWebview:", error)
 		}
@@ -64,35 +65,12 @@ export async function notifyWebviewOfServerChanges(
 	}
 }
 
-// ─── Is server visible to agent ──────────────────────────────────────
-
-export function isServerVisibleToAgent(
-	serverName: string,
-	serverConfig: Record<string, unknown>,
-	agentMcpList?: string[],
-): boolean {
-	if (serverConfig?.disabled) {
-		return false
-	}
-
-	if (!agentMcpList) {
-		const visible = serverConfig?.isGloballyVisible !== false
-		return visible
-	}
-
-	if (serverConfig?.isGloballyVisible === true) {
-		return true
-	}
-
-	const inList = agentMcpList.includes(serverName)
-	return inList
-}
-
 // ─── Read provider context ───────────────────────────────────────────
 
-export function readProviderContext(
-	targetProvider: import("@features/foundation/webview/EventBridge").ProviderHandle,
-): { activeTaskId: string; agentRole: string } {
+export function readProviderContext(targetProvider: import("@features/foundation/webview").ProviderHandle): {
+	activeTaskId: string
+	agentRole: string
+} {
 	let activeTaskId = ""
 	let agentRole = ""
 

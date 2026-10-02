@@ -3,15 +3,15 @@ import { useTranslation } from "react-i18next"
 import { observer } from "mobx-react-lite"
 import type { Goal } from "@jabberwock/types"
 import { eventConstants } from "@jabberwock/types"
-import { getConnectorBus } from "../../../../../connector-bus"
+import { getConnectorBus } from "@src/connector-bus"
 import { FoldVertical } from "lucide-react"
 import { useCloudUpsell } from "@src/hooks/useCloudUpsell"
-import { useSelectedModel } from "@/features/foundation/ui/hooks/useSelectedModel/useSelectedModel"
+import { useSelectedModel } from "@/features/foundation/ui/hooks/useSelectedModel/main"
 import { useChatTree } from "@src/features/chat/tree/store"
 import { useWindowManager } from "@src/features/foundation/window-manager/store"
 import { rootStore } from "@src/features/store"
 import { useChatUI } from "@src/features/chat/store"
-import { IconButton } from "@src/shared/ui/buttons/icon-button"
+import { IconButton } from "@src/shared/ui/buttons/icon-button-primary"
 import { TaskCardBody } from "./panels"
 import {
 	getCurrentNodeId,
@@ -36,7 +36,7 @@ import {
 
 const TaskHeaderComponent = () => {
 	const { t } = useTranslation()
-	const { apiConfiguration, currentTaskItem, messages } = rootStore.extensionState
+	const { apiConfiguration, currentTaskItem, messages, autoCondenseContextPercent } = rootStore.extensionState
 	const tree = useChatTree()
 	const { nodes } = tree
 	const currentNodeId = getCurrentNodeId(tree, currentTaskItem)
@@ -157,6 +157,7 @@ const TaskHeaderComponent = () => {
 			contextWindow={contextWindow}
 			contextTokens={contextTokens || 0}
 			reservedForOutput={reservedForOutput}
+			condenseThresholdPercent={autoCondenseContextPercent ?? 100}
 			totalCost={totalCost}
 			hasSubtasks={hasSubtasks}
 			aggregatedCost={aggregatedCost}

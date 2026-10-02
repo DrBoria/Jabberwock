@@ -9,7 +9,7 @@ import type {
 	HistoryResult,
 } from "../../components/autocomplete/index.js"
 import { useCLIStore, cliStore } from "../../store.js"
-import { useUIStateStore } from "../../stores/uiStateStore.js"
+import { useUIStateStore } from "../../store.js"
 
 export interface UsePickerHandlersOptions {
 	autocompleteRef: React.RefObject<AutocompleteInputHandle>
@@ -108,7 +108,7 @@ function getTriggerId(item: AutocompleteItem, pickerState: AutocompletePickerSta
  * Hook to handle autocomplete picker interactions.
  *
  * Responsibilities:
- * - Handle picker state changes from AutocompleteInput
+ * - Handle picker state changes from "AutocompleteInput"
  * - Handle item selection (special handling for modes and history items)
  * - Handle mode switching via picker
  * - Handle task switching via history picker

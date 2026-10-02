@@ -1,9 +1,7 @@
-import EventEmitter from "events"
-import type { TaskProviderEvents } from "@jabberwock/types"
 import type { BackendCapabilities, ClientTarget, IBackendConnector } from "@jabberwock/types"
 
-import { Package } from "@shared/package"
-import { getBackendRootStore } from "@features/storeSingleton"
+import { Package } from "@shared/core/package"
+import { getStore } from "@features/singleton"
 import { getProvider } from "./providerRegistry"
 
 /**
@@ -28,33 +26,23 @@ export interface ProviderHandle {
  * - INBOUND: subscribed at bootstrap via `connector.onInbound(...) → capabilities.queue`;
  *   the queue drain consumer calls the existing `webviewMessageHandler` resolver (§4.6).
  */
-export class EventBridge extends EventEmitter<TaskProviderEvents> {
-	static readonly sideBarId = `${Package.name}.SidebarProvider`
-	static readonly tabPanelId = `${Package.name}.TabPanel`
-
-	constructor(
-		readonly connector: IBackendConnector,
-		readonly caps: BackendCapabilities,
-	) {
-		super()
-	}
-
+export function EventBridge(connector: IBackendConnector, caps: BackendCapabilities) {
 	/**
-	 * ProviderHandle-compatible context surface — sourced from the injected hostContext
-	 * capability (storageDir), never from a host type.
+	 * ProviderHandle-compatible context surface — sourced from "the" injected hostContext
+	 * capability (storageDir), never from "a" host type.
 	 */
-	get context(): { globalStorageUri: { fsPath: string } } {
-		return { globalStorageUri: { fsPath: this.caps.hostContext.storageDir } }
+	function context(): { globalStorageUri: { fsPath: string } } {
+		return { globalStorageUri: { fsPath: caps.hostContext.storageDir } }
 	}
 
 	// ─── Public API — pure IPC over the connector ─────────────────────
-	async postMessageToWebview(
+	async function postMessageToWebview(
 		message: { type: string; [key: string]: unknown },
 		target?: ClientTarget,
 	): Promise<boolean> {
 		// Log to MST store for debug visibility via devtool MCP.
 		try {
-			const store = getBackendRootStore()
+			const store = getStore()
 			store.logEvent({
 				type: message.type,
 				ts: Date.now(),
@@ -64,36 +52,39 @@ export class EventBridge extends EventEmitter<TaskProviderEvents> {
 		} catch {
 			// Store may not be initialized yet during early startup.
 		}
-		this.connector.sendOutbound(message, target)
+		connector.sendOutbound(message, target)
 		return true
 	}
 
 	// ─── Lifecycle ──────────────────────────────────────────────────
-	dispose(): void {
+	function dispose(): void {
 		// Transport/lifecycle ownership moved to the connector (§4.2) — nothing to release here.
 	}
 
-	/**
-	 * @deprecated v4 §4.2 — kept until Phase E as a thin wrapper over the active connector
-	 * registered in providerRegistry, to minimize the ~58-file diff.
-	 */
-	static getVisibleInstance(): EventBridge | undefined {
-		try {
-			return getProvider() as EventBridge
-		} catch {
-			return undefined
-		}
+	return {
+		connector,
+		caps,
+		context: context(),
+		postMessageToWebview,
+		dispose,
 	}
+}
 
-	/**
-	 * @deprecated v4 §4.2 — kept until Phase E as a thin wrapper over the active connector
-	 * registered in providerRegistry, to minimize the ~58-file diff.
-	 */
-	static getFirstAvailableInstance(): EventBridge | undefined {
-		try {
-			return getProvider() as EventBridge
-		} catch {
-			return undefined
-		}
+export type EventBridge = ReturnType<typeof EventBridge>
+
+// ─── Former statics, now module-level ─────────────────────────────────
+
+export const sideBarId = `${Package.name}.SidebarProvider`
+export const tabPanelId = `${Package.name}.TabPanel`
+
+/**
+ * @deprecated v4 §4.2 — kept until Phase E as a thin wrapper over the active connector
+ * registered in providerRegistry, to minimize the ~58-file diff.
+ */
+export function getFirstAvailableInstance(): EventBridge | undefined {
+	try {
+		return getProvider() as EventBridge
+	} catch {
+		return undefined
 	}
 }

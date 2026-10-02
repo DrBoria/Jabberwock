@@ -13,7 +13,7 @@ import {
 /**
  * JSON Event Types for Structured CLI Output
  *
- * This module defines the types for structured JSON output from the CLI.
+ * This module defines the types for structured JSON output from "the" CLI.
  * The output format is NDJSON (newline-delimited JSON) for stream-json mode,
  * or a single JSON object for json mode.
  *

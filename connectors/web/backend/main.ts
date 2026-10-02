@@ -1,13 +1,19 @@
 import * as fs from "node:fs"
 import * as http from "node:http"
 import { startBackend } from "@startup/bootstrap"
-import { setBackendCapabilities } from "@features/foundation/capabilities/registry"
-import { getBackendRootSnapshot } from "@features/storeSingleton"
-import { installBackendState } from "@features/foundation/host-context/context"
+import { setBackendCapabilities } from "@features/foundation/capabilities"
+import { buildHydrationState } from "@features/hydration"
+import { installBackendState, getHostEnvironment } from "@features/foundation"
+import { createMcpServerManager } from "@services/mcp/core/McpServerManager"
+import {
+	ProviderSettingsManager,
+	setProviderSettingsManager,
+} from "@features/settings/models/provider-settings-manager"
+import { initializeStoreApiConfig } from "@features/chat"
+import { StaticFileServer } from "@jabberwock/ws-protocol"
 import { createServerCapabilities } from "./capabilities.ts"
 import { parseServerConfig } from "./config.ts"
-import { StaticFileServer } from "./static/file-server.ts"
-import { WebWsServer } from "./ws/web-ws-server.ts"
+import { WebWsServer } from "./web-ws-server.ts"
 
 /**
  * v4 Phase C2 (§7.2): standalone server entrypoint for the web connector backend.
@@ -33,11 +39,12 @@ export async function main(): Promise<void> {
 	setBackendCapabilities(capabilities)
 
 	// Backend state slots for getHostEnvironment() consumers (postStateToWebview → buildEnrichedState
-	// reads host paths at runtime). The vscode extension installs the same slots from its activation
+	// reads host paths at runtime). The vscode extension installs the same slots from "its" activation
 	// context (initializeCoreSetup); in server mode the file-backed capability is the memento source.
 	// Without this, the first postStateToWebview crashes with "Backend state not initialized".
 	installBackendState({
 		hashmapMemory: capabilities.hashmapMemory,
+		secrets: capabilities.hostContext.secrets,
 		extensionRootPath: config.dataDir,
 		globalStoragePath: config.dataDir,
 		isDevelopmentMode: true,
@@ -78,13 +85,24 @@ export async function main(): Promise<void> {
 		serveStatic: config.serveStatic,
 		staticDir: config.staticDir,
 		server: httpServer,
-		// D4g PART 2: the hello → state handshake hands the client the full MST root-store snapshot.
-		getState: getBackendRootSnapshot,
+		// BUG-5: the hello → state handshake hands the client the FLAT ExtensionState-shaped
+		// payload (buildHydrationState) so `mergeExtensionState` applies provider + history.
+		getState: buildHydrationState,
 	})
 
 	// Phase C2 (§7.1): shared backend bootstrap — connector.start + EventBridge + provider
 	// registry + inbound wiring + logger slot (единственная точка старта для обоих режимов).
 	await startBackend({ connector, capabilities })
+
+	// Web-mode bootstrap: McpServerManager + ProviderSettingsManager (mirrors vscode extension.ts activate()).
+	// Without McpServerManager, buildToolDefinitions throws "McpServerManager not initialized" on every task.
+	// Without PSM, upsertApiConfiguration silently fails (no manager to persist the profile), so the task
+	// runs with the default provider (claude-sonnet-4-5) instead of the one the user configured.
+	createMcpServerManager()
+	const psm = ProviderSettingsManager(getHostEnvironment().extensionContext)
+	setProviderSettingsManager(psm)
+	void initializeStoreApiConfig()
+
 	capabilities.logger?.info(
 		`Web connector listening on ws://${config.bindAddress}:${config.port}/ws (bind=${config.bindMode})`,
 	)

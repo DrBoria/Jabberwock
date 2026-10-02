@@ -1,2 +1,2 @@
-export { generateImageWithProvider, generateImageWithImagesApi } from "./image-generation"
+export { generateImageWithProvider, generateImageWithImagesApi } from "./main"
 export type { ImageGenerationResult } from "./types"

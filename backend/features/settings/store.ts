@@ -1,14 +1,13 @@
 import { types } from "mobx-state-tree"
-import type { EventBridge } from "@features/foundation/webview/EventBridge"
+import type { EventBridge } from "@features/foundation"
 import type { IBackendRootStore } from "@features/store"
-import { ApiConfigModel } from "@features/settings/models/api-config-store"
-import { FilesModel } from "@features/foundation/time-machine/store"
-import { McpModel } from "@features/settings/mcp/store"
-import { ModelsModel } from "@features/settings/models/store"
-import { ModesModel } from "@features/settings/agents/store"
-import { PromptsModel } from "@features/settings/context/store"
-import { SkillsModel } from "@features/settings/skills/store"
-import { WebviewModel } from "@features/settings/webview/store"
+import { ApiConfigModel } from "@features/settings/models"
+import { FilesModel } from "@features/foundation/time-machine"
+import { McpModel } from "@features/settings/mcp"
+import { ModelsModel } from "@features/settings/models"
+import { ModesModel } from "@features/settings/agents"
+import { PromptsModel } from "@features/settings/context"
+import { SkillsModel } from "@features/settings/skills"
 
 export const SettingsModel = types
 	.model("Settings", {
@@ -19,7 +18,6 @@ export const SettingsModel = types
 		modes: ModesModel,
 		prompts: PromptsModel,
 		skills: SkillsModel,
-		webview: WebviewModel,
 		settingsImportedAt: types.number,
 	})
 	.actions((self) => ({

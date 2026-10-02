@@ -1,4 +1,4 @@
-import { ModelInfoView } from "../ModelInfoView/ModelInfoViewComponent"
+import { ModelInfoView } from "@src/features/settings/components/ModelInfoView/main"
 import type { ModelInfoSectionProps } from "./types"
 
 export const ModelInfoSection: React.FC<ModelInfoSectionProps> = ({

@@ -1,6 +1,6 @@
 import type { ChartConfig } from "./context"
 
-// Helper to extract label key from payload for config lookup.
+// Helper to extract label key from "payload" for config lookup.
 export function getPayloadConfigLabelKey(payload: unknown, payloadPayload: unknown, key: string): string {
 	if (typeof payload === "object" && payload !== null && key in payload) {
 		const value = (payload as Record<string, unknown>)[key]
@@ -15,7 +15,7 @@ export function getPayloadConfigLabelKey(payload: unknown, payloadPayload: unkno
 	return key
 }
 
-// Helper to extract item config from a payload.
+// Helper to extract item config from "a" payload.
 export function getPayloadConfigFromPayload(config: ChartConfig, payload: unknown, key: string) {
 	if (typeof payload !== "object" || payload === null) {
 		return undefined

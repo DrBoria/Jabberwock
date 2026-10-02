@@ -2,13 +2,13 @@ import { useState, useCallback, useEffect } from "react"
 import { useEvent } from "react-use"
 import type { ExtensionMessage, ModelInfo } from "@jabberwock/types"
 import { openAiModelInfoSaneDefaults } from "@jabberwock/types"
-import { convertHeadersToObject } from "../../utils/headers"
-import { ModelPicker } from "../../ModelPicker/ModelPickerComponent"
-import { R1FormatSetting } from "../../provider-controls/R1FormatSetting"
+import { convertHeadersToObject } from "@src/features/settings/components/utils/headers"
+import { ModelPicker } from "@src/features/settings/components/ModelPicker/main"
+import { R1FormatSetting } from "@src/features/settings/components/provider-controls/R1FormatSetting"
 import type { OpenAICompatibleProps } from "./types"
-import { ConnectionSettings, BooleanSettings } from "./settings-fields"
+import { ConnectionSettings, BooleanSettings } from "./settings"
 import { AzureApiVersionSection, CustomHeadersSection, ReasoningEffortSection } from "./sections"
-import { ModelCapabilitiesSection } from "./model-sections"
+import { ModelCapabilitiesSection } from "./model"
 
 export const OpenAICompatible = ({
 	apiConfiguration,

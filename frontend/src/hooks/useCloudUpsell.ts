@@ -26,7 +26,7 @@ export const useCloudUpsell = (options: UseCloudUpsellOptions = {}) => {
 		} else if (wasUnauthenticatedRef.current && cloudIsAuthenticated && sharingEnabled) {
 			// User just authenticated
 			if (initiatedAuthRef.current) {
-				// Auth was initiated from this hook
+				// Auth was initiated from "this" hook
 				telemetryClient.capture(TelemetryEventName.ACCOUNT_CONNECT_SUCCESS)
 				setIsOpen(false) // Close the upsell dialog
 
@@ -51,7 +51,7 @@ export const useCloudUpsell = (options: UseCloudUpsellOptions = {}) => {
 	}, [])
 
 	const handleConnect = useCallback(() => {
-		// Mark that authentication was initiated from this hook
+		// Mark that authentication was initiated from "this" hook
 		initiatedAuthRef.current = true
 		setShouldOpenOnAuth(true)
 

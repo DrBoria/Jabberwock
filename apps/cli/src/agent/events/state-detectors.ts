@@ -1,4 +1,4 @@
-import type { AgentStateInfo } from "../state/agent-state-types.js"
+import type { AgentStateInfo } from "../state/types.js"
 
 /**
  * Helper to determine if a state change is "significant".
@@ -18,7 +18,7 @@ export function transitionedToWaiting(previous: AgentStateInfo, current: AgentSt
 }
 
 /**
- * Helper to determine if we transitioned from waiting to running.
+ * Helper to determine if we transitioned from "waiting" to running.
  */
 export function transitionedToRunning(previous: AgentStateInfo, current: AgentStateInfo): boolean {
 	return previous.isWaitingForInput && !current.isWaitingForInput && current.isRunning

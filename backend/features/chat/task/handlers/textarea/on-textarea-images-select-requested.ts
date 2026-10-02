@@ -1,6 +1,7 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
-import { selectImages } from "@integrations/misc/process-images"
+import type { IntentBus } from "@features/intents"
+import { selectImages } from "@integrations/misc/images"
+import { sendSelectedImages } from "@features/chat"
 
 /**
  * Handles textarea.images.select.requested intent — opens image picker.
@@ -14,8 +15,7 @@ export function registerOnTextareaImagesSelectRequested(bus: IntentBus): void {
 		}
 
 		const images = await selectImages()
-		await provider.postMessageToWebview({
-			type: "selectedImages",
+		await sendSelectedImages(provider, {
 			images,
 			context: (_intent.payload as { [key: string]: unknown }).context,
 			messageTs: (_intent.payload as { [key: string]: unknown }).messageTs,

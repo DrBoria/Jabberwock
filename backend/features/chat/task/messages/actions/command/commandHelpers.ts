@@ -1,8 +1,8 @@
 import { mentionRegexGlobal, commandRegexGlobal } from "@shared/context/mentions"
 
 import { getCommand, type Command } from "@services/command/commands"
-import { buildSkillResult, resolveSkillContentForMode, type SkillLookup } from "@services/skills/skillInvocation"
-import type { SkillContent } from "@shared/skills"
+import { buildSkillResult, resolveSkillContentForMode, type SkillLookup } from "@features/settings/skills"
+import type { SkillContent } from "@shared/core/skills"
 
 type CommandExistenceResult = {
 	commandName: string
@@ -89,7 +89,7 @@ export function replaceMentionReferences(text: string, mentions: Set<string>): s
 		if (mention === "problems") {
 			return `Workspace Problems (see below for diagnostics)`
 		}
-		if (mention === "git-changes") {
+		if (mention === "checkpoints.git-changes") {
 			return `Working directory changes (see below for details)`
 		}
 		if (/^[a-f0-9]{7,40}$/.test(mention)) {

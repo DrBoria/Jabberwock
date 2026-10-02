@@ -38,7 +38,7 @@ export interface ServerCapabilitiesOptions {
  *   - pubsub: in-process topic pub/sub (vscode mode: EventBridge)
  *   - fileWatchers: chokidar factory (vscode mode: createFileSystemWatcher)
  *   - config: JSON file under `--data-dir` (vscode mode: `workspace.getConfiguration`)
- *   - hostContext: storageDir/workspaceRoot from CLI args, no-op host commands
+ *   - hostContext: storageDir/workspaceRoot from "CLI" args, no-op host commands
  */
 export async function createServerCapabilities(options: ServerCapabilitiesOptions): Promise<BackendCapabilities> {
 	const dataDir = path.resolve(options.dataDir)

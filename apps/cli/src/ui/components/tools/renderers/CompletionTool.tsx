@@ -4,6 +4,7 @@ import * as theme from "../../../theme.js"
 
 import type { ToolRendererProps } from "../types.js"
 import { truncateText, sanitizeContent } from "../utils.js"
+import { ToolPreview } from "../preview.js"
 
 const MAX_CONTENT_LINES = 15
 
@@ -15,26 +16,22 @@ export function CompletionTool({ toolData }: ToolRendererProps) {
 	const displayContent = result || question || content
 	const { text: previewContent, truncated, hiddenLines } = truncateText(displayContent, MAX_CONTENT_LINES)
 
-	return previewContent ? (
+	if (!previewContent) return null
+
+	return (
 		<Box flexDirection="column" paddingX={1} marginBottom={1}>
 			{isQuestion ? (
 				<Box flexDirection="column">
 					<Text color={theme.text}>{previewContent}</Text>
+					{truncated && (
+						<Text color={theme.dimText} dimColor>
+							... ({hiddenLines} more lines)
+						</Text>
+					)}
 				</Box>
 			) : (
-				<Box flexDirection="column">
-					{previewContent.split("\n").map((line, i) => (
-						<Text key={i} color={theme.toolText}>
-							{line}
-						</Text>
-					))}
-				</Box>
-			)}
-			{truncated && (
-				<Text color={theme.dimText} dimColor>
-					... ({hiddenLines} more lines)
-				</Text>
+				<ToolPreview preview={previewContent} truncated={truncated} hiddenLines={hiddenLines} />
 			)}
 		</Box>
-	) : null
+	)
 }

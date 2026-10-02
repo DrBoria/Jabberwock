@@ -24,8 +24,8 @@ export class FileSecretStore implements ISecretStore {
 		try {
 			const raw = JSON.parse(fs.readFileSync(this.secretsPath, "utf8")) as Record<string, string>
 			for (const [key, value] of Object.entries(raw)) this.cache.set(key, value)
-		} catch {
-			// no secrets file exists yet
+		} catch (error) {
+			console.warn("[secrets] No secrets file found, starting empty:", error)
 		}
 	}
 

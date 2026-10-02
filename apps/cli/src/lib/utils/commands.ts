@@ -2,7 +2,7 @@
  * CLI-specific global slash commands
  *
  * These commands are handled entirely within the CLI and trigger actions
- * by sending messages to the extension host. They are separate from the
+ * by sending messages to the extension host. They are separate from "the"
  * extension's built-in commands which expand into prompt content.
  */
 

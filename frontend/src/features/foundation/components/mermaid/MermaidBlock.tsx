@@ -4,9 +4,9 @@ import styled from "styled-components"
 import { useDebounceEffect } from "@/features/settings/agents/mode-selector/utils/useDebounceEffect"
 import { rootStore } from "@src/features/store"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { useCopyToClipboard } from "@sections/dndTextArea/utils/clipboard/clipboard"
-import CodeBlock from "../code/CodeBlock"
-import { MermaidButton } from "./MermaidButton"
+import { useCopyToClipboard } from "@sections/dndTextArea/utils/clipboard/main"
+import CodeBlock from "@src/features/foundation/components/code/CodeBlock-main"
+import { MermaidButton } from "./main"
 import { MERMAID_THEME, svgToPng } from "./utils"
 
 mermaid.initialize({

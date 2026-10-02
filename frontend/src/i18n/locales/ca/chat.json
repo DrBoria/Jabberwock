@@ -149,6 +149,8 @@
 		"title": "Sol·licitud API",
 		"failed": "Sol·licitud API ha fallat",
 		"streaming": "Sol·licitud API...",
+		"loadingContext": "Carregant context...",
+		"loadingContextPercent": "Carregant context... {{percent}}%",
 		"cancelled": "Sol·licitud API cancel·lada",
 		"streamingFailed": "Transmissió API ha fallat",
 		"rateLimitWait": "Limitació de taxa",

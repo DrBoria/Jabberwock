@@ -3,8 +3,8 @@ import * as path from "path"
 import * as fs from "fs/promises"
 import { convertTheme, IVSCodeTheme } from "monaco-vscode-textmate-theme-converter/lib/cjs"
 
-import { Package } from "@shared/package"
-import { getConfiguration } from "@features/foundation/capabilities/registry"
+import { Package } from "@shared/core/package"
+import { getConfiguration } from "@features/foundation/capabilities"
 
 const defaultThemes: Record<string, string> = {
 	"Default Dark Modern": "dark_modern",

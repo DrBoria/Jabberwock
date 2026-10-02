@@ -113,16 +113,18 @@ export function throwCompletePromptError(
 	throw error
 }
 
+export interface CompletePromptModelAccessor {
+	getModel: () => OpenAiNativeModel & { verbosity?: string }
+	getReasoningEffort: (model: OpenAiNativeModel) => string | undefined
+	getPromptCacheRetention: (model: OpenAiNativeModel) => "24h" | undefined
+}
+
 export async function executeCompletePrompt(
 	client: OpenAI,
 	options: ApiHandlerOptions,
 	providerName: string,
 	prompt: string,
-	modelAccessor: {
-		getModel: () => OpenAiNativeModel & { verbosity?: string }
-		getReasoningEffort: (model: OpenAiNativeModel) => string | undefined
-		getPromptCacheRetention: (model: OpenAiNativeModel) => "24h" | undefined
-	},
+	modelAccessor: CompletePromptModelAccessor,
 ): Promise<string> {
 	const abortController = new AbortController()
 
@@ -130,6 +132,7 @@ export async function executeCompletePrompt(
 		const model = modelAccessor.getModel()
 		const reasoningEffort = modelAccessor.getReasoningEffort(model)
 		const verbosity = model.verbosity
+		const promptCacheRetention = modelAccessor.getPromptCacheRetention(model)
 		const requestBody = buildCompletePromptBody(
 			model,
 			prompt,
@@ -140,7 +143,7 @@ export async function executeCompletePrompt(
 				modelTemperature: options.modelTemperature ?? undefined,
 				enableResponsesReasoningSummary: options.enableResponsesReasoningSummary,
 			},
-			() => modelAccessor.getPromptCacheRetention(model),
+			() => promptCacheRetention,
 		)
 
 		const responsesClient = getResponsesClient(client)

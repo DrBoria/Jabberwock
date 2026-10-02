@@ -5,7 +5,7 @@ import { useAppTranslation } from "@src/i18n/TranslationContext"
 
 import { useTaskSearch } from "./hooks/useTaskSearch"
 import { useGroupedTasks } from "./hooks/useGroupedTasks"
-import TaskGroupItem from "./task-rows/TaskGroupItem"
+import TaskGroupItem from "./task-rows/task/group"
 
 const HistoryPreview = () => {
 	const { tasks, searchQuery } = useTaskSearch()

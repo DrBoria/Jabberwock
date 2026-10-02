@@ -149,6 +149,8 @@
 		"title": "API अनुरोध",
 		"failed": "API अनुरोध विफल हुआ",
 		"streaming": "API अनुरोध...",
+		"loadingContext": "संदर्भ लोड हो रहा है...",
+		"loadingContextPercent": "संदर्भ लोड हो रहा है... {{percent}}%",
 		"cancelled": "API अनुरोध रद्द किया गया",
 		"streamingFailed": "API स्ट्रीमिंग विफल हुई",
 		"rateLimitWait": "दर सीमा",

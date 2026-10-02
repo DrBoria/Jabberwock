@@ -1,13 +1,14 @@
-import type { BackendCapabilities, IBackendConnector } from "@jabberwock/types"
+import type { BackendCapabilities, IBackendConnector, GlobalState } from "@jabberwock/types"
 import { getOrCreateTelemetryService } from "@jabberwock/telemetry"
 
-import { setBackendLogger } from "@features/foundation/capabilities/backend-logger"
-import { drainQueueToResolver, wireInboundToQueue } from "@features/foundation/webview/inbound-wiring"
-import { EventBridge } from "@features/foundation/webview/EventBridge"
-import { webviewMessageHandler } from "@features/foundation/webview/events/handlers/on-webview-message"
-import { setConnector, setProvider } from "@features/foundation/webview/providerRegistry"
+import { setBackendLogger, getHostEnvironment } from "@features/foundation"
+import { drainQueueToResolver, wireInboundToQueue } from "@features/foundation"
+import { EventBridge } from "@features/foundation"
+import { webviewMessageHandler } from "@features/foundation"
+import { setConnector, setProvider } from "@features/foundation/webview"
 import { initContextArchive } from "@features/context"
 import { registerContextIntents } from "@features/context/actions"
+import { initHistoryState } from "@features/hist"
 import { createBackendRootStore } from "@features/store"
 import { setupIntentBus } from "./intents"
 
@@ -52,14 +53,14 @@ export async function startBackend(opts: BackendStartupOptions): Promise<EventBr
 	void initContextArchive(capabilities.hostContext.storageDir)
 
 	// One transport-agnostic bridge for both hosts (§4.2).
-	const bridge = new EventBridge(connector, capabilities)
+	const bridge = EventBridge(connector, capabilities)
 
 	// Active provider + connector slots for legacy call sites until Phase E (§10.2).
 	setProvider(bridge)
 	setConnector(connector)
 
 	// ICG-C2 section 8.1: context graph intent handlers (search/recall/describe/history-range plus the cancel observer).
-	// Registered from the shared bootstrap so BOTH hosts get them; a later setupIntentBus registration may overwrite the
+	// Registered from "the" shared bootstrap so BOTH hosts get them; a later setupIntentBus registration may overwrite the
 	// "cancelTask" slot (recorded deviation, full dual-mode wiring lands with Phase D1).
 	registerContextIntents()
 
@@ -68,6 +69,14 @@ export async function startBackend(opts: BackendStartupOptions): Promise<EventBr
 	// provider set by setupIntentBus propagates to clients the host registers later (e.g. PostHog in extension mode).
 	const telemetryService = getOrCreateTelemetryService()
 	createBackendRootStore({ globalStoragePath: capabilities.hostContext.storageDir })
+
+	// Restore persisted task history into the MST store at boot (single source of truth).
+	// Without this, every extension-host restart starts with an empty history and both
+	// clients (vscode webview + web) show nothing until a new task is created.
+	await initHistoryState(bridge, {
+		getGlobalState: (key: string) => getHostEnvironment().getGlobalState(key as keyof GlobalState),
+	})
+
 	await setupIntentBus(bridge, telemetryService)
 
 	// Inbound: connector → queue → drain → existing resolver (§4.6).

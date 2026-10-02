@@ -1,7 +1,6 @@
 import { t } from "i18next"
-import { ArrowRight, Check, ListChecks, SquareDashed } from "lucide-react"
-
-type TodoStatus = "completed" | "in_progress" | "pending"
+import { ListChecks } from "lucide-react"
+import { getTodoIcon, type TodoStatus } from "./todo/icon"
 
 interface TodoItem {
 	id?: string
@@ -13,17 +12,6 @@ interface TodoChangeDisplayProps {
 	previousTodos: TodoItem[]
 	newTodos: TodoItem[]
 	isNested?: boolean
-}
-
-function getTodoIcon(status: TodoStatus | null) {
-	switch (status) {
-		case "completed":
-			return <Check className="size-3 mt-1 shrink-0" />
-		case "in_progress":
-			return <ArrowRight className="size-3 mt-1 shrink-0" />
-		default:
-			return <SquareDashed className="size-3 mt-1 shrink-0" />
-	}
 }
 
 export function TodoChangeDisplay({ previousTodos, newTodos, isNested: _isNested }: TodoChangeDisplayProps) {

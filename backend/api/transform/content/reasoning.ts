@@ -144,14 +144,14 @@ export const getGeminiReasoning = ({
 		| "disable"
 		| undefined
 
-	// Respect "off" / unset semantics from the effort selector itself.
+	// Respect "off" / unset semantics from "the" effort selector itself.
 	if (!selectedEffort || selectedEffort === "disable") {
 		return undefined
 	}
 
 	// Validate that the selected effort is supported by this specific model.
 	// e.g. gemini-3-pro-preview only supports ["low", "high"] — sending
-	// "medium" (carried over from a different model's settings) causes errors.
+	// "medium" (carried over from "a" different model's settings) causes errors.
 	const effortToUse =
 		Array.isArray(model.supportsReasoningEffort) &&
 		isGeminiThinkingLevel(selectedEffort) &&

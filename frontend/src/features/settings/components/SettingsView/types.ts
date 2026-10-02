@@ -2,7 +2,7 @@ import type { LucideIcon } from "lucide-react"
 import type { ProviderSettings, TelemetrySetting, ImageGenerationProvider } from "@jabberwock/types"
 import type { ExtensionState } from "@jabberwock/types"
 import type { SectionName } from "./constants"
-import type { SetCachedStateField, SetExperimentEnabled } from "../shared/types"
+import type { SetCachedStateField, SetExperimentEnabled } from "@src/features/settings/components/shared/types"
 
 export interface TabSidebarProps {
 	sections: { id: SectionName; icon: LucideIcon }[]

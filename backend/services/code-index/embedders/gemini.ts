@@ -5,109 +5,64 @@ import { t } from "@i18n"
 import { TelemetryEventName } from "@jabberwock/types"
 import { getTelemetryService } from "@jabberwock/telemetry"
 
-/**
- * Gemini embedder implementation that wraps the OpenAI Compatible embedder
- * with configuration for Google's Gemini embedding API.
- *
- * Supported models:
- * - gemini-embedding-001 (dimension: 3072)
- *
- * Note: text-embedding-004 has been deprecated and is automatically
- * migrated to gemini-embedding-001 for backward compatibility.
- */
-export class GeminiEmbedder implements IEmbedder {
-	private readonly openAICompatibleEmbedder: OpenAICompatibleEmbedder
-	private static readonly GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
-	private static readonly DEFAULT_MODEL = "gemini-embedding-001"
-	/**
-	 * Deprecated models that are automatically migrated to their replacements.
-	 * Users with these models configured will be silently migrated without interruption.
-	 */
-	private static readonly DEPRECATED_MODEL_MIGRATIONS: Record<string, string> = {
-		"text-embedding-004": "gemini-embedding-001",
-	}
-	private readonly modelId: string
+const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+const GEMINI_DEFAULT_MODEL = "gemini-embedding-001"
+const DEPRECATED_MODEL_MIGRATIONS: Record<string, string> = {
+	"text-embedding-004": "gemini-embedding-001",
+}
 
-	/**
-	 * Migrates deprecated model IDs to their replacements.
-	 * @param modelId The model ID to potentially migrate
-	 * @returns The migrated model ID, or the original if no migration is needed
-	 */
-	private static migrateModelId(modelId: string): string {
-		return GeminiEmbedder.DEPRECATED_MODEL_MIGRATIONS[modelId] ?? modelId
+function migrateModelId(modelId: string): string {
+	return DEPRECATED_MODEL_MIGRATIONS[modelId] ?? modelId
+}
+
+export function GeminiEmbedder(apiKey: string, modelId?: string): IEmbedder {
+	if (!apiKey) {
+		throw new Error(t("embeddings:validation.apiKeyRequired"))
 	}
 
-	/**
-	 * Creates a new Gemini embedder
-	 * @param apiKey The Gemini API key for authentication
-	 * @param modelId The model ID to use (defaults to gemini-embedding-001)
-	 */
-	constructor(apiKey: string, modelId?: string) {
-		if (!apiKey) {
-			throw new Error(t("embeddings:validation.apiKeyRequired"))
-		}
+	const migratedModelId = modelId ? migrateModelId(modelId) : undefined
+	const resolvedModelId = migratedModelId || GEMINI_DEFAULT_MODEL
 
-		// Migrate deprecated models to their replacements silently
-		const migratedModelId = modelId ? GeminiEmbedder.migrateModelId(modelId) : undefined
+	const openAICompatibleEmbedder = OpenAICompatibleEmbedder(
+		GEMINI_BASE_URL,
+		apiKey,
+		resolvedModelId,
+		GEMINI_MAX_ITEM_TOKENS,
+	)
 
-		// Use provided model (after migration) or default
-		this.modelId = migratedModelId || GeminiEmbedder.DEFAULT_MODEL
-
-		// Create an OpenAI Compatible embedder with Gemini's configuration
-		this.openAICompatibleEmbedder = new OpenAICompatibleEmbedder(
-			GeminiEmbedder.GEMINI_BASE_URL,
-			apiKey,
-			this.modelId,
-			GEMINI_MAX_ITEM_TOKENS,
-		)
+	const handler = {
+		openAICompatibleEmbedder,
+		modelId: resolvedModelId,
+		async createEmbeddings(texts: string[], model?: string): Promise<EmbeddingResponse> {
+			try {
+				const modelToUse = model || handler.modelId
+				return await handler.openAICompatibleEmbedder.createEmbeddings(texts, modelToUse)
+			} catch (error) {
+				getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined,
+					location: "GeminiEmbedder:createEmbeddings",
+				})
+				throw error
+			}
+		},
+		async validateConfiguration(): Promise<{ valid: boolean; error?: string }> {
+			try {
+				return await handler.openAICompatibleEmbedder.validateConfiguration()
+			} catch (error) {
+				getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined,
+					location: "GeminiEmbedder:validateConfiguration",
+				})
+				throw error
+			}
+		},
+		get embedderInfo(): EmbedderInfo {
+			return {
+				name: "gemini",
+			}
+		},
 	}
-
-	/**
-	 * Creates embeddings for the given texts using Gemini's embedding API
-	 * @param texts Array of text strings to embed
-	 * @param model Optional model identifier (uses constructor model if not provided)
-	 * @returns Promise resolving to embedding response
-	 */
-	async createEmbeddings(texts: string[], model?: string): Promise<EmbeddingResponse> {
-		try {
-			// Use the provided model or fall back to the instance's model
-			const modelToUse = model || this.modelId
-			return await this.openAICompatibleEmbedder.createEmbeddings(texts, modelToUse)
-		} catch (error) {
-			getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
-				error: error instanceof Error ? error.message : String(error),
-				stack: error instanceof Error ? error.stack : undefined,
-				location: "GeminiEmbedder:createEmbeddings",
-			})
-			throw error
-		}
-	}
-
-	/**
-	 * Validates the Gemini embedder configuration by delegating to the underlying OpenAI-compatible embedder
-	 * @returns Promise resolving to validation result with success status and optional error message
-	 */
-	async validateConfiguration(): Promise<{ valid: boolean; error?: string }> {
-		try {
-			// Delegate validation to the OpenAI-compatible embedder
-			// The error messages will be specific to Gemini since we're using Gemini's base URL
-			return await this.openAICompatibleEmbedder.validateConfiguration()
-		} catch (error) {
-			getTelemetryService().captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
-				error: error instanceof Error ? error.message : String(error),
-				stack: error instanceof Error ? error.stack : undefined,
-				location: "GeminiEmbedder:validateConfiguration",
-			})
-			throw error
-		}
-	}
-
-	/**
-	 * Returns information about this embedder
-	 */
-	get embedderInfo(): EmbedderInfo {
-		return {
-			name: "gemini",
-		}
-	}
+	return handler
 }

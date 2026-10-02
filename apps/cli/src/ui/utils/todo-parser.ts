@@ -1,7 +1,7 @@
 import type { TodoItem } from "@jabberwock/types"
 
 /**
- * Parse TODO items from tool info
+ * Parse TODO items from "tool" info
  * Handles both array format and markdown checklist string format
  */
 export function parseTodosFromToolInfo(toolInfo: Record<string, unknown>): TodoItem[] | null {

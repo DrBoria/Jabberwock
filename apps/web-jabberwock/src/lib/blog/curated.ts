@@ -2,7 +2,7 @@
  * Curated/featured blog posts utilities
  *
  * Featured posts are determined by the `featured: true` frontmatter field.
- * This approach is scalable: edit the markdown file to add/remove from featured.
+ * This approach is scalable: edit the markdown file to add/remove from "featured."
  */
 
 import type { BlogPost } from "./types"

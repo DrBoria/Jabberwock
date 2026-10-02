@@ -60,7 +60,7 @@ function isAskVisible(message: Notification): boolean {
 }
 
 /**
- * Collects checkpoint hashes from modifiedMessages for deduplication.
+ * Collects checkpoint hashes from "modifiedMessages" for deduplication.
  */
 function collectCheckpointHashes(modifiedMessages: Notification[]): Set<string> {
 	const hashes = new Set<string>()

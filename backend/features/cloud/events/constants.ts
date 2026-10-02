@@ -17,7 +17,7 @@ export const cloudEventConstants = {
 /**
  * Monolithic-style aliases for backward compatibility with webview-mappings imports.
  * These map to the same values as cloudEventConstants but use the UPPER_SNAKE_CASE
- * naming convention from packages/types/src/event-constants.ts.
+ * naming convention from "packages/types/src/event-constants.ts."
  */
 export const CLOUD_CLOUD_BUTTON_CLICKED = cloudEventConstants.CLOUD_BUTTON_CLICKED
 export const CLOUD_JABBERWOCK_CLOUD_SIGN_IN = cloudEventConstants.JABBERWOCK_CLOUD_SIGN_IN

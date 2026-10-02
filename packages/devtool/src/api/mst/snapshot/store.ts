@@ -18,7 +18,7 @@ export async function getBackendStoreGuide(backendStore: BackendStore | undefine
 		env: "backend",
 		message: "Available backend stores. Use get_store_state env=backend store=<name> to inspect.",
 		stores: tree,
-		hint: 'Add limit=N (max 10) and cursor=N (skip from end) for pagination. Use path="sub.store" for deep access.',
+		hint: 'Add limit=N (max 10) and cursor=N (skip from "end") for pagination. Use path="sub.store" for deep access.',
 	})
 }
 
@@ -27,15 +27,16 @@ export async function getFrontendStoreGuide(frontendBridge: FrontendBridge | und
 		return JSON.stringify({ error: "Frontend bridge not available" })
 	}
 	try {
-		const snapshot = await frontendBridge.getRootSnapshot()
-		const tree = discoverStoreTree(snapshot as Record<string, unknown>)
+		const { data, connector } = await frontendBridge.getRootSnapshot()
+		const tree = discoverStoreTree(data as Record<string, unknown>)
 
 		return JSON.stringify({
 			guide: true,
 			env: "frontend",
+			connector: connector ?? null,
 			message: "Available frontend stores. Use get_store_state env=frontend store=<name> to inspect.",
 			stores: tree,
-			hint: 'Add limit=N (max 10) and cursor=N (skip from end) for pagination. Use path="sub.store" for deep access.',
+			hint: 'Add limit=N (max 10) and cursor=N (skip from "end") for pagination. Use path="sub.store" for deep access.',
 		})
 	} catch (err) {
 		return JSON.stringify({ error: `Failed to get frontend state: ${(err as Error).message}` })
@@ -52,19 +53,25 @@ export async function getFrontendStoreHelper(
 ): Promise<string> {
 	try {
 		if (store) {
-			const nestedState = await frontendBridge.getNestedStoreState(store, path)
+			const { data: nestedState, connector } = await frontendBridge.getNestedStoreState(store, path)
 			const err = (nestedState as { error?: string }).error
 			if (err) {
-				return JSON.stringify({ error: err })
+				return JSON.stringify({ error: err, connector: connector ?? null })
 			}
 			if (path) {
 				const truncated = truncateDeep(nestedState, 5, undefined, 0, 10, 500, cursor, limit)
-				return JSON.stringify(truncated)
+				return JSON.stringify({
+					...(truncated as Record<string, unknown>),
+					connector: connector ?? null,
+				})
 			}
-			return getFrontendStoreData(nestedState as Record<string, unknown>, cursor, limit, fields)
+			return withConnector(
+				getFrontendStoreData(nestedState as Record<string, unknown>, cursor, limit, fields),
+				connector,
+			)
 		}
 
-		const snapshot = await frontendBridge.getRootSnapshot()
+		const { data: snapshot, connector } = await frontendBridge.getRootSnapshot()
 		const stores = Object.entries(snapshot as Record<string, unknown>).map(([key, value]) => ({
 			name: key,
 			keys: Object.keys((value as Record<string, unknown>) ?? {}).join(", "),
@@ -73,10 +80,23 @@ export async function getFrontendStoreHelper(
 				type: typeof v,
 			})),
 		}))
-		return JSON.stringify({ stores, totalStores: stores.length })
+		return JSON.stringify({ stores, totalStores: stores.length, connector: connector ?? null })
 	} catch (err) {
 		return JSON.stringify({ error: `Failed to get frontend state: ${(err as Error).message}` })
 	}
+}
+
+/** Merge the connector id into a JSON object string (no-op on parse failure). */
+function withConnector(json: string, connector?: string): string {
+	try {
+		const obj = JSON.parse(json) as Record<string, unknown>
+		if (obj && typeof obj === "object" && !Array.isArray(obj)) {
+			return JSON.stringify({ ...obj, connector: connector ?? null })
+		}
+	} catch {
+		/* fall through */
+	}
+	return json
 }
 
 function getFrontendStoreData(

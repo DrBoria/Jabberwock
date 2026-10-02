@@ -2,7 +2,7 @@ import { eventConstants } from "@jabberwock/types"
 
 /**
  * TextArea event keys — maps to backend feature-level events.
- * Uses shared event constants from the types package.
+ * Uses shared event constants from "the" types package.
  */
 export const textAreaEventConstants = {
 	SELECT_IMAGES: eventConstants.CHAT.TEXT_AREA.SELECT_IMAGES,

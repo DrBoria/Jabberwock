@@ -1,3 +1,21 @@
 export { initMarketplaceState, getMarketplaceState } from "./store"
 export type { MarketplaceState, IMarketplaceModel } from "./store"
 export { MarketplaceModel } from "./store"
+export { registerOnMarketplace } from "./handlers/on-marketplace"
+export { registerOnMarketplaceIntents } from "./events/handlers/register"
+export {
+	MARKETPLACE_MARKETPLACE_BUTTON_CLICKED,
+	MARKETPLACE_FILTER_MARKETPLACE_ITEMS,
+	MARKETPLACE_INSTALL_MARKETPLACE_ITEM,
+	MARKETPLACE_INSTALL_MARKETPLACE_ITEM_WITH_PARAMETERS,
+	MARKETPLACE_CANCEL_MARKETPLACE_INSTALL,
+	MARKETPLACE_REMOVE_INSTALLED_MARKETPLACE_ITEM,
+	MARKETPLACE_FETCH_MARKETPLACE_DATA,
+	MARKETPLACE_REFRESH_CUSTOM_TOOLS,
+	MARKETPLACE_REQUEST_SKILLS,
+	MARKETPLACE_CREATE_SKILL,
+	MARKETPLACE_DELETE_SKILL,
+	MARKETPLACE_MOVE_SKILL,
+	MARKETPLACE_UPDATE_SKILL_MODES,
+	MARKETPLACE_OPEN_SKILL_FILE,
+} from "./events/constants"

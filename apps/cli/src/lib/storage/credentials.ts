@@ -2,6 +2,7 @@ import fs from "fs/promises"
 import path from "path"
 
 import { getConfigDir } from "./index.js"
+import { readJsonFile } from "./json-file.js"
 
 const CREDENTIALS_FILE = path.join(getConfigDir(), "cli-credentials.json")
 
@@ -28,28 +29,8 @@ export async function saveToken(token: string, options?: { userId?: string; orgI
 }
 
 export async function loadToken(): Promise<string | null> {
-	try {
-		const data = await fs.readFile(CREDENTIALS_FILE, "utf-8")
-		const credentials: Credentials = JSON.parse(data)
-		return credentials.token
-	} catch (error) {
-		if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-			return null
-		}
-		throw error
-	}
-}
-
-export async function loadCredentials(): Promise<Credentials | null> {
-	try {
-		const data = await fs.readFile(CREDENTIALS_FILE, "utf-8")
-		return JSON.parse(data) as Credentials
-	} catch (error) {
-		if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-			return null
-		}
-		throw error
-	}
+	const credentials = await readJsonFile<Credentials>(CREDENTIALS_FILE)
+	return credentials?.token ?? null
 }
 
 export async function clearToken(): Promise<void> {

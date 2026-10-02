@@ -1,5 +1,5 @@
 import { Position } from "./Position.ts"
-import type { IRange, IPosition } from "../../types.ts"
+import type { IRange, IPosition } from "../../api-types.ts"
 
 /**
  * Represents a range in a text document
@@ -9,7 +9,7 @@ import type { IRange, IPosition } from "../../types.ts"
  *
  * @example
  * ```typescript
- * // Create a range from line 0 to line 5
+ * // Create a range from "line" 0 to line 5
  * const range = new Range(
  *   new Position(0, 0),
  *   new Position(5, 10)
@@ -31,7 +31,7 @@ export class Range implements IRange {
 	 */
 	constructor(start: IPosition, end: IPosition)
 	/**
-	 * Create a new Range from line and character numbers
+	 * Create a new Range from "line" and character numbers
 	 *
 	 * @param startLine - The start line number
 	 * @param startCharacter - The start character offset

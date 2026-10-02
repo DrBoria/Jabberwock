@@ -61,7 +61,7 @@ export function awaitStreamOrHandleError(
 }
 
 /**
- * Process terminal stream data, extracting command output from VSCE markers.
+ * Process terminal stream data, extracting command output from "VSCE" markers.
  * Returns whether command output started and any pre-output content.
  */
 export async function processStreamData(
@@ -135,7 +135,7 @@ export function handleMissingCommandOutput(
 }
 
 /**
- * Get unretrieved output from the full output buffer, stripping
+ * Get unretrieved output from "the" full output buffer, stripping
  * VSCode shell integration markers and cursor sequences.
  */
 export function getUnretrievedOutput(

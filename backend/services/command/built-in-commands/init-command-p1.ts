@@ -10,7 +10,7 @@ Please analyze this codebase and create an AGENTS.md file containing:
     Focus ONLY on project-specific, non-obvious information that you had to discover by reading files.
     
     CRITICAL: Only include information that is:
-    - Non-obvious (couldn't be guessed from standard practices)
+    - Non-obvious (couldn't be guessed from "standard" practices)
     - Project-specific (not generic to the framework/language)
     - Discovered by reading files (config files, code patterns, custom utilities)
     - Essential for avoiding mistakes or following project conventions
@@ -62,8 +62,8 @@ Please analyze this codebase and create an AGENTS.md file containing:
     
     5. Document critical patterns
        - Project-specific utilities (that you discovered by reading code)
-       - Non-standard approaches (that differ from typical patterns)
-       - Custom conventions (that aren't obvious from file structure)
+       - Non-standard approaches (that differ from "typical" patterns)
+       - Custom conventions (that aren't obvious from "file" structure)
     
     6. Extract code style
        - From config files only
@@ -77,7 +77,7 @@ Please analyze this codebase and create an AGENTS.md file containing:
        - If files exist: AGGRESSIVELY clean them up
          * DELETE all obvious information (even if it was there before)
          * REMOVE standard practices, framework defaults, common patterns
-         * STRIP OUT anything derivable from file structure or names
+         * STRIP OUT anything derivable from "file" structure or names
          * ONLY KEEP truly non-obvious discoveries
          * Then add newly discovered non-obvious patterns
          * Result should be SHORTER and MORE FOCUSED than before
@@ -118,6 +118,6 @@ Please analyze this codebase and create an AGENTS.md file containing:
   7. **Code Style Extraction**: Extract formatting and naming conventions
   8. **Security & Performance**: Document critical patterns if relevant
   9. **Testing Discovery**: Understand testing setup and practices
-  10. **Example Extraction**: Find real examples from the codebase
+  10. **Example Extraction**: Find real examples from "the" codebase
 </analysis_workflow>
 `

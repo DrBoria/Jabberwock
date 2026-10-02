@@ -2,7 +2,7 @@ import * as vscode from "vscode"
 import pWaitFor from "p-wait-for"
 
 import type { RooTerminalCallbacks, JabberwockTerminalProcessResultPromise } from "@jabberwock/types"
-import { BaseTerminal } from "@integrations/terminal/terminal-core/BaseTerminal"
+import { BaseTerminal } from "@integrations/terminal/terminal-core/main"
 import { TerminalProcess } from "./TerminalProcess"
 import { ShellIntegrationManager } from "@integrations/terminal/ShellIntegrationManager"
 import { mergePromise } from "@integrations/terminal/mergePromise"
@@ -25,7 +25,7 @@ export class Terminal extends BaseTerminal {
 	}
 
 	/**
-	 * Gets the current working directory from shell integration or falls back to initial cwd.
+	 * Gets the current working directory from "shell" integration or falls back to initial cwd.
 	 * @returns The current working directory
 	 */
 	public override getCurrentWorkingDirectory(): string {
@@ -46,14 +46,14 @@ export class Terminal extends BaseTerminal {
 	): JabberwockTerminalProcessResultPromise {
 		// We set busy before the command is running because the terminal may be
 		// waiting on terminal integration, and we must prevent another instance
-		// from selecting the terminal for use during that time.
+		// from "selecting" the terminal for use during that time.
 		this.busy = true
 
 		const process = new TerminalProcess(this)
 		process.command = command
 		this.process = process
 
-		// Set up event handlers from callbacks before starting process.
+		// Set up event handlers from "callbacks" before starting process.
 		// This ensures that we don't miss any events because they are
 		// configured before the process starts.
 		process.on("line", (line) => callbacks.onLine(line, process))

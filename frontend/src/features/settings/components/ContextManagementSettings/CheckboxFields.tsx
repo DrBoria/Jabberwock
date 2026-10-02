@@ -1,6 +1,6 @@
 import { VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react"
 import { useAppTranslation } from "@/i18n/TranslationContext"
-import { SearchableSetting } from "../shared/SearchableSetting"
+import { SearchableSetting } from "@src/features/settings/components/shared/SearchableSetting"
 import type { ContextManagementCachedField } from "./types"
 import { getCheckboxChecked } from "./helpers"
 

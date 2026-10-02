@@ -5,20 +5,21 @@ import { getTelemetryService } from "@jabberwock/telemetry"
 import { defaultModeSlug } from "@shared/modes"
 import type { ToolResponse, ToolUse } from "@shared/tools"
 
-import type { ITaskModel } from "@features/chat/task/store"
+import type { ITaskModel } from "@features/chat/task"
 
-import { resolveToolAlias } from "@features/settings/context/tools/tool-alias-config"
-import { sanitizeToolUseId } from "@utils/mcp"
+import { resolveToolAlias } from "@features/settings"
+import { sanitizeMcpName } from "@utils/mcp"
 
 import { ask } from "@features/chat/task/notifications/actions/ask"
-import { systemBroadcast, userBroadcast } from "@features/chat/task/messages/actions/say"
+import { emitBroadcast } from "@features/chat/task/messages/actions/say"
 
-import { pushToolResultToUserContent } from "@features/api/handlers/helpers/process/streaming"
-import { validateToolUse } from "@features/chat/tools"
-import { formatResponse } from "@features/settings/context/responses"
+import { pushToolResultToUserContent } from "@features/api"
+import { validateToolUse, isAlwaysAllowedTool } from "@features/chat/tools"
+import { formatResponse } from "@features/settings"
 
-import { agentStore } from "@features/settings/agents/store/index"
-import { createToolDescription, mutatingTools } from "./dispatchMaps"
+import { getStore } from "@features/singleton"
+import { createToolDescription } from "./toolDescriptions"
+import { mutatingTools } from "./dispatchHandlers"
 
 function buildDisabledToolRequirements(disabledTools: string[]): Record<string, boolean> {
 	return disabledTools.reduce(
@@ -63,7 +64,7 @@ async function validateToolUseBlock(
 		const errorContent = formatResponse.toolError(validationError)
 		pushToolResultToUserContent(task.userMessageContent, {
 			type: "tool_result",
-			tool_use_id: sanitizeToolUseId(toolCallId),
+			tool_use_id: sanitizeMcpName(toolCallId),
 			content: typeof errorContent === "string" ? errorContent : "(validation error)",
 			is_error: true,
 		})
@@ -95,7 +96,7 @@ async function checkToolRepetition(
 				{ type: "text" as const, text: `Tool repetition limit reached. User feedback: ${text}` },
 				...formatResponse.imageBlocks(images),
 			)
-			await userBroadcast(task.taskId, "user_feedback", text, images)
+			await emitBroadcast("user", task.taskId, "user_feedback", text, images)
 		}
 
 		getTelemetryService().captureConsecutiveMistakeError(task.taskId)
@@ -128,9 +129,13 @@ async function checkAgentToolPermission(
 	pushResult: (content: ToolResponse) => void,
 ): Promise<boolean> {
 	const modeSlug = mode ?? defaultModeSlug
-	if (agentStore.agents.has(modeSlug)) {
-		const agent = agentStore.agents.get(modeSlug)
-		if (agent && !agent.canUseTool(toolName)) {
+	const agentProfiles = getStore().agents.agents
+	if (agentProfiles.has(modeSlug)) {
+		const agent = agentProfiles.get(modeSlug)
+		// ALWAYS_AVAILABLE_TOOLS (attempt_completion, ask_followup_question, …)
+		// must stay usable in every agent profile or the agent can never end
+		// its turn.
+		if (agent && !isAlwaysAllowedTool(toolName, toolName) && !agent.canUseTool(toolName)) {
 			const errorMessage = `Tool '${toolName}' is not allowed for your current role (${modeSlug}).`
 			pushResult(formatResponse.toolError(errorMessage))
 			return false
@@ -154,7 +159,7 @@ async function handleMissingToolCallId(task: ITaskModel, block: ToolUse): Promis
 		// Best-effort only
 	}
 	task._state.setConsecutiveMistakeCount(task._state.consecutiveMistakeCount + 1)
-	await systemBroadcast(task.taskId, "error", errorMessage)
+	await emitBroadcast("system", task.taskId, "error", errorMessage)
 	task.userMessageContent.push({ type: "text", text: errorMessage })
 	task._state.setDidAlreadyUseTool(true)
 	return true
@@ -171,7 +176,7 @@ function handleRejectedToolBlock(task: ITaskModel, block: ToolUse, toolCallId: s
 
 	pushToolResultToUserContent(task.userMessageContent, {
 		type: "tool_result",
-		tool_use_id: sanitizeToolUseId(toolCallId),
+		tool_use_id: sanitizeMcpName(toolCallId),
 		content: errorMessage,
 		is_error: true,
 	})

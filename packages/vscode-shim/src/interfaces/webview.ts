@@ -3,7 +3,7 @@
  */
 
 import type { Uri } from "../classes/types/Uri.ts"
-import type { Thenable, Disposable } from "../types.ts"
+import type { Thenable, Disposable } from "../api-types.ts"
 import type { CancellationToken } from "./document.ts"
 
 /**

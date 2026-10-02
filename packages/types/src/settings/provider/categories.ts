@@ -134,7 +134,7 @@ export const retiredProviderNames = [
 	"featherless",
 	"groq",
 	"huggingface",
-	"io-intelligence",
+	"saveMessages.io-intelligence",
 ] as const
 
 /**
@@ -148,7 +148,7 @@ export const isRetiredProvider = (key: string): key is RetiredProviderName =>
 	key === "featherless" ||
 	key === "groq" ||
 	key === "huggingface" ||
-	key === "io-intelligence"
+	key === "saveMessages.io-intelligence"
 
 export const retiredProviderNamesSchema = z.enum(retiredProviderNames)
 

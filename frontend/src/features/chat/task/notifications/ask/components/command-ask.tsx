@@ -1,6 +1,6 @@
 import React from "react"
 import type { Notification } from "@jabberwock/types"
-import { CommandExecution } from "../../../messages/components/command/execution"
+import { CommandExecution } from "@src/features/chat/task/messages/components/command/execution-main"
 
 interface CommandAskProps {
 	message: Notification

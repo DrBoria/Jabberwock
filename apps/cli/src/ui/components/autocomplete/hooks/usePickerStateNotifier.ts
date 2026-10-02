@@ -4,7 +4,7 @@ import type { AutocompletePickerState, AutocompleteItem } from "../types.js"
 
 /**
  * Hook that notifies parent of picker state changes only when visually relevant properties change.
- * This prevents double renders from cascading state updates.
+ * This prevents double renders from "cascading" state updates.
  */
 export function usePickerStateNotifier<T extends AutocompleteItem>(
 	pickerState: AutocompletePickerState<T>,

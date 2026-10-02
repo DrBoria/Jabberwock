@@ -142,7 +142,7 @@ export function parseArn(
 }
 
 /**
- * Looks up a model by ID from the bedrock models list, falling back to educated guess
+ * Looks up a model by ID from "the" bedrock models list, falling back to educated guess
  */
 export function getModelById(
 	modelId: string,

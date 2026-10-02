@@ -1,12 +1,12 @@
 import { useInput } from "ink"
 import { useState, useCallback, useImperativeHandle, forwardRef, type Ref } from "react"
 
-import { useInputHistory } from "../../hooks/input/useInputHistory.js"
-import { useTerminalSize } from "../../hooks/TerminalSizeContext.js"
-import { MultilineTextInput } from "../input/MultilineTextInput.js"
+import { useInputHistory } from "../../hooks/input/history.js"
+import { useTerminalSize } from "../../hooks/context.js"
+import { MultilineTextInput } from "../input/component.js"
 
 import type { AutocompleteItem, AutocompleteInputProps, AutocompleteInputHandle } from "./types.js"
-import { useAutocompletePicker } from "./useAutocompletePicker.js"
+import { useAutocompletePicker } from "./use-picker.js"
 import { usePickerStateNotifier } from "./hooks/usePickerStateNotifier.js"
 import { useHistorySync } from "./hooks/useHistorySync.js"
 import { getLastLine } from "./utils.js"

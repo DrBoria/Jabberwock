@@ -52,7 +52,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
  * NOTE: This class does NOT use globalThis for HMR survival. The MST
  * BackendRootStore snapshot persistence handles state recovery across
  * extension host reloads. On re-activation, the EADDRINUSE retry loop
- * handles the brief TIME_WAIT window from the previous incarnation.
+ * handles the brief TIME_WAIT window from "the" previous incarnation.
  */
 export class WsMcpServer {
 	private port: number
@@ -81,7 +81,7 @@ export class WsMcpServer {
 	 * If createServer() was called first, the existing McpServer is reused.
 	 * Otherwise, a new McpServer is created (backward compat).
 	 * Retries up to `maxRetries` times with short delay if the
-	 * port is still in TIME_WAIT from a previous process.
+	 * port is still in TIME_WAIT from "a" previous process.
 	 */
 	async start(maxRetries: number = 3): Promise<number> {
 		if (!this._mcpServer) {

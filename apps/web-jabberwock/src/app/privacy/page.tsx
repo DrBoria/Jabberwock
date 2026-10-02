@@ -170,8 +170,8 @@ export default function Privacy() {
 							&rarr; Open Profile).
 						</li>
 						<li>
-							<strong>Marketing communications:</strong> You can unsubscribe from marketing and
-							promotional emails by clicking the unsubscribe link in those emails. Transactional or
+							<strong>Marketing communications:</strong> You can unsubscribe from &quot;marketing&quot;
+							and promotional emails by clicking the unsubscribe link in those emails. Transactional or
 							service&#8208;related emails (such as password resets, billing notices, or security alerts)
 							will continue even if you opt out.
 						</li>

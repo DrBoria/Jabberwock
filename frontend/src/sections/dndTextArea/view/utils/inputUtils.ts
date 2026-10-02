@@ -1,7 +1,7 @@
 import type React from "react"
 import { mentionRegex } from "@shared/context/mentions"
 import { shouldSendOnEnter } from "../../utils"
-import { removeMention } from "../../utils/context-mentions/context-mentions"
+import { removeMention } from "../../utils/context-mentions/main"
 import type { IDynamicTextAreaStore } from "../../store"
 
 export function isAddGoalKeyShortcut(

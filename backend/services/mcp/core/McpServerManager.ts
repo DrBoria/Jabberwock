@@ -3,81 +3,82 @@
 import type { IExtensionContextView } from "@features/foundation/host-context/context"
 
 import { McpHub } from "./McpHub"
-import { ProviderHandle } from "@features/foundation/webview/EventBridge"
+import { ProviderHandle } from "@features/foundation/webview"
+import { sendMcpServerEvent } from "@services/mcp/events/actions/sendMcpServerEvent"
 
 /**
  * Singleton manager for MCP server instances.
  * Ensures only one set of MCP servers runs across all webviews.
  */
-export class McpServerManager {
-	private static readonly GLOBAL_STATE_KEY = "mcpHubInstanceId"
+const GLOBAL_STATE_KEY = "mcpHubInstanceId"
 
-	private _mcpHub: McpHub | null = null
-	private providers: Set<ProviderHandle> = new Set()
-	private _initializationPromise: Promise<McpHub> | null = null
+export function McpServerManager() {
+	let _mcpHub: McpHub | null = null
+	const providers: Set<ProviderHandle> = new Set()
+	let _initializationPromise: Promise<McpHub> | null = null
 
 	/**
 	 * Get (or create) the singleton McpHub instance.
 	 * Registers the provider for notifications.
 	 */
 	// v4 B2 (L14): widened to the structural view — only `globalState.update` is used below.
-	async getInstance(context: IExtensionContextView, provider: ProviderHandle): Promise<McpHub> {
+	async function getInstance(context: IExtensionContextView, provider: ProviderHandle): Promise<McpHub> {
 		// Register the provider
-		this.providers.add(provider)
+		providers.add(provider)
 
 		// If we already have an instance, return it
-		if (this._mcpHub) {
-			return this._mcpHub
+		if (_mcpHub) {
+			return _mcpHub
 		}
 
 		// If initialization is in progress, wait for it
-		if (this._initializationPromise) {
-			return this._initializationPromise
+		if (_initializationPromise) {
+			return _initializationPromise
 		}
 
 		// Create a new initialization promise
-		this._initializationPromise = (async () => {
+		_initializationPromise = (async () => {
 			try {
 				// Double-check instance in case it was created while we were waiting
-				if (!this._mcpHub) {
-					const hub = new McpHub(provider, context)
+				if (!_mcpHub) {
+					const hub = McpHub(provider, context)
 					// Wait for all MCP servers to finish connecting (or timing out)
 					await hub.waitUntilReady()
-					this._mcpHub = hub
+					_mcpHub = hub
 					// Store a unique identifier in global state to track the primary instance
-					await context.globalState.update(McpServerManager.GLOBAL_STATE_KEY, Date.now().toString())
+					await context.globalState.update(GLOBAL_STATE_KEY, Date.now().toString())
 				}
-				return this._mcpHub
+				return _mcpHub
 			} finally {
 				// Clear the initialization promise after completion or error
-				this._initializationPromise = null
+				_initializationPromise = null
 			}
 		})()
 
-		return this._initializationPromise
+		return _initializationPromise
 	}
 
 	/**
 	 * Get the underlying McpHub instance (only if already initialized).
 	 */
-	getMcpHub(): McpHub | null {
-		return this._mcpHub
+	function getMcpHub(): McpHub | null {
+		return _mcpHub
 	}
 
 	/**
-	 * Remove a provider from the tracked set.
+	 * Remove a provider from "the" tracked set.
 	 * This is called when a webview is disposed.
 	 */
-	unregisterProvider(provider: ProviderHandle): void {
-		this.providers.delete(provider)
+	function unregisterProvider(provider: ProviderHandle): void {
+		providers.delete(provider)
 	}
 
 	/**
 	 * Notify all registered providers of server state changes.
 	 */
-	notifyProviders(message: { type: string; [key: string]: unknown }): void {
-		this.providers.forEach((provider) => {
-			provider.postMessageToWebview(message).catch((error) => {
+	function notifyProviders(message: { type: string; [key: string]: unknown }): void {
+		providers.forEach((provider) => {
+			sendMcpServerEvent(provider, message).catch((error) => {
 				console.error("[jabberwock] Failed to notify provider:", error)
 			})
 		})
@@ -87,39 +88,44 @@ export class McpServerManager {
 	 * Clean up the instance and all its resources.
 	 */
 	// v4 B2 (L14): widened to the structural view — only `globalState.update` is used below.
-	async cleanup(context: IExtensionContextView): Promise<void> {
-		if (this._mcpHub) {
-			await this._mcpHub.dispose()
-			this._mcpHub = null
-			await context.globalState.update(McpServerManager.GLOBAL_STATE_KEY, undefined)
+	async function cleanup(context: IExtensionContextView): Promise<void> {
+		if (_mcpHub) {
+			await _mcpHub.dispose()
+			_mcpHub = null
+			await context.globalState.update(GLOBAL_STATE_KEY, undefined)
 		}
-		this.providers.clear()
+		providers.clear()
 	}
+
+	return { getInstance, getMcpHub, unregisterProvider, notifyProviders, cleanup }
 }
+
+export type McpServerManager = ReturnType<typeof McpServerManager>
 
 // ── Module-level accessor functions ──────────────────────────────────────
 
-let _globalMcpServerManager: McpServerManager | null = null
-
+const __moduleState = {
+	_globalMcpServerManager: null as McpServerManager | null,
+}
 export function createMcpServerManager(): McpServerManager {
-	if (_globalMcpServerManager) {
+	if (__moduleState._globalMcpServerManager) {
 		throw new Error("McpServerManager instance already created")
 	}
-	_globalMcpServerManager = new McpServerManager()
-	return _globalMcpServerManager
+	__moduleState._globalMcpServerManager = McpServerManager()
+	return __moduleState._globalMcpServerManager
 }
 
 export function getMcpServerManager(): McpServerManager {
-	if (!_globalMcpServerManager) {
+	if (!__moduleState._globalMcpServerManager) {
 		throw new Error("McpServerManager not initialized")
 	}
-	return _globalMcpServerManager
+	return __moduleState._globalMcpServerManager
 }
 
 export function hasMcpServerManager(): boolean {
-	return _globalMcpServerManager !== null
+	return __moduleState._globalMcpServerManager !== null
 }
 
 export function resetMcpServerManager(): void {
-	_globalMcpServerManager = null
+	__moduleState._globalMcpServerManager = null
 }

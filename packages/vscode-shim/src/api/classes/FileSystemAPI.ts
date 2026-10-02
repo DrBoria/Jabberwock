@@ -7,7 +7,7 @@ import * as path from "path"
 import { Uri } from "../../classes/types/Uri.ts"
 import { FileSystemError } from "../../classes/types/Additional.ts"
 import { ensureDirectoryExists } from "../../utils/paths.ts"
-import type { FileStat } from "../../types.ts"
+import type { FileStat } from "../../api-types.ts"
 
 /**
  * File system API mock for CLI mode

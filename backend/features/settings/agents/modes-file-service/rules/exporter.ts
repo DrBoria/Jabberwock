@@ -6,8 +6,8 @@ import * as yaml from "yaml"
 import { type ModeConfig, type PromptComponent } from "@jabberwock/types"
 
 import { fileExistsAtPath } from "@utils/io/fs"
-import { getWorkspacePath } from "@utils/io/path"
-import { getGlobalRooDirectory } from "@services/jabberwock-config"
+import { getWorkspacePath } from "@utils/io/main"
+import { getGlobalRooDirectory } from "@services/jabberwock-config/config"
 import { logger } from "@utils/logging"
 
 import {
@@ -15,9 +15,9 @@ import {
 	type ExportResult,
 	type RuleFile,
 	JABBERWOCKMODES_FILENAME,
-} from "@features/settings/agents/modes-file-service/types"
-import { createMockExtensionContext } from "@features/settings/agents/modes-file-service/mock"
-import { loadAndMergeModes } from "@features/settings/agents/modes-file-service/file-ops"
+} from "@features/settings/agents/modes-file-service"
+import { createMockExtensionContext } from "@features/settings/agents/modes-file-service"
+import { loadAndMergeModes } from "@features/settings/agents/modes-file-service"
 import { modes as builtInModes } from "@shared/modes"
 
 async function findModeForExport(slug: string): Promise<ModeConfig | undefined> {

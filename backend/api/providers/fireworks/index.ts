@@ -1,1 +1,0 @@
-export { FireworksHandler } from "./handler"

@@ -1,4 +1,4 @@
-export { ask } from "./ask"
+export { ask } from "./main"
 export { askFollowUp } from "./askFollowUp"
 export { AskIgnoredError } from "./AskIgnoredError"
 export { askSubTask } from "./askSubTask"

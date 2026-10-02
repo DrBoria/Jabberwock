@@ -1,6 +1,6 @@
-import type { SkillsManager } from "@services/skills/SkillsManager"
+import type { ISkillsModel } from "@features/settings/skills"
 
-type SkillsManagerLike = Pick<SkillsManager, "getSkillsForMode">
+type SkillsManagerLike = Pick<ISkillsModel, "getSkillsForMode">
 
 function escapeXml(value: string): string {
 	return value
@@ -81,7 +81,7 @@ CONSTRAINTS:
 
 <linked_file_handling>
 - When a skill is loaded, ONLY the skill instructions are present.
-- Files linked from the skill are NOT loaded automatically.
+- Files linked from "the" skill are NOT loaded automatically.
 - The model MUST explicitly decide to read a linked file based on task relevance.
 - Do NOT assume the contents of linked files unless they have been explicitly read.
 - Prefer reading the minimum necessary linked file.

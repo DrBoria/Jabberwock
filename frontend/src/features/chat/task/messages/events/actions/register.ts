@@ -3,12 +3,12 @@
  *
  * These functions dispatch message-list-related events to the backend
  * via the connector bus (getConnectorBus().publish). They live in `events/actions/` instead of
- * the store to decouple action dispatch from MST state management.
+ * the store to decouple action dispatch from "MST" state management.
  */
 
-import { getConnectorBus } from "../../../../../../connector-bus"
+import { getConnectorBus } from "@src/connector-bus"
 import type { WebviewMessage, AskResponseValue } from "@jabberwock/types"
-import { MessagesEventKeys } from "../constants"
+import { MessagesEventKeys } from "@src/features/chat/task/messages/events/constants"
 
 /**
  * Send an ask response (primary/secondary button click, message response).

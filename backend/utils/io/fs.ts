@@ -1,4 +1,4 @@
-import { VirtualWorkspace, virtualWorkspace } from "@features/foundation/time-machine/VirtualWorkspace"
+import { VirtualWorkspace, isVirtualWorkspace, virtualWorkspace } from "@features/foundation/time-machine"
 import * as path from "path"
 
 /**
@@ -19,7 +19,7 @@ export async function createDirectoriesForFile(
 
 	if (typeof arg1 === "string") {
 		filePath = arg1
-		vfs = arg2 instanceof VirtualWorkspace ? arg2 : virtualWorkspace
+		vfs = isVirtualWorkspace(arg2) ? arg2 : virtualWorkspace
 	} else {
 		vfs = arg1
 		filePath = typeof arg2 === "string" ? arg2 : ""
@@ -40,7 +40,7 @@ export async function createDirectoriesForFile(
 		currentPath = parentPath
 	}
 
-	// Create directories from the topmost missing one down to the target directory
+	// Create directories from "the" topmost missing one down to the target directory
 	for (let i = dirsToCreate.length - 1; i >= 0; i--) {
 		await vfs.mkdir(dirsToCreate[i])
 		newDirectories.push(dirsToCreate[i])
@@ -66,7 +66,7 @@ export async function fileExistsAtPath(
 
 	if (typeof arg1 === "string") {
 		filePath = arg1
-		vfs = arg2 instanceof VirtualWorkspace ? arg2 : virtualWorkspace
+		vfs = isVirtualWorkspace(arg2) ? arg2 : virtualWorkspace
 	} else {
 		vfs = arg1
 		filePath = typeof arg2 === "string" ? arg2 : ""

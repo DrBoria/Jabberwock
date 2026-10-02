@@ -1,6 +1,6 @@
-import { ThinkingBudget } from "../../ThinkingBudget/components/ThinkingBudgetComponent"
-import { Verbosity } from "../../about-general/Verbosity"
-import type { ExtraSettingsSectionProps } from "../types"
+import { ThinkingBudget } from "@src/features/settings/components/ThinkingBudget/components/main"
+import { Verbosity } from "@src/features/settings/components/about-general/Verbosity"
+import type { ExtraSettingsSectionProps } from "@src/features/settings/components/ApiOptions/types"
 
 export const ExtraSettingsSection = ({
 	fromWelcomeView,

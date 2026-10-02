@@ -1,6 +1,6 @@
 import React from "react"
 import { VSCodeRadioGroup, VSCodeRadio } from "@vscode/webview-ui-toolkit/react"
-import type { ModeSource } from "../types"
+import type { ModeSource } from "@src/features/settings/agents/components/modes-view/types"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 
 interface SaveLocationSectionProps {

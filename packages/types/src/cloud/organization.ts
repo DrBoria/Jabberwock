@@ -1,7 +1,7 @@
 import { z } from "zod"
 
 import { globalSettingsSchema } from "../settings/global/schema.ts"
-import { providerSettingsWithIdSchema } from "../settings/provider/combined-schemas.ts"
+import { providerSettingsWithIdSchema } from "../settings/provider/settings.ts"
 import { mcpMarketplaceItemSchema } from "../features/marketplace.ts"
 
 /**

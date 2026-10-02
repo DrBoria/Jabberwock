@@ -1,14 +1,13 @@
-import type { IntentBus } from "@features/intents/bus"
-import { onWebviewMessage } from "@features/foundation/webview/events/handlers/on-webview-message"
-import { IntentPriority } from "@features/intents/IntentConstants"
+import { IntentBus, IntentPriority } from "@features/intents"
+import { onWebviewMessage } from "@features/foundation"
 import { IntentStatus } from "@jabberwock/types"
-import { getBackendRootStore } from "@features/storeSingleton"
-import { dispatchTaskResumeIntent, dispatchSendMessageToAgent } from "@features/api/events/actions/task-command-intents"
+import { getStore } from "@features/singleton"
+import { dispatchTaskResumeIntent, dispatchSendMessageToAgent } from "@features/api"
 import { registerAllTaskHandlers } from "@features/chat/task/handlers"
-import { registerOnGoalAdd } from "@features/chat/task/handlers/goal/on-goal-add"
-import { registerOnGoalRemove } from "@features/chat/task/handlers/goal/on-goal-remove"
-import { registerOnGoalUpdate } from "@features/chat/task/handlers/goal/on-goal-update"
-import { registerOnGoalReorder } from "@features/chat/task/handlers/goal/on-goal-reorder"
+import { registerOnGoalAdd } from "@features/chat"
+import { registerOnGoalRemove } from "@features/chat"
+import { registerOnGoalUpdate } from "@features/chat"
+import { registerOnGoalReorder } from "@features/chat"
 import {
 	CHAT_TASK_NEW_TASK,
 	CHAT_TASK_CANCEL_TASK,
@@ -18,7 +17,7 @@ import {
 	CHAT_TASK_TASK_SYNC_ENABLED,
 	CHAT_TASK_CONDENSE_TASK_CONTEXT_REQUEST,
 	CHAT_TASK_WEBVIEW_DID_LAUNCH,
-} from "@features/chat/task/events/constants"
+} from "@features/chat"
 
 /**
  * Register all task-related event handlers on the given IntentBus.
@@ -26,13 +25,10 @@ import {
  * Delegates to the existing registerAllTaskHandlers in the task/handlers/
  * directory to avoid duplicating registration logic.
  */
-export function registerOnTaskIntents(bus: IntentBus): void {
-	// ── Register bus handlers (existing task logic) ────────────────
-	registerAllTaskHandlers(bus)
 
-	// ── Create onWebviewMessage registrations to replace WEBVIEW_TO_INTENT fallback ──
+function registerOnTaskCHATTASKNEWTASK(): void {
 	onWebviewMessage(CHAT_TASK_NEW_TASK, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -42,9 +38,11 @@ export function registerOnTaskIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnTaskCHATTASKCANCELTASK(): void {
 	onWebviewMessage(CHAT_TASK_CANCEL_TASK, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 
 		store.chat.setIsRunning(false)
@@ -70,22 +68,28 @@ export function registerOnTaskIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnTaskCHATTASKRESUME(): void {
 	onWebviewMessage(CHAT_TASK_RESUME, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store || !message.taskId) return
 
 		dispatchTaskResumeIntent(message.taskId)
 	})
+}
 
+function registerOnTaskCHATTASKSENDMESSAGE(): void {
 	onWebviewMessage(CHAT_TASK_SEND_MESSAGE, (_provider, message) => {
 		const dispatched = dispatchSendMessageToAgent(message.text ?? "", message.taskId)
 		if (!dispatched)
 			console.warn("[jabberwock] [webviewMessageHandler] sendMessage: no active task to deliver the prompt")
 	})
+}
 
+function registerOnTaskCHATTASKCLEARTASK(): void {
 	onWebviewMessage(CHAT_TASK_CLEAR_TASK, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -95,9 +99,11 @@ export function registerOnTaskIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnTaskCHATTASKTASKSYNCENABLED(): void {
 	onWebviewMessage(CHAT_TASK_TASK_SYNC_ENABLED, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -107,9 +113,11 @@ export function registerOnTaskIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnTaskCHATTASKCONDENSETASKCONTEXTREQUEST(): void {
 	onWebviewMessage(CHAT_TASK_CONDENSE_TASK_CONTEXT_REQUEST, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -119,9 +127,11 @@ export function registerOnTaskIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnTaskCHATTASKWEBVIEWDIDLAUNCH(): void {
 	onWebviewMessage(CHAT_TASK_WEBVIEW_DID_LAUNCH, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -131,7 +141,18 @@ export function registerOnTaskIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+export function registerOnTaskIntents(bus: IntentBus): void {
+	registerAllTaskHandlers(bus)
+	registerOnTaskCHATTASKNEWTASK()
+	registerOnTaskCHATTASKCANCELTASK()
+	registerOnTaskCHATTASKRESUME()
+	registerOnTaskCHATTASKSENDMESSAGE()
+	registerOnTaskCHATTASKCLEARTASK()
+	registerOnTaskCHATTASKTASKSYNCENABLED()
+	registerOnTaskCHATTASKCONDENSETASKCONTEXTREQUEST()
+	registerOnTaskCHATTASKWEBVIEWDIDLAUNCH()
 	registerOnGoalAdd(bus)
 	registerOnGoalRemove(bus)
 	registerOnGoalUpdate(bus)

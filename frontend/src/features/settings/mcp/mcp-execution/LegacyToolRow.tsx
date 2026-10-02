@@ -1,4 +1,4 @@
-import McpToolRow from "@src/features/settings/mcp/components/McpToolRow"
+import McpToolRow from "@src/features/settings/mcp/components/tool"
 import type { LegacyToolRowProps } from "./types"
 
 export const LegacyToolRow = ({ toolName, serverName, alwaysAllowMcp }: LegacyToolRowProps) => (

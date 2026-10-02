@@ -1,30 +1,41 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
-import { getWindowManagerState, postStateToWebview } from "@features/foundation/window-manager/store"
-import { Package } from "@shared/package"
+import type { IntentBus } from "@features/intents"
+import { getWindowManagerState, postStateToWebview } from "@features/foundation"
+
+import { Package } from "@shared/core/package"
+
 import { getSettingsAccess } from "@utils/settings"
+
 import { diagnosticsManager } from "@jabberwock/devtool"
-import { getConfiguration } from "@features/foundation/capabilities/registry"
-import { getHostContext } from "@features/foundation/host-context/context"
+
+import { getConfiguration } from "@features/foundation"
+
+import { getHostContext } from "@features/foundation"
+
+import { sendFetchUrlResponse } from "@features/settings"
+
+import { publishNotificationError } from "@features/foundation"
 
 /**
  * Register all webview/devtool settings intent handlers.
  */
-export function registerOnSettingsWebview(bus: IntentBus): void {
-	// ── devtoolStatus ─────────────────────────────────────────────────
+
+function registerOnSettingsWebviewSettingsDevtoolStatus(bus: IntentBus): void {
 	bus.register(IntentType.SettingsDevtoolStatus, async () => {
 		// D4g-2 (batch 3): config read/write via the capability slot (D4b).
 		const current = getConfiguration().get<boolean>(Package.name, "devtool", false) ?? false
 		await getConfiguration().update(Package.name, "devtool", !current)
 	})
+}
 
-	// ── webviewLog ────────────────────────────────────────────────────
+function registerOnSettingsWebviewSettingsWebviewLog(bus: IntentBus): void {
 	bus.register(IntentType.SettingsWebviewLog, async (intent) => {
 		const payload = intent.payload as { text: string }
 		diagnosticsManager.log(payload.text || "")
 	})
+}
 
-	// ── domResponse ───────────────────────────────────────────────────
+function registerOnSettingsWebviewSettingsWebviewDomResponse(bus: IntentBus): void {
 	bus.register(IntentType.SettingsWebviewDomResponse, async (intent, ctx) => {
 		const provider = ctx.provider
 		if (!provider) return
@@ -50,8 +61,9 @@ export function registerOnSettingsWebview(bus: IntentBus): void {
 			console.log(`[DEBUG: DOM] Extension: Received invalid domResponse (missing requestId)`)
 		}
 	})
+}
 
-	// ── webviewError ──────────────────────────────────────────────────
+function registerOnSettingsWebviewSettingsWebviewError(bus: IntentBus): void {
 	bus.register(IntentType.SettingsWebviewError, async (intent) => {
 		const payload = intent.payload as { text: string }
 		if (payload.text) {
@@ -59,14 +71,9 @@ export function registerOnSettingsWebview(bus: IntentBus): void {
 			publishNotificationError(`Webview Error: ${payload.text}`)
 		}
 	})
+}
 
-	/**
-	 * Handles fetchUrl requests from the webview DevTools.
-	 * The webview's browser `fetch()` is blocked by CORS for cross-origin URLs,
-	 * but the extension host (Node.js) has no CORS restrictions.
-	 * We fetch the URL here and return the HTML content back to the webview.
-	 */
-	// ── fetchUrl ──────────────────────────────────────────────────────
+function registerOnSettingsWebviewSettingsWebviewUrlFetch(bus: IntentBus): void {
 	bus.register(IntentType.SettingsWebviewUrlFetch, async (intent, ctx) => {
 		const provider = ctx.provider
 		if (!provider) return
@@ -79,22 +86,18 @@ export function registerOnSettingsWebview(bus: IntentBus): void {
 		try {
 			const response = await fetch(url)
 			const html = await response.text()
-			await provider.postMessageToWebview({
-				type: "fetchUrlResponse",
-				requestId,
-				text: html,
-			})
+			await sendFetchUrlResponse(provider, { requestId, text: html })
 		} catch (err) {
-			await provider.postMessageToWebview({
-				type: "fetchUrlResponse",
+			await sendFetchUrlResponse(provider, {
 				requestId,
 				text: "",
 				error: `fetchUrl error: ${err instanceof Error ? err.message : String(err)}`,
 			})
 		}
 	})
+}
 
-	// ── LOCATOR_OPEN_FILE ─────────────────────────────────────────────
+function registerOnSettingsWebviewSettingsLocatorFileOpen(bus: IntentBus): void {
 	bus.register(IntentType.SettingsLocatorFileOpen, async (intent) => {
 		const payload = intent.payload as {
 			locatorPayload: { filePath: string; line: number; column: number }
@@ -126,8 +129,9 @@ export function registerOnSettingsWebview(bus: IntentBus): void {
 			}
 		}
 	})
+}
 
-	// ── locatorTarget ─────────────────────────────────────────────────
+function registerOnSettingsWebviewSettingsLocatorTargetSet(bus: IntentBus): void {
 	bus.register(IntentType.SettingsLocatorTargetSet, async (intent, ctx) => {
 		const provider = ctx.provider
 		if (!provider) return
@@ -140,4 +144,12 @@ export function registerOnSettingsWebview(bus: IntentBus): void {
 	})
 }
 
-import { publishNotificationError } from "@features/foundation/capabilities/notifications"
+export function registerOnSettingsWebview(_bus: IntentBus): void {
+	registerOnSettingsWebviewSettingsDevtoolStatus(_bus)
+	registerOnSettingsWebviewSettingsWebviewLog(_bus)
+	registerOnSettingsWebviewSettingsWebviewDomResponse(_bus)
+	registerOnSettingsWebviewSettingsWebviewError(_bus)
+	registerOnSettingsWebviewSettingsWebviewUrlFetch(_bus)
+	registerOnSettingsWebviewSettingsLocatorFileOpen(_bus)
+	registerOnSettingsWebviewSettingsLocatorTargetSet(_bus)
+}

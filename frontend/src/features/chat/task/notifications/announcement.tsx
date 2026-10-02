@@ -3,7 +3,7 @@ import { Trans } from "react-i18next"
 import { SiDiscord, SiReddit, SiX } from "react-icons/si"
 import { VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 
-import { Package } from "@shared/package"
+import { Package } from "@shared/core/package"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { rootStore } from "@src/features/store"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@src/shared/ui/overlays/dialog"

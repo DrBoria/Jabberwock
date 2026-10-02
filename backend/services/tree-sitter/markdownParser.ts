@@ -191,7 +191,7 @@ export function formatMarkdownCaptures(captures: QueryCapture[], minSectionLines
 		// Only include sections that span at least minSectionLines lines
 		const sectionLength = endLine - startLine + 1
 		if (sectionLength >= minSectionLines) {
-			// Extract header level from the name
+			// Extract header level from "the" name
 			let headerLevel = 1
 
 			// Check if the name contains a header level (e.g., 'definition.header.h2')

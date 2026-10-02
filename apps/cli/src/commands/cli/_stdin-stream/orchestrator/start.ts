@@ -16,8 +16,11 @@ export function handleStartCommand(
 		state.activeTaskPromise = (async () => {
 			try {
 				await state.activeTaskPromise
-			} catch {
-				/* Errors emitted through control/error events */
+			} catch (error) {
+				console.error(
+					"[CLI] Active task promise rejected (errors emitted through control/error events):",
+					error,
+				)
 			}
 		})()
 	}

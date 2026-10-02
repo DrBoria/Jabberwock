@@ -45,12 +45,12 @@ export {
 	setRuntimeConfig,
 	setRuntimeConfigValues,
 	clearRuntimeConfig,
-} from "./api/classes/WorkspaceConfiguration.ts"
-export { WorkspaceAPI } from "./api/classes/WorkspaceAPI.ts"
+} from "./api/classes/configuration.ts"
+export { WorkspaceAPI } from "./api/classes/workspace.ts"
 export { TabGroupsAPI } from "./api/classes/TabGroupsAPI.ts"
 export { WindowAPI } from "./api/classes/WindowAPI.ts"
 export { CommandsAPI } from "./api/classes/CommandsAPI.ts"
-export { createVSCodeAPIMock } from "./api/helpers/create-vscode-api-mock.ts"
+export { createVSCodeAPIMock } from "./api/helpers/main.ts"
 
 // ============================================================================
 // Enums
@@ -79,7 +79,7 @@ export type { Thenable, Memento, FileStat, TextEditorOptions, ConfigurationInspe
 export type { TextDocument, TextLine, WorkspaceFolder } from "./interfaces/document.ts"
 export type { Terminal } from "./interfaces/terminal.ts"
 export type { IExtensionHost, ExtensionHostEventMap, ExtensionHostEventName } from "./interfaces/extension-host.ts"
-export type { SecretStorage } from "./vscode.ts"
+export type { SecretStorage } from "./main.ts"
 
 // ============================================================================
 // Utilities
@@ -91,4 +91,4 @@ export { machineIdSync } from "./utils/machine-id.ts"
 // ============================================================================
 // Re-export as createVSCodeAPI for simpler API
 // ============================================================================
-export { createVSCodeAPIMock as createVSCodeAPI } from "./api/helpers/create-vscode-api-mock.ts"
+export { createVSCodeAPIMock as createVSCodeAPI } from "./api/helpers/main.ts"

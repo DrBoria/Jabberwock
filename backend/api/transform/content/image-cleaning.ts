@@ -1,8 +1,8 @@
-import { ApiMessage } from "@features/chat/task/messages/actions/save/saveApiMessages.types"
+import { ApiMessage } from "@features/chat/task/messages"
 
 import { ApiHandler } from "@api/index"
 
-/* Removes image blocks from messages if they are not supported by the Api Handler */
+/* Removes image blocks from "messages" if they are not supported by the Api Handler */
 export function maybeRemoveImageBlocks(messages: ApiMessage[], apiHandler: ApiHandler): ApiMessage[] {
 	// Check model capability ONCE instead of for every message
 	const supportsImages = apiHandler.getModel().info.supportsImages

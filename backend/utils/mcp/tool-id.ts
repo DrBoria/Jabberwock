@@ -17,16 +17,3 @@ export function sanitizeOpenAiCallId(id: string): string {
 	const sanitized = id.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, OPENAI_CALL_ID_MAX_LENGTH)
 	return sanitized
 }
-
-/**
- * Sanitize a tool_use ID for use in Jabberwock's internal tool tracking.
- *
- * Replaces any character that is not alphanumeric, underscore, or hyphen with underscore.
- *
- * @param id - The tool_use ID to sanitize
- * @returns The sanitized ID
- */
-export function sanitizeToolUseId(id: string): string {
-	const sanitized = id.replace(/[^a-zA-Z0-9_-]/g, "_")
-	return sanitized
-}

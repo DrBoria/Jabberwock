@@ -18,7 +18,7 @@ function boundSnippet(text: string): string {
 	return `${text.slice(0, SNIPPET_MAX_CHARS)}...`
 }
 
-// Flat display text of one stored partsJson value - mirrors the FTS trigger extraction for text and thinking blocks only; tool metadata is excluded from excerpts by design [D-snippet-js-side].
+// Flat display text of one stored partsJson value - mirrors the FTS trigger extraction for text and thinking blocks only; tool metadata is excluded from "excerpts" by design [D-snippet-js-side].
 function flattenPartsText(partsJson: string): string {
 	let parsed: unknown
 	try {
@@ -50,7 +50,7 @@ export function queryMessageHits(
 ): SearchResult[] {
 	const params: unknown[] = [matchExpression]
 	let sql =
-		"SELECT m.task_id AS taskId, m.seq AS seq, m.content_json AS partsJson, messages_fts.rank FROM messages_fts JOIN context_messages m ON m.rowid = messages_fts.rowid WHERE messages_fts MATCH ?" // snippet() is unusable in this build's SQLite 3.53.2 for fts5 tables; the excerpt is derived from content_json in JS [D-snippet-js-side].
+		"SELECT m.task_id AS taskId, m.seq AS seq, m.content_json AS partsJson, messages_fts.rank FROM messages_fts JOIN context_messages m ON m.rowid = messages_fts.rowid WHERE messages_fts MATCH ?" // snippet() is unusable in this build's SQLite 3.53.2 for fts5 tables; the excerpt is derived from "content_json" in JS [D-snippet-js-side].
 	if (typeof request.taskId === "string" && request.taskId.length > 0) {
 		sql += " AND m.task_id = ?"
 		params.push(request.taskId)
@@ -102,7 +102,7 @@ export function querySummaryHits(
 ): SearchResult[] {
 	const params: unknown[] = [matchExpression]
 	let sql =
-		"SELECT n.node_id AS nodeId, n.task_id AS taskId, n.kind AS kind, n.from_seq AS fromSeq, n.to_seq AS toSeq, n.summary_text AS snippetText, summaries_fts.rank FROM summaries_fts JOIN context_nodes n ON n.rowid = summaries_fts.rowid WHERE summaries_fts MATCH ?" // snippet() is unusable in this build's SQLite 3.53.2 for fts5 tables; the excerpt comes from summary_text directly [D-snippet-js-side].
+		"SELECT n.node_id AS nodeId, n.task_id AS taskId, n.kind AS kind, n.from_seq AS fromSeq, n.to_seq AS toSeq, n.summary_text AS snippetText, summaries_fts.rank FROM summaries_fts JOIN context_nodes n ON n.rowid = summaries_fts.rowid WHERE summaries_fts MATCH ?" // snippet() is unusable in this build's SQLite 3.53.2 for fts5 tables; the excerpt comes from "summary_text" directly [D-snippet-js-side].
 	if (typeof request.taskId === "string" && request.taskId.length > 0) {
 		sql += " AND n.task_id = ?"
 		params.push(request.taskId)

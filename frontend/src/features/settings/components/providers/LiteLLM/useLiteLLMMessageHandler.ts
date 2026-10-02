@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react"
 import { onSnapshot } from "mobx-state-tree"
 import type { ExtensionMessage } from "@jabberwock/types"
 import { RouterName } from "@shared/api"
-import { routerModelsStore } from "@src/features/settings/models/store"
+import { rootStore } from "@src/features/store"
 import type { LiteLLMRefreshStatus } from "./types"
 
 export const useLiteLLMMessageHandler = (
@@ -23,7 +23,7 @@ export const useLiteLLMMessageHandler = (
 			}
 		}
 		window.addEventListener("message", handleMessage)
-		const unsubscribe = onSnapshot(routerModelsStore, (snapshot) => {
+		const unsubscribe = onSnapshot(rootStore.routerModels, (snapshot) => {
 			if (snapshot.routerModels && refreshStatus === "loading" && !litellmErrorJustReceived.current)
 				setRefreshStatus("success")
 		})

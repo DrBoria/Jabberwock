@@ -1,13 +1,13 @@
-import type { IntentBus } from "../../../intents/bus"
+import type { IntentBus } from "@src/features/intents/bus"
 import { IntentConstants } from "@intentConstants"
-import type { IntentHandlerContext } from "../../../intents/context"
-import { getRootStore } from "../../../root-store"
+import type { IntentHandlerContext } from "@src/features/intents/context"
+import { getRootStore } from "@src/features/root-store"
 import type { HistoryItem } from "@jabberwock/types"
 
 /**
  * Register all frontend history event handlers on the IntentBus.
  */
-export function registerOnFrontendHistoryIntents(bus: IntentBus): void {
+function registerOnFrontendHistoryIntentsReg0(bus: IntentBus): void {
 	bus.register(IntentConstants.history.UPDATED, async (intent, _ctx: IntentHandlerContext) => {
 		const store = getRootStore()
 		const payload = intent.payload as { taskHistory?: unknown }
@@ -15,7 +15,9 @@ export function registerOnFrontendHistoryIntents(bus: IntentBus): void {
 			store.extensionState = { ...store.extensionState, taskHistory: payload.taskHistory as HistoryItem[] }
 		}
 	})
+}
 
+function registerOnFrontendHistoryIntentsReg1(bus: IntentBus): void {
 	bus.register(IntentConstants.history.ITEM_UPDATED, async (intent, _ctx: IntentHandlerContext) => {
 		const store = getRootStore()
 		const payload = intent.payload as { historyItem?: HistoryItem; taskHistory?: unknown[] }
@@ -41,4 +43,9 @@ export function registerOnFrontendHistoryIntents(bus: IntentBus): void {
 		const currentTaskItem = !existingItem || existingItem.id === item.id ? mergedItem : existingItem
 		store.extensionState = { ...store.extensionState, taskHistory: nextHistory as HistoryItem[], currentTaskItem }
 	})
+}
+
+export function registerOnFrontendHistoryIntents(bus: IntentBus): void {
+	registerOnFrontendHistoryIntentsReg0(bus)
+	registerOnFrontendHistoryIntentsReg1(bus)
 }

@@ -4,14 +4,14 @@ import { GitBranch, Check, ChevronDown, Plus } from "lucide-react"
 import type { Worktree, WorktreeListResponse } from "@jabberwock/types"
 
 import { cn } from "@/lib/utils"
-import { useJabberwockPortal } from "@src/features/foundation/ui/hooks/useJabberwock/useJabberwockPortal"
+import { useJabberwockPortal } from "@src/features/foundation"
 import { Popover, PopoverContent, PopoverTrigger } from "@src/shared/ui/overlays/popover"
-import { StandardTooltip } from "@src/shared/ui/tooltips/standard-tooltip"
-import { Button } from "@src/shared/ui/buttons/button"
+import { StandardTooltip } from "@src/shared/ui/tooltips/standard"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
 import { useAppTranslation } from "@/i18n/TranslationContext"
 
-import { CreateWorktreeModal } from "@src/features/settings/components/CreateWorktreeModal/CreateWorktreeModalComponent"
-import { IconButton } from "@src/shared/ui/buttons/icon-button"
+import { CreateWorktreeModal } from "@src/features/settings"
+import { IconButton } from "@src/shared/ui/buttons/icon-button-primary"
 
 interface WorktreeSelectorProps {
 	disabled?: boolean
@@ -34,7 +34,7 @@ export const WorktreeSelector = ({ disabled = false }: WorktreeSelectorProps) =>
 		rootStore.settings.listWorktrees()
 	}, [])
 
-	// Handle messages from extension
+	// Handle messages from "extension"
 	useEffect(() => {
 		const handleMessage = (event: MessageEvent) => {
 			const message = event.data

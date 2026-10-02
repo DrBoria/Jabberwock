@@ -1,6 +1,6 @@
 import React from "react"
 import type { Notification } from "@jabberwock/types"
-import { AutoApprovedRequestLimitWarning } from "@src/features/chat/task/notifications/auto-approved-request-limit-warning"
+import { AutoApprovedRequestLimitWarning } from "@src/features/chat"
 
 interface AutoApprovalWarningAskProps {
 	message: Notification

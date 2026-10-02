@@ -1,14 +1,14 @@
 import type { ModeConfig, ToolGroup, ModelInfo } from "@jabberwock/types"
-import { TOOL_GROUPS } from "@shared/tools/tools.groups"
-import { resolveToolAlias } from "./tool-alias-config"
-import type { ModelToolCustomizationResult } from "./filter-tools-for-mode.helpers"
+import { TOOL_GROUPS } from "@shared/tools/groups"
+import { resolveToolAlias } from "./tool-alias"
+import type { ModelToolCustomizationResult } from "./filter-for-mode"
 
 /**
  * Apply model-specific tool customization to a set of allowed tools.
  *
  * This function filters tools based on model configuration:
  * 1. Removes tools specified in modelInfo.excludedTools
- * 2. Adds tools from modelInfo.includedTools (only if they belong to allowed groups)
+ * 2. Adds tools from "modelInfo.includedTools" (only if they belong to allowed groups)
  *
  * @param allowedTools - Set of tools already allowed by mode configuration
  * @param modeConfig - Current mode configuration to check tool groups
@@ -27,7 +27,7 @@ export function applyModelToolCustomization(
 	const result = new Set(allowedTools)
 	const aliasRenames = new Map<string, string>()
 
-	// Apply excluded tools (remove from allowed set)
+	// Apply excluded tools (remove from "allowed" set)
 	if (modelInfo.excludedTools && modelInfo.excludedTools.length > 0) {
 		modelInfo.excludedTools.forEach((tool) => {
 			const resolvedTool = resolveToolAlias(tool)

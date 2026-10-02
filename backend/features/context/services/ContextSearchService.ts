@@ -29,7 +29,7 @@ export function clampSearchLimit(limit?: number): number {
 	return Math.min(Math.max(Math.floor(limit), 1), MAX_SEARCH_LIMIT)
 }
 
-/** Build a quoted OR-joined FTS5 MATCH expression from free-text query terms; null when no usable term survives sanitization. Double quotes inside a term are escaped by doubling per the FTS5 string-literal rules (D-fts-term-quoting). */
+/** Build a quoted OR-joined FTS5 MATCH expression from "free-text" query terms; null when no usable term survives sanitization. Double quotes inside a term are escaped by doubling per the FTS5 string-literal rules (D-fts-term-quoting). */
 export function buildFtsMatchExpression(query: string): string | null {
 	const terms = query
 		.trim()
@@ -99,7 +99,7 @@ interface CoveringNodeRow {
 	summaryText: string | null
 }
 
-/** Shallowest context_nodes row whose [from_seq, to_seq] contains the span; shared by recall nodeMeta and describeNode so both answer from one rule [D-describe-shallowest-cover]. */
+/** Shallowest context_nodes row whose [from_seq, to_seq] contains the span; shared by recall nodeMeta and describeNode so both answer from "one" rule [D-describe-shallowest-cover]. */
 function findShallowestCoveringNode(
 	db: SqlDatabase,
 	taskId: string,

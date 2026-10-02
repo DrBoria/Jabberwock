@@ -6,8 +6,8 @@ import { getGroupName, getEditGroupDescription } from "./utils"
 import { rootStore } from "@src/features/store"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { findModeBySlug as findCustomModeBySlug } from "@shared/modes"
-import { Button } from "@src/shared/ui/buttons/button"
-import { StandardTooltip } from "@src/shared/ui/tooltips/standard-tooltip"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
+import { StandardTooltip } from "@src/shared/ui/tooltips/standard"
 
 // ─── Config Menu Dropdown ─────────────────────────────────────────────────
 

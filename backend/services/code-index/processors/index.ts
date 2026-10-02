@@ -1,3 +1,3 @@
 export * from "./parser"
-export * from "./scanner"
+export * from "./main"
 export * from "./file-watcher"

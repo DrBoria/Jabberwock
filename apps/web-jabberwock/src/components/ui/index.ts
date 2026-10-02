@@ -1,6 +1,6 @@
 export * from "./button"
 export * from "./chart"
 export * from "./modal"
-export * from "./scroll-button"
+export * from "./section-nav"
 export * from "./table"
 export * from "./link"

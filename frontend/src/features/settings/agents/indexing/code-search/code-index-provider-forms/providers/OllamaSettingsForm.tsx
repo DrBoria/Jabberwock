@@ -2,7 +2,9 @@ import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
 
 import { cn } from "@src/lib/utils"
 
-import type { CodeIndexFormProps } from "../../code-index-popover-logic/code-index-popover-types"
+import { handleModelIdInput } from "./model-dropdown-field"
+
+import type { CodeIndexFormProps } from "@src/features/settings/agents/indexing/code-search/popover-logic/types"
 
 const DEFAULT_OLLAMA_URL = "http://localhost:11434"
 
@@ -36,7 +38,7 @@ export const OllamaSettingsForm = ({ currentSettings, formErrors, updateSetting,
 				<label className="text-sm font-medium">{t("settings:codeIndex.modelLabel")}</label>
 				<VSCodeTextField
 					value={currentSettings.codebaseIndexEmbedderModelId || ""}
-					onInput={(e) => updateSetting("codebaseIndexEmbedderModelId", (e.target as HTMLInputElement).value)}
+					onInput={handleModelIdInput(updateSetting)}
 					placeholder={t("settings:codeIndex.modelPlaceholder")}
 					className={cn("w-full", {
 						"border-red-500": formErrors.codebaseIndexEmbedderModelId,

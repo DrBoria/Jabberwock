@@ -1,6 +1,6 @@
 import type { McpServer } from "@jabberwock/types"
-import { ServerInfoTabs } from "./mcp-server-info-tabs"
-import { NetworkTimeoutSelector } from "./mcp-server-settings"
+import { ServerInfoTabs } from "./info-tabs"
+import { NetworkTimeoutSelector } from "./settings"
 
 interface ServerExpandedBodyProps {
 	server: McpServer

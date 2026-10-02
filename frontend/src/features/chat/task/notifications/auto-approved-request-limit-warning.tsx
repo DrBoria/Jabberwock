@@ -4,7 +4,7 @@ import { Trans } from "react-i18next"
 import type { Notification } from "@jabberwock/types"
 
 import { rootStore } from "@src/features/store"
-import { Button } from "@src/shared/ui/buttons/button"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
 
 type AutoApprovedRequestLimitWarningProps = {
 	message: Notification

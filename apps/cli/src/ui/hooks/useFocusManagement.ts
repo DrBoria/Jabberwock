@@ -1,5 +1,5 @@
 import { useEffect } from "react"
-import { useUIStateStore } from "../stores/uiStateStore.js"
+import { useUIStateStore } from "../store.js"
 import type { PendingAsk } from "../types.js"
 
 export interface UseFocusManagementOptions {

@@ -2,7 +2,7 @@
  * Shared types for the DOM interaction module.
  *
  * These types are used across serialization, lookup, iframe communication,
- * and all action handlers extracted from DevtoolProvider.tsx.
+ * and all action handlers extracted from "DevtoolProvider.tsx."
  */
 
 /**
@@ -19,7 +19,7 @@ export interface DomHandlerContext {
 }
 
 /**
- * Shape of incoming action messages from the extension host.
+ * Shape of incoming action messages from "the" extension host.
  * All DOM tool calls are sent as { type: "action", action: "xxx", requestId, ...params }.
  */
 export interface DomRequest {
@@ -30,7 +30,7 @@ export interface DomRequest {
 }
 
 /**
- * Response shape from an iframe after a dom-query or dom-action message.
+ * Response shape from "an" iframe after a dom-query or dom-action message.
  */
 export interface DomIframeResponse {
 	requestId: string

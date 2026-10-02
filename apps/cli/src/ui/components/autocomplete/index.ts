@@ -29,10 +29,10 @@
 
 // Main components
 export { AutocompleteInput } from "./AutocompleteInput.js"
-export { type PickerSelectProps, PickerSelect } from "./PickerSelect.js"
+export { type PickerSelectProps, PickerSelect } from "./select.js"
 
 // Hook
-export { useAutocompletePicker } from "./useAutocompletePicker.js"
+export { useAutocompletePicker } from "./use-picker.js"
 
 // Types
 export * from "./types.js"

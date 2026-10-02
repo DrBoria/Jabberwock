@@ -3,7 +3,7 @@ import { relations } from "drizzle-orm"
 
 import type { JabberwockSettings, ToolName, ToolUsage } from "@jabberwock/types"
 
-import type { ExerciseLanguage } from "../exercises/index"
+import type { ExerciseLanguage } from "../exercises/catalog"
 
 /**
  * ExecutionMethod

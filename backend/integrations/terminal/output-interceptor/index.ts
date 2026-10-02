@@ -1,4 +1,4 @@
-export { OutputInterceptor } from "./OutputInterceptor"
-export { PreviewBuffer } from "./OutputInterceptor.buffer"
-export { cleanupOutputArtifacts, cleanupOutputArtifactsByIds } from "./OutputInterceptor.cleanup"
-export type { OutputInterceptorOptions } from "./OutputInterceptor.types"
+export { OutputInterceptor } from "./OutputInterceptor-main"
+export { PreviewBuffer } from "./buffer"
+export { cleanupOutputArtifacts, cleanupOutputArtifactsByIds } from "./cleanup"
+export type { OutputInterceptorOptions } from "./types"

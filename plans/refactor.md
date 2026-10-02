@@ -192,3 +192,215 @@ Backend (ICG-C1/C2) was already in place; D5 is frontend-only:
 
 - **D6** — check-all → build --force → stage by literal path → commit "phase D" → push.
 - **(later, separate pass)** v2/v3 remediation per the section above.
+
+## D50 ESLint audit (2026-09-08 — 4 local rules, full backend triage)
+
+**Rules (all `error` in `packages/config-eslint/base.js`):** `local/no-complex-folder-structure` (maxFilesPerFolder 7; folder≠file both directions; domain clusters), `local/no-empty-files`, `local/no-store-outside-store` (storeWordInFilename + externalVolatileFactory + duplicateModelName + original 4), `local/feature-naming` (handlers `on-<kebab>.ts`; no `*Handler.ts`; actions = camelCase verbs; folders = domains).
+
+**Result:** backend `pnpm lint` = **284 errors, all genuine** after 4 calibration fixes: (1) `feature-naming` imperative-verb default was unwired (ESLint does not apply schema `default`) → actNoVerb 33→6; (2) `no-complex-folder-structure` domainCluster reported non-member files → 119→82; (3) `no-store-outside-store` storeWordInFilename unscoped → 20→16, and connectors/web 2 FPs eliminated → **`connectors/web` lint EXIT=0**; (4) folder-token bare substring match false-positived "eventlog" → suffix/dash-part match, 74→73. Note: root `pnpm lint` (turbo) aborts at the first failing package without `--continue` — enumerate with `cd backend && pnpm lint`.
+
+### [A] Duplication — un-split domain clusters (domainCluster, 82 files / ~25 folders)
+
+Sibling filenames sharing a kebab prefix = the prefix is a domain that never became a subfolder (user example: `on-context-condense-api/history/types/utils/.ts` = ONE event split into 4 role-fragments → single `on-<event>.ts` or a `condense/` subfolder). Genuine clusters: `chat/task/condense/handlers/on-context-condense-*` ×5; `task-store/task-model/actions/task-model-actions-*` ×3; `presentAssistantMessage/toolExecution/tool-execution-*` ×3; `tools/ApplyDiffTool/apply-diff-*` ×4 (+index); `write/writeToFileHelpers/write-to-file-*` ×3; `time-machine/actions/strategies/multi-search-replace*` ×5; `services/checkpoints/shadow-checkpoint-*` ×3; `services/glob/list-files*` ×5; `code-index/manager/manager.*` ×7; `code-index/orchestrator/orchestrator.*` ×3; `code-index/embedders/openrouter/openrouter.*` ×4; `code-index/processors/file-watcher/file-watcher.*` ×2; `handlers/agents/on-settings-agents*` ×3; `handlers/code-index/on-settings-code-index*` ×4.
+
+### [B] Architecture glitches
+
+- **folder=filename (folderEq, 64):** name doubled in dir+file — `shared/` singletons (api/api.ts, array/array.ts, experiments/experiments.ts, language/language.ts, modes/modes.ts, package/package.ts, skills/skills.ts, support-prompt/support-prompt.ts, tools/tools*.ts ×3); `services/` singletons (constants/constants.ts, ripgrep/ripgrep.ts, tree-sitter/tree-sitter.ts, mcp-hub/init/init.ts, built-in-commands/built-in-commands.ts, service-factory/service-factory.ts, text-chunker/text-chunker.ts, file-watcher.process.ts, git.ts/git.helpers.ts); `i18n/i18n.ts`, `diagnostics/diagnostics.ts`, `extract-text/extract-text.ts`, `indentation-reader/indentation-reader.ts`, `core/core.ts`, `handler/handler.ts`, `stream/stream.ts`, `image-generation/image-generation.ts`, `ai-sdk/ai-sdk.ts`, `multi-point-strategy/multi-point-strategy.ts`, `streamExecutor/streamExecutor.ts`, `presentAssistantMessage/presentAssistantMessage.ts`, `ask/ask.ts`, `apply/apply.ts`, `capabilities/capabilities.ts`, `native-tools/native-tools.ts`, `on-settings-api-config/on-settings-api-config.ts`, `on-webview-launched/on-webview-launched.ts`; `resumeTask/resumeTask.*`×3;`saveMessages/saveMessages.\*` ×3. Fix pattern: the directory is the domain container — rename the file to its role (`index.ts`, `impl.ts`) or collapse single-file dirs.
+- **Store fragments (storeWordInFilename, 16):** one logical store split across files — `chat/task/volatile-state.ts` + `chat/init-chat-state.ts` (+ `chat/task/store.ts` imports the volatile factory = externalVolatileFactory, and `types.model("Task")` ×2 in store.ts = duplicateModelName — two stores in one file); `cloud/init-cloud-state.ts`; `chat/task/handlers/on-webview-launched/webview-state.ts`; `task-model-actions-state.ts`; `editFileSaveHelpers/read-state.ts`; `window-manager/store/state-utils.ts`; `settings/agents/store/agent-state-model.ts` + `agent-store.ts` (store inside a `store/` folder); `settings/models/api-config-store.profiles.ts` + `api-config-store.ts`; `settings/store.auto-approval.ts` + `store.commands.ts` + `store.handler.ts` + `store.types.ts`; `store/store.snapshot.ts`. → merge into each feature's single `store.ts`.
+- **file=folder collision (fileSameAsSubfolder, 2):** `strategies/multi-search-replace.ts` vs subfolder `multi-search-replace-validation/`; `embedders/openai.ts` vs subfolder `openai-compatible/`.
+
+### [C] v2/v3 naming deviations
+
+- **`on-*` FOLDERS (folderOn, 22):** event name must be a FILE, a folder is a domain — `chat/task/handlers/on-webview-launched/` (5 files), `settings/handlers/on-settings-api-config/` (5), `on-settings-core/` (8), `on-settings-worktree/` (4) → rename to domains (`webview-launched/` → `webview/`, `on-settings-api-config/` → `api-config/`, etc.).
+- **Mechanism tokens in folders (folderTok, 73):** `helpers/` trees — `api/handlers/helpers/**` (12), `chat/tools/helpers/**` (~48), `chat/task/messages/handlers/helpers/**` (6); plus `settings/autoapprovalhandler/store.ts` (`handler` token → `auto-approval/`). → split helper files into the domains they serve; no `helpers` container in v3.
+- **Kebab actions (actKebab, 8):** `api/events/actions/task-command-intents.ts`, `task-model-actions-goals/lifecycle/state.ts` ×3, `context-actions.ts`, `history-delivery.ts`, `param-extraction.ts`, `history-actions.ts` → camelCase verb naming.
+- **Noun actions (actNoVerb, 6):** `taskRegistry.ts`, `messageManager.ts`, `condense/actions/types.ts`, `messages/actions/types.ts`, `time-machine/actions/checkpoints.ts`, `stats.ts` → name after the verb (`collectTimeMachineStats.ts`) or move `types.ts` to the domain `types` folder.
+- **`*Handler.ts` (handlerSuf, 3):** `streamErrorHandler.ts`, `textBlockHandler.ts`, `checkpointRestoreHandler.ts` → `on-<event>.ts` one-file-per-event.
+- **Non-`on-` handler file (handlerFileNaming, 1):** `chat/task/handlers/messageEnhancer.ts` → `on-<event>.ts`.
+- **Empty/comment-only garbage (empty, 2):** `chat/task/task-store/task-state/properties.ts`, `settings/store.handler.ts` → delete.
+
+### [D] Items for later analysis
+
+- **complexity (2):** `ProviderSettingsManager-crud.ts` (async arrow 12 > 10), `ProviderSettingsManager-initialize.ts` `initializeCore` (18 > 10) → split into sub-operations.
+- **max-len (1):** `on-message-broadcast.ts:59` (135 chars).
+- **domainCluster on legitimate distinct events:** `on-goal-*` ×4, `on-task-lifecycle/on-task-*` ×3, `on-tts-*` ×4, `on-notification-*` ×3, `on-settings-*` groups, `on-textarea-*` ×4, `on-message-*` ×4 are the v2 "one file per event" layout, not fragments. The rule cannot yet distinguish "domain-prefix + event" from "event + role-suffix" — needs a role-suffix whitelist (`api`, `history`, `types`, `utils`, `errors`, `io`, `metadata`, …) to suppress the former. Rule refinement → #19.
+- **Rule candidates from this audit (#19):** duplicate basenames across the feature tree; compound names with 4+ kebab segments; one-file-per-event (role-suffix whitelist above).
+
+## D51 v2/v3 compliance audit per area (2026-09-08, 6 Explore agents — principles 1–28 of architectural-restructure-v2.md)
+
+Scope: `backend/features/{chat,api,cloud,hist,settings,foundation,context,store}` + `frontend/src/features/**`. File-naming debt is in D50 — this section is behavior: P1/P2 IPC via action creators, P4 all state in MST, P18 import from barrel, P6 model=folder, P7 one model per store.
+
+### Systemic findings (cross-area)
+
+- **[C] P18 barrels are PARTIAL:** `@features/foundation`, `@features/settings`, `@features/intents`, `@features/chat`, `@features/api`, `@features/hist` barrels re-export only a slice of the public API, so deep `@features/<x>/deep/path` imports cannot be 1-line swaps — ~250 deep imports across backend (116 in chat/tools alone, ~55 foundation deep-imports from settings, 17 `intents/bus`, ~30 more in chat/task). Fix order: complete each barrel's re-exports FIRST, then a mechanical sweep. The two symbol-exact swaps (chat/tools `store.ts` → `@features/api` `StreamingStoreModel`; `attemptCompletionHelpers.ts` → `@features/hist` `getTaskWithId`) are trivial.
+- **[C] P1 direct IPC outside action creators:** the dominant real deviation — ~25 backend files call `provider.postMessageToWebview(...)` directly (settings 21, chat/task ~15, foundation on-task-show, cloud on-cloud ×4, hist on-history ×2, chat/tools mcp ×1) instead of `send<EventName>()` action creators; frontend components fire `window.postMessage` inline (pushWindow, settingsButtonClicked ×3, marketplaceButtonClicked, TelemetryBanner, `type:"action"` ×3). `providerRegistry.ts` itself documents the rule.
+- **[B] P4 module-level mutable state outside MST:** `chat/task` `presentAssistantMessage.ts` (`export let presentAssistantMessageRecursionDepth`), `saveMessages.metadata.ts` (`taskSizeCache` NodeCache), `chat/tools/helpers/lifecycle/updateTodoListHelpers.ts` (`let approvedTodoList`), `settings/ProviderSettingsManager.ts` (`let _providerSettingsManager`), `foundation` singletons (`capabilities/registry.ts` `_capabilities`, `backend-logger.ts` `current`, `providerRegistry.ts` `_provider`/`_connector`, `host-context/context.ts` `_slots`/`_hostContext`/`_asyncReadCache`/`_secretsCache`, `on-webview-message.ts` `messageHandlers` Map, `time-machine/VirtualWorkspace.ts` module-level instance, `getTimeMachine.ts` `_state`), `context/actions/context-actions.ts` (`inFlightHistories`, `let registered`), `ContextArchiveService.ts` (3 module states), frontend `useSettingsSearch.ts` (`let currentRegisterSetting`).
+- **[B] P6/P7 model-name & one-model-per-store:** backend — `settings/agents/store.ts` (5 models, none matches folder `agents`), `settings/models/store.ts` (`ApiConfig` ×2 names), `api/store.ts` (`Api` + re-exported `Streaming`), `time-machine/store.ts` (3 models, no folder match), `context/store.ts` (`ContextTaskMeta` no match); frontend — `chat/tree/store.tsx` + `chat/store.tsx` define TWO DIFFERENT models both named `"ChatStore"` (name collision), `settings/agents/store.ts` (5), `chat/tree/store.tsx` (4), `context/store.ts` (3), `chat/store.tsx` (3), `window-manager/store.tsx` (2), `intents/store.ts` (2).
+
+### [A] Duplication
+
+- `chat/task`: goal handlers registered TWICE (`events/handlers/register-on-task-intents.ts` delegates to `register-all-task-handlers.ts` then registers on-goal-\* again).
+- `chat/tools`: `EditTool.ts` + `SearchReplaceTool.ts` + `EditFileTool/edit-file-tool.ts` — three tools re-implement the same validate→access→read→apply→reset skeleton and near-identical `handlePartial()` ask-flow over three parallel helper families.
+- frontend: `features/storeSingleton.ts` (201 lines, **0 importers — dead**) vs `root-store/bootstrap/singleton.ts` (live) — two parallel RootStore singletons, identical `let _rootStore` + `_actionBuffer`.
+- frontend: `chat/ask/{store,handlers,orchestrators,utils}.ts` (OLD, wired to `chat/store.tsx` `ask:` slot) vs `chat/task/notifications/ask/*` (NEW, live) — near-identical twins, BOTH trees live.
+
+### [B] Architecture glitches (area-specific)
+
+- `chat/task`: `register-on-messages-intents.ts` mixes onWebviewMessage registration with business logic (`askClaimTracker.claim`, `handleWebviewAskResponse`) + direct IPC; `checkpointRestoreHandler.ts` directly mutates `getBackendRootStore().foundation.agentState.pendingEditOp`.
+- `cloud`: `store.ts` exports non-model functions (`initCloudState`/`getCloudState`) = split-off store fragments; `on-cloud.ts` monolithically registers ~10 `bus.register` handlers (P10).
+- frontend: `foundation` (4 files: `useRouterModels`/`useOllamaModels`/`useLmStudioModels`/`MermaidBlock`) imports `@src/features/settings/...` while settings→foundation (33 files) = **circular foundation↔settings dependency**.
+
+### [C] Deviation hot-spots
+
+- `settings`: 21 direct-IPC files (full list in audit: on-settings-\* handlers, agents/code-index handlers, importSettings); `agents/modes-file-service/mock.ts` `let _extensionContext`.
+- `foundation/window-manager`: `register-on-window-manager-intents.ts` — 8 inline `onWebviewMessage(...)` registrations in one function (P10 monolith); `on-task-show.ts` ×2 direct IPC.
+
+### [D] Items for later analysis
+
+- `chat/task/actions/taskRegistry.ts` — module-level `Map<string, ITaskModel>`: documented exception (task registry) or migrate to MST?
+- `chat/tools` — 27 tool singletons (`export const X = new X()`): stateless strategy objects (only mutable fields are streaming/partial → exempt) or per-task instances for full P4?
+- `chat/tools/mcp/processToolContent.ts` — `sendExecutionStatus(task, status)` takes `task` but never uses it (dead param after migration to root store).
+- `settings` — empty `store.handler.ts` (see D50); does `ModesModel` ("Modes", state path `settings.modes`) belong in the agents feature?
+- frontend — `iframe.contentWindow.postMessage` (`chat-received.ts` mcp-force-accept, `McpIframeRenderer.tsx` mcp-context): documented second IPC channel or must it route through action creators?
+- frontend `intents/store.ts` — export names `IntentModel`/`IntentStoreModel` vs model strings `"Intent"`/`"IntentStore"`: confirm canonical naming.
+
+## D52 Shadow stores deep research (P4) + three ESLint rule changes (2026-09-12)
+
+**Question:** what are the 1399 `no-deep-feature-import` findings actually about? Are they "complete the barrel" debt, or something else?
+
+**Conclusion: the deep imports are a SYMPTOM, not the disease.** The root cause is v2 rule #4
+("ALL state in MST — zero module-level mutable state"): the codebase carries state in
+**module-level shadow stores** — `let`/`var` at module scope + accessor closures
+(`getX`/`setX`) + `new EventEmitter` / pub-sub bypassing the MST store. Other features
+then deep-import _those specific files_ because the state lives in them and no barrel can
+expose it. Fixing the barrel (re-exporting `getX`) would propagate the anti-pattern, not
+remove it. The correct fix for shadow-store targets is **migrating the state into the
+feature's single `store.ts`** (an MST model on the root store).
+
+### Inventory (2026-09-12, full backend)
+
+- **29 top-level `let`/`var`** module states. Primary migration targets:
+    - `foundation/capabilities/registry.ts` — `let _capabilities` (+ `getBackendCapabilities`/`setBackendCapabilities`)
+    - `foundation/host-context/context.ts` — `let _slots`, `let _hostContext`
+    - `storeSingleton.ts` — `let _rootStore` (backend twin of the frontend one)
+    - `foundation/webview/providerRegistry.ts` — `let _provider`, `let _connector`
+    - `foundation/time-machine/getTimeMachine.ts` — `let _state`
+    - `foundation/capabilities/backend-logger.ts` — `let current`
+- **53 module-level `const X = new …`** singletons referenced by exported accessors
+  (`_taskRegistry`, `messageHandlers` Map, `memoryCache`, `metaCache`, `modelsWithLoadedDetails`, …)
+- **6 `new EventEmitter`** instances (hidden event state)
+- **92 `.publish` call sites** — the sanctioned channels are ONLY the IntentBus
+  (`bus.publish`/`bus.register`, v2 principle #1) and the connector bus
+  (`getConnectorBus().publish`). Everything else (`capabilities().pubsub.publish`,
+  `task.emit`, `emitter.emit`, …) is a bypass of the MST store.
+
+### Decision (implemented as ESLint debt markers)
+
+1. **NEW `local/no-shadow-store`** (5 checks, `error`):
+    - `moduleMutableState` — top-level `let`/`var`
+    - `moduleSingletonRegistry` — top-level `const X = new …` referenced by an exported fn
+    - `shadowStoreAccessor` — exported fn closing over a state-like module binding
+    - `eventEmitterState` — `new EventEmitter`
+    - `pubsubBypass` — non-sanctioned `x.publish`/`x.emit`; explicit `.pubsub.` receivers
+      are always flagged. Sanctioned bus names (exempt): `bus`, `getConnectorBus`,
+      `connectorBus`, `ConnectorBus`, `intentBus`, `IntentBus` (configurable).
+    - Includes: `backend/`, `frontend/src/`, `apps/cli/`. Excludes: tests, `__mocks__`,
+      `dist/`, `connectors/` (connectors own the IPC seam).
+2. **`local/no-deep-feature-import` — target-aware correction.** The resolved import
+   target is checked for module-level `let`/`var` (cached, heuristic). Shadow-store
+   targets get a new `shadowStoreTarget` message: _"completing the barrel is the WRONG
+   fix here (v2 rule #4) — migrate the state into the feature's single store.ts"_.
+   Also fixed: import sources that resolve to a real `index.ts` barrel (any nesting
+   depth, e.g. `@features/foundation/capabilities`) are now recognized as barrels, not
+   deep imports.
+3. **`local/no-complex-folder-structure` — NO `store/` FOLDERS (new `storeFolder`
+   check, `noStoreFolder` option, default on).** One `store.ts` per feature. A top-level
+   feature literally named `store` (directly under `features/`) is a feature and is
+   exempt. `dottedBasename` message no longer suggests `store/snapshot.ts`.
+
+### New counts (after rule changes, 2026-09-12)
+
+| rule                                   | before | after    | notes                                                                                                                                                                                                                                          |
+| -------------------------------------- | ------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| no-deep-feature-import (backend)       | 1399   | **1132** | 267 real-barrel imports were false positives (single-segment barrel check); split: **713 `deepImport`** + **419 `shadowStoreTarget`** (intents/bus 122, host-context 101, capabilities 79, time-machine 40, webview 15, settings/models 11, …) |
+| no-shadow-store (backend)              | —      | **152**  | 29 `moduleMutableState` + 90 `shadowStoreAccessor` + 20 `moduleSingletonRegistry` + 6 `eventEmitterState` + 7 `pubsubBypass`                                                                                                                   |
+| no-shadow-store (frontend)             | —      | **23**   | `storeSingleton.ts` (`_rootStore` + accessors), `currentRegisterSetting`, `activeConnector`, `activeBus`, …                                                                                                                                    |
+| no-complex-folder-structure (backend)  | 175    | **183**  | +8 `storeFolder`: `foundation/window-manager/store/` ×4, `settings/agents/store/` ×4                                                                                                                                                           |
+| no-complex-folder-structure (frontend) | 63     | 63       | 0 store folders                                                                                                                                                                                                                                |
+| **backend total**                      | 1884   | **2029** | +145 new debt markers (no-shadow-store 152 + storeFolder 8 − 267 deep-import false-positive removal)                                                                                                                                           |
+| **frontend total**                     | 95     | 118      | +23 no-shadow-store                                                                                                                                                                                                                            |
+
+Sanity: 0 findings in `connectors/`, tests, `__mocks__`, `dist/`. Sanctioned
+`bus.publish` / `getConnectorBus().publish` are NOT flagged (harness-verified).
+
+### Migration order (when executing the P4 fix)
+
+1. `capabilities/registry.ts` → `capabilities/store.ts` MST model (56 importers)
+2. `host-context/context.ts` → `host-context/store.ts` (101 shadow-target imports)
+3. `storeSingleton.ts` + frontend `storeSingleton.ts` → the existing `root-store/` singletons
+4. `webview/providerRegistry.ts`, `time-machine/getTimeMachine.ts`, `backend-logger.ts`
+5. collapse the 2 `store/` folders into `store.ts` files (window-manager, settings/agents)
+6. swap the 713 remaining `deepImport` findings to barrels as each barrel is completed
+
+## D53 `no-deep-feature-import` rework: the wrong ACTION, not the length (2026-09-12)
+
+**Question (user):** the rule must not be about path _length_/barrel — it is about
+the **action**. Importing another feature's **store functionality** as a static
+module is simply the wrong thing to do. The correct action is to navigate the
+**live MST tree**: `getRoot<RootStore>(self).<feature>.<child>.action(...)` for a
+sibling, `getParent(self)` (or `getParent(self, 2)`) for a parent — from inside an
+MST action so the whole flow stays in actions. A child store is part of the _same_
+tree; it must not be statically imported. (v2 rule #4.)
+
+**Rework of `local/no-deep-feature-import`:** the rule now classifies each **VALUE**
+deep import by the **nature of the resolved target file** (read once, cached per
+source; resolution covers both alias shapes, backend `@features/*` → `backend/features/*`
+and frontend `@src/*` → `frontend/src/*`):
+
+| target kind | detection                                                              | messageId           | required action                                                                                     |
+| ----------- | ---------------------------------------------------------------------- | ------------------- | --------------------------------------------------------------------------------------------------- |
+| **store**   | file is `store.ts(x)`, or defines `types.model/compose(` + `.actions(` | `storeImport`       | navigate the live tree: `getRoot`/`getParent` inside an MST action — do not import the store module |
+| **shadow**  | a column-0 module-level `let`/`var`                                    | `shadowStoreTarget` | migrate the state into the feature's single `store.ts`, read via the root store                     |
+| **other**   | a plain internal module (or unresolvable)                              | `deepImport`        | use the feature's **barrel** (complete it if the symbol is not re-exported yet)                     |
+
+**Exemptions:**
+
+- **Type-only imports are exempt** (`import type …`, or every specifier `type`-prefixed)
+  — they are erased at compile time, so there is no runtime _action_ to fix. This is
+  also the normal way to type `getRoot<RootStore>(self)` results across features.
+- A **top-level** (no-slash) import is a feature entrypoint, not a deep import.
+- An import that **resolves to a real barrel** (`index.ts(x)` exists at any depth) is allowed.
+- `allowedPaths` (documented exceptions), registered in `base.js` as
+  `allowedPaths: ["@features/intents/bus"]` — the sanctioned IntentBus channel
+  (v2 principle #1; `IntentBus` is also re-exported by the `@features/intents` barrel).
+
+**Bug found + fixed while calibrating:** the repo indents with **tabs**, and the old
+shadow heuristic `\s{0,3}` matched a class-method-local `let` (e.g. `\t\tlet burstCount`
+in `intents/bus.ts`) as "module-level". The shadow check now requires the declaration
+at **column 0** (`(^|\n)(export\s+)?(let|var)`), mirroring `no-shadow-store`'s AST
+`program.body` check.
+
+**Verification:** 17/17 harness cases (type-only exempt; value→store/shadow/other;
+`@src` resolution; barrel-at-depth; explicit `index`; top-level; `allowedPaths`);
+`node --check` + module load OK; 0 IDE errors; real lints re-run (below);
+invariants held — `intents/bus` = 0 findings, 0 findings in tests/`__mocks__`/`dist/`/
+`connectors/`, 0 findings in the rule files themselves.
+
+### New counts (after rework, apples-to-apples vs the D52 logs)
+
+| package                               | total (D52 → D53)      | no-deep-feature-import (D52 → D53) | D53 no-deep breakdown                                                     |
+| ------------------------------------- | ---------------------- | ---------------------------------- | ------------------------------------------------------------------------- |
+| **backend** (`jabberwock`)            | **1777 → 1411** (−366) | **1132 → 766**                     | **464 `deepImport`** + **213 `shadowStoreTarget`** + **89 `storeImport`** |
+| **frontend** (`@jabberwock/frontend`) | **118 → 294** (+176)   | **0 → 176**                        | **151 `deepImport`** + **25 `storeImport`** (+0 `shadowStoreTarget`)      |
+
+Reconciliation: the backend −366 is **entirely** `no-deep` — every other rule is
+identical. It is (a) type-only deep imports now exempt (~244) and (b) `@features/intents/bus`
+(122) moved to `allowedPaths`. The frontend +176 is **not new debt**: the D52 rule only
+matched the backend `@features/` alias, so the frontend's `@src/features/...` deep
+imports were simply never linted before; the rework added `@src/*` coverage, marking
+176 previously-unseen deep value imports. `no-shadow-store` (152 / 23) and
+`no-complex-folder-structure` (183 / 63) are unchanged.
+
+> Note: `grep -oE no-shadow-store` over-counts (the `shadowStoreTarget` **message text**
+> names the `no-shadow-store` rule). Counts above are the authoritative per-`rule-id`
+> parse of the ESLint stylish output.

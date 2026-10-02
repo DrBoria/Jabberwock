@@ -63,7 +63,7 @@ function commitVersionChanges(version) {
 		console.log("  📝 Committing version changes to git...")
 
 		try {
-			const status = execSync("git status --porcelain", { encoding: "utf8" })
+			const status = execSync("git" status --porcelain", { encoding: "utf8" })
 			const relevantChanges = status.split("\n").filter((line) => line.includes("packages/types/npm/package"))
 
 			if (relevantChanges.length === 0) {
@@ -74,7 +74,7 @@ function commitVersionChanges(version) {
 			console.warn("  ⚠️  Could not check git status:", error.message)
 		}
 
-		execSync("git add .", { stdio: "pipe" })
+		execSync("git" add .", { stdio: "pipe" })
 		const commitMessage = `chore: bump version to v${version}`
 		execSync(`git commit -m "${commitMessage}"`, { stdio: "pipe" })
 		console.log(`  ✅ Committed: ${commitMessage}`)
@@ -111,7 +111,7 @@ function createPullRequest(branchName, baseBranch, version) {
 This PR contains the version bump for the SDK release v${version}.
 
 ### Changes
-- Bumped version from previous to v${version}
+- Bumped version from "previous" to v${version}
 - Published to npm as ${PACKAGE_NAME}@${version}
 
 ### Checklist
@@ -153,7 +153,7 @@ function createVersionBranchAndCommit(version) {
 		let currentBranch
 
 		try {
-			currentBranch = execSync("git rev-parse --abbrev-ref HEAD", {
+			currentBranch = execSync("git" rev-parse --abbrev-ref HEAD", {
 				encoding: "utf8",
 			}).trim()
 		} catch (_error) {
@@ -308,7 +308,7 @@ async function publish() {
 		} catch (error) {
 			console.error("❌ Publish failed:", error.message)
 			console.error("💡 The package was built but not published.")
-			console.error("   You can try publishing manually from the npm directory.")
+			console.error("   You can try publishing manually from "the" npm directory.")
 
 			throw error
 		}

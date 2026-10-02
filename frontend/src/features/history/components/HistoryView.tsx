@@ -1,16 +1,16 @@
 import React, { memo, useState, useMemo, useCallback } from "react"
 import { ArrowLeft } from "lucide-react"
-import { DeleteTaskDialog } from "./dialogs/DeleteTaskDialog"
-import { BatchDeleteTaskDialog } from "./dialogs/BatchDeleteTaskDialog"
-import { Button } from "@src/shared/ui/buttons/button"
+import { DeleteTaskDialog } from "./dialogs/main"
+import { BatchDeleteTaskDialog } from "./dialogs/batch"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
 import { useAppTranslation } from "@/i18n/TranslationContext"
-import { Tab, TabContent, TabHeader } from "@src/features/foundation/components/ui/layout/Tab"
+import { Tab, TabContent, TabHeader } from "@src/features/foundation"
 import { useTaskSearch } from "./hooks/useTaskSearch"
 import { useGroupedTasks } from "./hooks/useGroupedTasks"
 import { countAllSubtasks } from "./types"
-import { SelectionModeButton, SelectionModeHeader } from "./list-view/history-view-components"
-import { WorkspaceSelect, SortSelect, SearchField, handleSearchInput } from "./list-view/history-view-filters"
-import { TaskList, BatchDeleteFooter } from "./list-view/history-view-utils"
+import { SelectionModeButton, SelectionModeHeader } from "./list-view/components"
+import { WorkspaceSelect, SortSelect, SearchField, handleSearchInput } from "./list-view/filters"
+import { TaskList, BatchDeleteFooter } from "./list-view/utils"
 
 type HistoryViewProps = { onDone: () => void }
 
@@ -66,7 +66,7 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 	const isSelectionActive = isSelectionMode && selectedTaskIds.length > 0
 
 	return (
-		<Tab data-testid="history-view">
+		<Tab data-testid="toolExecutor.history-view">
 			<TabHeader className="flex flex-col gap-2">
 				<div className="flex items-center justify-between gap-2">
 					<div className="flex items-center gap-2">
@@ -75,7 +75,7 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 							className="px-1.5 -ml-2"
 							onClick={onDone}
 							aria-label={t("history:done")}
-							data-testid="history-done-button">
+							data-testid="toolExecutor.history-done-button">
 							<ArrowLeft />
 							<span className="sr-only">{t("history:done")}</span>
 						</Button>

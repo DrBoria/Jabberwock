@@ -1,6 +1,6 @@
-import type { IntentBus } from "@features/intents/bus"
+import type { IntentBus } from "@features/intents"
 import { BackendIntentType } from "@intentConstants"
-import { postStateToWebview } from "@features/foundation/window-manager/store"
+import { postStateToWebview } from "@features/foundation"
 
 /**
  * Handles settings.opened intent — triggers settings view refresh.

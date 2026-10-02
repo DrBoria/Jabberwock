@@ -2,23 +2,22 @@ import { type Notification } from "@jabberwock/types"
 import { t } from "@i18n"
 
 import { GroundingSource } from "@api/transform/stream"
-import { findLastIndex } from "@shared/array"
 
-import type { ITaskModel } from "@features/chat/task/store"
+import type { ITaskModel } from "@features/chat/task"
 import { presentAssistantMessage } from "@features/chat/task/messages/actions"
-import { parseFinalToolCall } from "./parse-tool-call"
+import { parseFinalToolCall } from "./parseToolCall"
 import type { ToolUse, McpToolUse } from "@shared/tools"
-import type { AssistantMessageContent } from "@features/chat/task/messages/actions/types"
+import type { AssistantMessageContent } from "@features/chat/task/messages/actions/buildMessageTypes"
 
-import { buildAssistantContentForApi, enforceNewTaskIsolation, saveAssistantMessageToHistory } from "./tool-executor"
-import { type TaskDelegate } from "@features/chat/task/condense/actions/types"
+import { buildAssistantContentForApi, enforceNewTaskIsolation, saveAssistantMessageToHistory } from "./toolExecutor"
+import { type TaskDelegate } from "@features/chat/task/condense/types"
 import { sendStateWithoutTaskHistory } from "@features/chat/task/messages/events/actions/sendMessageEvent"
-import { agentBroadcast } from "@features/chat/task/messages/actions/say"
-import { saveMessages } from "@features/chat/task/messages/actions/saveMessages"
-import { updateMessage } from "@features/chat/task/messages/actions/updateMessage"
-import { getBackendRootStore } from "@features/storeSingleton"
-import { getTask as getRegisteredTask } from "@features/chat/task/actions/taskRegistry"
-import { type StreamResult } from "@features/api/handlers/stream/types"
+import { emitBroadcast } from "@features/chat/task/messages/actions/say"
+import { saveMessages } from "@features/chat/task/messages/actions/save"
+import { updateMessage } from "@features/chat/task/messages/actions"
+import { getStore } from "@features/singleton"
+import { getTask as getRegisteredTask } from "@features/chat"
+import { type StreamResult } from "@features/api"
 
 // ── E.4: finalizeToolCalls ─────────────────────────────────────────────────────
 
@@ -35,8 +34,6 @@ import { type StreamResult } from "@features/api/handlers/stream/types"
 export async function finalizeToolCalls(taskId: string, result: StreamResult): Promise<void> {
 	const task = getRegisteredTask(taskId)!
 	const delegate = task as ITaskModel & TaskDelegate
-	const store = getBackendRootStore()
-	const messages = [...store.chat.tasks.get(taskId)!.notifications.items]
 
 	if (task._state.abort || task._state.abandoned) {
 		throw new Error(`[finalizeToolCalls] task ${task.taskId}.${task.instanceId} aborted`)
@@ -47,7 +44,7 @@ export async function finalizeToolCalls(taskId: string, result: StreamResult): P
 	processStreamingToolCalls(delegate, delegate, result)
 	markPartialBlocksComplete(delegate)
 
-	await finalizeReasoningMessage(result, messages, store, delegate)
+	await finalizePartialNotifications(taskId)
 
 	await saveMessages(task.taskId)
 	sendStateWithoutTaskHistory()
@@ -64,7 +61,7 @@ function processStreamingToolCalls(
 	const finalizeEvents = result.rawChunkTracker.finalize()
 	for (const event of finalizeEvents) {
 		if (event.type !== "tool_call_end") continue
-		const store = getBackendRootStore()
+		const store = getStore()
 		const tc = store.chat.streamingToolCalls.get(event.id)
 		const finalToolUse = tc ? parseFinalToolCall(event.id, tc.name, tc.argumentsAccumulator) : null
 		if (tc) store.chat.finalizeToolCall(event.id)
@@ -127,25 +124,31 @@ function markPartialBlocksComplete(delegate: ITaskModel & TaskDelegate): void {
 	})
 }
 
-async function finalizeReasoningMessage(
-	result: StreamResult,
-	messages: Notification[],
-	store: ReturnType<typeof getBackendRootStore>,
-	task: ITaskModel & TaskDelegate,
-): Promise<void> {
-	if (!result.reasoningMessage) return
-	const lastReasoningIndex = findLastIndex(
-		messages,
-		(m: (typeof messages)[number]) => m.type === "say" && m.say === "reasoning",
-	)
-	if (lastReasoningIndex === -1 || !messages[lastReasoningIndex].partial) return
-	const updatedMessage: Notification = { ...messages[lastReasoningIndex], partial: false }
-	const taskNotifications = store.chat.tasks.get(task.taskId)?.notifications
+/**
+ * Finalize every still-partial say notification (the live "reasoning" row, and
+ * any partial "text" rows) in the per-task store, and push the finalized
+ * content to the webview.
+ *
+ * Runs at the end of each stream, BEFORE `saveMessages`, so the persisted
+ * `ui_messages.json` always holds `partial: false` for completed rows. The
+ * previous implementation only finalized the single LAST reasoning row, gated
+ * on `result.reasoningMessage` being non-empty and on a ts lookup against a
+ * messages snapshot taken before this phase — earlier turns' reasoning rows
+ * (and, when the gate missed, even the current one) persisted as
+ * `partial: true`, which the frontend renders differently after a reload.
+ */
+async function finalizePartialNotifications(taskId: string): Promise<void> {
+	const taskNotifications = getStore().chat.tasks.get(taskId)?.notifications
 	if (!taskNotifications) return
-	const mIndex = taskNotifications.items.findIndex((n: Notification) => n.ts === updatedMessage.ts)
-	if (mIndex === -1) return
-	taskNotifications.updateNotification(mIndex, updatedMessage)
-	await updateMessage(task.taskId, updatedMessage)
+	const items = taskNotifications.items
+	for (let i = 0; i < items.length; i++) {
+		const n = items[i]
+		if (n.type === "say" && n.partial === true) {
+			const updatedMessage: Notification = { ...n, partial: false }
+			taskNotifications.updateNotification(i, updatedMessage)
+			await updateMessage(taskId, updatedMessage)
+		}
+	}
 }
 
 async function finalizeAssistantContent(
@@ -176,7 +179,7 @@ async function displayGroundingSources(task: ITaskModel & TaskDelegate, result: 
 		(source: GroundingSource, i: number) => `[${i + 1}](${source.url})`,
 	)
 	const sourcesText = `${t("common:gemini.sources")}\n${citationLinks.join("\n")}`
-	await agentBroadcast(task.taskId, "text", sourcesText, undefined, false, undefined, undefined, {
+	await emitBroadcast("agent", task.taskId, "text", sourcesText, undefined, false, undefined, undefined, {
 		isNonInteractive: true,
 	})
 }

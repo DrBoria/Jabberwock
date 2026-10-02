@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from "react"
 
 import { useAppTranslation } from "@/i18n/TranslationContext"
-import { Button } from "@src/shared/ui/buttons/button"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
 import { Input } from "@src/shared/ui/inputs/input"
 import {
 	Dialog,
@@ -11,7 +11,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@src/shared/ui/overlays/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@src/shared/ui/selects/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@src/shared/ui/selects/select-primitive"
 import { rootStore } from "@src/features/store"
 
 interface CreateSlashCommandDialogProps {

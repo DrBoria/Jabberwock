@@ -1,2 +1,2 @@
 export * from "./db"
-export * from "./exercises"
+export * from "./exercises/catalog"

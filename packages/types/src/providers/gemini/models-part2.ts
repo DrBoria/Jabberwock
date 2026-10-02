@@ -1,4 +1,4 @@
-import type { ModelInfo } from "../../models/model.ts"
+import type { ModelInfo } from "../../models/model-main.ts"
 
 export const geminiModelsPart2 = {
 	"gemini-2.5-pro-preview-05-06": {

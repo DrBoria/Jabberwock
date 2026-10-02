@@ -1,7 +1,7 @@
-import type { IntentBus } from "@features/intents/bus"
-import { onWebviewMessage } from "@features/foundation/webview/events/handlers/on-webview-message"
+import type { IntentBus } from "@features/intents"
+import { onWebviewMessage } from "@features/foundation"
 import { IntentStatus } from "@jabberwock/types"
-import { getBackendRootStore } from "@features/storeSingleton"
+import { getStore } from "@features/singleton"
 import {
 	AGENT_STATE_REQUEST_ROUTER_MODELS,
 	AGENT_STATE_REQUEST_OPEN_AI_MODELS,
@@ -11,11 +11,11 @@ import {
 	AGENT_STATE_REQUEST_ROO_CREDIT_BALANCE,
 	AGENT_STATE_REQUEST_VS_CODE_LM_MODELS,
 	AGENT_STATE_FLUSH_ROUTER_MODELS,
-} from "@features/settings/events/constants"
+} from "@features/settings"
 
-export function registerModelsHandlers(_bus: IntentBus): void {
+function registerModelsHandlersAGENTSTATEREQUESTROUTERMODELS(): void {
 	onWebviewMessage(AGENT_STATE_REQUEST_ROUTER_MODELS, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -25,9 +25,11 @@ export function registerModelsHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerModelsHandlersAGENTSTATEREQUESTOPENAIMODELS(): void {
 	onWebviewMessage(AGENT_STATE_REQUEST_OPEN_AI_MODELS, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -37,9 +39,11 @@ export function registerModelsHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerModelsHandlersAGENTSTATEREQUESTOLLAMAMODELS(): void {
 	onWebviewMessage(AGENT_STATE_REQUEST_OLLAMA_MODELS, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -49,9 +53,11 @@ export function registerModelsHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerModelsHandlersAGENTSTATEREQUESTLMSTUDIOMODELS(): void {
 	onWebviewMessage(AGENT_STATE_REQUEST_LM_STUDIO_MODELS, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -61,9 +67,11 @@ export function registerModelsHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerModelsHandlersAGENTSTATEREQUESTROOMODELS(): void {
 	onWebviewMessage(AGENT_STATE_REQUEST_ROO_MODELS, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -73,9 +81,11 @@ export function registerModelsHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerModelsHandlersAGENTSTATEREQUESTROOCREDITBALANCE(): void {
 	onWebviewMessage(AGENT_STATE_REQUEST_ROO_CREDIT_BALANCE, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -85,9 +95,11 @@ export function registerModelsHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerModelsHandlersAGENTSTATEREQUESTVSCODELMMODELS(): void {
 	onWebviewMessage(AGENT_STATE_REQUEST_VS_CODE_LM_MODELS, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -97,9 +109,11 @@ export function registerModelsHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerModelsHandlersAGENTSTATEFLUSHROUTERMODELS(): void {
 	onWebviewMessage(AGENT_STATE_FLUSH_ROUTER_MODELS, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -109,4 +123,15 @@ export function registerModelsHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
+
+export function registerModelsHandlers(_bus: IntentBus): void {
+	registerModelsHandlersAGENTSTATEREQUESTROUTERMODELS()
+	registerModelsHandlersAGENTSTATEREQUESTOPENAIMODELS()
+	registerModelsHandlersAGENTSTATEREQUESTOLLAMAMODELS()
+	registerModelsHandlersAGENTSTATEREQUESTLMSTUDIOMODELS()
+	registerModelsHandlersAGENTSTATEREQUESTROOMODELS()
+	registerModelsHandlersAGENTSTATEREQUESTROOCREDITBALANCE()
+	registerModelsHandlersAGENTSTATEREQUESTVSCODELMMODELS()
+	registerModelsHandlersAGENTSTATEFLUSHROUTERMODELS()
 }

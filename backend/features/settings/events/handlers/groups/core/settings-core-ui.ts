@@ -1,7 +1,7 @@
-import type { IntentBus } from "@features/intents/bus"
-import { onWebviewMessage } from "@features/foundation/webview/events/handlers/on-webview-message"
+import type { IntentBus } from "@features/intents"
+import { onWebviewMessage } from "@features/foundation"
 import { IntentStatus } from "@jabberwock/types"
-import { getBackendRootStore } from "@features/storeSingleton"
+import { getStore } from "@features/singleton"
 import {
 	SETTINGS_UPDATE_SETTINGS,
 	SETTINGS_DID_SHOW_ANNOUNCEMENT,
@@ -17,11 +17,11 @@ import {
 	SETTINGS_OPEN_COMMAND_FILE,
 	SETTINGS_DELETE_COMMAND,
 	SETTINGS_CREATE_COMMAND,
-} from "@features/settings/events/constants"
+} from "@features/settings"
 
-export function registerSettingsCoreUiHandlers(_bus: IntentBus): void {
+function registerSettingsCoreUiHandlersSETTINGSUPDATESETTINGS(): void {
 	onWebviewMessage(SETTINGS_UPDATE_SETTINGS, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -31,9 +31,11 @@ export function registerSettingsCoreUiHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerSettingsCoreUiHandlersSETTINGSDIDSHOWANNOUNCEMENT(): void {
 	onWebviewMessage(SETTINGS_DID_SHOW_ANNOUNCEMENT, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -43,9 +45,11 @@ export function registerSettingsCoreUiHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerSettingsCoreUiHandlersSETTINGSGETDISMISSEDUPSELLS(): void {
 	onWebviewMessage(SETTINGS_GET_DISMISSED_UPSELLS, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -55,9 +59,11 @@ export function registerSettingsCoreUiHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerSettingsCoreUiHandlersSETTINGSDISMISSUPSELL(): void {
 	onWebviewMessage(SETTINGS_DISMISS_UPSELL, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -67,9 +73,11 @@ export function registerSettingsCoreUiHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerSettingsCoreUiHandlersSETTINGSOPENKEYBOARDSHORTCUTS(): void {
 	onWebviewMessage(SETTINGS_OPEN_KEYBOARD_SHORTCUTS, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -79,9 +87,11 @@ export function registerSettingsCoreUiHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerSettingsCoreUiHandlersSETTINGSOPENMARKDOWNPREVIEW(): void {
 	onWebviewMessage(SETTINGS_OPEN_MARKDOWN_PREVIEW, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -91,9 +101,11 @@ export function registerSettingsCoreUiHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerSettingsCoreUiHandlersSETTINGSTELEMETRYSETTING(): void {
 	onWebviewMessage(SETTINGS_TELEMETRY_SETTING, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -103,9 +115,11 @@ export function registerSettingsCoreUiHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerSettingsCoreUiHandlersSETTINGSTERMINALOPERATION(): void {
 	onWebviewMessage(SETTINGS_TERMINAL_OPERATION, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -115,9 +129,11 @@ export function registerSettingsCoreUiHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerSettingsCoreUiHandlersSETTINGSSHOWMDMAUTHREQUIREDNOTIFICATION(): void {
 	onWebviewMessage(SETTINGS_SHOW_MDM_AUTH_REQUIRED_NOTIFICATION, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -127,9 +143,11 @@ export function registerSettingsCoreUiHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerSettingsCoreUiHandlersSETTINGSALLOWEDCOMMANDS(): void {
 	onWebviewMessage(SETTINGS_ALLOWED_COMMANDS, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -139,9 +157,11 @@ export function registerSettingsCoreUiHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerSettingsCoreUiHandlersSETTINGSDENIEDCOMMANDS(): void {
 	onWebviewMessage(SETTINGS_DENIED_COMMANDS, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -151,9 +171,11 @@ export function registerSettingsCoreUiHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerSettingsCoreUiHandlersSETTINGSOPENCOMMANDFILE(): void {
 	onWebviewMessage(SETTINGS_OPEN_COMMAND_FILE, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -163,9 +185,11 @@ export function registerSettingsCoreUiHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerSettingsCoreUiHandlersSETTINGSDELETECOMMAND(): void {
 	onWebviewMessage(SETTINGS_DELETE_COMMAND, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -175,9 +199,11 @@ export function registerSettingsCoreUiHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerSettingsCoreUiHandlersSETTINGSCREATECOMMAND(): void {
 	onWebviewMessage(SETTINGS_CREATE_COMMAND, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -187,4 +213,21 @@ export function registerSettingsCoreUiHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
+
+export function registerSettingsCoreUiHandlers(_bus: IntentBus): void {
+	registerSettingsCoreUiHandlersSETTINGSUPDATESETTINGS()
+	registerSettingsCoreUiHandlersSETTINGSDIDSHOWANNOUNCEMENT()
+	registerSettingsCoreUiHandlersSETTINGSGETDISMISSEDUPSELLS()
+	registerSettingsCoreUiHandlersSETTINGSDISMISSUPSELL()
+	registerSettingsCoreUiHandlersSETTINGSOPENKEYBOARDSHORTCUTS()
+	registerSettingsCoreUiHandlersSETTINGSOPENMARKDOWNPREVIEW()
+	registerSettingsCoreUiHandlersSETTINGSTELEMETRYSETTING()
+	registerSettingsCoreUiHandlersSETTINGSTERMINALOPERATION()
+	registerSettingsCoreUiHandlersSETTINGSSHOWMDMAUTHREQUIREDNOTIFICATION()
+	registerSettingsCoreUiHandlersSETTINGSALLOWEDCOMMANDS()
+	registerSettingsCoreUiHandlersSETTINGSDENIEDCOMMANDS()
+	registerSettingsCoreUiHandlersSETTINGSOPENCOMMANDFILE()
+	registerSettingsCoreUiHandlersSETTINGSDELETECOMMAND()
+	registerSettingsCoreUiHandlersSETTINGSCREATECOMMAND()
 }

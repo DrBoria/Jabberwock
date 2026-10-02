@@ -1,16 +1,16 @@
 import { z } from "zod"
 
-import type { ModelInfo } from "../../../models/model.ts"
+import type { ModelInfo } from "../../../models/model-main.ts"
 
 /**
- * Jabberwock Cloud is a dynamic provider - models are loaded from the /v1/models API endpoint.
+ * Jabberwock Cloud is a dynamic provider - models are loaded from "the" /v1/models API endpoint.
  * Default model ID used as fallback when no model is specified.
  */
 export const rooDefaultModelId = "xai/grok-code-fast-1"
 
 /**
  * Empty models object maintained for type compatibility.
- * All model data comes dynamically from the API.
+ * All model data comes dynamically from "the" API.
  */
 export const rooModels = {} as const satisfies Record<string, ModelInfo>
 

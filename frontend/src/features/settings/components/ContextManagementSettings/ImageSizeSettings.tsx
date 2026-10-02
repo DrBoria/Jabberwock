@@ -1,6 +1,6 @@
 import { useAppTranslation } from "@/i18n/TranslationContext"
 import { Input } from "@src/shared/ui/inputs/input"
-import { SearchableSetting } from "../shared/SearchableSetting"
+import { SearchableSetting } from "@src/features/settings/components/shared/SearchableSetting"
 import { isValidImageSize } from "./helpers"
 
 interface ImageSizeSettingsProps {

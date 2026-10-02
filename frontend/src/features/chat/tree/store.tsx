@@ -1,4 +1,5 @@
 import { types, applySnapshot, isAlive, isStateTreeNode, Instance, getParent } from "mobx-state-tree"
+import { getRootStore } from "@src/features/root-store"
 
 export const Message = types.model("Message", {
 	id: types.identifier,
@@ -97,15 +98,13 @@ export type IChatStore = Instance<typeof ChatStore>
 
 /**
  * Backward-compatible hook for consuming components.
- * Returns the ChatTree store from the root store singleton.
+ * Returns the ChatTree store from "the" root store (the live, bridge-hydrated instance).
  */
-export const useChatTree = (): IChatStore => chatTreeStore
-
-export const chatTreeStore = ChatStore.create({ nodes: {}, activeNodeId: undefined, isNavigating: false })
+export const useChatTree = (): IChatStore => getRootStore().chat.tree
 
 /**
  * CommandExecutionStore — holds command execution status snapshots pushed
- * from the extension via MstBridge.
+ * from "the" extension via MstBridge.
  */
 export const CommandExecutionStore = types
 	.model("CommandExecutionStore", {
@@ -119,12 +118,9 @@ export const CommandExecutionStore = types
 
 export type ICommandExecutionStore = Instance<typeof CommandExecutionStore>
 
-/** Singleton store instance. */
-export const commandExecutionStore = CommandExecutionStore.create({ executions: [] })
-
 // ── Action factory for ChatStore composition ──────────────────────────
 
-import { getConnectorBus } from "../../../connector-bus"
+import { getConnectorBus } from "@src/connector-bus"
 import type { WebviewMessage, AskResponseValue } from "@jabberwock/types"
 import { eventConstants } from "@jabberwock/types"
 

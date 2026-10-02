@@ -1,9 +1,6 @@
 import { useTranslation } from "react-i18next"
 
-import {
-	FormattedTextField,
-	unlimitedDecimalFormatter,
-} from "@src/features/foundation/components/ui/display/FormattedTextField"
+import { FormattedTextField, unlimitedDecimalFormatter } from "@src/features/foundation"
 
 interface MaxCostInputProps {
 	allowedMaxCost?: number

@@ -1,1 +1,1 @@
-export { getBuiltInCommands, getBuiltInCommand } from "./built-in-commands"
+export { getBuiltInCommands, getBuiltInCommand } from "./main"

@@ -44,8 +44,8 @@ export class FileBackedHashmapMemory implements IHashmapMemory {
 	async delete(key: string): Promise<void> {
 		try {
 			await fs.promises.unlink(this.keyPath(key))
-		} catch {
-			// key did not exist — no-op
+		} catch (error) {
+			console.warn("[hashmap] Key did not exist, nothing to delete:", error)
 		}
 	}
 

@@ -1,8 +1,8 @@
 import { useCallback } from "react"
 
-import { useClipboard } from "@src/features/foundation/ui/hooks/useInteraction/useClipboard"
-import { Button } from "@src/shared/ui/buttons/button"
-import { StandardTooltip } from "@src/shared/ui/tooltips/standard-tooltip"
+import { useClipboard } from "@src/features/foundation"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
+import { StandardTooltip } from "@src/shared/ui/tooltips/standard"
 import { useAppTranslation } from "@/i18n/TranslationContext"
 import { cn } from "@/lib/utils"
 

@@ -1,4 +1,4 @@
-import type { FrontendBridge } from "../../api/mst/types.js"
+import type { FrontendBridge, FrontendQueryResult } from "../../api/mst/types.js"
 
 /**
  * Options for creating a frontend bridge.
@@ -12,9 +12,11 @@ export interface CreateFrontendBridgeOptions {
 
 	/**
 	 * Registers a pending DOM request callback that will be resolved when
-	 * the webview sends a domResponse for the given requestId.
+	 * the webview sends a domResponse for the given requestId. The callback
+	 * receives the raw result string plus the connector id of the surface that
+	 * answered ("vscode" | "web"), stamped by the frontend connector.
 	 */
-	setDomRequestCallback: (requestId: string, callback: (result: string) => void) => void
+	setDomRequestCallback: (requestId: string, callback: (result: string, connector?: string) => void) => void
 }
 
 /**
@@ -39,23 +41,23 @@ export function createFrontendBridge(options: CreateFrontendBridgeOptions): Fron
 		action: string,
 		parseResult: (result: string) => T,
 		extra?: Record<string, unknown>,
-	): Promise<T> {
+	): Promise<FrontendQueryResult<T>> {
 		const requestId = Math.random().toString(36).substring(7)
 		console.log(`[devtool] [FRONTEND_BRIDGE] sendQuery: action=${action} req=${requestId}`)
-		return new Promise<T>((resolve, reject) => {
+		return new Promise<FrontendQueryResult<T>>((resolve, reject) => {
 			const timeout = setTimeout(() => {
 				console.warn(`[devtool] [FRONTEND_BRIDGE] TIMEOUT: action=${action} req=${requestId} after 10s`)
 				reject(new Error(`Timeout: ${action}`))
 			}, 10000)
-			setDomRequestCallback(requestId, (result: string) => {
+			setDomRequestCallback(requestId, (result: string, connector?: string) => {
 				console.log(
-					`[devtool] [FRONTEND_BRIDGE] CALLBACK: action=${action} req=${requestId} result.length=${result.length}`,
+					`[devtool] [FRONTEND_BRIDGE] CALLBACK: action=${action} req=${requestId} connector=${connector ?? "unknown"} result.length=${result.length}`,
 				)
 				clearTimeout(timeout)
 				try {
-					resolve(parseResult(result))
+					resolve({ data: parseResult(result), connector })
 				} catch {
-					resolve(undefined as unknown as T)
+					resolve({ data: undefined as unknown as T, connector })
 				}
 			})
 			postMessageToWebview({
@@ -107,22 +109,45 @@ export function createFrontendBridge(options: CreateFrontendBridgeOptions): Fron
 				}
 			}),
 
-		applySnapshot: (snapshot) => sendQuery("applySnapshot", () => undefined, { snapshot }) as Promise<void>,
+		applySnapshot: async (snapshot) => {
+			await sendQuery("applySnapshot", () => undefined, { snapshot })
+		},
 
-		getConsoleLogs: (params) =>
-			sendQuery("getConsoleLogs", (result) => result, {
+		getConsoleLogs: async (params) => {
+			const { data, connector } = await sendQuery("getConsoleLogs", (result) => result, {
 				level: params.level,
 				limit: params.limit,
 				cursor: params.cursor,
 				search: params.search,
-			}),
+			})
+			return withConnector(data, connector)
+		},
 
-		searchConsole: (params) =>
-			sendQuery("searchConsole", (result) => result, {
+		searchConsole: async (params) => {
+			const { data, connector } = await sendQuery("searchConsole", (result) => result, {
 				query: params.query,
 				level: params.level,
 				limit: params.limit,
 				cursor: params.cursor,
-			}),
+			})
+			return withConnector(data, connector)
+		},
+	}
+}
+
+/**
+ * Merge the connector id into an already-JSON-encoded console result string so
+ * the MCP tool output carries `connector: "vscode" | "web"`. Falls back to the
+ * raw string if it is not a JSON object (e.g. an error message).
+ */
+function withConnector(json: string, connector?: string): string {
+	try {
+		const obj = JSON.parse(json) as Record<string, unknown>
+		if (obj && typeof obj === "object" && !Array.isArray(obj)) {
+			return JSON.stringify({ ...obj, connector: connector ?? null })
+		}
+		return JSON.stringify({ connector: connector ?? null, result: json })
+	} catch {
+		return JSON.stringify({ connector: connector ?? null, result: json })
 	}
 }

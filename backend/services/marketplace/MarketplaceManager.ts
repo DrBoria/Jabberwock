@@ -12,106 +12,111 @@ import {
 import { getInstallationMetadata as fetchInstallationMeta } from "./installation-meta"
 import type { MarketplaceItemsResponse } from "./types"
 
-export class MarketplaceManager {
-	private configLoader: RemoteConfigLoader
-	private installer: SimpleInstaller
+/**
+ * MarketplaceManager — loads, filters, installs and removes marketplace items.
+ *
+ * @param context - Host extension context view
+ */
+export function MarketplaceManager(context: IExtensionContextView) {
+	const configLoader = RemoteConfigLoader()
+	const installer = SimpleInstaller(context)
 
-	constructor(private readonly context: IExtensionContextView) {
-		this.configLoader = new RemoteConfigLoader()
-		this.installer = new SimpleInstaller(context)
-	}
+	return {
+		async getMarketplaceItems(): Promise<MarketplaceItemsResponse> {
+			try {
+				const { orgSettings, errors } = loadOrgSettings()
+				const allMarketplaceItems = await configLoader.loadAllItems(orgSettings?.hideMarketplaceMcps)
+				const { organizationMcps, marketplaceItems } = processOrgItems(orgSettings, allMarketplaceItems)
 
-	async getMarketplaceItems(): Promise<MarketplaceItemsResponse> {
-		try {
-			const { orgSettings, errors } = loadOrgSettings()
-			const allMarketplaceItems = await this.configLoader.loadAllItems(orgSettings?.hideMarketplaceMcps)
-			const { organizationMcps, marketplaceItems } = processOrgItems(orgSettings, allMarketplaceItems)
+				return {
+					organizationMcps,
+					marketplaceItems,
+					errors: errors.length > 0 ? errors : undefined,
+				}
+			} catch (error) {
+				const errorMessage = error instanceof Error ? error.message : String(error)
+				console.error("[jabberwock] Failed to load marketplace items:", error)
 
-			return {
-				organizationMcps,
-				marketplaceItems,
-				errors: errors.length > 0 ? errors : undefined,
-			}
-		} catch (error) {
-			const errorMessage = error instanceof Error ? error.message : String(error)
-			console.error("[jabberwock] Failed to load marketplace items:", error)
-
-			return {
-				organizationMcps: [],
-				marketplaceItems: [],
-				errors: [errorMessage],
-			}
-		}
-	}
-
-	async getCurrentItems(): Promise<MarketplaceItem[]> {
-		const result = await this.getMarketplaceItems()
-		return [...result.organizationMcps, ...result.marketplaceItems]
-	}
-
-	filterItems(
-		items: MarketplaceItem[],
-		filters: { type?: MarketplaceItemType; search?: string; tags?: string[] },
-	): MarketplaceItem[] {
-		return items.filter((item) => {
-			if (filters.type && item.type !== filters.type) {
-				return false
-			}
-
-			if (filters.search) {
-				const searchTerm = filters.search.toLowerCase()
-				const searchableText = `${item.name} ${item.description}`.toLowerCase()
-				if (!searchableText.includes(searchTerm)) {
-					return false
+				return {
+					organizationMcps: [],
+					marketplaceItems: [],
+					errors: [errorMessage],
 				}
 			}
+		},
 
-			if (filters.tags?.length) {
-				if (!item.tags?.some((tag) => filters.tags!.includes(tag))) {
+		async getCurrentItems(): Promise<MarketplaceItem[]> {
+			const result = await this.getMarketplaceItems()
+			return [...result.organizationMcps, ...result.marketplaceItems]
+		},
+
+		filterItems(
+			items: MarketplaceItem[],
+			filters: { type?: MarketplaceItemType; search?: string; tags?: string[] },
+		): MarketplaceItem[] {
+			return items.filter((item) => {
+				if (filters.type && item.type !== filters.type) {
 					return false
 				}
+
+				if (filters.search) {
+					const searchTerm = filters.search.toLowerCase()
+					const searchableText = `${item.name} ${item.description}`.toLowerCase()
+					if (!searchableText.includes(searchTerm)) {
+						return false
+					}
+				}
+
+				if (filters.tags?.length) {
+					if (!item.tags?.some((tag) => filters.tags!.includes(tag))) {
+						return false
+					}
+				}
+
+				return true
+			})
+		},
+
+		async updateWithFilteredItems(filters: {
+			type?: MarketplaceItemType
+			search?: string
+			tags?: string[]
+		}): Promise<MarketplaceItem[]> {
+			const allItems = await this.getCurrentItems()
+
+			if (!filters.type && !filters.search && (!filters.tags || filters.tags.length === 0)) {
+				return allItems
 			}
 
-			return true
-		})
-	}
+			return this.filterItems(allItems, filters)
+		},
 
-	async updateWithFilteredItems(filters: {
-		type?: MarketplaceItemType
-		search?: string
-		tags?: string[]
-	}): Promise<MarketplaceItem[]> {
-		const allItems = await this.getCurrentItems()
+		async installMarketplaceItem(
+			item: MarketplaceItem,
+			options?: { target?: "global" | "project"; parameters?: { [key: string]: unknown } },
+		): Promise<string> {
+			return performInstall(item, installer, options)
+		},
 
-		if (!filters.type && !filters.search && (!filters.tags || filters.tags.length === 0)) {
-			return allItems
-		}
+		async removeInstalledMarketplaceItem(
+			item: MarketplaceItem,
+			options?: { target?: "global" | "project" },
+		): Promise<void> {
+			return performRemove(item, installer, options)
+		},
 
-		return this.filterItems(allItems, filters)
-	}
+		async cleanup(): Promise<void> {
+			configLoader.clearCache()
+		},
 
-	async installMarketplaceItem(
-		item: MarketplaceItem,
-		options?: { target?: "global" | "project"; parameters?: { [key: string]: unknown } },
-	): Promise<string> {
-		return performInstall(item, this.installer, options)
-	}
-
-	async removeInstalledMarketplaceItem(
-		item: MarketplaceItem,
-		options?: { target?: "global" | "project" },
-	): Promise<void> {
-		return performRemove(item, this.installer, options)
-	}
-
-	async cleanup(): Promise<void> {
-		this.configLoader.clearCache()
-	}
-
-	async getInstallationMetadata(): Promise<{
-		project: Record<string, { type: string }>
-		global: Record<string, { type: string }>
-	}> {
-		return fetchInstallationMeta(this.context)
+		async getInstallationMetadata(): Promise<{
+			project: Record<string, { type: string }>
+			global: Record<string, { type: string }>
+		}> {
+			return fetchInstallationMeta(context)
+		},
 	}
 }
+
+/** MarketplaceManager instance type */
+export type MarketplaceManager = ReturnType<typeof MarketplaceManager>

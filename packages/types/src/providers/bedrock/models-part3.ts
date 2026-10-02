@@ -1,4 +1,4 @@
-import type { ModelInfo } from "../../models/model.ts"
+import type { ModelInfo } from "../../models/model-main.ts"
 
 export const bedrockModelsPart3 = {
 	"deepseek.r1-v1:0": {

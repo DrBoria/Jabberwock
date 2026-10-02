@@ -68,6 +68,12 @@ export function registerAllTools(server: McpServer, proxyToolCall: ProxyToolCall
 	// ── No-param tools ──
 	// ── No-param tools ──
 
+	registerTool(
+		server,
+		"get_target_info",
+		"Call this FIRST before any devtool action when unsure which window is running the extension. Returns the target identity (workspace folder, focus state, pid, build timestamp) and liveness. Every other tool result is prefixed with the same target identity.",
+		{},
+	)
 	registerTool(server, "get_extension_info", "Get extension metadata: name, version, available stores", {})
 	registerTool(
 		server,
@@ -96,6 +102,22 @@ export function registerAllTools(server: McpServer, proxyToolCall: ProxyToolCall
 		limit: { type: "number" as const, description: "Max entries per env", defaultValue: 10 },
 		cursor: { type: "number" as const, description: "Entries to skip from end", defaultValue: 0 },
 	})
+
+	registerTool(
+		server,
+		"get_renderer_console",
+		"Get the VS Code WORKBENCH renderer + VS Code surface iframe console via CDP. This is the ONLY way to see messages the extension host cannot see — e.g. 'Webview fatal error: Could not register service worker' (vscode-surface target) and 'Error loading webview' (workbench target). Requires the Extension Development Host window to be launched with --remote-debugging-port (the 'Run Extension' config does this). Independent of the extension host — works even while it is frozen at a breakpoint.",
+		{
+			level: {
+				type: "string" as const,
+				description: "Filter by log level: error/warn/info/debug/log",
+				optional: true,
+			},
+			search: { type: "string" as const, description: "Text search within log messages", optional: true },
+			limit: { type: "number" as const, description: "Max entries", defaultValue: 10 },
+			cursor: { type: "number" as const, description: "Entries to skip from end", defaultValue: 0 },
+		},
+	)
 
 	registerTool(server, "get_logs", "Get diagnostic logs from the extension", {
 		lines: { type: "number" as const, description: "Number of recent lines", defaultValue: 100 },

@@ -1,10 +1,10 @@
-import { findRun } from "@jabberwock/evals"
+import { runsStore } from "@jabberwock/evals"
 
-import { Run } from "./run"
+import { Run } from "./main"
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
 	const { id } = await params
-	const run = await findRun(Number(id))
+	const run = await runsStore.find(Number(id))
 
 	return (
 		<div className="w-full px-6 py-12">

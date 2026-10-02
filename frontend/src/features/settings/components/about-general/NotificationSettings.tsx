@@ -2,10 +2,10 @@ import { HTMLAttributes } from "react"
 import { useAppTranslation } from "@/i18n/TranslationContext"
 import { VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react"
 
-import { SetCachedStateField } from "../shared/types"
-import { SectionHeader } from "../shared/SectionHeader"
-import { Section } from "../shared/Section"
-import { SearchableSetting } from "../shared/SearchableSetting"
+import { SetCachedStateField } from "@src/features/settings/components/shared/types"
+import { SectionHeader } from "@src/features/settings/components/shared/header"
+import { Section } from "@src/features/settings/components/shared/section"
+import { SearchableSetting } from "@src/features/settings/components/shared/SearchableSetting"
 import { Slider } from "@src/shared/ui/inputs/slider"
 
 type NotificationSettingsProps = HTMLAttributes<HTMLDivElement> & {

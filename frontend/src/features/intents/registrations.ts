@@ -1,14 +1,12 @@
 import { type IntentBus } from "./bus"
-import { registerOnFrontendFoundationIntents } from "../foundation/events/handlers"
-import { registerOnFrontendChatIntents } from "../chat/events/handlers"
-import { registerOnFrontendTaskIntents } from "../chat/task/events/handlers"
-import { registerOnFrontendNotificationsIntents } from "../chat/task/notifications/events/handlers"
-import { registerOnFrontendSettingsIntents } from "../settings/events/handlers"
-import { registerOnFrontendMarketplaceIntents } from "../marketplace/events/handlers"
-import { registerOnFrontendCloudIntents } from "../cloud/events/handlers"
-import { registerOnFrontendHistoryIntents } from "../history/events/handlers"
-import { registerOnFrontendDiagnosticsIntents } from "../diagnostics/events/handlers"
-import { registerOnFrontendWindowManagerIntents } from "../foundation/window-manager/events/handlers"
+import { registerOnFrontendFoundationIntents } from "@src/features/foundation/events"
+import { registerOnFrontendChatIntents } from "@src/features/chat/events"
+import { registerOnFrontendTaskIntents } from "@src/features/chat/task/events"
+import { registerOnFrontendSettingsIntents } from "@src/features/settings/events"
+import { registerOnFrontendMarketplaceIntents } from "@src/features/marketplace/events"
+import { registerOnFrontendCloudIntents } from "@src/features/cloud/events"
+import { registerOnFrontendHistoryIntents } from "@src/features/history/events"
+import { registerOnFrontendDiagnosticsIntents } from "@src/features/diagnostics/events"
 
 /**
  * All frontend IntentBus handler registration functions.
@@ -18,13 +16,11 @@ const registrations: ((bus: IntentBus) => void)[] = [
 	registerOnFrontendFoundationIntents,
 	registerOnFrontendChatIntents,
 	registerOnFrontendTaskIntents,
-	registerOnFrontendNotificationsIntents,
 	registerOnFrontendSettingsIntents,
 	registerOnFrontendMarketplaceIntents,
 	registerOnFrontendCloudIntents,
 	registerOnFrontendHistoryIntents,
 	registerOnFrontendDiagnosticsIntents,
-	registerOnFrontendWindowManagerIntents,
 ]
 
 /**

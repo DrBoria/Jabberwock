@@ -9,8 +9,11 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@src/shared
 import { cn } from "@/lib/utils"
 import { rootStore } from "@src/features/store"
 
-import { fileChangesFromMessages, type FileChangeEntry } from "../utils/file-changes-from-messages"
-import CodeAccordion from "@src/features/foundation/components/code/CodeAccordion"
+import {
+	fileChangesFromMessages,
+	type FileChangeEntry,
+} from "@src/features/chat/task/messages/components/utils/file-changes-from-messages"
+import { CodeAccordion } from "@src/features/foundation"
 
 interface FileChangesPanelProps {
 	messages: Notification[] | undefined

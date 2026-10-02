@@ -2,7 +2,6 @@
 	"$schema": "https://unpkg.com/knip@latest/schema.json",
 	"ignore": [
 		"**/__tests__/**",
-		"apps/vscode-e2e/**",
 		"backend/extension/api.ts",
 		"connectors/vscode/backend/activation/**",
 		"backend/workers/countTokens.ts",

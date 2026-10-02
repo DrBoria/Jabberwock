@@ -4,20 +4,18 @@ import {
 	handleTextDeltaEvent,
 	handleTextDoneEvent,
 	handleContentPartEvent,
-	handleReasoningEvent,
-	handleRefusalDeltaEvent,
 	handleToolCallDeltaEvent,
 	handleOutputItemDoneToolCall,
 	handleOutputItemAdded,
-	handleOutputItemFallback,
 	isFunctionOrToolCallDone,
-	isTextContent,
 } from "./events"
+import { handleReasoningDelta, handleRefusalDelta, yieldCompletionItemText } from "./yielders"
 import { handleNonCoreStreamEvent } from "./routing"
 import { isItemEventType, trackToolCallFromItem } from "@api/providers/openai-codex/utils"
 
-const noopEventTypes = new Set(["response.tool_call_arguments.done", "response.function_call_arguments.done"])
-
+const __moduleState = {
+	noopEventTypes: new Set(["response.tool_call_arguments.done", "response.function_call_arguments.done"]),
+}
 export async function* handleParsedStreamEvent(
 	parsed: Record<string, unknown>,
 	model: OpenAiCodexModel,
@@ -93,7 +91,7 @@ export async function* processEvent(
 ): ApiStream {
 	const eventType = event.type as string | undefined
 
-	if (eventType && noopEventTypes.has(eventType)) return
+	if (eventType && __moduleState.noopEventTypes.has(eventType)) return
 
 	const processHandlers: Record<string, (ev: Record<string, unknown>) => ApiStream> = {
 		"response.text.delta": (ev) => handleTextDeltaEvent(ev, state),
@@ -102,11 +100,11 @@ export async function* processEvent(
 		"response.output_text.done": (ev) => handleTextDoneEvent(ev, state),
 		"response.content_part.added": (ev) => handleContentPartEvent(ev, state),
 		"response.content_part.done": (ev) => handleContentPartEvent(ev, state),
-		"response.reasoning.delta": (ev) => handleReasoningEvent(ev),
-		"response.reasoning_text.delta": (ev) => handleReasoningEvent(ev),
-		"response.reasoning_summary.delta": (ev) => handleReasoningEvent(ev),
-		"response.reasoning_summary_text.delta": (ev) => handleReasoningEvent(ev),
-		"response.refusal.delta": (ev) => handleRefusalDeltaEvent(ev, state),
+		"response.reasoning.delta": (ev) => handleReasoningDelta(ev),
+		"response.reasoning_text.delta": (ev) => handleReasoningDelta(ev),
+		"response.reasoning_summary.delta": (ev) => handleReasoningDelta(ev),
+		"response.reasoning_summary_text.delta": (ev) => handleReasoningDelta(ev),
+		"response.refusal.delta": (ev) => handleRefusalDelta(ev, state),
 		"response.tool_call_arguments.delta": (ev) => handleToolCallDeltaEvent(ev, state),
 		"response.function_call_arguments.delta": (ev) => handleToolCallDeltaEvent(ev, state),
 		"response.output_item.added": (ev) => handleOutputItemEvent(ev, model, state, deps),
@@ -161,7 +159,7 @@ async function* handleOutputItemEvent(
 	} else if (isFunctionOrToolCallDone(event, item)) {
 		yield* handleOutputItemDoneToolCall(item, state)
 	} else if (!state.sawTextOutputInCurrentResponse) {
-		yield* handleOutputItemFallback(item, state)
+		yield* yieldCompletionItemText(item, state)
 	}
 }
 
@@ -185,23 +183,6 @@ async function* handleCompletionEvent(
 
 async function* processCompletionOutput(output: Record<string, unknown>[], state: StreamState): ApiStream {
 	for (const outputItem of output) {
-		const outputType = outputItem.type as string | undefined
-		if ((outputType === "text" || outputType === "output_text") && outputItem.text) {
-			state.sawTextOutputInCurrentResponse = true
-			yield { type: "text", text: outputItem.text as string }
-			continue
-		}
-
-		if (outputType === "message") {
-			const outputContent = outputItem.content as Record<string, unknown>[] | undefined
-			if (Array.isArray(outputContent)) {
-				for (const content of outputContent) {
-					if (isTextContent(content)) {
-						state.sawTextOutputInCurrentResponse = true
-						yield { type: "text", text: content.text as string }
-					}
-				}
-			}
-		}
+		yield* yieldCompletionItemText(outputItem, state)
 	}
 }

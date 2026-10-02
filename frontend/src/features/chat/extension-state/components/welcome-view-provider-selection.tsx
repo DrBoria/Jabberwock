@@ -1,8 +1,8 @@
 import { VSCodeLink, VSCodeRadio, VSCodeRadioGroup } from "@vscode/webview-ui-toolkit/react"
 import type { ProviderSettings } from "@jabberwock/types"
-import { Button } from "@src/shared/ui/buttons/button"
-import { Tab, TabContent } from "@src/features/foundation/components/ui/layout/Tab"
-import ApiOptions from "@src/features/settings/components/ApiOptions/components/ApiOptions"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
+import { Tab, TabContent } from "@src/features/foundation"
+import { ApiOptions } from "@src/features/settings"
 import { Trans } from "react-i18next"
 import { ArrowLeft, Brain } from "lucide-react"
 

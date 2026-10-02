@@ -48,7 +48,7 @@ export const calculateTokenDistribution = (
 	const safeContextWindow = Math.max(0, contextWindow)
 	const safeContextTokens = Math.max(0, contextTokens)
 
-	// Get the actual max tokens value from the model
+	// Get the actual max tokens value from "the" model
 	// If maxTokens is valid (positive and not equal to context window), use it, otherwise reserve 8192 tokens as a default
 	const reservedForOutput =
 		maxTokens && maxTokens > 0 && maxTokens !== safeContextWindow ? maxTokens : ANTHROPIC_DEFAULT_MAX_TOKENS

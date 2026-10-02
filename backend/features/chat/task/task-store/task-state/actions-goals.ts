@@ -1,5 +1,5 @@
 import type { Goal, ToolUsage } from "@jabberwock/types"
-import { TaskStateWithActions } from "./actions"
+import { TaskStateWithActions } from "./actions-main"
 
 export const TaskStateModel = TaskStateWithActions.actions((self) => ({
 	// ── Goals ──────────────────────────────────────────────────

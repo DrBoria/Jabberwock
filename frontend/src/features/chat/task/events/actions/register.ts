@@ -3,12 +3,12 @@
  *
  * These functions dispatch chat-task-related events to the backend
  * via the connector bus (getConnectorBus().publish). They live in events/actions/ instead of
- * the store to decouple action dispatch from MST state management.
+ * the store to decouple action dispatch from "MST" state management.
  */
 
-import { getConnectorBus } from "../../../../../connector-bus"
+import { getConnectorBus } from "@src/connector-bus"
 import type { WebviewMessage, Goal } from "@jabberwock/types"
-import { FrontendChatTaskEventKeys } from "../constants"
+import { FrontendChatTaskEventKeys } from "@src/features/chat/task/events/constants"
 
 export function sendGoalAdd(text: string) {
 	getConnectorBus().publish({

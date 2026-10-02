@@ -1,5 +1,5 @@
 // https://ai.google.dev/gemini-api/docs/models/gemini
-import { geminiModels } from "./models.ts"
+import { geminiModels } from "./models-main.ts"
 
 export type GeminiModelId = keyof typeof geminiModels
 

@@ -53,7 +53,7 @@ async function waitHealthy(recentLines) {
 		try {
 			const res = await fetch(`http://127.0.0.1:${PORT}/healthz`)
 			if (res.ok) return true
-		} catch { /* server not listening yet */ }
+		} catch (error) { /* server not listening yet */ console.warn(`[icg-c2] healthz poll failed (server starting):`, error.message) }
 		await sleep(500)
 	}
 	const tail = `recent server output:\n${recentLines.join("\n")}`
@@ -239,7 +239,7 @@ async function main() {
 	const serverJs = path.join(repoRoot, "backend", "dist", "server.js")
 	// Fresh tmp data dir - the fixture lands before spawn so boot-time reconciliation ingests it.
 	const dataDir = await mkdtemp(path.join(os.tmpdir(), "icg-c2-acceptance-"))
-	// --workspace is optional; an empty tree keeps the file watcher away from the real repo.
+	// --workspace is optional; an empty tree keeps the file watcher away from "the" real repo.
 	const workspaceDir = path.join(dataDir, "workspace")
 	await mkdir(workspaceDir)
 	// Archive layout: <data-dir>/tasks/<id>/api_conversation_history.json (C1 conventions).

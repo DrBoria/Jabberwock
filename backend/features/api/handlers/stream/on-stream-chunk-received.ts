@@ -21,18 +21,14 @@ import {
 	GroundingSource,
 } from "@api/transform/stream"
 import { calculateApiCostAnthropic, calculateApiCostOpenAI } from "@shared/api/cost"
-import { findLastIndex } from "@shared/array"
-import { RawChunkTracker } from "@features/api/handlers/helpers/process/rawChunkProcessor"
-import { parseToolCall } from "@features/chat/tools/actions/parse-tool-call"
+import { findLastIndex } from "@shared/core/array"
+import { RawChunkTracker } from "@features/api/handlers/request/index"
+import { parseToolCall } from "@features/chat/tools/actions"
 import type { IBackendRootStore } from "@features/store"
 
-import type { StreamHandle } from "@features/chat/task/condense/actions/types"
-import {
-	handleToolCallStartEvent,
-	handleToolCallDeltaEvent,
-	handleToolCallEndEvent,
-} from "@features/api/handlers/helpers/process/toolCallHandlers"
-import { sendMessageUpdated } from "@features/chat/task/messages/events/actions/sendMessageEvent"
+import type { StreamHandle } from "@features/chat/task/condense"
+import { handleToolCallStartEvent, handleToolCallDeltaEvent, handleToolCallEndEvent } from "@features/api"
+import { sendMessageUpdated } from "@features/chat"
 
 /**
  * Callbacks injected by the caller to decouple stream chunk handling from Task.
@@ -66,11 +62,22 @@ export function createChunkHandlers(
 ): Partial<Record<ApiStreamChunk["type"], (chunk: ApiStreamChunk) => Promise<void> | void>> {
 	return {
 		reasoning: async (chunk) => {
-			state.reasoningMessage += (chunk as ApiStreamReasoningChunk).text
-			let formattedReasoning = state.reasoningMessage
-			if (state.reasoningMessage.includes("**")) {
-				formattedReasoning = state.reasoningMessage.replace(/([.!?])\*\*([^*\n]+)\*\*/g, "$1\n\n**$2**")
+			const incoming = (chunk as ApiStreamReasoningChunk).text
+			state.reasoningMessage += incoming
+			// ── Streaming performance ───────────────────────────────────────
+			// The regex only matches around `**` markers, so a delta without
+			// `**` cannot change the already-formatted prefix — we can just
+			// append it. Re-running the regex over the entire (ever-growing)
+			// accumulated string on every token was O(n²) — a synchronous
+			// main-thread hot path that starved the event loop (100% CPU) on
+			// long reasoning streams.
+			const st = state as { reasoningMessage: string; __fmt?: string }
+			if (incoming.includes("**")) {
+				st.__fmt = state.reasoningMessage.replace(/([.!?])\*\*([^*\n]+)\*\*/g, "$1\n\n**$2**")
+			} else if (st.__fmt !== undefined) {
+				st.__fmt += incoming
 			}
+			const formattedReasoning = st.__fmt ?? state.reasoningMessage
 			await callbacks.say("reasoning", formattedReasoning, undefined, true)
 		},
 		usage: (chunk) => {
@@ -180,7 +187,7 @@ export function updateApiReqMsg(
 	streamingFailedMessage?: string,
 ): void {
 	// Find the actual last api_req_started notification instead of relying on the
-	// hardcoded lastApiReqIndex (which is always 0 from callers). The notification
+	// hardcoded lastApiReqIndex (which is always 0 from "callers"). The notification
 	// is typically not at index 0 in the messages array.
 	const lastApiReqIndex = findLastIndex(
 		task.notifications.items,

@@ -1,6 +1,6 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
-import { resolveActivePageRequest } from "@features/foundation/window-manager/store"
+import type { IntentBus } from "@features/intents"
+import { resolveActivePageRequest } from "@features/foundation"
 
 /**
  * Handles foundation.active.page.response intent — resolves an active page request.

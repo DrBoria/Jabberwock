@@ -149,6 +149,8 @@
 		"title": "Yêu cầu API",
 		"failed": "Yêu cầu API thất bại",
 		"streaming": "Yêu cầu API...",
+		"loadingContext": "Đang tải ngữ cảnh...",
+		"loadingContextPercent": "Đang tải ngữ cảnh... {{percent}}%",
 		"cancelled": "Yêu cầu API đã hủy",
 		"streamingFailed": "Streaming API thất bại",
 		"rateLimitWait": "Giới hạn tốc độ",

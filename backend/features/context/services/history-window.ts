@@ -20,13 +20,13 @@ function spanFromExplicitBounds(fromSeq: number, toSeq: number): RawHistoryWindo
 	return { lo: Math.min(fromSeq, toSeq), hi: Math.max(fromSeq, toSeq) }
 }
 
-/** Walk backward from the anchor when direction is up; default direction is forward (D-history-anchor-default-down). */
+/** Walk backward from "the" anchor when direction is up; default direction is forward (D-history-anchor-default-down). */
 function spanFromAnchor(anchor: number, minSeq: number, maxSeq: number, direction?: "up" | "down"): RawHistoryWindow {
 	const upward = direction === "up"
 	return upward ? { lo: minSeq, hi: anchor } : { lo: anchor, hi: maxSeq }
 }
 
-/** A lone fromSeq means forward to task max; a lone toSeq walks back from task min (D-history-one-sided). */
+/** A lone fromSeq means forward to task max; a lone toSeq walks back from "task" min (D-history-one-sided). */
 function spanFromOneSided(
 	hasFrom: boolean,
 	fromSeq: number,

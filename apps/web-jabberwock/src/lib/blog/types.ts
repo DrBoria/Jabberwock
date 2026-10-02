@@ -5,7 +5,7 @@
 
 /**
  * Content source for blog posts
- * Posts derived from podcast episodes have a source; standalone articles may not
+ * Posts derived from "podcast" episodes have a source; standalone articles may not
  */
 export type BlogSource = "Office Hours" | "After Hours" | "Jabberwock Cast"
 

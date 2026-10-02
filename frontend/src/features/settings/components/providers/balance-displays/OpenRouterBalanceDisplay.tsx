@@ -1,6 +1,6 @@
 import { VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 
-import { useOpenRouterKeyInfo } from "@/features/foundation/ui/hooks/useModelProviders/useOpenRouterKeyInfo"
+import { useOpenRouterKeyInfo } from "@/features/foundation/ui/hooks/useModelProviders/openrouter"
 
 export const OpenRouterBalanceDisplay = ({ apiKey, baseUrl }: { apiKey: string; baseUrl?: string }) => {
 	const { data: keyInfo } = useOpenRouterKeyInfo(apiKey, baseUrl)

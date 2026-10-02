@@ -4,8 +4,9 @@ import o200kBase from "tiktoken/encoders/o200k_base"
 
 const TOKEN_FUDGE_FACTOR = 1.5
 
-let encoder: Tiktoken | null = null
-
+const __moduleState = {
+	encoder: null as Tiktoken | null,
+}
 /**
  * Serializes a tool_use block to text for token counting.
  * Approximates how the API sees the tool call.
@@ -57,7 +58,7 @@ function countTextBlock(block: Anthropic.Messages.TextBlockParam): number {
 	if (text.length === 0) {
 		return 0
 	}
-	const tokens = encoder!.encode(text, undefined, [])
+	const tokens = __moduleState.encoder!.encode(text, undefined, [])
 	return tokens.length
 }
 
@@ -75,7 +76,7 @@ function countToolUseBlock(block: Anthropic.Messages.ToolUseBlockParam): number 
 	if (serialized.length === 0) {
 		return 0
 	}
-	const tokens = encoder!.encode(serialized, undefined, [])
+	const tokens = __moduleState.encoder!.encode(serialized, undefined, [])
 	return tokens.length
 }
 
@@ -84,7 +85,7 @@ function countToolResultBlock(block: Anthropic.Messages.ToolResultBlockParam): n
 	if (serialized.length === 0) {
 		return 0
 	}
-	const tokens = encoder!.encode(serialized, undefined, [])
+	const tokens = __moduleState.encoder!.encode(serialized, undefined, [])
 	return tokens.length
 }
 
@@ -118,14 +119,14 @@ export async function tiktoken(content: Anthropic.Messages.ContentBlockParam[]):
 		return 0
 	}
 
-	// Lazily create and cache the encoder if it doesn't exist.
-	if (!encoder) {
-		encoder = new Tiktoken(o200kBase.bpe_ranks, o200kBase.special_tokens, o200kBase.pat_str)
+	// Lazily create and cache the __moduleState.encoder if it doesn't exist.
+	if (!__moduleState.encoder) {
+		__moduleState.encoder = new Tiktoken(o200kBase.bpe_ranks, o200kBase.special_tokens, o200kBase.pat_str)
 	}
 
 	let totalTokens = 0
 
-	// Process each content block using the cached encoder and dispatch map.
+	// Process each content block using the cached __moduleState.encoder and dispatch map.
 	for (const block of content) {
 		const counter = tokenCounters[block.type]
 		if (counter) {

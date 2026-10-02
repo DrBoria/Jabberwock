@@ -1,5 +1,5 @@
 import { logs } from "../../utils/logger.ts"
-import { createPlaceholderEditor, registerWebviewProvider } from "../helpers/window-api-helpers.ts"
+import { createPlaceholderEditor, registerWebviewProvider } from "../helpers/window.ts"
 import { Uri } from "../../classes/types/Uri.ts"
 import { EventEmitter } from "../../classes/events/EventEmitter.ts"
 import { ThemeIcon } from "../../classes/types/Additional.ts"
@@ -7,9 +7,9 @@ import { OutputChannel } from "../../classes/window/OutputChannel.ts"
 import { StatusBarItem } from "../../classes/window/StatusBarItem.ts"
 import { TextEditorDecorationType } from "../../classes/window/TextEditorDecorationType.ts"
 import { TabGroupsAPI } from "./TabGroupsAPI.ts"
-import { StatusBarAlignment, ViewColumn } from "../../types.ts"
-import type { WorkspaceAPI } from "./WorkspaceAPI.ts"
-import type { Thenable } from "../../types.ts"
+import { StatusBarAlignment, ViewColumn } from "../../api-types.ts"
+import type { WorkspaceAPI } from "./workspace.ts"
+import type { Thenable } from "../../api-types.ts"
 import type {
 	TextEditor,
 	TextEditorSelectionChangeEvent,

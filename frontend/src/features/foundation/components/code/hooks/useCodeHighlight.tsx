@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { getHighlighter, isLanguageLoaded } from "@src/utils/text/highlighter-engine"
+import { getHighlighter, isLanguageLoaded } from "@src/utils/text/highlighter"
 import type { ShikiTransformer } from "shiki"
 import { toJsxRuntime } from "hast-util-to-jsx-runtime"
 import { Fragment, jsx, jsxs } from "react/jsx-runtime"

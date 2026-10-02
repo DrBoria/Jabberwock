@@ -25,7 +25,7 @@ export const MARKETPLACE_REMOVE_INSTALLED_MARKETPLACE_ITEM = marketplaceEventCon
 export const MARKETPLACE_FETCH_MARKETPLACE_DATA = marketplaceEventConstants.FETCH_MARKETPLACE_DATA
 export const MARKETPLACE_REFRESH_CUSTOM_TOOLS = marketplaceEventConstants.REFRESH_CUSTOM_TOOLS
 // Note: SKILLS constants are not in marketplaceEventConstants but in the monolithic file.
-// These are still imported from @eventConstants in the webview-mappings.
+// These are still imported from "@eventConstants" in the webview-mappings.
 // They are defined here as separate exports for local import.
 export const MARKETPLACE_REQUEST_SKILLS = "requestSkills" as const
 export const MARKETPLACE_CREATE_SKILL = "createSkill" as const

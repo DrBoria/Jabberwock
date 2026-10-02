@@ -1,18 +1,15 @@
 /**
- * Say-action barrel — 4 domain-specific broadcast action creators.
+ * Say-action barrel — the single shared broadcast utility.
  *
- * These replace the monolithic `say()` function with typed action creators
- * that emit the appropriate intent type for each message domain:
+ * `emitBroadcast(domain, taskId, …)` is the one entry point for adding a
+ * message to the task's message feed. The `domain` argument selects the
+ * broadcast intent (`"agent"`, `"system"`, `"mcp"`, `"user"`), which
+ * `on-message-broadcast.ts` handles to add the notification to the MST store
+ * and push the snapshot to the webview.
  *
- * - `agentBroadcast` — Assistant/agent responses (type: "agent")
- * - `systemBroadcast` — System events and status (type: "system")
- * - `mcpBroadcast` — MCP tool calls and responses (type: "mcp_tool")
- * - `userBroadcast` — User-originated content (type: "user")
- *
- * Each creates an Intent which is handled by `on-message-broadcast.ts`
- * to add the notification to the MST store and push the snapshot.
+ * The former per-domain creators (agentBroadcast / systemBroadcast /
+ * mcpBroadcast / userBroadcast) were thin passthroughs that only chose the
+ * intent — they have been consolidated into this one utility.
  */
-export { agentBroadcast } from "./agentBroadcast"
-export { systemBroadcast } from "./systemBroadcast"
-export { mcpBroadcast } from "./mcpBroadcast"
-export { userBroadcast } from "./userBroadcast"
+export { emitBroadcast } from "./emitBroadcast"
+export type { BroadcastDomain, CheckpointData } from "./emitBroadcast"

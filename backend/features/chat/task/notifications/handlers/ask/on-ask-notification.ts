@@ -1,5 +1,5 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
+import type { IntentBus } from "@features/intents"
 import type { Notification } from "@jabberwock/types"
 
 /**
@@ -7,9 +7,9 @@ import type { Notification } from "@jabberwock/types"
  * per-task MST store.
  *
  * Action creators like ask() emit this intent to decouple notification
- * creation from the ask logic.
+ * creation from "the" ask logic.
  */
-import { addNotification } from "@features/chat/task/notifications/actions/core/addNotification"
+import { addNotification } from "@features/chat"
 
 export function registerOnAskNotification(bus: IntentBus): void {
 	bus.register(IntentType.AskNotification, async (intent, ctx) => {

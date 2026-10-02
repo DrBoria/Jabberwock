@@ -1,5 +1,5 @@
 export { run } from "./command.js"
-export type { FlagOptionsWithDebug } from "./core.js"
+export type { FlagOptionsWithDebug } from "./runner.js"
 export * from "./validation.js"
 export * from "./auth.js"
 export {
@@ -9,7 +9,7 @@ export {
 	createPrintModeHelpers,
 	warmupHost,
 	executeTaskWithResume,
-} from "./core.js"
+} from "./runner.js"
 export {
 	buildExtensionHostOptions,
 	resolvePrompt,

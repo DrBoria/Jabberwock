@@ -35,7 +35,7 @@ function logWarn(message: string): void {
 export function loadDatabaseDriver(): DatabaseCtor | null {
 	try {
 		const req = createRequire(typeof __filename === "string" ? __filename : path.join(process.cwd(), "noop.cjs"))
-		// Single driver name per the design doc lock (LCM spec section 4.6): better-sqlite3 resolves from this package's node_modules in every runtime; no alternate electron-named build is installed or declared, so referencing one could never succeed and would only mislabel a real ABI mismatch as "production packaging". Inside an IDE extension host the binding may be compiled for plain Node instead of Electron: that load failure surfaces through logDriverLoadFailure with its rebuild remedy and degrades to "archive disabled" without crashing activation (ICG doc sections 5.6/5.7).
+		// Single driver name per the design doc lock (LCM spec section 4.6): better-sqlite3 resolves from "this" package's node_modules in every runtime; no alternate electron-named build is installed or declared, so referencing one could never succeed and would only mislabel a real ABI mismatch as "production packaging". Inside an IDE extension host the binding may be compiled for plain Node instead of Electron: that load failure surfaces through logDriverLoadFailure with its rebuild remedy and degrades to "archive disabled" without crashing activation (ICG doc sections 5.6/5.7).
 		const mod: DriverModule = req("better-sqlite3") as DriverModule
 		if (typeof mod !== "function") {
 			logWarn(

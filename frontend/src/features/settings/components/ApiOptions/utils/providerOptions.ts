@@ -1,6 +1,6 @@
 import type { OrganizationAllowList, ProviderName } from "@jabberwock/types"
-import { filterProviders, filterModels } from "../../utils/organizationFilters"
-import { MODELS_BY_PROVIDER, PROVIDERS } from "../../shared/constants"
+import { filterProviders, filterModels } from "@src/features/settings/components/utils/organizationFilters"
+import { MODELS_BY_PROVIDER, PROVIDERS } from "@src/features/settings/components/shared/constants"
 
 export function getProviderOptions(
 	organizationAllowList: OrganizationAllowList,

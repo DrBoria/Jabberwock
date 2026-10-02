@@ -1,6 +1,6 @@
 import { Notification, NotificationAsk } from "@jabberwock/types"
 
-import type { AgentStateInfo } from "../state/agent-state-types.js"
+import type { AgentStateInfo } from "../state/types.js"
 
 /**
  * Event payload for state changes.

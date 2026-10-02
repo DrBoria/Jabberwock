@@ -1,9 +1,5 @@
 import { types, Instance, cast } from "mobx-state-tree"
-import {
-	ContextMenuOptionType,
-	type SearchResult,
-	type ContextMenuQueryItem,
-} from "./utils/context-mentions/context-mentions"
+import { ContextMenuOptionType, type SearchResult, type ContextMenuQueryItem } from "./utils/context-mentions/main"
 import type { Goal } from "@jabberwock/types"
 
 /**

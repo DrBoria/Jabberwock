@@ -1,13 +1,14 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
+import type { IntentBus } from "@features/intents"
 import type { Command } from "@services/command/commands"
 import { getCommands } from "@services/command/commands"
-import { getSkillsManager } from "@features/settings/skills/store"
+import { getSkillsManager } from "@features/settings/skills"
 import { defaultModeSlug } from "@shared/modes"
+import { sendCommands } from "@features/chat"
 
 /**
  * Handles topic.commands.requested intent — fetches commands and skills, sends to webview.
- * Migrated from chat/topic/handlers/on-commands-requested.ts
+ * Migrated from "chat/topic/handlers/on-commands-requested.ts"
  */
 export function registerOnTopicCommandsRequested(bus: IntentBus): void {
 	bus.register(IntentType.TopicCommandsRequested, async (_intent, ctx) => {
@@ -57,10 +58,7 @@ export function registerOnTopicCommandsRequested(bus: IntentBus): void {
 				}
 			}
 
-			await provider.postMessageToWebview({
-				type: "commands",
-				commands: commandList,
-			})
+			await sendCommands(provider, commandList)
 		} catch (error) {
 			console.error("[jabberwock] Error fetching commands:", error)
 		}

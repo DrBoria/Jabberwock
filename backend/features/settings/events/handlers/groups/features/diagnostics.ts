@@ -1,15 +1,12 @@
-import type { IntentBus } from "@features/intents/bus"
-import { onWebviewMessage } from "@features/foundation/webview/events/handlers/on-webview-message"
+import type { IntentBus } from "@features/intents"
+import { onWebviewMessage } from "@features/foundation"
 import { IntentStatus } from "@jabberwock/types"
-import { getBackendRootStore } from "@features/storeSingleton"
-import {
-	DIAGNOSTICS_CLEAR_DIAGNOSTICS,
-	DIAGNOSTICS_DOWNLOAD_ERROR_DIAGNOSTICS,
-} from "@features/settings/events/constants"
+import { getStore } from "@features/singleton"
+import { DIAGNOSTICS_CLEAR_DIAGNOSTICS, DIAGNOSTICS_DOWNLOAD_ERROR_DIAGNOSTICS } from "@features/settings"
 
-export function registerDiagnosticsHandlers(_bus: IntentBus): void {
+function registerDiagnosticsHandlersDIAGNOSTICSCLEARDIAGNOSTICS(): void {
 	onWebviewMessage(DIAGNOSTICS_CLEAR_DIAGNOSTICS, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -19,9 +16,11 @@ export function registerDiagnosticsHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerDiagnosticsHandlersDIAGNOSTICSDOWNLOADERRORDIAGNOSTICS(): void {
 	onWebviewMessage(DIAGNOSTICS_DOWNLOAD_ERROR_DIAGNOSTICS, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -31,4 +30,9 @@ export function registerDiagnosticsHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
+
+export function registerDiagnosticsHandlers(_bus: IntentBus): void {
+	registerDiagnosticsHandlersDIAGNOSTICSCLEARDIAGNOSTICS()
+	registerDiagnosticsHandlersDIAGNOSTICSDOWNLOADERRORDIAGNOSTICS()
 }

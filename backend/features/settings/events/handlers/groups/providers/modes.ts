@@ -1,7 +1,7 @@
-import type { IntentBus } from "@features/intents/bus"
-import { onWebviewMessage } from "@features/foundation/webview/events/handlers/on-webview-message"
+import type { IntentBus } from "@features/intents"
+import { onWebviewMessage } from "@features/foundation"
 import { IntentStatus } from "@jabberwock/types"
-import { getBackendRootStore } from "@features/storeSingleton"
+import { getStore } from "@features/singleton"
 import {
 	AGENT_STATE_UPDATE_CUSTOM_MODE,
 	AGENT_STATE_DELETE_CUSTOM_MODE,
@@ -10,11 +10,11 @@ import {
 	AGENT_STATE_CHECK_RULES_DIRECTORY,
 	AGENT_STATE_HAS_OPENED_MODE_SELECTOR,
 	AGENT_STATE_OPEN_CUSTOM_MODES_SETTINGS,
-} from "@features/settings/events/constants"
+} from "@features/settings"
 
-export function registerModesHandlers(_bus: IntentBus): void {
+function registerModesHandlersAGENTSTATEUPDATECUSTOMMODE(): void {
 	onWebviewMessage(AGENT_STATE_UPDATE_CUSTOM_MODE, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -24,9 +24,11 @@ export function registerModesHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerModesHandlersAGENTSTATEDELETECUSTOMMODE(): void {
 	onWebviewMessage(AGENT_STATE_DELETE_CUSTOM_MODE, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -36,9 +38,11 @@ export function registerModesHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerModesHandlersAGENTSTATEEXPORTMODE(): void {
 	onWebviewMessage(AGENT_STATE_EXPORT_MODE, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -48,9 +52,11 @@ export function registerModesHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerModesHandlersAGENTSTATEIMPORTMODE(): void {
 	onWebviewMessage(AGENT_STATE_IMPORT_MODE, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -60,9 +66,11 @@ export function registerModesHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerModesHandlersAGENTSTATECHECKRULESDIRECTORY(): void {
 	onWebviewMessage(AGENT_STATE_CHECK_RULES_DIRECTORY, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -72,9 +80,11 @@ export function registerModesHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerModesHandlersAGENTSTATEHASOPENEDMODESELECTOR(): void {
 	onWebviewMessage(AGENT_STATE_HAS_OPENED_MODE_SELECTOR, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -84,9 +94,11 @@ export function registerModesHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerModesHandlersAGENTSTATEOPENCUSTOMMODESSETTINGS(): void {
 	onWebviewMessage(AGENT_STATE_OPEN_CUSTOM_MODES_SETTINGS, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -96,4 +108,14 @@ export function registerModesHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
+
+export function registerModesHandlers(_bus: IntentBus): void {
+	registerModesHandlersAGENTSTATEUPDATECUSTOMMODE()
+	registerModesHandlersAGENTSTATEDELETECUSTOMMODE()
+	registerModesHandlersAGENTSTATEEXPORTMODE()
+	registerModesHandlersAGENTSTATEIMPORTMODE()
+	registerModesHandlersAGENTSTATECHECKRULESDIRECTORY()
+	registerModesHandlersAGENTSTATEHASOPENEDMODESELECTOR()
+	registerModesHandlersAGENTSTATEOPENCUSTOMMODESSETTINGS()
 }

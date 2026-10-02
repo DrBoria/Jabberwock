@@ -1,6 +1,7 @@
 import type { ApiStream, ApiStreamUsageChunk } from "@api/transform/stream"
 
 import type { OpenAiNativeModel, RawUsage } from "@api/providers/openai-native/types"
+import { yieldTextDelta } from "@api/providers/openai-codex/stream/yielders"
 import type { OpenAiNativeStreamContext } from "./core/context"
 import { isContentPartText, extractPartText, resolveToolCallId, resolveToolCallName } from "./core/helpers"
 import { buildSenders } from "./senders"
@@ -67,16 +68,16 @@ async function* handleProcessReasoningDelta(
 	}
 }
 
+/**
+ * Delegates to the canonical text-delta primitive with a `[Refusal] ` prefix.
+ * Canonical implementation: @api/providers/openai-codex/stream/yielders.ts (yieldTextDelta).
+ */
 async function* handleProcessRefusalDelta(
 	event: Record<string, unknown>,
 	ctx: OpenAiNativeStreamContext,
 	_: OpenAiNativeModel,
 ): ApiStream {
-	const delta = event.delta as string | undefined
-	if (delta) {
-		ctx.sawTextOutputInCurrentResponse = true
-		yield { type: "text", text: `[Refusal] ${delta}` }
-	}
+	yield* yieldTextDelta(event, ctx, (text) => `[Refusal] ${text}`)
 }
 
 async function* handleProcessToolCallDelta(

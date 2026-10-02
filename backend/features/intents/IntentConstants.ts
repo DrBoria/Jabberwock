@@ -38,7 +38,7 @@ export const IntentConstants = {
 		ASK_SUB_TASK: "notification.ask.sub_task",
 		LOG_WRITE: "log.write",
 	},
-	// Context graph intents (ICG-C2 section 8.1): values mirror contextEventNames from @jabberwock/types so both sides register identical strings and priority buckets.
+	// Context graph intents (ICG-C2 section 8.1): values mirror contextEventNames from "@jabberwock/types" so both sides register identical strings and priority buckets.
 	context: {
 		COMPRESS_REQUESTED: contextEventNames.compressRequested,
 		COMPRESS_COMPLETED: contextEventNames.compressCompleted,
@@ -61,7 +61,7 @@ export type IntentConstantsValue =
 
 /**
  * All intent type constants available on the backend.
- * Spreads the shared IntentType from @jabberwock/types and adds
+ * Spreads the shared IntentType from "@jabberwock/types" and adds
  * backend-specific types.
  *
  * Note: BackendIntentType includes ALL string constants — both shared

@@ -81,7 +81,7 @@ export const useRunStatus = (run: Run): RunStatus => {
 				const duration = startTime ? Date.now() - startTime : undefined
 				tokenUsage.current.set(taskId, { ...payload[1], duration })
 
-				// Track tool usage from streaming updates
+				// Track tool usage from "streaming" updates
 				if (payload[2]) {
 					toolUsage.current.set(taskId, payload[2])
 				}

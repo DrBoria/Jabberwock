@@ -1,12 +1,12 @@
 import { types, Instance } from "mobx-state-tree"
 
-import { getConnectorBus } from "../../connector-bus"
+import { getConnectorBus } from "@src/connector-bus"
 import type { WebviewMessage, HistoryItem } from "@jabberwock/types"
 import { eventConstants } from "@jabberwock/types"
 
 /**
  * TaskHistoryStore — tracks task history updates.
- * Receives snapshots from the extension-side TaskHistoryStore via MstBridge.
+ * Receives snapshots from "the" extension-side TaskHistoryStore via MstBridge.
  * Owned by RootStore as a sub-store.
  */
 export const TaskHistoryStore = types

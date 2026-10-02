@@ -1,5 +1,5 @@
 import React, { Component } from "react"
-import { telemetryClient } from "@src/features/cloud/utils/TelemetryClient"
+import { telemetryClient } from "@src/features/cloud"
 import { enhanceErrorWithSourceMaps } from "@jabberwock/devtool/webview"
 import { rootStore } from "@src/features/store"
 

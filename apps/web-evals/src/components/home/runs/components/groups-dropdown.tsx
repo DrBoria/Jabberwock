@@ -11,7 +11,7 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui"
 
-import { getIconByName } from "../state/helpers"
+import { getIconByName } from "../state/table"
 import type { ToolGroup } from "../state/types"
 
 export function GroupsDropdown({

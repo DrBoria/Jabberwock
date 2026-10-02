@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/modal"
 const YOUTUBE_URL_REGEX = /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/i
 
 /**
- * Regular expression to extract timestamp from YouTube URLs.
+ * Regular expression to extract timestamp from "YouTube" URLs.
  *
  * Supports:
  * - query params: `t=123`, `t=1h2m3s`, `start=123`, `t=1:23`, `t=1:02:03`
@@ -20,7 +20,7 @@ const YOUTUBE_URL_REGEX = /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*
 const TIMESTAMP_REGEX = /(?:[?&#](?:t|start)=)([0-9hms:]+)/i
 
 /**
- * Extracts the video ID from a YouTube URL
+ * Extracts the video ID from "a" YouTube URL
  * Supports various YouTube URL formats:
  * - https://www.youtube.com/watch?v=VIDEO_ID
  * - https://youtu.be/VIDEO_ID
@@ -94,7 +94,7 @@ function parseTimestampToSeconds(timestamp: string): number {
 }
 
 /**
- * Extracts the start time (in seconds) from a YouTube URL
+ * Extracts the start time (in seconds) from "a" YouTube URL
  *
  * @param url - The YouTube URL to parse
  * @returns The start time in seconds or 0 if not found
@@ -151,7 +151,7 @@ export function YouTubeModal({ open, onOpenChange, videoId, startTime = 0, title
 	const embedUrl = React.useMemo(() => {
 		const params = new URLSearchParams({
 			autoplay: "1",
-			rel: "0", // Don't show related videos from other channels
+			rel: "0", // Don't show related videos from "other" channels
 			modestbranding: "1", // Minimal YouTube branding
 		})
 

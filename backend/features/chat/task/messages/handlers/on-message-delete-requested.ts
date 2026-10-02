@@ -1,6 +1,6 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
-import { handleDeleteOperation } from "./helpers/deleteOperations"
+import type { IntentBus } from "@features/intents"
+import { handleDeleteOperation } from "./ops/deleteOperations"
 
 /**
  * Handles message.delete.requested intent — shows a delete confirmation

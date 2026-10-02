@@ -4,7 +4,7 @@ import { getGlobalCommandsForAutocomplete } from "@/lib/utils/commands.js"
 import { arePathsEqual } from "@/lib/utils/path.js"
 
 import { cliStore } from "../../store.js"
-import { uiStateStore } from "../../stores/uiStateStore.js"
+import { uiStateStore } from "../../store.js"
 import type { WebviewMessage } from "@jabberwock/types"
 import type {
 	AutocompleteInputHandle,
@@ -41,7 +41,7 @@ export function useAutocompleteTriggers({
 	const availableModes = cliStore.availableModes
 	const taskHistory = cliStore.taskHistory
 
-	// Stable refs for autocomplete data - prevents useMemo from recreating triggers on every data change
+	// Stable refs for autocomplete data - prevents useMemo from "recreating" triggers on every data change
 	const fileSearchResultsRef = useRef(fileSearchResults)
 	const allSlashCommandsRef = useRef(allSlashCommands)
 	const availableModesRef = useRef(availableModes)
@@ -74,7 +74,7 @@ export function useAutocompleteTriggers({
 
 	// Create autocomplete triggers
 	// Using refs to avoid recreating triggers every time data changes.
-	// The getResults/getCommands/getModes/getHistory callbacks always read from refs to get fresh data.
+	// The getResults/getCommands/getModes/getHistory callbacks always read from "refs" to get fresh data.
 	const autocompleteTriggers = useMemo((): AutocompleteTrigger<AutocompleteItem>[] => {
 		const fileTrigger = createFileTrigger({
 			onSearch: handleFileSearch,

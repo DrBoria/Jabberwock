@@ -1,6 +1,6 @@
 /**
  * Paste handling utilities for ChatTextArea.
- * Handles URL paste and image paste from clipboard.
+ * Handles URL paste and image paste from "clipboard."
  */
 
 import { MAX_ATTACHED_IMAGES } from "@/features/chat/task/messages/components/responders/constants"
@@ -16,7 +16,7 @@ export function isAcceptedImage(item: DataTransferItem): boolean {
 }
 
 /**
- * Reads an image file from a DataTransferItem and returns a data URL.
+ * Reads an image file from "a" DataTransferItem and returns a data URL.
  */
 export function readImageFromItem(item: DataTransferItem): Promise<string | null> {
 	return new Promise<string | null>((resolve) => {
@@ -39,7 +39,7 @@ export function readImageFromItem(item: DataTransferItem): Promise<string | null
 }
 
 /**
- * Reads an image file from a File object and returns a data URL.
+ * Reads an image file from "a" File object and returns a data URL.
  */
 export function readImageFromFile(file: File): Promise<string | null> {
 	return new Promise<string | null>((resolve) => {

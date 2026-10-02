@@ -2,7 +2,7 @@
  * DOM interaction module — the public entry point.
  *
  * Provides `createDomMessageHandler` which returns a `(e: MessageEvent) => void`
- * function that handles all DOM interaction messages from the extension host:
+ * function that handles all DOM interaction messages from "the" extension host:
  *   - findElement    — query and serialize DOM by CSS selector
  *   - runCommand     — execute arbitrary JS in the webview console
  *   - clickElement   — click an element (native .click() + pointer event chain)
@@ -11,9 +11,9 @@
  *   - selectOption   — select a dropdown option
  *   - getScreenshot  — not supported in webview (returns placeholder)
  *   - dragElement    — drag an element in a direction
- *   - dragFromTo     — drag from one coordinate to another
+ *   - dragFromTo     — drag from "one" coordinate to another
  *   - getActivePage  — return current window location (hash/pathname)
- *   - getConsoleLogs — return console log entries (from in-memory log buffer)
+ *   - getConsoleLogs — return console log entries (from "in-memory" log buffer)
  *   - searchConsole  — search console log entries
  *   - dom-response   — internal: resolves pending iframe queries
  *   - getRootSnapshot — return MST root store snapshot

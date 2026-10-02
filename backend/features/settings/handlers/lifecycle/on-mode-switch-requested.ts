@@ -1,11 +1,11 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
-import { handleModeSwitch } from "@features/foundation/window-manager/store"
+import type { IntentBus } from "@features/intents"
+import { handleModeSwitch } from "@features/foundation"
 
 /**
  * Handles topic.mode.switch.requested intent — switches the active mode.
- * Also handles the "switchMode" alias from the webview.
- * Migrated from chat/topic/handlers/on-mode-switch-requested.ts
+ * Also handles the "switchMode" alias from "the" webview.
+ * Migrated from "chat/topic/handlers/on-mode-switch-requested.ts"
  */
 export function registerOnTopicModeSwitchRequested(bus: IntentBus): void {
 	bus.register(IntentType.TopicModeSwitchRequested, async (intent, ctx) => {

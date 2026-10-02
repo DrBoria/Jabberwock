@@ -1,5 +1,5 @@
 import type { ProviderSettings } from "@jabberwock/types"
-import { inputEventTransform } from "../../shared/transforms"
+import { inputEventTransform } from "@src/features/settings/components/shared/transforms"
 
 export const safeValue = (value: string | undefined | null, fallback = ""): string => (value == null ? fallback : value)
 

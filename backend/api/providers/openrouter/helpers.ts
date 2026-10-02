@@ -19,7 +19,7 @@ import { handleProviderError } from "@api/providers/utils/error-handler"
 import { sanitizeGeminiMessages } from "@api/transform/content/sanitize-gemini"
 import { convertToOpenAiMessages } from "@api/transform/format/openai-format"
 import { normalizeMistralToolCallId } from "@api/transform/format/mistral-format"
-import { convertToR1Format } from "@api/transform/r1/format"
+import { convertToR1Format } from "@api/transform/r1"
 import { addCacheBreakpoints as addGeminiCacheBreakpoints } from "@api/transform/caching/gemini"
 import { addCacheBreakpoints as addAnthropicCacheBreakpoints } from "@api/transform/caching/anthropic"
 

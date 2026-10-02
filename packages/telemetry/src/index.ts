@@ -1,4 +1,2 @@
-export * from "./BaseTelemetryClient"
-export * from "./PostHogTelemetryClient"
-export * from "./TelemetryService"
-export * from "./telemetry-service-accessors"
+export * from "./client"
+export * from "./service"

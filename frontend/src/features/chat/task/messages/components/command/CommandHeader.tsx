@@ -3,8 +3,8 @@ import { ChevronDown, OctagonX } from "lucide-react"
 import type { CommandExecutionStatus } from "@jabberwock/types"
 import { rootStore } from "@src/features/store"
 import { cn } from "@src/lib/utils"
-import { Button } from "@src/shared/ui/buttons/button"
-import { StandardTooltip } from "@src/shared/ui/tooltips/standard-tooltip"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
+import { StandardTooltip } from "@src/shared/ui/tooltips/standard"
 
 export const ExitStatusBadge = ({ status }: { status: CommandExecutionStatus | null }) => {
 	if (status?.status !== "exited") return null

@@ -3,11 +3,11 @@ import type { Notification, McpServerRequestData, McpServer } from "@jabberwock/
 import { safeJsonParse } from "@jabberwock/core/browser"
 import { observer } from "mobx-react-lite"
 import { findMatchingResourceOrTemplate } from "@/utils/misc/mcp"
-import McpResourceRow from "@src/features/settings/mcp/components/McpResourceRow"
-import { McpExecution } from "@src/features/settings/mcp/mcp-execution"
+import { McpResourceRow } from "@src/features/settings"
+import { McpExecution } from "@src/features/settings"
 import { Container } from "@src/shared/ui/layouts/Container"
 import { getAllModes } from "@shared/modes"
-import { McpIframeRenderer } from "@src/features/settings/mcp/McpIframeRenderer"
+import { McpIframeRenderer } from "@src/features/settings"
 import { rootStore } from "@src/features/store"
 import {
 	getServerResourceUri,
@@ -17,7 +17,7 @@ import {
 	rawToggleStyle,
 	rawToggleBorderStyle,
 	preStyle,
-} from "../mcp-server-ask-utils"
+} from "@src/features/chat/task/notifications/ask/mcp-server"
 
 interface UseMcpServerAskProps {
 	message: Notification

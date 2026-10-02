@@ -80,6 +80,10 @@ function applyMcpTransportMapping(config: Record<string, unknown>): void {
 	const transportTypes = ["stdio", "sse", "websocket", "streamable-http"]
 	if (config.type && transportTypes.includes(config.type as string)) {
 		config.mcpTransport = config.type
+	} else if (config.command !== undefined && config.url === undefined && !config.mcpTransport) {
+		// stdio-like servers: explicit non-transport types (e.g. "interactiveApp", "tool")
+		// must still default to stdio or createAndConfigureTransport throws.
+		config.mcpTransport = "stdio"
 	}
 }
 

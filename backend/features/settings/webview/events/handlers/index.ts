@@ -1,1 +1,0 @@
-export { registerOnWebviewIntents } from "./register"

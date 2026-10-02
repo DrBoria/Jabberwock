@@ -1,5 +1,5 @@
+import type { EventLike } from "@jabberwock/types"
 import { VectorStoreSearchResult } from "./vector-store"
-import * as vscode from "vscode"
 
 /**
  * Interface for the code index manager
@@ -8,7 +8,7 @@ export interface ICodeIndexManager {
 	/**
 	 * Event emitted when progress is updated
 	 */
-	onProgressUpdate: vscode.Event<{
+	onProgressUpdate: EventLike<{
 		systemStatus: IndexingState
 		fileStatuses: Record<string, string>
 		message?: string

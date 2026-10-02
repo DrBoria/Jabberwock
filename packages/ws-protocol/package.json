@@ -1,0 +1,25 @@
+{
+	"name": "@jabberwock/ws-protocol",
+	"description": "Shared WS backend protocol (v4 single-state): ConnectorEnvelope framing, hello→state handshake, multi-client registry, broadcast fan-out, static SPA serving. Used by both the standalone web server and the vscode extension host.",
+	"version": "0.0.0",
+	"type": "module",
+	"main": "./src/index.ts",
+	"exports": "./src/index.ts",
+	"scripts": {
+		"lint": "eslint src --ext=ts --max-warnings=0",
+		"check-types": "tsc --noEmit",
+		"test": "vitest run",
+		"clean": "rimraf .turbo"
+	},
+	"dependencies": {
+		"@jabberwock/types": "workspace:^",
+		"ws": "^8.18.0"
+	},
+	"devDependencies": {
+		"@jabberwock/config-eslint": "workspace:^",
+		"@jabberwock/config-typescript": "workspace:^",
+		"@types/node": "^24.1.0",
+		"@types/ws": "^8.18.0",
+		"vitest": "^3.2.3"
+	}
+}

@@ -1,10 +1,10 @@
-import type { IntentBus } from "../../../intents/bus"
+import type { IntentBus } from "@src/features/intents/bus"
 import { IntentConstants } from "@intentConstants"
-import type { IntentHandlerContext } from "../../../intents/context"
-import { getRootStore } from "../../../root-store"
-import type { IRootStore } from "../../../root-store"
+import type { IntentHandlerContext } from "@src/features/intents/context"
+import { getRootStore } from "@src/features/root-store"
+import type { IRootStore } from "@src/features/root-store"
 import { checkExistKey } from "@shared/api/checkExistApiConfig"
-import { getConnectorBus } from "../../../../connector-bus"
+import { getConnectorBus } from "@src/connector-bus"
 import { eventConstants } from "@jabberwock/types"
 import type { Command, ExtensionState, MarketplaceInstalledMetadata } from "@jabberwock/types"
 
@@ -120,7 +120,7 @@ function routeLocatorTarget(store: IRootStore, newState: Partial<ExtensionState>
 	}
 }
 
-// ── Handler implementations (extracted from bus.register callbacks) ─
+// ── Handler implementations (extracted from "bus.register" callbacks) ─
 
 async function handleStateReceived(
 	intent: { id: string; type: string; payload: Record<string, unknown> },
@@ -209,10 +209,30 @@ async function handleActionReceived(
  * Register all frontend foundation event handlers on the IntentBus.
  * Foundation sub-features (window-manager, agent-state, mst-bridge) register their own handlers.
  */
-export function registerOnFrontendFoundationIntents(bus: IntentBus): void {
+function registerOnFrontendFoundationIntentsReg0(bus: IntentBus): void {
 	bus.register(IntentConstants.task.STATE_RECEIVED, handleStateReceived)
+}
+
+function registerOnFrontendFoundationIntentsReg1(bus: IntentBus): void {
 	bus.register(IntentConstants.foundation.SHOW_INTERACTIVE_APP, handleShowInteractiveApp)
+}
+
+function registerOnFrontendFoundationIntentsReg2(bus: IntentBus): void {
 	bus.register(IntentConstants.foundation.WORKSPACE_UPDATED, handleWorkspaceUpdated)
+}
+
+function registerOnFrontendFoundationIntentsReg3(bus: IntentBus): void {
 	bus.register(IntentConstants.foundation.COMMANDS_UPDATED, handleCommandsUpdated)
+}
+
+function registerOnFrontendFoundationIntentsReg4(bus: IntentBus): void {
 	bus.register(IntentConstants.task.ACTION_RECEIVED, handleActionReceived)
+}
+
+export function registerOnFrontendFoundationIntents(bus: IntentBus): void {
+	registerOnFrontendFoundationIntentsReg0(bus)
+	registerOnFrontendFoundationIntentsReg1(bus)
+	registerOnFrontendFoundationIntentsReg2(bus)
+	registerOnFrontendFoundationIntentsReg3(bus)
+	registerOnFrontendFoundationIntentsReg4(bus)
 }

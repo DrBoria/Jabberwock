@@ -3,17 +3,13 @@
  *
  * These are the ONLY code paths that may send message-related events
  * to the webview via postMessageToWebview. No other code may import or call
- * postMessageToWebview, postStateToWebview, or postStateToWebviewWithoutTaskHistory directly.
+ * postMessageToWebview, postStateToWebview, or postStateToWebviewWithoutMessages directly.
  */
 
 import type { Notification } from "@jabberwock/types"
 
-import { getProvider } from "@features/foundation/webview/providerRegistry"
-import {
-	postMessageToWebview,
-	postStateToWebview,
-	postStateToWebviewWithoutTaskHistory,
-} from "@features/foundation/window-manager/store"
+import { getProvider } from "@features/foundation/webview"
+import { postMessageToWebview, postStateToWebview, postStateToWebviewWithoutMessages } from "@features/foundation"
 
 /**
  * Notify the webview that a message was updated.
@@ -28,7 +24,7 @@ export function sendMessageUpdated(message: Notification): void {
  */
 export function sendStateWithoutTaskHistory(): void {
 	const provider = getProvider()
-	void postStateToWebviewWithoutTaskHistory(provider)
+	void postStateToWebviewWithoutMessages(provider)
 }
 
 /**

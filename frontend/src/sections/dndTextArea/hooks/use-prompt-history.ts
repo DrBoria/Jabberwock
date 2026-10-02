@@ -80,7 +80,7 @@ export const usePromptHistory = ({
 
 	// Initialize prompt history with hybrid approach: conversation messages if in task, otherwise task history
 	const filteredPromptHistory = useMemo(() => {
-		// First try to get conversation messages (user_feedback from messages)
+		// First try to get conversation messages (user_feedback from "messages")
 		const conversationPrompts = messages
 			?.filter((message) => message.type === "say" && message.say === "user_feedback" && message.text?.trim())
 			.map((message) => message.text!)
@@ -101,7 +101,7 @@ export const usePromptHistory = ({
 			return []
 		}
 
-		// Extract user prompts from task history for the current workspace only
+		// Extract user prompts from "task" history for the current workspace only
 		return taskHistory
 			.filter((item) => item.task?.trim() && (!item.workspace || item.workspace === cwd))
 			.map((item) => item.task)

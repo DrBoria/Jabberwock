@@ -1,16 +1,16 @@
 import PQueue from "p-queue"
 
-import { findRun, finishRun, getTasks } from "../../db/index"
-import { EVALS_REPO_PATH } from "../../exercises/index"
+import { runsStore, finishRun, getTasks } from "../../db/index"
+import { EVALS_REPO_PATH } from "../../exercises/catalog"
 
 import { Logger } from "../helpers/logging/logger"
 import { getTag, isDockerContainer } from "../utils"
-import { resetEvalsRepo, commitEvalsRepoChanges } from "../git-utils"
+import { resetEvalsRepo, commitEvalsRepoChanges } from "../git.ts"
 import { startHeartbeat, stopHeartbeat } from "../redis"
 import { processTask, processTaskInContainer } from "../processTask"
 
 export const runEvals = async (runId: number) => {
-	const run = await findRun(runId)
+	const run = await runsStore.find(runId)
 
 	if (run.taskMetricsId) {
 		throw new Error(`Run ${run.id} already finished.`)

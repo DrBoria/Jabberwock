@@ -6,10 +6,11 @@ import { safeJsonParse } from "@jabberwock/core/browser"
 import { observer } from "mobx-react-lite"
 import { rootStore } from "@src/features/store"
 import { useChatUI } from "@src/features/chat/store"
+import { useStreamingStore, usePrefillStore } from "@src/features/api"
 import { getAllModes } from "@shared/modes"
-import { useSelectedModel } from "@src/features/foundation/ui/hooks/useSelectedModel/useSelectedModel"
+import { useSelectedModel } from "@src/features/foundation"
 import { appendImages } from "@sections/dndTextArea/utils/image-utils"
-import { MAX_ATTACHED_IMAGES } from "../responders/constants"
+import { MAX_ATTACHED_IMAGES } from "@src/features/chat/task/messages/components/responders/constants"
 import { computeIconTitle } from "./icons"
 import {
 	computeRedundantTodo,
@@ -116,6 +117,18 @@ export const ChatRowContent = observer(
 		const isCommandExecuting = computeIsCommandExecuting(isLast, lastModifiedMessage)
 		const isMcpServerResponding = computeIsMcpServerResponding(isLast, lastModifiedMessage)
 		const type = computeType(message)
+		const streamingText = useStreamingStore().text
+		// Prefill (prompt processing) phase: the request is in-flight and the
+		// api_req row is the last thing on screen — no reasoning/tool/text token
+		// has arrived yet. Distinguish it from "Thinking" (generation), which
+		// begins at the first token. For text-only models the streamed text lands
+		// in the streaming store (not a row), so an empty streaming buffer is the
+		// "first token not yet" signal there too.
+		const isPrefilling = isLast && type === "api_req_started" && ui.isStreaming && streamingText.trim() === ""
+		const prefill = usePrefillStore()
+		// Real prefill percentage from the provider (llama.cpp), or null when the
+		// provider has no progress signal (indeterminate label).
+		const prefillPercent = isPrefilling ? prefill.percent : null
 		const normalColor = "var(--vscode-foreground)"
 		const errorColor = "var(--vscode-errorForeground)"
 		const successColor = "var(--vscode-charts-green)"
@@ -137,6 +150,8 @@ export const ChatRowContent = observer(
 					cancelledColor,
 					errorColor,
 					customModes,
+					isPrefilling,
+					prefillPercent,
 				),
 			[
 				type,
@@ -149,6 +164,8 @@ export const ChatRowContent = observer(
 				t,
 				isLast,
 				customModes,
+				isPrefilling,
+				prefillPercent,
 			],
 		)
 		const tool = useMemo(

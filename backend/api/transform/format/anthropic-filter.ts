@@ -5,19 +5,22 @@ import { Anthropic } from "@anthropic-ai/sdk"
  * Only these types will be passed through to the API.
  * See: https://docs.anthropic.com/en/api/messages
  */
-export const VALID_ANTHROPIC_BLOCK_TYPES = new Set([
-	"text",
-	"image",
-	"tool_use",
-	"tool_result",
-	"thinking",
-	"redacted_thinking",
-	"document",
-])
+const __moduleState = {
+	VALID_ANTHROPIC_BLOCK_TYPES: new Set([
+		"text",
+		"image",
+		"tool_use",
+		"tool_result",
+		"thinking",
+		"redacted_thinking",
+		"document",
+	]),
+}
+export const { VALID_ANTHROPIC_BLOCK_TYPES } = __moduleState
 
 /**
- * Filters out non-Anthropic content blocks from messages before sending to Anthropic/Vertex API.
- * Uses an allowlist approach - only blocks with types in VALID_ANTHROPIC_BLOCK_TYPES are kept.
+ * Filters out non-Anthropic content blocks from "messages" before sending to Anthropic/Vertex API.
+ * Uses an allowlist approach - only blocks with types in __moduleState.VALID_ANTHROPIC_BLOCK_TYPES are kept.
  * This automatically filters out:
  * - Internal "reasoning" blocks (Jabberwock's internal representation)
  * - Gemini's "thoughtSignature" blocks (encrypted reasoning continuity tokens)
@@ -35,7 +38,7 @@ export function filterNonAnthropicBlocks(
 			const filteredContent = message.content.filter((block) => {
 				const blockType = (block as { type: string }).type
 				// Only keep block types that Anthropic recognizes
-				return VALID_ANTHROPIC_BLOCK_TYPES.has(blockType)
+				return __moduleState.VALID_ANTHROPIC_BLOCK_TYPES.has(blockType)
 			})
 
 			// If all content was filtered out, return undefined to filter the message later

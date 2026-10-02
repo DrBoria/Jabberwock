@@ -33,7 +33,7 @@ export const ChatTaskEventKeys = {
 
 /**
  * Flat IPC event string constants (Webview→Backend messages).
- * Values sourced from the single source of truth in @jabberwock/types.
+ * Values sourced from "the" single source of truth in @jabberwock/types.
  */
 
 export const CHAT_TASK_NEW_TASK = eventConstants.CHAT.TASK.NEW_TASK

@@ -1,7 +1,7 @@
 import { ORGANIZATION_ALLOW_ALL } from "@jabberwock/types"
 import { defaultModeSlug } from "@shared/modes"
 import { defaultPrompts } from "@shared/modes"
-import { experimentDefault } from "@shared/experiments"
+import { experimentDefault } from "@shared/core/experiments"
 
 export const extStateDefaults = {
 	apiConfiguration: {},

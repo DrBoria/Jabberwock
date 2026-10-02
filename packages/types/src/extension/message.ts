@@ -1,10 +1,9 @@
-import type { ExtensionMessageType } from "./message-types.ts"
 import type { DiagnosticSnapshot } from "../utils/diagnostics.ts"
 import type { ExtensionState } from "./state.ts"
 import type { Notification } from "../messages/notification.ts"
 import type { ChatMessage } from "../messages/types.ts"
-import type { RouterModels, ModelRecord } from "../models/model.ts"
-import type { McpServer } from "../mcp/mcp.ts"
+import type { RouterModels, ModelRecord } from "../models/model-main.ts"
+import type { McpServer } from "../mcp/server-config.ts"
 import type { GitCommit } from "../task/git.ts"
 import type { ProviderSettingsEntry } from "../settings/provider/schemas.ts"
 import type { ModeConfig } from "../models/mode.ts"
@@ -17,6 +16,101 @@ import type { HistoryItem } from "../task/history.ts"
 import type { WorktreeIncludeStatus } from "../utils/worktree.ts"
 import type { QueuedMessage } from "../messages/types.ts"
 import type { Command } from "./state.ts"
+
+export type ExtensionMessageType =
+	| "action"
+	| "state"
+	| "taskHistoryUpdated"
+	| "taskHistoryItemUpdated"
+	| "selectedImages"
+	| "theme"
+	| "workspaceUpdated"
+	| "invoke"
+	| "messageUpdated"
+	| "mcpServers"
+	| "enhancedPrompt"
+	| "commitSearchResults"
+	| "listApiConfig"
+	| "routerModels"
+	| "openAiModels"
+	| "ollamaModels"
+	| "lmStudioModels"
+	| "vsCodeLmModels"
+	| "vsCodeLmApiAvailable"
+	| "updatePrompt"
+	| "systemPrompt"
+	| "autoApprovalEnabled"
+	| "updateCustomMode"
+	| "deleteCustomMode"
+	| "exportModeResult"
+	| "importModeResult"
+	| "checkRulesDirectoryResult"
+	| "deleteCustomModeCheck"
+	| "currentCheckpointUpdated"
+	| "checkpointInitWarning"
+	| "ttsStart"
+	| "ttsStop"
+	| "fileSearchResults"
+	| "toggleApiConfigPin"
+	| "acceptInput"
+	| "setHistoryPreviewCollapsed"
+	| "commandExecutionStatus"
+	| "mcpExecutionStatus"
+	| "vsCodeSetting"
+	| "authenticatedUser"
+	| "condenseTaskContextStarted"
+	| "condenseTaskContextResponse"
+	| "singleRouterModelFetchResponse"
+	| "rooCreditBalance"
+	| "indexingStatusUpdate"
+	| "indexCleared"
+	| "codebaseIndexConfig"
+	| "marketplaceInstallResult"
+	| "marketplaceRemoveResult"
+	| "marketplaceData"
+	| "shareTaskSuccess"
+	| "codeIndexSettingsSaved"
+	| "codeIndexSecretStatus"
+	| "showDeleteMessageDialog"
+	| "showEditMessageDialog"
+	| "commands"
+	| "insertTextIntoTextarea"
+	| "dismissedUpsells"
+	| "organizationSwitchResult"
+	| "interactionRequired"
+	| "customToolsResult"
+	| "modes"
+	| "taskWithAggregatedCosts"
+	| "openAiCodexRateLimits"
+	| "showInteractiveApp"
+	| "worktreeList"
+	| "worktreeResult"
+	| "worktreeCopyProgress"
+	| "branchList"
+	| "worktreeDefaults"
+	| "worktreeIncludeStatus"
+	| "branchWorktreeIncludeResult"
+	| "folderSelected"
+	| "skills"
+	| "fileContent"
+	| "diagnostics"
+	| "draggedImages"
+	| "chatTreeSnapshot"
+	| "chatTreePatch"
+	| "fetchUrlResponse"
+	| "mst-snapshot-batch"
+	| "streamChunk"
+	| "prefillProgress"
+
+export interface OpenAiCodexRateLimitsMessage {
+	type: "openAiCodexRateLimits"
+	values?: import("../providers/openai/codex/rate-limits.ts").OpenAiCodexRateLimitInfo
+	error?: string
+}
+
+export interface RequestOpenAiCodexRateLimitsMessage {
+	type: "requestOpenAiCodexRateLimits"
+}
 
 /**
  * ExtensionMessage
@@ -171,6 +265,10 @@ export interface ExtensionMessage {
 	copyProgressItemName?: string
 	// folderSelected
 	path?: string
-	/** Indicates if the message originated from MCP to prevent infinite loops */
+	/** For streamChunk / prefillProgress: the task the message belongs to. */
+	taskId?: string
+	/** For prefillProgress: 0-100 percent, -1 = no progress signal, null = generation started. */
+	percent?: number | null
+	/** Indicates if the message originated from "MCP" to prevent infinite loops */
 	fromMCP?: boolean
 }

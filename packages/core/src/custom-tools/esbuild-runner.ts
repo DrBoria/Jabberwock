@@ -6,7 +6,7 @@
  * on all operating systems without needing native binaries.
  *
  * In production, the esbuild-wasm CLI script is bundled in dist/bin/.
- * In development, it falls back to using esbuild-wasm from node_modules.
+ * In development, it falls back to using esbuild-wasm from "node_modules."
  */
 
 import path from "path"
@@ -68,7 +68,7 @@ export interface EsbuildOptions {
 	packages?: "bundle" | "external"
 	/** Additional paths for module resolution */
 	nodePaths?: string[]
-	/** Modules to exclude from bundling (resolved at runtime) */
+	/** Modules to exclude from "bundling" (resolved at runtime) */
 	external?: readonly string[]
 	/** JavaScript code to prepend to the output bundle */
 	banner?: string
@@ -110,7 +110,7 @@ function findEsbuildWasmScript(startDir: string): string | null {
  *
  * Resolution order:
  * 1. Production: Look in extension's dist/bin directory for bundled script.
- * 2. Development: Use esbuild-wasm from node_modules (relative to this module).
+ * 2. Development: Use esbuild-wasm from "node_modules" (relative to this module).
  * 3. Fallback: Try process.cwd() as last resort.
  *
  * @param extensionPath - Path to the extension's root directory (production)
@@ -126,7 +126,7 @@ export function getEsbuildScriptPath(extensionPath?: string): string {
 		}
 	}
 
-	// Development: use esbuild-wasm from node_modules relative to this module.
+	// Development: use esbuild-wasm from "node_modules" relative to this module.
 	// This works when running the extension in debug mode (if moduleDir is available).
 	if (moduleDir) {
 		const devPath = findEsbuildWasmScript(moduleDir)
@@ -136,7 +136,7 @@ export function getEsbuildScriptPath(extensionPath?: string): string {
 		}
 	}
 
-	// Fallback: try from cwd (for tests and other contexts).
+	// Fallback: try from "cwd" (for tests and other contexts).
 	const cwdPath = findEsbuildWasmScript(process.cwd())
 
 	if (cwdPath) {

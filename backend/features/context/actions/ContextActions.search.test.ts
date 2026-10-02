@@ -9,9 +9,9 @@ import {
 	getContextDatabase,
 	ingestTaskMessages,
 	initContextArchive,
-} from "@features/context/services/ContextArchiveService"
-import { describeNode, getTaskStats, searchArchivedContext } from "@features/context/services/ContextSearchService"
-import { recallRange } from "@features/context/services/ContextRecallService"
+} from "@features/context"
+import { describeNode, getTaskStats, searchArchivedContext } from "@features/context"
+import { recallRange } from "@features/context"
 
 // ICG-C2 read-path acceptance (search / recall / describe / task stats) over a temp archive (section 6.4 verbatim recall including thinking blocks). Split out of ContextActions.test.ts so the suite stays within its line budget [D-actions-test-split].
 

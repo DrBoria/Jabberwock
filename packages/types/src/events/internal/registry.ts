@@ -1,8 +1,8 @@
 import { JabberwockEventName } from "../types.ts"
 import type { Notification } from "../../messages/notification.ts"
 import type { ChatMessage, QueuedMessage, TokenUsage } from "../../messages/types.ts"
-import type { ToolUsage, ToolName } from "../../tool/tool.ts"
-import type { ModelInfo } from "../../models/model.ts"
+import type { ToolUsage, ToolName } from "../../tool/definitions.ts"
+import type { ModelInfo } from "../../models/model-main.ts"
 import type { Command } from "../../extension/state.ts"
 
 export interface BackendInternalEvents {

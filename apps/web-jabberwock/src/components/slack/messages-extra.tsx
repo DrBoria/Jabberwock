@@ -1,5 +1,5 @@
 import type { SlackMessage } from "./messages-data"
-import { FakeLink } from "./thread-demo-data"
+import { FakeLink } from "./thread-data"
 
 export const SLACK_MESSAGES_EXTRA: SlackMessage[] = [
 	{

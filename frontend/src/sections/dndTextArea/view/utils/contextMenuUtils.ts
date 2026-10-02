@@ -1,11 +1,7 @@
 import type React from "react"
 import { getSnapshot } from "mobx-state-tree"
 import type { Command, ModeConfig } from "@jabberwock/types"
-import {
-	ContextMenuOptionType,
-	type ContextMenuQueryItem,
-	insertMention,
-} from "../../utils/context-mentions/context-mentions"
+import { ContextMenuOptionType, type ContextMenuQueryItem, insertMention } from "../../utils/context-mentions/main"
 import { getNextSelectableIndex, getSelectedOption } from "../../utils"
 import type { IDynamicTextAreaStore } from "../../store"
 

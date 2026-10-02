@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm"
 
-import { testDb, disconnect } from "./src/db/db.js"
+import { testDb, disconnect } from "./src/db/client.js"
 
 async function resetTestDatabase() {
 	const db = testDb

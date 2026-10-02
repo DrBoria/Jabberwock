@@ -4,10 +4,10 @@ import type { Notification, SayToolData } from "@jabberwock/types"
 import { rootStore } from "@src/features/store"
 import { formatPathTooltip } from "@src/utils/format/formatPathTooltip"
 
-import { ToolUseBlock, ToolUseBlockHeader } from "@src/features/foundation/components/code/ToolUseBlock"
-import { PathTooltip } from "@src/shared/ui/tooltips/PathTooltip"
-import { headerStyle } from "@src/features/foundation/ui/utils/header-style"
-import { BatchFilePermission } from "../../../notifications/batch/file-permission"
+import { ToolUseBlock, ToolUseBlockHeader } from "@src/features/foundation"
+import { PathTooltip } from "@src/shared/ui/tooltips/path"
+import { headerStyle } from "@src/features/foundation"
+import { BatchFilePermission } from "@src/features/chat/task/notifications/batch/file-permission"
 
 interface ToolRendererProps {
 	message: Notification

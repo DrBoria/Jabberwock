@@ -1,15 +1,21 @@
 import fs from "fs/promises"
+
 import * as path from "path"
+
 import os from "os"
+
 import EventEmitter from "events"
 
-
 import { fileExistsAtPath } from "@utils/io/fs"
-import { arePathsEqual } from "@utils/io/path"
+
+import { arePathsEqual } from "@utils/io/main"
+
 import { t } from "@i18n"
 
 import { CheckpointDiff, CheckpointResult, CheckpointEventMap } from "./types"
-import { createSanitizedGit } from "./shadow-checkpoint-git"
+
+import { createSanitizedGit } from "./git"
+
 import {
 	writeExcludeFile,
 	stageAll,
@@ -18,8 +24,11 @@ import {
 	saveCheckpoint as saveCkpt,
 	restoreCheckpoint as restoreCkpt,
 	getDiff as getCkptDiff,
-} from "./shadow-checkpoint-operations"
-import { deleteTask, deleteBranch } from "./shadow-checkpoint-statics"
+} from "./operations"
+
+import { deleteTask, deleteBranch } from "./statics"
+
+import { publishNotificationError } from "@features/foundation/capabilities"
 
 export abstract class ShadowCheckpointService extends EventEmitter {
 	public readonly taskId: string
@@ -216,5 +225,3 @@ export abstract class ShadowCheckpointService extends EventEmitter {
 	static deleteTask = deleteTask
 	static deleteBranch = deleteBranch
 }
-
-import { publishNotificationError } from "@features/foundation/capabilities/notifications"

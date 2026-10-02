@@ -63,8 +63,8 @@ function createCapabilities(): BackendCapabilities {
 			delete: async () => {},
 			keys: async () => [],
 		},
-		queue: new InMemoryMessageQueue(),
-		pubsub: new EventBusPubSub(),
+		queue: InMemoryMessageQueue(),
+		pubsub: EventBusPubSub(),
 		config: {
 			get: <T>(_section: string, _key: string, defaultValue?: T): T | undefined => defaultValue,
 			update: async (_section: string, _key: string, _value: unknown): Promise<void> => {},
@@ -91,7 +91,7 @@ function makeMessage(body: Record<string, unknown>): WebviewMessage {
 	return body as never as WebviewMessage
 }
 
-/** Drain `count` items from the queue and feed them to the existing webviewMessageHandler resolver (§4.6). */
+/** Drain `count` items from "the" queue and feed them to the existing webviewMessageHandler resolver (§4.6). */
 async function drainQueue(caps: BackendCapabilities, provider: EventBridge, count: number): Promise<void> {
 	const iterable = caps.queue.drain()
 	let drained = 0
@@ -106,7 +106,7 @@ describe("EventBridge (transport-agnostic, §4.2)", () => {
 	it("postMessageToWebview routes through connector.sendOutbound → outbox", async () => {
 		const connector = new FakeConnector()
 		const caps = createCapabilities()
-		const bridge = new EventBridge(connector, caps)
+		const bridge = EventBridge(connector, caps)
 
 		await bridge.postMessageToWebview({ type: "action", action: "chatButtonClicked" })
 
@@ -118,7 +118,7 @@ describe("EventBridge (transport-agnostic, §4.2)", () => {
 	it("postMessageToWebview forwards broadcast and client targets verbatim", async () => {
 		const connector = new FakeConnector()
 		const caps = createCapabilities()
-		const bridge = new EventBridge(connector, caps)
+		const bridge = EventBridge(connector, caps)
 
 		await bridge.postMessageToWebview(
 			{ type: "notification.ask.follow_up", requestId: "req-1" },
@@ -134,7 +134,7 @@ describe("EventBridge (transport-agnostic, §4.2)", () => {
 	it("inject → queue → drain → webviewMessageHandler resolver (connector → queue → resolver, §4.6)", async () => {
 		const connector = new FakeConnector()
 		const caps = createCapabilities()
-		const bridge = new EventBridge(connector, caps)
+		const bridge = EventBridge(connector, caps)
 
 		wireInboundToQueue(connector, caps.queue, "vscode")
 
@@ -154,11 +154,11 @@ describe("EventBridge (transport-agnostic, §4.2)", () => {
 	it("ask is broadcast to all clients and the FIRST response wins per requestId (§6.4)", async () => {
 		const connector = new FakeConnector()
 		const caps = createCapabilities()
-		const bridge = new EventBridge(connector, caps)
+		const bridge = EventBridge(connector, caps)
 
 		wireInboundToQueue(connector, caps.queue, "vscode")
 
-		const tracker = new AskClaimTracker<"yes" | "no">()
+		const tracker = AskClaimTracker<"yes" | "no">()
 
 		onWebviewMessage("askResponse", (provider, message) => {
 			const ask = message as never as { requestId: string; answer: "yes" | "no" }
@@ -195,7 +195,7 @@ describe("EventBridge (transport-agnostic, §4.2)", () => {
 
 describe("AskClaimTracker (first-response-wins, §6.4)", () => {
 	it("claims the first decision and rejects later ones for the same requestId", () => {
-		const tracker = new AskClaimTracker<"yes" | "no">()
+		const tracker = AskClaimTracker<"yes" | "no">()
 
 		expect(tracker.claim("req-1", "yes")).toEqual({ status: "claimed", decision: "yes" })
 		expect(tracker.claim("req-1", "no")).toEqual({ status: "already-answered", decision: "yes" })

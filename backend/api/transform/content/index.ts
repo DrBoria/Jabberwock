@@ -1,4 +1,4 @@
-export { consolidateReasoningDetails } from "./consolidate-reasoning"
+export { consolidateReasoningDetails } from "./consolidate"
 export { mapReasoningDetails, splitUserContent, splitAssistantContent } from "./processors"
 export { maybeRemoveImageBlocks } from "./image-cleaning"
 export {

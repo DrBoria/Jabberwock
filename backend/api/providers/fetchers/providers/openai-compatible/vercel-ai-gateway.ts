@@ -6,6 +6,7 @@ import { VERCEL_AI_GATEWAY_VISION_ONLY_MODELS, VERCEL_AI_GATEWAY_VISION_AND_TOOL
 
 import type { ApiHandlerOptions } from "@shared/api"
 import { parseApiPrice } from "@shared/api/cost"
+import { computeCachePrice } from "@api/providers/fetchers/shared/helpers"
 
 /**
  * VercelAiGatewayPricing
@@ -131,18 +132,16 @@ export async function getVercelAiGatewayModels(_options?: ApiHandlerOptions): Pr
 	return models
 }
 
+/**
+ * Delegates to the canonical cache price computation.
+ * Canonical implementation: @api/providers/fetchers/shared/helpers.ts (computeCachePrice).
+ */
 function computeCacheWritePrice(pricing: VercelAiGatewayModel["pricing"]): number | undefined {
-	if (pricing?.input_cache_write) {
-		return parseApiPrice(pricing.input_cache_write)
-	}
-	return undefined
+	return computeCachePrice(pricing, "input_cache_write")
 }
 
 function computeCacheReadPrice(pricing: VercelAiGatewayModel["pricing"]): number | undefined {
-	if (pricing?.input_cache_read) {
-		return parseApiPrice(pricing.input_cache_read)
-	}
-	return undefined
+	return computeCachePrice(pricing, "input_cache_read")
 }
 
 function hasPromptCache(cacheWritesPrice: number | undefined, cacheReadsPrice: number | undefined): boolean {

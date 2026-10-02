@@ -1,4 +1,4 @@
-export { AwsBedrockHandler } from "./handler"
+export { AwsBedrockHandler } from "./handler-main"
 export type { StreamEvent, ContentBlockStartEvent, ContentBlockDeltaEvent } from "./core/types"
 export type { StreamHandlerContext } from "./stream"
 export type { ErrorHandlerContext } from "./errors"

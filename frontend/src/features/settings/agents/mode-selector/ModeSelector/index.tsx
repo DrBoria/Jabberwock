@@ -1,1 +1,1 @@
-export { ModeSelector } from "./ModeSelectorComponent"
+export { ModeSelector } from "./main"

@@ -3,9 +3,9 @@ import { CacheControlEphemeral } from "@anthropic-ai/sdk/resources"
 import OpenAI from "openai"
 
 import type { ModelInfo } from "@jabberwock/types"
-import { calculateApiCostAnthropic } from "@shared/api/cost"
 
 import type { ApiStream } from "@api/transform/stream"
+import { yieldAnthropicCost } from "@api/providers/anthropic/events"
 
 import type { StreamState } from "./types"
 
@@ -88,21 +88,10 @@ export function addCacheControl(
 	})
 }
 
+/**
+ * Delegates to the canonical Anthropic cost emitter.
+ * Canonical implementation: @api/providers/anthropic/events.ts (yieldAnthropicCost).
+ */
 export async function* maybeEmitFinalCost(state: StreamState, modelInfo: ModelInfo): ApiStream {
-	if (state.inputTokens > 0 || state.outputTokens > 0 || state.cacheWriteTokens > 0 || state.cacheReadTokens > 0) {
-		const { totalCost } = calculateApiCostAnthropic(
-			modelInfo,
-			state.inputTokens,
-			state.outputTokens,
-			state.cacheWriteTokens,
-			state.cacheReadTokens,
-		)
-
-		yield {
-			type: "usage",
-			inputTokens: 0,
-			outputTokens: 0,
-			totalCost,
-		}
-	}
+	yield* yieldAnthropicCost(state, () => ({ info: modelInfo }))
 }

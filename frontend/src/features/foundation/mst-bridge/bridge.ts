@@ -6,7 +6,7 @@ import { applySnapshot, IStateTreeNode } from "mobx-state-tree"
 export type BridgeConnectionState = "connected" | "disconnected" | "reconnecting"
 
 /**
- * A snapshot batch received from the extension.
+ * A snapshot batch received from "the" extension.
  */
 export interface SnapshotBatch {
 	snapshots: Array<{
@@ -18,49 +18,49 @@ export interface SnapshotBatch {
 /**
  * Webview-side MST bridge.
  *
- * Receives snapshot messages from the extension and applies them
+ * Receives snapshot messages from "the" extension and applies them
  * to the corresponding webview MST stores via `applySnapshot`.
  */
-export class MstBridge {
-	private storeRegistry: Map<string, IStateTreeNode> = new Map()
-	private connectionState: BridgeConnectionState = "disconnected"
-	private onStateChange: ((state: BridgeConnectionState) => void) | null = null
+export interface MstBridge {
+	/** Register a webview MST store to receive snapshots for. */
+	registerStore(storeName: string, store: IStateTreeNode): void
+	/** Unregister a previously registered store. */
+	unregisterStore(storeName: string): void
+	/** Handle an incoming snapshot batch message from "the" extension. */
+	handleSnapshotBatch(batch: SnapshotBatch): void
+	/** Handle a single snapshot message (non-batched). */
+	handleSnapshot(storeName: string, snapshot: Record<string, unknown>): void
+	/** Set the connection state and notify listeners. */
+	setConnectionState(state: BridgeConnectionState): void
+	/** Get the current connection state. */
+	getConnectionState(): BridgeConnectionState
+	/** Register a callback for connection state changes. */
+	onConnectionStateChange(callback: (state: BridgeConnectionState) => void): void
+	/** Remove the connection state change listener. */
+	removeConnectionStateChange(): void
+	/** Check if a specific store is registered. */
+	hasStore(storeName: string): boolean
+	/** Get a registered store by name. */
+	getStore<T = unknown>(id: string): T | undefined
+	/** Get the list of registered store names. */
+	getRegisteredStores(): string[]
+	/** Clear all registered stores and reset state. */
+	dispose(): void
+}
 
-	/**
-	 * Register a webview MST store to receive snapshots for.
-	 */
-	registerStore(storeName: string, store: IStateTreeNode): void {
-		this.storeRegistry.set(storeName, store)
-	}
+/**
+ * Create a new MstBridge instance.
+ *
+ * Factory-closure form (no class): the registry / connection state live in the
+ * closure, not module state.
+ */
+export function createMstBridge(): MstBridge {
+	const storeRegistry = new Map<string, IStateTreeNode>()
+	let connectionState: BridgeConnectionState = "disconnected"
+	let onStateChange: ((state: BridgeConnectionState) => void) | null = null
 
-	/**
-	 * Unregister a previously registered store.
-	 */
-	unregisterStore(storeName: string): void {
-		this.storeRegistry.delete(storeName)
-	}
-
-	/**
-	 * Handle an incoming snapshot batch message from the extension.
-	 */
-	handleSnapshotBatch(batch: SnapshotBatch): void {
-		for (const { storeName, snapshot } of batch.snapshots) {
-			const store = this.storeRegistry.get(storeName)
-			if (store) {
-				try {
-					applySnapshot(store, snapshot)
-				} catch (err) {
-					console.error(`[jabberwock] [MstBridge] Failed to apply snapshot for "${storeName}":`, err)
-				}
-			}
-		}
-	}
-
-	/**
-	 * Handle a single snapshot message (non-batched).
-	 */
-	handleSnapshot(storeName: string, snapshot: Record<string, unknown>): void {
-		const store = this.storeRegistry.get(storeName)
+	function apply(storeName: string, snapshot: Record<string, unknown>): void {
+		const store = storeRegistry.get(storeName)
 		if (store) {
 			try {
 				applySnapshot(store, snapshot)
@@ -70,69 +70,58 @@ export class MstBridge {
 		}
 	}
 
-	/**
-	 * Set the connection state and notify listeners.
-	 */
-	setConnectionState(state: BridgeConnectionState): void {
-		this.connectionState = state
-		this.onStateChange?.(state)
-	}
+	return {
+		registerStore(storeName: string, store: IStateTreeNode): void {
+			storeRegistry.set(storeName, store)
+		},
 
-	/**
-	 * Get the current connection state.
-	 */
-	getConnectionState(): BridgeConnectionState {
-		return this.connectionState
-	}
+		unregisterStore(storeName: string): void {
+			storeRegistry.delete(storeName)
+		},
 
-	/**
-	 * Register a callback for connection state changes.
-	 */
-	onConnectionStateChange(callback: (state: BridgeConnectionState) => void): void {
-		this.onStateChange = callback
-	}
+		handleSnapshotBatch(batch: SnapshotBatch): void {
+			for (const { storeName, snapshot } of batch.snapshots) {
+				apply(storeName, snapshot)
+			}
+		},
 
-	/**
-	 * Remove the connection state change listener.
-	 */
-	removeConnectionStateChange(): void {
-		this.onStateChange = null
-	}
+		handleSnapshot(storeName: string, snapshot: Record<string, unknown>): void {
+			apply(storeName, snapshot)
+		},
 
-	/**
-	 * Check if a specific store is registered.
-	 */
-	hasStore(storeName: string): boolean {
-		return this.storeRegistry.has(storeName)
-	}
+		setConnectionState(state: BridgeConnectionState): void {
+			connectionState = state
+			onStateChange?.(state)
+		},
 
-	/**
-	 * Get a registered store by name.
-	 */
-	getStore<T = unknown>(id: string): T | undefined {
-		return this.storeRegistry.get(id) as T | undefined
-	}
+		getConnectionState(): BridgeConnectionState {
+			return connectionState
+		},
 
-	/**
-	 * Get the list of registered store names.
-	 */
-	getRegisteredStores(): string[] {
-		return [...this.storeRegistry.keys()]
-	}
+		onConnectionStateChange(callback: (state: BridgeConnectionState) => void): void {
+			onStateChange = callback
+		},
 
-	/**
-	 * Clear all registered stores and reset state.
-	 */
-	dispose(): void {
-		this.storeRegistry.clear()
-		this.connectionState = "disconnected"
-		this.onStateChange = null
-	}
-}
+		removeConnectionStateChange(): void {
+			onStateChange = null
+		},
 
-/**
- * Create a new MstBridge instance.
- */
-export function createMstBridge(): MstBridge {
-	return new MstBridge()
+		hasStore(storeName: string): boolean {
+			return storeRegistry.has(storeName)
+		},
+
+		getStore<T = unknown>(id: string): T | undefined {
+			return storeRegistry.get(id) as T | undefined
+		},
+
+		getRegisteredStores(): string[] {
+			return [...storeRegistry.keys()]
+		},
+
+		dispose(): void {
+			storeRegistry.clear()
+			connectionState = "disconnected"
+			onStateChange = null
+		},
+	}
 }

@@ -1,5 +1,5 @@
 import React, { memo, useState } from "react"
-import CodeAccordion from "@src/features/foundation/components/code/CodeAccordion"
+import { CodeAccordion } from "@src/features/foundation"
 
 interface FileDiff {
 	path: string

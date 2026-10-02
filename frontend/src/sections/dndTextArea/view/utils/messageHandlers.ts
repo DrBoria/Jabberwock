@@ -1,5 +1,5 @@
 import type React from "react"
-import { ContextMenuOptionType, type SearchResult } from "../../utils/context-mentions/context-mentions"
+import { ContextMenuOptionType, type SearchResult } from "../../utils/context-mentions/main"
 import type { IDynamicTextAreaStore } from "../../store"
 
 export function handleEnhancedPromptResult(

@@ -1,4 +1,4 @@
-import { StandardTooltip } from "@src/shared/ui/tooltips/standard-tooltip"
+import { StandardTooltip } from "@src/shared/ui/tooltips/standard"
 
 interface IconButtonProps {
 	icon: string

@@ -1,16 +1,17 @@
-import type { IntentBus } from "@features/intents/bus"
-import { onWebviewMessage } from "@features/foundation/webview/events/handlers/on-webview-message"
-import { askClaimTracker } from "@features/foundation/webview/ask-claims"
+import type { IntentBus } from "@features/intents"
+import { onWebviewMessage } from "@features/foundation"
+import { askClaimTracker } from "@features/foundation"
 import { IntentStatus } from "@jabberwock/types"
-import { getBackendRootStore } from "@features/storeSingleton"
+import { getStore } from "@features/singleton"
 import { registerAllMessageHandlers } from "@features/chat/task/messages/handlers"
+import { submitAskResponse, sendAskResponseAck, sendNotificationAskResolved } from "@features/chat"
 import {
 	CHAT_MESSAGES_LIST_ASK_RESPONSE,
 	CHAT_MESSAGES_LIST_DELETE_MESSAGE,
 	CHAT_MESSAGES_LIST_DELETE_MESSAGE_CONFIRM,
 	CHAT_MESSAGES_LIST_SUBMIT_EDITED_MESSAGE,
 	CHAT_MESSAGES_LIST_EDIT_MESSAGE_CONFIRM,
-} from "@features/chat/task/messages/events/constants"
+} from "@features/chat"
 
 /**
  * Register all message-related event handlers on the given IntentBus.
@@ -18,13 +19,10 @@ import {
  * Delegates to the existing registerAllMessageHandlers in the messages/handlers/
  * directory to avoid duplicating registration logic.
  */
-export function registerOnMessagesIntents(bus: IntentBus): void {
-	// ── Register bus handlers (existing message logic) ─────────────
-	registerAllMessageHandlers(bus)
 
-	// ── onWebviewMessage registrations to replace WEBVIEW_TO_INTENT fallback ──
+function registerOnMessagesCHATMESSAGESLISTASKRESPONSE(): void {
 	onWebviewMessage(CHAT_MESSAGES_LIST_ASK_RESPONSE, (provider, message, senderClientId) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 
 		// D4h (§6.4): first-response-wins for multi-client asks. Engages only when the answer
@@ -37,33 +35,33 @@ export function registerOnMessagesIntents(bus: IntentBus): void {
 		if (requestId && decision !== undefined) {
 			const result = askClaimTracker.claim(requestId, decision)
 			if (result.status === "already-answered") {
-				void provider.postMessageToWebview(
-					{ type: "askResponseAck", requestId, status: "already-answered" },
+				void sendAskResponseAck(
+					provider,
+					{ requestId, status: "already-answered" },
 					senderClientId ? { kind: "client", clientId: senderClientId } : undefined,
 				)
 				return
 			}
 			// First response claimed — broadcast the converged decision to all connected clients
 			// (§6.4 step 4) so every UI converges on the single winning answer.
-			void provider.postMessageToWebview({
-				type: "notification.ask.resolved",
-				requestId,
-				askResponse: decision,
-				text: message.text,
-			})
+			void sendNotificationAskResolved(provider, { requestId, askResponse: decision, text: message.text })
 		}
 
-		store.intentStore.createIntent({
-			id: crypto.randomUUID(),
-			type: "ask.response.received",
-			payload: { taskId: store.chat.activeTaskId ?? "", ...message },
-			status: IntentStatus.Queued,
-			createdAt: Date.now(),
-		})
+		// Resolve the ask synchronously (outside the bus). The previous intent
+		// path deadlocked: the ask response queued behind the single dispatch
+		// fiber that was blocked awaiting the ask itself, so the dialog could
+		// never be answered. `submitAskResponse` resolves
+		// `task.askResolve` directly — idempotent with the legacy intent
+		// handler, which is left registered for residual intents.
+		if (decision !== undefined) {
+			submitAskResponse(store.chat.activeTaskId ?? "", decision, message.text, message.images)
+		}
 	})
+}
 
+function registerOnMessagesCHATMESSAGESLISTDELETEMESSAGE(): void {
 	onWebviewMessage(CHAT_MESSAGES_LIST_DELETE_MESSAGE, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -73,9 +71,11 @@ export function registerOnMessagesIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnMessagesCHATMESSAGESLISTDELETEMESSAGECONFIRM(): void {
 	onWebviewMessage(CHAT_MESSAGES_LIST_DELETE_MESSAGE_CONFIRM, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -85,9 +85,11 @@ export function registerOnMessagesIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnMessagesCHATMESSAGESLISTSUBMITEDITEDMESSAGE(): void {
 	onWebviewMessage(CHAT_MESSAGES_LIST_SUBMIT_EDITED_MESSAGE, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -97,9 +99,11 @@ export function registerOnMessagesIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnMessagesCHATMESSAGESLISTEDITMESSAGECONFIRM(): void {
 	onWebviewMessage(CHAT_MESSAGES_LIST_EDIT_MESSAGE_CONFIRM, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -109,4 +113,13 @@ export function registerOnMessagesIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
+
+export function registerOnMessagesIntents(bus: IntentBus): void {
+	registerAllMessageHandlers(bus)
+	registerOnMessagesCHATMESSAGESLISTASKRESPONSE()
+	registerOnMessagesCHATMESSAGESLISTDELETEMESSAGE()
+	registerOnMessagesCHATMESSAGESLISTDELETEMESSAGECONFIRM()
+	registerOnMessagesCHATMESSAGESLISTSUBMITEDITEDMESSAGE()
+	registerOnMessagesCHATMESSAGESLISTEDITMESSAGECONFIRM()
 }

@@ -24,6 +24,7 @@
 
 import type { WebviewMessage } from "@jabberwock/types"
 import type {
+	ConnectorId,
 	DisposableLike,
 	IConnectorEventBus,
 	IFrontendConnector,
@@ -45,9 +46,11 @@ class VscodeWebviewEventBus implements IConnectorEventBus {
 	private readonly subscriptions: Subscription[] = []
 	private readonly windowListener: (event: MessageEvent) => void
 	private readonly postMessage: (message: WebviewMessage) => void
+	private readonly connectorId: ConnectorId
 
-	constructor(postMessage: (message: WebviewMessage) => void) {
+	constructor(postMessage: (message: WebviewMessage) => void, connectorId: ConnectorId) {
 		this.postMessage = postMessage
+		this.connectorId = connectorId
 		// The single subscription point for the whole webview (plan §4.5 line 462).
 		this.windowListener = (event: MessageEvent) => {
 			const message = event.data
@@ -76,9 +79,13 @@ class VscodeWebviewEventBus implements IConnectorEventBus {
 		return filter.types.includes(type)
 	}
 
-	/** Outbound: send a host message through the vscode webview transport. */
+	/**
+	 * Outbound: send a host message through the vscode webview transport.
+	 * Stamps the connector id so the backend/devtool can attribute the message
+	 * to its originating surface ("vscode").
+	 */
 	publish(message: WebviewMessage): void {
-		this.postMessage(message)
+		this.postMessage({ ...message, connector: this.connectorId })
 	}
 
 	/** Inbound: register a handler for messages matching the filter. */
@@ -108,7 +115,7 @@ class VscodeWebviewEventBus implements IConnectorEventBus {
  * `connect()` is effectively a no-op for the vscode webview transport.
  *
  * @param postMessage Outbound host transport function. Injected by the
- *   connector-bus from the shared `@jabberwock/devtool/webview` `vscode` wrapper
+ *   connector-bus from "the" shared `@jabberwock/devtool/webview` `vscode` wrapper
  *   so `acquireVsCodeApi()` is only ever called once per webview.
  */
 export class VscodeWebviewFrontendConnector implements IFrontendConnector {
@@ -116,7 +123,7 @@ export class VscodeWebviewFrontendConnector implements IFrontendConnector {
 	private readonly bus: VscodeWebviewEventBus
 
 	constructor(postMessage: (message: WebviewMessage) => void) {
-		this.bus = new VscodeWebviewEventBus(postMessage)
+		this.bus = new VscodeWebviewEventBus(postMessage, this.id)
 	}
 
 	get eventBus(): IConnectorEventBus {

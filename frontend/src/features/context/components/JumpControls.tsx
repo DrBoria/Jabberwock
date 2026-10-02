@@ -1,6 +1,6 @@
 import { observer } from "mobx-react-lite"
 
-import { contextViewportStore } from "../store-singleton"
+import { contextViewportStore } from "@src/features/context/viewport"
 
 export interface JumpControlsProps {
 	taskId: string
@@ -12,9 +12,9 @@ export interface JumpControlsProps {
  * "seq N of ~M". Jumps issue a bounded history-range request at the target anchor.
  */
 export const JumpControls = observer(function JumpControls({ taskId, onJump }: JumpControlsProps) {
-	const bounds = contextViewportStore.bounds.get(taskId)
+	const bounds = contextViewportStore().bounds.get(taskId)
 	const total = bounds?.totalCount ?? 0
-	const anchorSeq = contextViewportStore.sortedSeqs.length > 0 ? contextViewportStore.sortedSeqs[0] : 0
+	const anchorSeq = contextViewportStore().sortedSeqs.length > 0 ? contextViewportStore().sortedSeqs[0] : 0
 
 	const btn = (label: string, anchor: number | undefined, disabled: boolean) => (
 		<button

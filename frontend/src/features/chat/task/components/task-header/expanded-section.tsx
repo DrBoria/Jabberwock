@@ -1,8 +1,8 @@
 import type { Goal, HistoryItem } from "@jabberwock/types"
-import Thumbnails from "@src/features/foundation/components/ui/display/Thumbnails"
-import { TaskActions } from "../../messages/components/displays/task-actions"
-import { Mention } from "@sections/dndTextArea/mention/mention"
-import { TaskMetricsTable } from "../task-metrics/rows"
+import { Thumbnails } from "@src/features/foundation"
+import { TaskActions } from "@src/features/chat/task/messages/components/displays/task-actions"
+import { Mention } from "@sections/dndTextArea/mention/main"
+import { TaskMetricsTable } from "@src/features/chat/task/components/task-metrics/rows"
 import { GoalsSection } from "./goals-section"
 
 interface ExpandedTaskSectionProps {

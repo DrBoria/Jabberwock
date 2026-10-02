@@ -1,8 +1,8 @@
 import React from "react"
 import type { Notification, SuggestionItem } from "@jabberwock/types"
 import { safeJsonParse } from "@jabberwock/core/browser"
-import { Markdown } from "../../../messages/components/message-parts/markdown"
-import { FollowUpSuggest } from "@src/features/chat/task/notifications/follow-up-suggest"
+import { Markdown } from "@src/features/chat/task/messages/components/message-parts/markdown"
+import { FollowUpSuggest } from "@src/features/chat"
 import { Container } from "@src/shared/ui/layouts/Container"
 
 interface FollowUpAskProps {

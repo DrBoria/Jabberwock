@@ -5,6 +5,7 @@ import { Icon } from "../../display/Icon.js"
 
 import type { ToolRendererProps } from "../types.js"
 import { truncateText, sanitizeContent, getToolDisplayName, getToolIconName } from "../utils.js"
+import { ToolPreview } from "../preview.js"
 
 const MAX_CONTENT_LINES = 12
 
@@ -81,17 +82,8 @@ export function GenericTool({ toolData, rawContent }: ToolRendererProps) {
 
 			{/* Content */}
 			{previewContent && (
-				<Box flexDirection="column" marginLeft={2} marginTop={contentMarginTop}>
-					{previewContent.split("\n").map((line, i) => (
-						<Text key={i} color={theme.toolText}>
-							{line}
-						</Text>
-					))}
-					{truncated && (
-						<Text color={theme.dimText} dimColor>
-							... ({hiddenLines} more lines)
-						</Text>
-					)}
+				<Box marginLeft={2} marginTop={contentMarginTop}>
+					<ToolPreview preview={previewContent} truncated={truncated} hiddenLines={hiddenLines} />
 				</Box>
 			)}
 		</Box>

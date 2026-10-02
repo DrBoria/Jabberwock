@@ -1,6 +1,6 @@
 import { types, Instance, getParent } from "mobx-state-tree"
 import type { Notification, AudioType } from "@jabberwock/types"
-import type { IChatStore, IChatUIStore } from "../store"
+import type { IChatStore, IChatUIStore } from "@src/features/chat/store"
 import * as H from "./handlers"
 import { processSimpleAsk, processComplexAsk, computeAskDerivedState } from "./orchestrators"
 

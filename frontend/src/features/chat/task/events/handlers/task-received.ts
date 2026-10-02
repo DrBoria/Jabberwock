@@ -77,12 +77,14 @@ function findMessageIndex(messages: { ts: number }[], ts: number): number {
 	return lastIndex !== -1 ? messages.length - 1 - lastIndex : -1
 }
 
-export function registerOnFrontendTaskIntents(bus: IntentBus): void {
+function registerOnFrontendTaskIntentsReg0(bus: IntentBus): void {
 	bus.register(IntentConstants.task.CHECKPOINT_UPDATED, async (intent, _ctx: IntentHandlerContext) => {
 		const store = getRootStore()
 		store.currentCheckpoint = (intent.payload as { text?: string }).text ?? ""
 	})
+}
 
+function registerOnFrontendTaskIntentsReg1(bus: IntentBus): void {
 	bus.register(IntentConstants.task.CHECKPOINT_INIT_WARNING, async (intent, _ctx: IntentHandlerContext) => {
 		const store = getRootStore()
 		const payload = intent.payload as {
@@ -90,7 +92,9 @@ export function registerOnFrontendTaskIntents(bus: IntentBus): void {
 		}
 		store.chat.setCheckpointWarning(payload.checkpointWarning)
 	})
+}
 
+function registerOnFrontendTaskIntentsReg2(bus: IntentBus): void {
 	bus.register(IntentConstants.task.TASK_WITH_AGGREGATED_COSTS, async (intent, _ctx: IntentHandlerContext) => {
 		const store = getRootStore()
 		const payload = intent.payload as {
@@ -101,13 +105,17 @@ export function registerOnFrontendTaskIntents(bus: IntentBus): void {
 			store.chat.updateAggregatedCosts(payload.text, payload.aggregatedCosts)
 		}
 	})
+}
 
+function registerOnFrontendTaskIntentsReg3(bus: IntentBus): void {
 	bus.register(IntentConstants.task.CONDENSE_STARTED, async (intent, _ctx: IntentHandlerContext) => {
 		const store = getRootStore()
 		const payload = intent.payload as { text?: string }
 		if (payload.text) store.chat.setIsCondensing(true)
 	})
+}
 
+function registerOnFrontendTaskIntentsReg4(bus: IntentBus): void {
 	bus.register(IntentConstants.task.CONDENSE_RESPONSE, async (intent, _ctx: IntentHandlerContext) => {
 		const store = getRootStore()
 		const payload = intent.payload as { text?: string }
@@ -117,7 +125,9 @@ export function registerOnFrontendTaskIntents(bus: IntentBus): void {
 			store.chat.setIsCondensing(false)
 		}
 	})
+}
 
+function registerOnFrontendTaskIntentsReg5(bus: IntentBus): void {
 	bus.register(IntentConstants.task.SELECTED_IMAGES, async (intent, _ctx: IntentHandlerContext) => {
 		const store = getRootStore()
 		const payload = intent.payload as { context?: string; images?: string[] }
@@ -125,7 +135,9 @@ export function registerOnFrontendTaskIntents(bus: IntentBus): void {
 			store.chat.textArea.appendSelectedImages(payload.images.slice(0, 20))
 		}
 	})
+}
 
+function registerOnFrontendTaskIntentsReg6(bus: IntentBus): void {
 	bus.register(IntentConstants.task.MESSAGES_UPDATED, async (intent, _ctx: IntentHandlerContext) => {
 		const store = getRootStore()
 		const payload = intent.payload as { ts?: number; message?: { ts: number; partial?: boolean } }
@@ -161,4 +173,14 @@ export function registerOnFrontendTaskIntents(bus: IntentBus): void {
 			handleStreamAbort(store, newMessages, saidMsg)
 		}
 	})
+}
+
+export function registerOnFrontendTaskIntents(bus: IntentBus): void {
+	registerOnFrontendTaskIntentsReg0(bus)
+	registerOnFrontendTaskIntentsReg1(bus)
+	registerOnFrontendTaskIntentsReg2(bus)
+	registerOnFrontendTaskIntentsReg3(bus)
+	registerOnFrontendTaskIntentsReg4(bus)
+	registerOnFrontendTaskIntentsReg5(bus)
+	registerOnFrontendTaskIntentsReg6(bus)
 }

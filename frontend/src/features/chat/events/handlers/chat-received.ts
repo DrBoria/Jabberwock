@@ -1,7 +1,7 @@
-import type { IntentBus } from "../../../intents/bus"
+import type { IntentBus } from "@src/features/intents/bus"
 import { IntentConstants } from "@intentConstants"
-import type { IntentHandlerContext } from "../../../intents/context"
-import { getRootStore } from "../../../root-store"
+import type { IntentHandlerContext } from "@src/features/intents/context"
+import { getRootStore } from "@src/features/root-store"
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null
@@ -76,7 +76,7 @@ function handleApproveTodoPlan(payload: Record<string, unknown>): void {
 /**
  * Register all frontend chat event handlers on the IntentBus.
  */
-export function registerOnFrontendChatIntents(bus: IntentBus): void {
+function registerOnFrontendChatIntentsReg0(bus: IntentBus): void {
 	bus.register(IntentConstants.chat.INVOKE_RECEIVED, async (intent, _ctx: IntentHandlerContext) => {
 		const payload = intent.payload
 		const invoke = typeof payload.invoke === "string" ? payload.invoke : undefined
@@ -95,8 +95,8 @@ export function registerOnFrontendChatIntents(bus: IntentBus): void {
 			handleApproveTodoPlan(payload)
 		}
 	})
+}
 
-	bus.register(IntentConstants.chat.INTERACTION_REQUIRED, async (_intent, _ctx: IntentHandlerContext) => {
-		// No-op: intent is acknowledged, UI reacts naturally
-	})
+export function registerOnFrontendChatIntents(bus: IntentBus): void {
+	registerOnFrontendChatIntentsReg0(bus)
 }

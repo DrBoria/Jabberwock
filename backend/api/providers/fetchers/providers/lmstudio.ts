@@ -5,8 +5,9 @@ import { type ModelInfo, lMStudioDefaultModelInfo } from "@jabberwock/types"
 
 import { flushModels } from "@api/providers/fetchers/modelCache"
 
-const modelsWithLoadedDetails = new Set<string>()
-
+const __moduleState = {
+	modelsWithLoadedDetails: new Set<string>(),
+}
 export const forceFullModelDetailsLoad = async (baseUrl: string, modelId: string): Promise<void> => {
 	try {
 		// Test the connection to LM Studio first
@@ -20,7 +21,7 @@ export const forceFullModelDetailsLoad = async (baseUrl: string, modelId: string
 		await flushModels({ provider: "lmstudio", baseUrl }, true)
 
 		// Mark this model as having full details loaded.
-		modelsWithLoadedDetails.add(modelId)
+		__moduleState.modelsWithLoadedDetails.add(modelId)
 	} catch (_error) {
 		const err = _error as { code?: string }
 		if (err.code === "ECONNREFUSED") {
@@ -34,7 +35,7 @@ export const forceFullModelDetailsLoad = async (baseUrl: string, modelId: string
 }
 
 export const parseLMStudioModel = (rawModel: LLMInstanceInfo | LLMInfo): ModelInfo => {
-	// Handle both LLMInstanceInfo (from loaded models) and LLMInfo (from downloaded models)
+	// Handle both LLMInstanceInfo (from "loaded" models) and LLMInfo (from "downloaded" models)
 	const contextLength = "contextLength" in rawModel ? rawModel.contextLength : rawModel.maxContextLength
 
 	const modelInfo: ModelInfo = Object.assign({}, lMStudioDefaultModelInfo, {
@@ -50,7 +51,7 @@ export const parseLMStudioModel = (rawModel: LLMInstanceInfo | LLMInfo): ModelIn
 
 export async function getLMStudioModels(baseUrl = "http://localhost:1234"): Promise<Record<string, ModelInfo>> {
 	// clear the set of models that have full details loaded
-	modelsWithLoadedDetails.clear()
+	__moduleState.modelsWithLoadedDetails.clear()
 	// clearing the input can leave an empty string; use the default in that case
 	baseUrl = baseUrl === "" ? "http://localhost:1234" : baseUrl
 
@@ -112,7 +113,7 @@ export async function getLMStudioModels(baseUrl = "http://localhost:1234"): Prom
 
 			// Add the loaded model (either as replacement or new entry)
 			models[lmstudioModel.modelKey] = parseLMStudioModel(lmstudioModel)
-			modelsWithLoadedDetails.add(lmstudioModel.modelKey)
+			__moduleState.modelsWithLoadedDetails.add(lmstudioModel.modelKey)
 		}
 	} catch (_error) {
 		const err = _error as { code?: string }

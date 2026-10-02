@@ -171,6 +171,8 @@
 		"title": "API 請求",
 		"failed": "API 請求失敗",
 		"streaming": "正在處理 API 請求...",
+		"loadingContext": "正在載入上下文...",
+		"loadingContextPercent": "正在載入上下文... {{percent}}%",
 		"cancelled": "API 請求已取消",
 		"streamingFailed": "API 串流處理失敗",
 		"rateLimitWait": "速率限制",

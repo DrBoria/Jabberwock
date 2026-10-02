@@ -1,6 +1,6 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
-import { checkContextWindowExceededError } from "@features/foundation/time-machine/file-context/context-error-handling"
+import type { IntentBus } from "@features/intents"
+import { checkContextWindowExceededError } from "@features/foundation"
 
 /**
  * Handles context.window.exceeded intent — checks whether an API error
@@ -26,11 +26,10 @@ export function registerOnContextWindowExceeded(bus: IntentBus): void {
 		const isContextWindowError = checkContextWindowExceededError(error)
 
 		if (isContextWindowError) {
-			task.emit?.("context.window.exceeded.detected", { taskId })
-
-			// The actual context window handling (forced truncation) should be
-			// performed by the caller via context.management.required intent.
+			// The actual context window handling (forced truncation) is
+			// performed by the caller via the context.management.required intent.
 			// This handler only detects and signals the condition.
+			console.warn(`[onContextWindowExceeded] Context window exceeded for task ${taskId}`)
 		}
 	})
 }

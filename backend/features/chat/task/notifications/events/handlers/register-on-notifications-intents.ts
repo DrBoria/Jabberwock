@@ -1,7 +1,7 @@
-import type { IntentBus } from "@features/intents/bus"
-import { onWebviewMessage } from "@features/foundation/webview/events/handlers/on-webview-message"
+import type { IntentBus } from "@features/intents"
+import { onWebviewMessage } from "@features/foundation"
 import { IntentStatus } from "@jabberwock/types"
-import { getBackendRootStore } from "@features/storeSingleton"
+import { getStore } from "@features/singleton"
 import { registerAllNotificationHandlers } from "@features/chat/task/notifications/handlers"
 import {
 	CHAT_NOTIFICATIONS_CHECKPOINT_DIFF,
@@ -14,7 +14,7 @@ import {
 	CHAT_NOTIFICATIONS_EDIT_QUEUED_MESSAGE,
 	CHAT_NOTIFICATIONS_REMOVE_QUEUED_MESSAGE,
 	CHAT_NOTIFICATIONS_ELICITATION_RESPONSE,
-} from "@features/chat/task/notifications/events/constants"
+} from "@features/chat"
 
 /**
  * Register all notification-related event handlers on the given IntentBus.
@@ -22,13 +22,10 @@ import {
  * Delegates to the existing registerAllNotificationHandlers in the
  * notifications/handlers/ directory to avoid duplicating registration logic.
  */
-export function registerOnNotificationsIntents(bus: IntentBus): void {
-	// ── Register bus handlers (existing notification logic) ─────────
-	registerAllNotificationHandlers(bus)
 
-	// ── onWebviewMessage registrations to replace WEBVIEW_TO_INTENT fallback ──
+function registerOnNotificationsCHATNOTIFICATIONSCHECKPOINTDIFF(): void {
 	onWebviewMessage(CHAT_NOTIFICATIONS_CHECKPOINT_DIFF, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -38,9 +35,11 @@ export function registerOnNotificationsIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnNotificationsCHATNOTIFICATIONSCHECKPOINTRESTORE(): void {
 	onWebviewMessage(CHAT_NOTIFICATIONS_CHECKPOINT_RESTORE, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -50,9 +49,11 @@ export function registerOnNotificationsIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnNotificationsCHATNOTIFICATIONSPLAYTTS(): void {
 	onWebviewMessage(CHAT_NOTIFICATIONS_PLAY_TTS, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -62,9 +63,11 @@ export function registerOnNotificationsIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnNotificationsCHATNOTIFICATIONSSTOPTTS(): void {
 	onWebviewMessage(CHAT_NOTIFICATIONS_STOP_TTS, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -74,9 +77,11 @@ export function registerOnNotificationsIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnNotificationsCHATNOTIFICATIONSTTSENABLED(): void {
 	onWebviewMessage(CHAT_NOTIFICATIONS_TTS_ENABLED, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -86,9 +91,11 @@ export function registerOnNotificationsIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnNotificationsCHATNOTIFICATIONSTTSSPEED(): void {
 	onWebviewMessage(CHAT_NOTIFICATIONS_TTS_SPEED, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -98,9 +105,11 @@ export function registerOnNotificationsIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnNotificationsCHATNOTIFICATIONSQUEUEMESSAGE(): void {
 	onWebviewMessage(CHAT_NOTIFICATIONS_QUEUE_MESSAGE, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -110,9 +119,11 @@ export function registerOnNotificationsIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnNotificationsCHATNOTIFICATIONSEDITQUEUEDMESSAGE(): void {
 	onWebviewMessage(CHAT_NOTIFICATIONS_EDIT_QUEUED_MESSAGE, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -122,9 +133,11 @@ export function registerOnNotificationsIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnNotificationsCHATNOTIFICATIONSREMOVEQUEUEDMESSAGE(): void {
 	onWebviewMessage(CHAT_NOTIFICATIONS_REMOVE_QUEUED_MESSAGE, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -134,9 +147,11 @@ export function registerOnNotificationsIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnNotificationsCHATNOTIFICATIONSELICITATIONRESPONSE(): void {
 	onWebviewMessage(CHAT_NOTIFICATIONS_ELICITATION_RESPONSE, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -146,4 +161,18 @@ export function registerOnNotificationsIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
+
+export function registerOnNotificationsIntents(bus: IntentBus): void {
+	registerAllNotificationHandlers(bus)
+	registerOnNotificationsCHATNOTIFICATIONSCHECKPOINTDIFF()
+	registerOnNotificationsCHATNOTIFICATIONSCHECKPOINTRESTORE()
+	registerOnNotificationsCHATNOTIFICATIONSPLAYTTS()
+	registerOnNotificationsCHATNOTIFICATIONSSTOPTTS()
+	registerOnNotificationsCHATNOTIFICATIONSTTSENABLED()
+	registerOnNotificationsCHATNOTIFICATIONSTTSSPEED()
+	registerOnNotificationsCHATNOTIFICATIONSQUEUEMESSAGE()
+	registerOnNotificationsCHATNOTIFICATIONSEDITQUEUEDMESSAGE()
+	registerOnNotificationsCHATNOTIFICATIONSREMOVEQUEUEDMESSAGE()
+	registerOnNotificationsCHATNOTIFICATIONSELICITATIONRESPONSE()
 }

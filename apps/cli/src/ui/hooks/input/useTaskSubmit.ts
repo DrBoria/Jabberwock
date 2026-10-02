@@ -5,7 +5,7 @@ import type { WebviewMessage } from "@jabberwock/types"
 import { getGlobalCommand } from "../../../lib/utils/commands.js"
 
 import { useCLIStore, cliStore } from "../../store.js"
-import { uiStateStore } from "../../stores/uiStateStore.js"
+import { uiStateStore } from "../../store.js"
 
 export interface UseTaskSubmitOptions {
 	sendToExtension: ((msg: WebviewMessage) => void) | null

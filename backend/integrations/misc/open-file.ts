@@ -1,10 +1,18 @@
 import * as path from "path"
+
 import * as os from "os"
+
 import * as fs from "fs/promises"
+
 import type { IUri } from "@jabberwock/types"
-import { getWorkspacePath } from "@utils/io/path"
+
+import { getWorkspacePath } from "@utils/io/main"
+
 import { t } from "@i18n"
-import { getHostContext } from "@features/foundation/host-context/context"
+
+import { getHostContext } from "@features/foundation"
+
+import { publishNotificationError } from "@features/foundation/capabilities"
 
 interface OpenFileOptions {
 	create?: boolean
@@ -164,5 +172,3 @@ function showOpenFileError(error: unknown): void {
 		publishNotificationError(t("common:errors.could_not_open_file_generic"))
 	}
 }
-
-import { publishNotificationError } from "@features/foundation/capabilities/notifications"

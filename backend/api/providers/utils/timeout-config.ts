@@ -1,8 +1,8 @@
-import { Package } from "@shared/package"
-import { getConfiguration } from "@features/foundation/capabilities/registry"
+import { Package } from "@shared/core/package"
+import { getConfiguration } from "@features/foundation/capabilities"
 
 /**
- * Gets the API request timeout from VSCode configuration with validation.
+ * Gets the API request timeout from "VSCode" configuration with validation.
  *
  * @returns The timeout in milliseconds. Returns undefined to disable timeout
  *          (letting the SDK use its default), or a positive number for explicit timeout.

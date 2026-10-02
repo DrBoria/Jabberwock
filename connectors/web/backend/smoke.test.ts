@@ -5,7 +5,7 @@ import * as path from "node:path"
 import * as fs from "node:fs"
 import { WebSocket } from "ws"
 import { createServerCapabilities } from "./capabilities.ts"
-import { WebWsServer } from "./ws/web-ws-server.ts"
+import { WebWsServer } from "./web-ws-server.ts"
 import { PROTOCOL_VERSION } from "../../../packages/types/src/protocol/envelope.ts"
 
 /**
@@ -40,6 +40,8 @@ describe("web connector backend core", () => {
 		})
 		connector = new WebWsServer({ port, bindAddress: "127.0.0.1", serveStatic: false, server })
 		await connector.start(capabilities)
+		// WebWsServer.start() does not listen when the caller owns the server — we must.
+		await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve))
 		boundPort = (server.address() as { port: number }).port
 	})
 

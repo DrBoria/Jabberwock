@@ -1,4 +1,4 @@
-import type { ModelInfo } from "../../models/model.ts"
+import type { ModelInfo } from "../../models/model-main.ts"
 
 export const bedrockModelsPart2 = {
 	"anthropic.claude-opus-4-5-20251101-v1:0": {

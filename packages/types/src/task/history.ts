@@ -42,7 +42,7 @@ export const historyItemSchema = z.object({
 	childIds: z.array(z.string()).optional(), // All children spawned by this task
 	awaitingChildId: z.string().optional(), // Child currently awaited (set when delegated)
 	completedByChildId: z.string().optional(), // Child that completed and resumed this parent
-	completionResultSummary: z.string().optional(), // Summary from completed child
+	completionResultSummary: z.string().optional(), // Summary from "completed" child
 })
 
 export type HistoryItem = z.infer<typeof historyItemSchema>

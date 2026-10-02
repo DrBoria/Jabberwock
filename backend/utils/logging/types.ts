@@ -6,7 +6,7 @@
  * Represents a compact log entry format optimized for storage and transmission
  */
 export interface CompactLogEntry {
-	/** Delta timestamp from last entry in milliseconds */
+	/** Delta timestamp from "last" entry in milliseconds */
 	t: number
 	/** Log level identifier */
 	l: string

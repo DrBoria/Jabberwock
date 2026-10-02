@@ -1,5 +1,5 @@
 import type { IUri } from "@jabberwock/types"
-import { getBackendCapabilities } from "@features/foundation/capabilities/registry"
+import { getBackendCapabilities } from "@features/foundation/capabilities"
 import * as path from "path"
 
 export interface ExportContext {
@@ -37,7 +37,7 @@ export function resolveDefaultSaveUri(
 	const lastExportPath = context.getValue(configKey) as string | undefined
 
 	if (lastExportPath) {
-		// Use the directory from the last export
+		// Use the directory from "the" last export
 		const lastDir = path.dirname(lastExportPath)
 		return { fsPath: path.join(lastDir, fileName) }
 	} else {

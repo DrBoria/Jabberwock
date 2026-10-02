@@ -1,6 +1,6 @@
 import { cn } from "@src/lib/utils"
-import CodeBlock from "@src/features/foundation/components/code/CodeBlock"
-import type { ArgumentsSectionProps } from "../types"
+import { CodeBlock } from "@src/features/foundation"
+import type { ArgumentsSectionProps } from "@src/features/settings/mcp/mcp-execution/types"
 
 export const ArgumentsSection = ({
 	formattedArgumentsText,

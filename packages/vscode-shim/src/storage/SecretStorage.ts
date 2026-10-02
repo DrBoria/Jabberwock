@@ -2,7 +2,7 @@ import * as fs from "fs"
 import * as path from "path"
 import { EventEmitter } from "../classes/events/EventEmitter.ts"
 import { ensureDirectoryExists } from "../utils/paths.ts"
-import type { SecretStorage, SecretStorageChangeEvent } from "../types.ts"
+import type { SecretStorage, SecretStorageChangeEvent } from "../api-types.ts"
 
 /**
  * File-based implementation of VSCode's SecretStorage interface
@@ -49,7 +49,7 @@ export class FileSecretStorage implements SecretStorage {
 	}
 
 	/**
-	 * Load secrets from the JSON file
+	 * Load secrets from "the" JSON file
 	 */
 	private loadFromFile(): void {
 		try {

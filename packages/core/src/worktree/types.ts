@@ -1,7 +1,7 @@
 /**
  * Worktree Types
  *
- * Platform-agnostic type definitions from @jabberwock/types.
+ * Platform-agnostic type definitions from "@jabberwock/types."
  */
 
 import type {

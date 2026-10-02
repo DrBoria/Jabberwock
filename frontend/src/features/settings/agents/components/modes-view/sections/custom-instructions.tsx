@@ -1,13 +1,13 @@
 import React from "react"
 import { Trans } from "react-i18next"
-import { VSCodeLink, VSCodeTextArea } from "@vscode/webview-ui-toolkit/react"
-import { Button } from "@src/shared/ui/buttons/button"
-import { StandardTooltip } from "@src/shared/ui/tooltips/standard-tooltip"
+import { VSCodeLink } from "@vscode/webview-ui-toolkit/react"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
+import { StandardTooltip } from "@src/shared/ui/tooltips/standard"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { buildDocLink } from "@/utils/misc/docLinks"
-import { getEventValue } from "@src/utils/helpers/getEventValue"
 import { rootStore } from "@src/features/store"
-import type { ModeConfig, PromptComponent } from "../types"
+import type { ModeConfig, PromptComponent } from "@src/features/settings/agents/components/modes-view/types"
+import { PromptInput } from "./prompt-field"
 
 interface CustomInstructionsSectionProps {
 	visualMode: string
@@ -22,7 +22,7 @@ interface CustomInstructionsSectionProps {
 	isCustomMode: boolean | undefined
 }
 
-import { getPromptFieldValue } from "../utils"
+import { getPromptFieldValue } from "@src/features/settings/agents/components/modes-view/utils"
 export const CustomInstructionsSection: React.FC<CustomInstructionsSectionProps> = ({
 	visualMode,
 	customModes,
@@ -60,8 +60,7 @@ export const CustomInstructionsSection: React.FC<CustomInstructionsSectionProps>
 				<div className="text-[13px] text-vscode-descriptionForeground mb-2">
 					{t("prompts:customInstructions.description", { modeName: currentModeName })}
 				</div>
-				<VSCodeTextArea
-					resize="vertical"
+				<PromptInput
 					value={getPromptFieldValue(
 						visualMode,
 						"customInstructions",
@@ -69,13 +68,10 @@ export const CustomInstructionsSection: React.FC<CustomInstructionsSectionProps>
 						customModePrompts,
 						getCustomInstructionsVal,
 					)}
-					onChange={(e) => {
-						const value = getEventValue(e) ?? ""
-						handleCustomInstructionsChange(value)
-					}}
+					isTextArea
 					rows={10}
-					className="w-full"
-					data-testid={`${currentModeSlug}-custom-instructions-textarea`}
+					onChange={handleCustomInstructionsChange}
+					testId={`${currentModeSlug}-custom-instructions-textarea`}
 				/>
 				<div className="text-xs text-vscode-descriptionForeground mt-1.5">
 					<Trans

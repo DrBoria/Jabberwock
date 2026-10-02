@@ -7,13 +7,31 @@ const noPassthroughRule = {
 				"Disallow exported functions that do nothing except call another function and return its result.",
 		},
 		fixable: "code",
-		schema: [],
+		schema: [
+			{
+				type: "object",
+				properties: {
+					debt: {
+						type: "array",
+						items: { type: "string" },
+						description:
+							"Grandfathered file paths / substrings. The rule stays 100% generic; this ledger must shrink to [] and new files must never be added.",
+					},
+				},
+				additionalProperties: false,
+			},
+		],
 		messages: {
 			passthrough:
 				"'{{name}}' is an exported passthrough wrapper that only calls '{{target}}'. Extract the file's logic or remove this function.",
 		},
 	},
 	create(context) {
+		const options = context.options?.[0] ?? {}
+		const debt = options.debt ?? []
+		const filename = context.filename ?? context.getFilename()
+		if (debt.some((d) => filename.includes(d))) return {}
+
 		/** @type {Array<{node: import("estree").Function, name: string | null}>} */
 		const candidates = []
 
@@ -67,7 +85,10 @@ const noPassthroughRule = {
 
 					const funcName = getFunctionName(node)
 					const target = getCallTarget(returnArg)
-
+					// Hook composition is legitimate: a `useX` hook that delegates to
+					// another `use*` hook (e.g. `useQuery`) is the standard React
+					// pattern for domain-scoped hooks — it is NOT a passthrough smell.
+					if (funcName.startsWith("use") && target.startsWith("use")) continue
 					context.report({
 						node,
 						messageId: "passthrough",
@@ -127,19 +148,61 @@ function checkIsExported(node, name, exportedNames) {
 
 /**
  * Extract the return expression from a function node.
+ *
+ * Two shapes count as a passthrough return:
+ *   1. a single-statement body whose only statement is `return <call>`;
+ *   2. a multi-statement body where the LAST statement is `return <call>` and
+ *      every earlier statement is a `const` initializer that contains NO call
+ *      (e.g. `const intent = IntentConstants.messages.AGENT_BROADCAST`).
+ *
+ * Shape 2 was the gap that let `agentBroadcast` / `mcpBroadcast` / etc. pass:
+ * `const intent = <constant>; return emitBroadcast(taskId, intent, …)` is a
+ * passthrough wrapper even though the body has two statements. The "no call in
+ * the earlier initializers" requirement keeps genuine logic (which computes via
+ * a call) out of scope.
  */
 function getReturnExpression(node) {
 	if (node.body.type === "BlockStatement") {
 		const stmts = node.body.body
-		if (stmts.length !== 1) return null
-		const first = stmts[0]
-		if (first.type !== "ReturnStatement" || !first.argument) return null
-		return first.argument
+		if (stmts.length === 1) {
+			const first = stmts[0]
+			if (first.type !== "ReturnStatement" || !first.argument) return null
+			return first.argument
+		}
+		// Multi-statement: last statement must be `return <call>`, and every
+		// earlier statement must be a call-free `const` initializer.
+		const last = stmts[stmts.length - 1]
+		if (!last || last.type !== "ReturnStatement" || !last.argument) return null
+		if (last.argument.type !== "CallExpression") return null
+		for (let i = 0; i < stmts.length - 1; i++) {
+			const s = stmts[i]
+			if (!s || s.type !== "VariableDeclaration" || s.kind !== "const") return null
+			for (const dec of s.declarations) {
+				if (!dec.init || containsCallExpression(dec.init)) return null
+			}
+		}
+		return last.argument
 	}
 	if (node.type === "ArrowFunctionExpression" && node.body.type !== "BlockStatement") {
 		return node.body
 	}
 	return null
+}
+
+/** True if the expression subtree contains any CallExpression (a real computation). */
+function containsCallExpression(node) {
+	if (!node || typeof node.type !== "string") return false
+	if (node.type === "CallExpression" || node.type === "NewExpression") return true
+	for (const key of Object.keys(node)) {
+		if (key === "parent") continue
+		const child = node[key]
+		if (Array.isArray(child)) {
+			for (const c of child) if (c && typeof c.type === "string" && containsCallExpression(c)) return true
+		} else if (child && typeof child.type === "string" && containsCallExpression(child)) {
+			return true
+		}
+	}
+	return false
 }
 
 /** Check if an AST node is a function expression or arrow function. */

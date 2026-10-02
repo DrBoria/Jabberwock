@@ -1,28 +1,46 @@
 import type { GlobalState } from "@jabberwock/types"
-import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
-import { IntentType } from "@jabberwock/types"
-import { searchCommits } from "@utils/git"
-import { exportSettings } from "@features/settings/actions/export"
-import { importSettingsWithFeedback } from "@features/settings/actions/importSettings"
-import { t } from "@i18n"
-import { getSettingsAccess } from "@utils/settings"
-import { getUiDialogs } from "@features/foundation/capabilities/registry"
-import { getHostEnvironment } from "@features/foundation/host-context/context"
-import { getProviderSettingsManager } from "@features/settings/models/provider-settings-manager/ProviderSettingsManager"
+import type { IntentBus } from "@features/intents"
+import { log as backendLog } from "@features/foundation"
 
-import type { IntentBus } from "@features/intents/bus"
-import { postStateToWebview } from "@features/foundation/window-manager/store"
-import { initHistoryState } from "@features/hist"
+import { IntentType } from "@jabberwock/types"
+
+import { searchCommits } from "@utils/git"
+
+import { exportSettings } from "@features/settings"
+
+import { importSettingsWithFeedback } from "@features/settings"
+
+import { sendCommitSearchResults, sendHistoryButtonClicked } from "@features/settings"
+
+import { t } from "@i18n"
+
+import { getSettingsAccess } from "@utils/settings"
+
+import { getUiDialogs } from "@features/foundation"
+
+import { getHostEnvironment } from "@features/foundation"
+
+import { getProviderSettingsManager } from "@features/settings/models/provider-settings-manager"
+
+import { postStateToWebview } from "@features/foundation"
+
+import { initHistoryState } from "@features/hist/actions"
+
 import { initFoundationState } from "@features/foundation"
-import { initChatState } from "@features/chat"
+
 import { initSettingsState } from "@features/settings"
+
 import { initCloudState } from "@features/cloud"
+
 import { initMarketplaceState } from "@features/marketplace"
+
+import { publishNotificationError } from "@features/foundation"
 
 /**
  * Register all history-related intent handlers on the bus.
  */
-export function registerOnHistory(bus: IntentBus): void {
+
+function registerOnHistoryHistoryCommitsSearch(bus: IntentBus): void {
 	bus.register(IntentType.HistoryCommitsSearch, async (intent, ctx) => {
 		const provider = ctx.provider
 		if (!provider) return
@@ -33,10 +51,7 @@ export function registerOnHistory(bus: IntentBus): void {
 		if (cwd) {
 			try {
 				const commits = await searchCommits(payload.query || "", cwd)
-				await provider.postMessageToWebview({
-					type: "commitSearchResults",
-					commits,
-				})
+				await sendCommitSearchResults(provider, commits)
 			} catch (error) {
 				backendLog.info(
 					`Error searching commits: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`,
@@ -45,7 +60,9 @@ export function registerOnHistory(bus: IntentBus): void {
 			}
 		}
 	})
+}
 
+function registerOnHistoryHistorySettingsImport(bus: IntentBus): void {
 	bus.register(IntentType.HistorySettingsImport, async (_intent, ctx) => {
 		const provider = ctx.provider
 		if (!provider) return
@@ -57,7 +74,9 @@ export function registerOnHistory(bus: IntentBus): void {
 			provider,
 		})
 	})
+}
 
+function registerOnHistoryHistorySettingsExport(bus: IntentBus): void {
 	bus.register(IntentType.HistorySettingsExport, async (_intent, ctx) => {
 		const provider = ctx.provider
 		if (!provider) return
@@ -67,7 +86,9 @@ export function registerOnHistory(bus: IntentBus): void {
 			contextProxy: getSettingsAccess(),
 		})
 	})
+}
 
+function registerOnHistoryHistoryStateReset(bus: IntentBus): void {
 	bus.register(IntentType.HistoryStateReset, async (_intent, ctx) => {
 		const provider = ctx.provider
 		if (!provider) return
@@ -92,7 +113,6 @@ export function registerOnHistory(bus: IntentBus): void {
 			getGlobalState: (key: string) => getHostEnvironment().getGlobalState(key as keyof GlobalState),
 		})
 		await initFoundationState(provider)
-		initChatState(provider)
 		initSettingsState(provider)
 		initCloudState(provider)
 		initMarketplaceState(provider)
@@ -100,13 +120,21 @@ export function registerOnHistory(bus: IntentBus): void {
 		// Post updated state to webview
 		await postStateToWebview(provider)
 	})
+}
 
+function registerOnHistoryHistoryButtonClicked(bus: IntentBus): void {
 	bus.register(IntentType.HistoryButtonClicked, async (_intent, ctx) => {
 		const provider = ctx.provider
 		if (!provider) return
 
-		provider.postMessageToWebview({ type: "action", action: "historyButtonClicked" })
+		sendHistoryButtonClicked(provider)
 	})
 }
 
-import { publishNotificationError } from "@features/foundation/capabilities/notifications"
+export function registerOnHistory(_bus: IntentBus): void {
+	registerOnHistoryHistoryCommitsSearch(_bus)
+	registerOnHistoryHistorySettingsImport(_bus)
+	registerOnHistoryHistorySettingsExport(_bus)
+	registerOnHistoryHistoryStateReset(_bus)
+	registerOnHistoryHistoryButtonClicked(_bus)
+}

@@ -1,6 +1,6 @@
 import { types, Instance } from "mobx-state-tree"
 import type { Command } from "@jabberwock/types"
-import { ContextMenuOptionType } from "@sections/dndTextArea/utils/context-mentions/context-mentions"
+import { ContextMenuOptionType } from "@sections/dndTextArea/utils/context-mentions/main"
 import { ChatStore as TreeStore, CommandExecutionStore, createMessagesListActions } from "@src/features/chat/tree/store"
 import { McpExecutionStore } from "@src/features/chat/mcp/store"
 import { NotificationsStore, createNotificationsActions } from "@src/features/chat/notifications/store"
@@ -8,7 +8,7 @@ import { AskStore } from "@src/features/chat/ask/store"
 import { createTaskActions, type TaskActionsParams } from "@src/features/chat/task/store"
 import { createTopicActions } from "@src/features/chat/topic/store"
 import { DynamicTextAreaStore, createTextAreaActions } from "@sections/dndTextArea/store"
-import { useRootStore } from "@src/features/useRootStore"
+import { useRootStore } from "@src/features/store"
 
 // ── Inline model definitions ─────────────────────────────────────────────
 

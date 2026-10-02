@@ -2,7 +2,7 @@ import * as fs from "fs/promises"
 import * as path from "path"
 
 import type { TaskSessionEntry } from "./types.ts"
-import { extractSessionEntry, readJsonFile } from "./utils.ts"
+import { extractSessionEntry, isRecord, readJsonFile } from "./utils.ts"
 
 const HISTORY_ITEM_FILENAME = "history_item.json"
 const HISTORY_INDEX_FILENAME = "_index.json"
@@ -17,10 +17,6 @@ async function loadIndexEntries(tasksDir: string, sessionsById: Map<string, Task
 			sessionsById.set(session.id, session)
 		}
 	}
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === "object" && value !== null
 }
 
 function removeStaleEntries(taskDirs: string[], sessionsById: Map<string, TaskSessionEntry>): void {

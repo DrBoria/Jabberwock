@@ -1,7 +1,7 @@
 import { type Notification } from "@jabberwock/types"
-import { getTask } from "@features/chat/task/actions/taskRegistry"
+import { getTask } from "@features/chat"
 import { restoreTodoListForTask } from "@features/chat/tools"
-import { getBackendRootStore } from "@features/storeSingleton"
+import { getStore } from "@features/singleton"
 
 /**
  * Overwrite all notifications with a new array in the per-task MST store.
@@ -10,7 +10,7 @@ import { getBackendRootStore } from "@features/storeSingleton"
 export async function overwriteNotifications(taskId: string, newMessages: Notification[]) {
 	const task = getTask(taskId)
 	// Overwrite per-task MST store notifications
-	getBackendRootStore().chat.tasks.get(taskId)!.notifications.setNotifications(newMessages)
+	getStore().chat.tasks.get(taskId)!.notifications.setNotifications(newMessages)
 
 	restoreTodoListForTask(task)
 

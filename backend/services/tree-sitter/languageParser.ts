@@ -51,8 +51,9 @@ async function loadLanguage(langName: string, sourceDirectory?: string) {
 	}
 }
 
-let isParserInitialized = false
-
+const __moduleState = {
+	isParserInitialized: false,
+}
 /*
 Using node bindings for tree-sitter is problematic in vscode extensions 
 because of incompatibility with electron. Going the .wasm route has the 
@@ -77,10 +78,10 @@ Sources:
 - https://github.com/tree-sitter/tree-sitter/blob/master/lib/binding_web/test/query-test.js
 */
 export async function loadRequiredLanguageParsers(filesToParse: string[], sourceDirectory?: string) {
-	if (!isParserInitialized) {
+	if (!__moduleState.isParserInitialized) {
 		try {
 			await ParserT.init()
-			isParserInitialized = true
+			__moduleState.isParserInitialized = true
 		} catch (error) {
 			console.error(`[jabberwock] Error initializing parser: ${error instanceof Error ? error.message : error}`)
 			throw error

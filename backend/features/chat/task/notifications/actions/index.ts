@@ -8,7 +8,6 @@ export {
 	findNotification,
 	overwriteNotifications,
 	resolveAskResponse,
-	handleWebviewAskResponse,
 	updateNotification,
 	approveAsk,
 	cancelAutoApprovalTimeout,

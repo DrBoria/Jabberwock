@@ -1,6 +1,6 @@
 import * as os from "os"
 
-import { Package } from "@shared/package"
+import { Package } from "@shared/core/package"
 
 import type { StreamState } from "./types"
 

@@ -1,7 +1,7 @@
 import React from "react"
 import { t } from "i18next"
-import type { ContextMenuQueryItem } from "../utils/context-mentions/context-mentions"
-import { ContextMenuOptionType } from "../utils/context-mentions/context-mentions"
+import type { ContextMenuQueryItem } from "../utils/context-mentions/main"
+import { ContextMenuOptionType } from "../utils/context-mentions/main"
 import { removeLeadingNonAlphanumeric } from "@src/utils/helpers/removeLeadingNonAlphanumeric"
 
 export const renderSectionHeaderContent = (option: ContextMenuQueryItem) => (

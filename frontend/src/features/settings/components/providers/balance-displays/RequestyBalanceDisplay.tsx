@@ -1,6 +1,6 @@
 import { VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 
-import { useRequestyKeyInfo } from "@/features/foundation/ui/hooks/useModelProviders/useRequestyKeyInfo"
+import { useRequestyKeyInfo } from "@/features/foundation/ui/hooks/useModelProviders/requesty"
 import { toRequestyServiceUrl } from "@shared/utils/requesty"
 
 type RequestyBalanceDisplayProps = {

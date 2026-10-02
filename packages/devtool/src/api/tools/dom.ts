@@ -1,7 +1,29 @@
 import { z } from "zod"
+import { writeFileSync } from "fs"
+import { tmpdir } from "os"
+import { join } from "path"
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import type { ExtensionBridge } from "../bridge.js"
 import { wrapBridge } from "./tool-utils.js"
+
+/**
+ * Persist a `data:image/png;base64,...` data URL (from the webview screenshot
+ * handler) to a real PNG file on disk and return its absolute path.
+ *
+ * The MCP tool result is text-only, so the agent cannot see a raw base64 blob.
+ * Writing it to a file lets the agent open it with an image viewer (view_image)
+ * and actually SEE the webview — instead of the user having to paste screenshots.
+ * Returns null if the payload is not a PNG data URL (e.g. a "Screenshot error: ..." string).
+ */
+function saveScreenshotPng(dataUrl: string): string | null {
+	if (!dataUrl.startsWith("data:image/png;base64,")) {
+		return null
+	}
+	const base64 = dataUrl.slice("data:image/png;base64,".length)
+	const filePath = join(tmpdir(), `jabberwock-devtool-${Date.now()}.png`)
+	writeFileSync(filePath, Buffer.from(base64, "base64"))
+	return filePath
+}
 
 export function registerDomTools(mcpServer: McpServer, bridge: ExtensionBridge) {
 	mcpServer.tool(
@@ -91,7 +113,44 @@ export function registerDomTools(mcpServer: McpServer, bridge: ExtensionBridge) 
 		async ({ id, value }) => wrapBridge(() => bridge.selectOption(id, value)),
 	)
 
-	mcpServer.tool("get_screenshot", {}, async () => wrapBridge(() => bridge.getScreenshot()))
+	mcpServer.tool("get_screenshot", {}, async () => {
+		try {
+			// getScreenshot returns a JSON envelope { connector, result }; the data
+			// URL is the `result` field.
+			const parsed = JSON.parse(await bridge.getScreenshot()) as { connector?: string | null; result: string }
+			const connector = parsed.connector ?? null
+			const dataUrl = parsed.result
+			const filePath = saveScreenshotPng(dataUrl)
+			if (filePath) {
+				// Return the image INLINE as MCP image content so the agent sees it
+				// directly in the tool result (like chat screenshots), plus the saved
+				// file path as a fallback (view_image) in case the client drops images.
+				const base64 = dataUrl.slice("data:image/png;base64,".length)
+				return {
+					content: [
+						{
+							type: "image" as const,
+							data: base64,
+							mimeType: "image/png",
+						},
+						{
+							type: "text" as const,
+							text: `Screenshot from surface: ${connector ?? "unknown"}. Inline image above. Also saved to: ${filePath} (use view_image if the inline image is not visible).`,
+						},
+					],
+				}
+			}
+			// Not a PNG data URL — surface the raw text (usually an error message from the webview).
+			return { content: [{ type: "text" as const, text: String(dataUrl) }] }
+		} catch (error) {
+			return {
+				content: [
+					{ type: "text" as const, text: `Error: ${error instanceof Error ? error.message : String(error)}` },
+				],
+				isError: true,
+			}
+		}
+	})
 
 	mcpServer.tool(
 		"drag_element",

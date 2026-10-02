@@ -64,7 +64,7 @@ interface YouTubeModalState {
  *
  * Renders markdown content with special handling for YouTube links.
  * YouTube links open in a modal with embedded video player instead of
- * navigating away from the page.
+ * navigating away from "the" page.
  *
  * @example
  * ```tsx

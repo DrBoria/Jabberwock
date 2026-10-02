@@ -9,60 +9,67 @@ import type { IHashmapMemory } from "@jabberwock/types"
  * Persists a single JSON document under `<storageDir>/state/hashmap.json`. Reads are served from an
  * in-memory cache; writes update the cache and persist with atomic rename (write tmp → rename), so a
  * crash mid-write cannot corrupt the store. `keys(prefix)` supports prefix scans needed by settings/profiles.
+ *
+ * @param filePath - Path to the JSON document backing the store
  */
-export class FileHashmapMemory implements IHashmapMemory {
-	private data: Record<string, unknown> = {}
-	private loaded = false
+export function FileHashmapMemory(filePath: string): IHashmapMemory {
+	let data: Record<string, unknown> = {}
+	let loaded = false
 
-	constructor(private readonly filePath: string) {}
-
-	private async ensureLoaded(): Promise<void> {
-		if (this.loaded) return
+	async function ensureLoaded(): Promise<void> {
+		if (loaded) return
 		try {
-			const raw = await readFile(this.filePath, "utf-8")
+			const raw = await readFile(filePath, "utf-8")
 			const parsed: unknown = JSON.parse(raw)
-			this.data = isPlainObject(parsed) ? parsed : {}
+			data = isPlainObject(parsed) ? parsed : {}
 		} catch (error) {
 			if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
 				console.error("[capabilities] FileHashmapMemory failed to load, starting empty:", error)
 			}
-			this.data = {}
+			data = {}
 		}
-		this.loaded = true
+		loaded = true
 	}
 
-	private async persist(): Promise<void> {
-		await mkdir(path.dirname(this.filePath), { recursive: true })
-		const tmpPath = `${this.filePath}.tmp`
-		await writeFile(tmpPath, JSON.stringify(this.data, null, "\t"), "utf-8")
-		await rename(tmpPath, this.filePath)
+	async function persist(): Promise<void> {
+		await mkdir(path.dirname(filePath), { recursive: true })
+		const tmpPath = `${filePath}.tmp`
+		await writeFile(tmpPath, JSON.stringify(data, null, "\t"), "utf-8")
+		await rename(tmpPath, filePath)
 	}
 
-	async get<T>(key: string): Promise<T | undefined> {
-		await this.ensureLoaded()
-		return this.data[key] as T | undefined
-	}
-
-	async set(key: string, value: unknown): Promise<void> {
-		await this.ensureLoaded()
+	async function set(key: string, value: unknown): Promise<void> {
+		await ensureLoaded()
 		if (value === undefined) {
-			delete this.data[key]
+			delete data[key]
 		} else {
-			this.data[key] = value
+			data[key] = value
 		}
-		await this.persist()
+		await persist()
 	}
 
-	async delete(key: string): Promise<void> {
-		await this.set(key, undefined)
-	}
+	return {
+		async get<T>(key: string): Promise<T | undefined> {
+			await ensureLoaded()
+			return data[key] as T | undefined
+		},
 
-	async keys(prefix?: string): Promise<string[]> {
-		await this.ensureLoaded()
-		const allKeys = Object.keys(this.data)
-		return prefix ? allKeys.filter((key) => key.startsWith(prefix)) : allKeys
+		set,
+
+		async delete(key: string): Promise<void> {
+			await set(key, undefined)
+		},
+
+		async keys(prefix?: string): Promise<string[]> {
+			await ensureLoaded()
+			const allKeys = Object.keys(data)
+			return prefix ? allKeys.filter((key) => key.startsWith(prefix)) : allKeys
+		},
 	}
 }
+
+/** FileHashmapMemory instance type */
+export type FileHashmapMemory = IHashmapMemory
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value)

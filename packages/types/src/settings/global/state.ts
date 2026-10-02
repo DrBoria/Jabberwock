@@ -1,4 +1,4 @@
-import { type ProviderSettings } from "../provider/combined-schemas.ts"
+import { type ProviderSettings } from "../provider/settings.ts"
 import { type Keys } from "../../utils/type-fu.ts"
 
 /**

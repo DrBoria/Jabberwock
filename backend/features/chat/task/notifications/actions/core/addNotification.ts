@@ -1,11 +1,8 @@
 import { type Notification, TelemetryEventName } from "@jabberwock/types"
 import { getCloudService, isCloudEnabled } from "@jabberwock/cloud"
-import { getTask } from "@features/chat/task/actions/taskRegistry"
-import { getBackendRootStore } from "@features/storeSingleton"
-import {
-	sendMessageUpdated,
-	sendStateWithoutTaskHistory,
-} from "@features/chat/task/messages/events/actions/sendMessageEvent"
+import { getTask } from "@features/chat/task/actions"
+import { getStore } from "@features/singleton"
+import { sendMessageUpdated, sendStateWithoutTaskHistory } from "@features/chat"
 
 /**
  * Add a notification to the per-task MST store and notify the webview.
@@ -14,7 +11,7 @@ import {
 export async function addNotification(taskId: string, message: Notification) {
 	const task = getTask(taskId)
 	// Push to per-task MST store
-	const taskModel = getBackendRootStore().chat.tasks.get(taskId)
+	const taskModel = getStore().chat.tasks.get(taskId)
 	taskModel!.notifications.addNotification(message)
 
 	// Notify the webview via event actions (only code path allowed for postMessage)

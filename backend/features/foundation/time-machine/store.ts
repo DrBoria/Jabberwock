@@ -1,7 +1,7 @@
 import { types, Instance } from "mobx-state-tree"
-import type { EventBridge } from "@features/foundation/webview/EventBridge"
+import type { EventBridge } from "@features/foundation"
 import type { IBackendRootStore } from "@features/store"
-import type { RecordSource } from "./file-context/FileContextTrackerTypes"
+import type { RecordSource } from "./file-context/tracker"
 
 // ─── FilesModel ───────────────────────────────────────────────────────
 

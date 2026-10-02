@@ -15,7 +15,7 @@ Replaced direct WebSocket MCP connection with stdio-based proxy for Jabberwock D
 ```json
 "jabberwock-devtools": {
   "command": "npx",
-  "args": ["--no-install", "tsx", "packages/devtool/src/api/mcp-entry/mcp-entry.ts"],
+  "args": ["--no-install", "tsx", "packages/devtool/src/api/mcp-entry/server.ts"],
   ...
 }
 ```
@@ -24,7 +24,7 @@ Must NOT have `"type"` field — command MCP servers in Roo use only `"command"`
 
 ## How It Works
 
-1. Roo spawns `npx tsx packages/devtool/src/api/mcp-entry/mcp-entry.ts` as a child process
+1. Roo spawns `npx tsx packages/devtool/src/api/mcp-entry/server.ts` as a child process
 2. The process implements a stdio MCP server (receives tool calls via stdin, responds via stdout)
 3. On each tool call, `pollExtensionStatus()` checks if extension host is running:
     - TCP socket check on port 60061 (raw `net.connect()`)
@@ -43,6 +43,6 @@ Must NOT have `"type"` field — command MCP servers in Roo use only `"command"`
 
 ## Files
 
-- `packages/devtool/src/api/mcp-entry/mcp-entry.ts` — Main proxy logic
+- `packages/devtool/src/api/mcp-entry/server.ts` — Main proxy logic
 - `packages/devtool/src/api/mcp-entry/schemas.ts` — Tool registration (10 extra tools added)
 - `.roo/mcp.json` — VS Code MCP config (command-based, no "type" field)

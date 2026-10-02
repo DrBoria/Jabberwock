@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react"
 import { Check, CheckCheck, ChevronUp, X } from "lucide-react"
 import { cn } from "@src/lib/utils"
 import { useTranslation } from "react-i18next"
-import { StandardTooltip } from "@src/shared/ui/tooltips/standard-tooltip"
+import { StandardTooltip } from "@src/shared/ui/tooltips/standard"
 
 interface CommandPattern {
 	pattern: string

@@ -1,34 +1,36 @@
+import { runInAction } from "mobx"
 import type { AskResponseValue } from "@jabberwock/types"
-import { findLastIndex } from "@shared/array"
-import { getTask } from "@features/chat/task/actions/taskRegistry"
-import { getBackendRootStore } from "@features/storeSingleton"
-import { checkpointSave } from "@features/foundation/time-machine/actions/checkpoints"
+import { findLastIndex } from "@shared/core/array"
+import { getTask } from "@features/chat/task/actions"
+import { getStore } from "@features/singleton"
+import { checkpointSave } from "@features/foundation"
 import { updateNotification } from "./updateNotification"
-import { saveMessages } from "@features/chat/task/messages/actions/saveMessages"
-import { IntentType, IntentStatus } from "@jabberwock/types"
+import { saveMessages } from "@features/chat/task/messages/actions/save"
 
 /**
  * Handles the webview's response to an ask.
  *
- * Emits an `ask.response.received` Intent which is handled by the
- * on-ask-response-received handler. This replaces the old pattern of
- * directly resolving promises and mutating state.
+ * Resolves the ask synchronously (outside the intent bus). The previous
+ * implementation queued an `ask.response.received` intent, but the intent
+ * bus dispatches handlers on a single fiber — and that fiber is the one
+ * blocked awaiting the ask promise, so the response intent could never be
+ * processed: the dialog could not be answered and the task never completed.
+ * `emitAsk` now creates the ask promise BEFORE auto-approval can fire this
+ * handler, so resolution always finds `task.askResolve`.
  */
-export function handleWebviewAskResponse(
+export function submitAskResponse(
 	taskId: string,
 	askResponse: AskResponseValue,
 	text?: string,
 	images?: string[],
 ): void {
-	const store = getBackendRootStore()
-	if (!store) return
+	const store = getStore()
+	if (!store || !taskId) {
+		return
+	}
 
-	store.intentStore.createIntent({
-		id: crypto.randomUUID(),
-		type: IntentType.AskResponseReceived,
-		payload: { taskId, response: askResponse, text: text ?? "", images: images ?? [] },
-		status: IntentStatus.Queued,
-		createdAt: Date.now(),
+	runInAction(() => {
+		resolveAskResponse(taskId, askResponse, text ?? "", images ?? [])
 	})
 }
 
@@ -38,8 +40,14 @@ export function handleWebviewAskResponse(
  *
  * @internal Exported for use by the IntentBus handler only.
  */
-export const FOLLOW_UP_RESPONSES: ReadonlySet<AskResponseValue> = new Set(["messageResponse", "yesButtonClicked"])
-export const TOOL_APPROVAL_RESPONSES: ReadonlySet<AskResponseValue> = new Set(["yesButtonClicked", "noButtonClicked"])
+const __moduleState = {
+	FOLLOW_UP_RESPONSES: new Set(["messageResponse", "yesButtonClicked"]),
+}
+export const { FOLLOW_UP_RESPONSES } = __moduleState
+export const TOOL_APPROVAL_RESPONSES: ReadonlySet<AskResponseValue> = new Set([
+	"yesButtonClicked",
+	"noButtonClicked",
+]) as ReadonlySet<AskResponseValue>
 export const TOOL_ASK_TYPES: readonly string[] = ["tool", "command", "use_mcp_server"]
 
 export function isAccidentalFastClick(task: ReturnType<typeof getTask>, askResponse: AskResponseValue): boolean {
@@ -62,7 +70,7 @@ export function isAccidentalFastClick(task: ReturnType<typeof getTask>, askRespo
 }
 
 export function markFollowUpAsAnswered(taskId: string): void {
-	const messages = getBackendRootStore().chat.tasks.get(taskId)!.notifications.items
+	const messages = getStore().chat.tasks.get(taskId)!.notifications.items
 	const lastFollowUpIndex = findLastIndex(
 		messages,
 		(msg) => msg.type === "ask" && msg.ask === "followup" && !msg.isAnswered,
@@ -77,7 +85,7 @@ export function markFollowUpAsAnswered(taskId: string): void {
 }
 
 export function markToolApprovalAsAnswered(taskId: string): void {
-	const messages = getBackendRootStore().chat.tasks.get(taskId)!.notifications.items
+	const messages = getStore().chat.tasks.get(taskId)!.notifications.items
 	const lastUnansweredAskIndex = findLastIndex(
 		messages,
 		(msg) => msg.type === "ask" && TOOL_ASK_TYPES.includes(msg.ask ?? "") && !msg.isAnswered,
@@ -103,20 +111,23 @@ export function resolveAskResponse(
 	if (isAccidentalFastClick(task, askResponse)) {
 		return
 	}
-	task.askShownAt = undefined
+	task.setAskShownAt(undefined)
 
 	cancelAutoApprovalTimeout(taskId)
 
 	if (task.askResolve) {
 		task.askResolve({ response: askResponse, text, images })
-		task.askResolve = null
 	}
+	// Always clear the resolver: `emitAsk` returns right after the promise
+	// settles and a stray resolver would leak. Clearing unconditionally also
+	// makes fast auto-approval / double responses idempotent.
+	task.setAskResolve(null)
 
 	if (askResponse === "messageResponse") {
 		void checkpointSave(task, false, true)
 	}
 
-	if (FOLLOW_UP_RESPONSES.has(askResponse)) {
+	if (__moduleState.FOLLOW_UP_RESPONSES.has(askResponse)) {
 		markFollowUpAsAnswered(taskId)
 	}
 
@@ -129,14 +140,14 @@ export function resolveAskResponse(
  * Approves the current ask with a "yes" response.
  */
 export function approveAsk(taskId: string, { text, images }: { text?: string; images?: string[] } = {}): void {
-	handleWebviewAskResponse(taskId, "yesButtonClicked", text, images)
+	submitAskResponse(taskId, "yesButtonClicked", text, images)
 }
 
 /**
  * Denies the current ask with a "no" response.
  */
 export function denyAsk(taskId: string, { text, images }: { text?: string; images?: string[] } = {}): void {
-	handleWebviewAskResponse(taskId, "noButtonClicked", text, images)
+	submitAskResponse(taskId, "noButtonClicked", text, images)
 }
 
 /**
@@ -154,6 +165,6 @@ export function cancelAutoApprovalTimeout(taskId: string): void {
 	const task = getTask(taskId)
 	if (task.autoApprovalTimeoutRef) {
 		clearTimeout(task.autoApprovalTimeoutRef)
-		task.autoApprovalTimeoutRef = undefined
+		task.setAutoApprovalTimeoutRef(undefined)
 	}
 }

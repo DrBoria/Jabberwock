@@ -1,10 +1,15 @@
 import * as vscode from "vscode"
 
 import { CodeActionName, CodeActionId } from "@jabberwock/types"
-import { Package } from "@shared/package"
+import { Package } from "@shared/core/package"
 
 import { getCodeActionCommand } from "@utils/mcp/commands"
-import { EditorUtils } from "@integrations/editor/EditorUtils"
+import {
+	getEffectiveRange,
+	getFilePath,
+	hasIntersectingRange,
+	createDiagnosticData,
+} from "@connectors/vscode/backend/integrations/editor/EditorUtils"
 
 export const TITLES: Record<CodeActionName, string> = {
 	EXPLAIN: "Explain with Jabberwock",
@@ -41,13 +46,13 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
 				return []
 			}
 
-			const effectiveRange = EditorUtils.getEffectiveRange(document, range)
+			const effectiveRange = getEffectiveRange(document, range)
 
 			if (!effectiveRange) {
 				return []
 			}
 
-			const filePath = EditorUtils.getFilePath(document)
+			const filePath = getFilePath(document)
 			const actions: vscode.CodeAction[] = []
 
 			actions.push(
@@ -61,7 +66,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
 
 			if (context.diagnostics.length > 0) {
 				const relevantDiagnostics = context.diagnostics.filter((d) =>
-					EditorUtils.hasIntersectingRange(effectiveRange.range, d.range),
+					hasIntersectingRange(effectiveRange.range, d.range),
 				)
 
 				if (relevantDiagnostics.length > 0) {
@@ -71,7 +76,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
 							effectiveRange.text,
 							effectiveRange.range.start.line + 1,
 							effectiveRange.range.end.line + 1,
-							relevantDiagnostics.map(EditorUtils.createDiagnosticData),
+							relevantDiagnostics.map(createDiagnosticData),
 						]),
 					)
 				}

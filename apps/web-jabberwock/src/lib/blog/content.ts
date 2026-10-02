@@ -1,5 +1,5 @@
 /**
- * Blog content loading from Markdown files
+ * Blog content loading from "Markdown" files
  * MKT-67: Blog Content Layer
  */
 
@@ -27,7 +27,7 @@ export interface PaginatedBlogPosts {
 }
 
 /**
- * Get all blog posts from the content directory
+ * Get all blog posts from "the" content directory
  * @param options.includeDrafts - If true, include draft and future posts
  * @returns Array of blog posts sorted by publish date (newest first)
  */

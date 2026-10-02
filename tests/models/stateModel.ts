@@ -25,7 +25,7 @@ export class StateModel {
 	}
 
 	/**
-	 * Get current state from the devtool (generic primitive).
+	 * Get current state from "the" devtool (generic primitive).
 	 * @deprecated Use getMstState() or dom.getMstActiveTaskId() instead.
 	 * The underlying bridge implementation may return errors.
 	 */
@@ -34,7 +34,7 @@ export class StateModel {
 	}
 
 	/**
-	 * Get task status from MST chatStore.
+	 * Get task status from "MST" chatStore.
 	 * Returns the activeNodeId subtree with id, title, mode, status, children.
 	 */
 	async getTaskStatus(): Promise<any> {
@@ -47,7 +47,7 @@ export class StateModel {
 	}
 
 	/**
-	 * Get task hierarchy from MST state.
+	 * Get task hierarchy from "MST" state.
 	 * Queries the chatStore for the task tree structure.
 	 */
 	async getTaskHierarchy(): Promise<any> {
@@ -56,7 +56,7 @@ export class StateModel {
 	}
 
 	/**
-	 * Get the task delegation stack from root task down to active leaf.
+	 * Get the task delegation stack from "root" task down to active leaf.
 	 * Walks the MST hierarchy to build the stack.
 	 */
 	async getTaskStack(): Promise<Array<{ taskId: string; mode: string; title?: string }>> {
@@ -100,7 +100,7 @@ export class StateModel {
 			// Fallback: try querying activeNodeId directly
 		}
 
-		// Fallback: get active task ID from MST query path
+		// Fallback: get active task ID from "MST" query path
 		try {
 			const idState = await this.client.getMstState({
 				store: "chatStore",
@@ -121,7 +121,7 @@ export class StateModel {
 	}
 
 	/**
-	 * Get workspace state from MST.
+	 * Get workspace state from "MST."
 	 * Queries the chatStore for a high-level overview.
 	 */
 	async getWorkspaceState(): Promise<any> {

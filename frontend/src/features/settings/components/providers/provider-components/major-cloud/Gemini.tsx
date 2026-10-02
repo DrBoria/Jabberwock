@@ -1,13 +1,12 @@
-import { useCallback, useState } from "react"
+import { useState } from "react"
+import { useHandleInputChange } from "@src/features/settings/components/providers/provider-components/use-handle-input-change"
 import { Checkbox } from "vscrui"
 import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
 
 import type { ProviderSettings } from "@jabberwock/types"
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { VSCodeButtonLink } from "@src/features/foundation/components/ui/button/VSCodeButtonLink"
-
-import { inputEventTransform } from "../../../shared/transforms"
+import { VSCodeButtonLink } from "@src/features/foundation"
 
 type GeminiProps = {
 	apiConfiguration: ProviderSettings
@@ -21,18 +20,7 @@ export const Gemini = ({ apiConfiguration, setApiConfigurationField }: GeminiPro
 		!!apiConfiguration?.googleGeminiBaseUrl,
 	)
 
-	const handleInputChange = useCallback(
-		<K extends keyof ProviderSettings, E>(field: K, transform?: (event: E) => ProviderSettings[K]) =>
-			(event: E | Event) => {
-				setApiConfigurationField(
-					field,
-					transform
-						? transform(event as E)
-						: (inputEventTransform(event as { target: HTMLInputElement }) as ProviderSettings[K]),
-				)
-			},
-		[setApiConfigurationField],
-	)
+	const handleInputChange = useHandleInputChange(setApiConfigurationField)
 
 	return (
 		<>

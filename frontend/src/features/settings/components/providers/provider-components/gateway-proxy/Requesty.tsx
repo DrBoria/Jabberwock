@@ -11,11 +11,11 @@ import {
 
 import { rootStore } from "@src/features/store"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { Button } from "@src/shared/ui/buttons/button"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
 
-import { inputEventTransform } from "../../../shared/transforms"
-import { ModelPicker } from "../../../ModelPicker/ModelPickerComponent"
-import { RequestyBalanceDisplay } from "../../balance-displays/RequestyBalanceDisplay"
+import { inputEventTransform } from "@src/features/settings/components/shared/transforms"
+import { ModelPicker } from "@src/features/settings/components/ModelPicker/main"
+import { RequestyBalanceDisplay } from "@src/features/settings/components/providers/balance-displays/RequestyBalanceDisplay"
 import { getCallbackUrl } from "@/oauth/urls"
 import { toRequestyServiceUrl } from "@shared/utils/requesty"
 

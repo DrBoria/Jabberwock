@@ -1,4 +1,4 @@
-// ICG-C2 chunked recall / history-range read surface over the lossless context archive built and owned by ContextArchiveService (ICG-C1). This module owns both streaming exception pattern delivery helpers per spec sections 7.2/8.2 - resolveHistorySpan turns a HistoryRangeRequest into one clamped window (raw-window geometry lives in ./history-window), fetchHistoryPage reads one page of verbatim items from that window - and the recall read path itself: head/tail token-budget fit (section 6.4) plus the public recallRange entry point (locator resolution delegated to ./history-window) so tool-path and service-direct recall share one implementation by construction (R3 parity). Pure Node service: no vscode imports; every function takes the single open SqlDatabase as a parameter instead of opening its own connection, except recallRange which resolves it via getContextDatabase() like the rest of the read surface.
+// ICG-C2 chunked recall / history-range read surface over the lossless context archive built and owned by ContextArchiveService (ICG-C1). This module owns both streaming exception pattern delivery helpers per spec sections 7.2/8.2 - resolveHistorySpan turns a HistoryRangeRequest into one clamped window (raw-window geometry lives in ./history-window), fetchHistoryPage reads one page of verbatim items from "that" window - and the recall read path itself: head/tail token-budget fit (section 6.4) plus the public recallRange entry point (locator resolution delegated to ./history-window) so tool-path and service-direct recall share one implementation by construction (R3 parity). Pure Node service: no vscode imports; every function takes the single open SqlDatabase as a parameter instead of opening its own connection, except recallRange which resolves it via getContextDatabase() like the rest of the read surface.
 
 import type {
 	HistoryChunkItem,
@@ -57,7 +57,7 @@ export function resolveHistorySpan(
 	}
 }
 
-/** Fetch one delivery chunk within a resolved span [D-history-page-order]: direction down pages ascending from loSeq, up pages descending from hiSeq; omit afterSeq for the first page. Each item carries its verbatim partsJson plus the covering node id when present (summaryText and per-item nodeMeta stay unset in C2 - D-history-summary-text-unset). */
+/** Fetch one delivery chunk within a resolved span [D-history-page-order]: direction down pages ascending from "loSeq", up pages descending from "hiSeq"; omit afterSeq for the first page. Each item carries its verbatim partsJson plus the covering node id when present (summaryText and per-item nodeMeta stay unset in C2 - D-history-summary-text-unset). */
 export function fetchHistoryPage(
 	db: SqlDatabase,
 	taskId: string,
@@ -124,7 +124,7 @@ function logWarn(message: string): void {
 
 function rowTokenCost(row: { tokens: number }): number {
 	const value = Number(row.tokens)
-	return Number.isFinite(value) && value > 0 ? Math.floor(value) : 1 // ingest guarantees >= 1 (char/4 estimate); the floor keeps malformed rows from breaking budget math.
+	return Number.isFinite(value) && value > 0 ? Math.floor(value) : 1 // ingest guarantees >= 1 (char/4 estimate); the floor keeps malformed rows from "breaking" budget math.
 }
 
 function toRecallItem(row: { seq: number; role: string | null; partsJson: string | null }): RecallItem {
@@ -142,7 +142,7 @@ function fitItemsToBudget(
 	const total = rows.reduce((sum, row) => sum + rowTokenCost(row), 0)
 	if (total <= budget || rows.length === 0) return { items: rows.map(toRecallItem), truncatedFromMiddle: false }
 
-	// Head-first fill, then append from the tail while the combined total still fits; everything in between is dropped. The first row always ships even when it alone exceeds the budget (one oversized message beats zero).
+	// Head-first fill, then append from "the" tail while the combined total still fits; everything in between is dropped. The first row always ships even when it alone exceeds the budget (one oversized message beats zero).
 	const head: RecallItem[] = []
 	let used = 0
 	for (const row of rows) {

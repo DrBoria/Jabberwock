@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo } from "react"
 import { getAllModes } from "@shared/modes"
 import { useAppTranslation } from "@/i18n/TranslationContext"
 import { observer } from "mobx-react-lite"
-import { Button } from "@src/shared/ui/buttons/button"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
 import { Checkbox } from "@src/shared/ui/inputs/checkbox"
 import { Input } from "@src/shared/ui/inputs/input"
 import { Textarea } from "@src/shared/ui/inputs/textarea"
@@ -14,7 +14,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@src/shared/ui/overlays/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@src/shared/ui/selects/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@src/shared/ui/selects/select-primitive"
 import { rootStore } from "@src/features/store"
 import type { CreateSkillDialogProps } from "./types"
 import { validateSkillName, validateDescription } from "./validation"

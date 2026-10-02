@@ -1,2 +1,2 @@
-export { handleStreamEvent, tryParseStreamEvent } from "./bedrock-stream"
-export type { StreamHandlerContext } from "./bedrock-stream"
+export { handleStreamEvent, tryParseStreamEvent } from "./main"
+export type { StreamHandlerContext } from "./main"

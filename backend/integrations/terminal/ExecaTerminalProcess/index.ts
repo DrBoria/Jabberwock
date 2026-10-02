@@ -1,1 +1,1 @@
-export { ExecaTerminalProcess } from "./execa-terminal-process"
+export { ExecaTerminalProcess } from "./main"

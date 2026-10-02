@@ -1,12 +1,11 @@
 import type { McpExecutionStatus } from "@jabberwock/types"
 
-import type { ITaskModel } from "@features/chat/task/store"
-import { getMstState } from "@features/foundation/mst/store"
-import { getBackendRootStore } from "@features/storeSingleton"
-import { getProvider } from "@features/foundation/webview/providerRegistry"
+import type { ITaskModel } from "@features/chat/task"
+import { getProvider } from "@features/foundation/webview"
+import { sendMcpExecutionStatus } from "@features/chat"
 
 /**
- * Processes the raw tool result from an MCP call into text and images.
+ * Processes the raw tool result from "an" MCP call into text and images.
  * Handles text, resource, and image content types.
  */
 export function processToolContent(toolResult: { content: Array<{ [key: string]: unknown }> }): {
@@ -54,14 +53,10 @@ export function processToolContent(toolResult: { content: Array<{ [key: string]:
 }
 
 /**
- * Sends an MCP execution status update to the webview via postMessage and MST store.
+ * Sends an MCP execution status update to the webview via postMessage.
  * Used to show real-time progress indicators in the UI.
  */
 export async function sendExecutionStatus(task: ITaskModel, status: McpExecutionStatus): Promise<void> {
 	const provider = getProvider()
-	provider.postMessageToWebview({
-		type: "mcpExecutionStatus",
-		text: JSON.stringify(status),
-	})
-	getMstState(getBackendRootStore()).mcpExecutionStore?.addOrUpdateExecution(status)
+	sendMcpExecutionStatus(provider, status)
 }

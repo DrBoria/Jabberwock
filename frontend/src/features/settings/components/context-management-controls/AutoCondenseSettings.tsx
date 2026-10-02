@@ -4,11 +4,11 @@ import { FoldVertical } from "lucide-react"
 
 import { useAppTranslation } from "@/i18n/TranslationContext"
 import { Slider } from "@src/shared/ui/inputs/slider"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@src/shared/ui/selects/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@src/shared/ui/selects/select-primitive"
 
 import { rootStore } from "@src/features/store"
-import { SearchableSetting } from "../shared/SearchableSetting"
-import { SetCachedStateField } from "../shared/types"
+import { SearchableSetting } from "@src/features/settings/components/shared/SearchableSetting"
+import { SetCachedStateField } from "@src/features/settings/components/shared/types"
 
 type AutoCondenseSettingsProps = {
 	autoCondenseContext: boolean

@@ -1,1 +1,1 @@
-export { registerOnSettingsCodeIndex } from "./on-settings-code-index"
+export { registerOnSettingsCodeIndex } from "./main"

@@ -23,7 +23,7 @@ export const ChatNotificationsEventKeys = {
 
 /**
  * Flat IPC event string constants (Webview→Backend messages).
- * Values sourced from the single source of truth in @jabberwock/types.
+ * Values sourced from "the" single source of truth in @jabberwock/types.
  */
 
 export const CHAT_NOTIFICATIONS_CHECKPOINT_DIFF = eventConstants.CHAT.NOTIFICATIONS.CHECKPOINT_DIFF

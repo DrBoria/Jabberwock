@@ -4,9 +4,6 @@ import {
 	handleCompleteResponseOutput,
 	handleTextDeltaOutput,
 	handleTextDoneOutput,
-	handleReasoningDeltaOutput,
-	handleReasoningSummaryOutput,
-	handleRefusalDeltaOutput,
 	handleOutputItemAddedOutput,
 	handleCompleteOrDoneOutput,
 	handleChoicesFallback,
@@ -14,6 +11,7 @@ import {
 	handleUsageOutput,
 	throwErrorEvent,
 } from "./output"
+import { handleReasoningDelta, handleRefusalDelta } from "./yielders"
 
 export async function* handleNonCoreStreamEvent(
 	parsed: Record<string, unknown>,
@@ -58,11 +56,11 @@ export async function* handleNonCoreEventByType(
 		"response.output_text.delta": (p, _h) => handleTextDeltaOutput(p, state),
 		"response.text.done": (p, h) => handleTextDoneOutput(p, state, h),
 		"response.output_text.done": (p, h) => handleTextDoneOutput(p, state, h),
-		"response.reasoning.delta": (p, _h) => handleReasoningDeltaOutput(p),
-		"response.reasoning_text.delta": (p, _h) => handleReasoningDeltaOutput(p),
-		"response.reasoning_summary.delta": (p, _h) => handleReasoningSummaryOutput(p),
-		"response.reasoning_summary_text.delta": (p, _h) => handleReasoningSummaryOutput(p),
-		"response.refusal.delta": (p, _h) => handleRefusalDeltaOutput(p, state),
+		"response.reasoning.delta": (p, _h) => handleReasoningDelta(p),
+		"response.reasoning_text.delta": (p, _h) => handleReasoningDelta(p),
+		"response.reasoning_summary.delta": (p, _h) => handleReasoningDelta(p),
+		"response.reasoning_summary_text.delta": (p, _h) => handleReasoningDelta(p),
+		"response.refusal.delta": (p, _h) => handleRefusalDelta(p, state),
 		"response.output_item.added": (p, _h) => handleOutputItemAddedOutput(p, state),
 		"response.completed": (p, h) => handleCompleteOrDoneOutput(p, state, h),
 		"response.done": (p, h) => handleCompleteOrDoneOutput(p, state, h),

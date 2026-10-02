@@ -1,6 +1,6 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
-import { sendStateToWebview } from "@features/chat/task/messages/events/actions/sendMessageEvent"
+import type { IntentBus } from "@features/intents"
+import { sendStateToWebview } from "@features/chat"
 
 /**
  * Handles task.goal.add.requested intent — adds a goal to the active task.

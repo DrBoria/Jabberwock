@@ -144,6 +144,8 @@
 		"title": "API-verzoek",
 		"failed": "API-verzoek mislukt",
 		"streaming": "API-verzoek...",
+		"loadingContext": "Context laden...",
+		"loadingContextPercent": "Context laden... {{percent}}%",
 		"cancelled": "API-verzoek geannuleerd",
 		"streamingFailed": "API-streaming mislukt",
 		"rateLimitWait": "Snelheidsbeperking",

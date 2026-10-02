@@ -1,11 +1,21 @@
-import type { WebviewMessageType, AudioType } from "./message-types.ts"
-import type { ProviderSettings } from "../settings/provider/combined-schemas.ts"
+import type { WebviewMessageType } from "./events.ts"
+import type { ProviderSettings } from "../settings/provider/settings.ts"
 import type { AskResponseValue } from "../events/chat/registry.ts"
 import type { Goal } from "../task/history.ts"
 import type { ModeConfig, PromptComponent } from "../models/mode.ts"
 import type { MarketplaceItem, InstallMarketplaceItemOptions } from "../features/marketplace.ts"
 import type { JabberwockSettings } from "../settings/global/composed.ts"
 import type { WebViewMessagePayload } from "../payload-schemas.ts"
+import type { QueuedMessage } from "../messages/types.ts"
+import type { ConnectorId } from "../protocol/backend-connector.ts"
+
+export type AudioType = "notification" | "celebration" | "progress_loop"
+
+export interface UpdateTodoListPayload {
+	todos: unknown[]
+}
+
+export type EditQueuedMessagePayload = Pick<QueuedMessage, "id" | "text" | "images">
 
 /**
  * WebviewMessage
@@ -51,6 +61,12 @@ export interface WebviewMessage {
 	timeout?: number
 	payload?: WebViewMessagePayload
 	source?: "global" | "project"
+	/**
+	 * Which connector stamped this message — set by the frontend connector's
+	 * `publish()` so the backend (and devtool responses) can attribute the
+	 * message to its originating surface. Distinct from `source` (global/project).
+	 */
+	connector?: ConnectorId
 	skillName?: string // For skill operations (createSkill, deleteSkill, moveSkill, openSkillFile)
 	/** @deprecated Use skillModeSlugs instead */
 	skillMode?: string // For skill operations (current mode restriction)
@@ -106,11 +122,11 @@ export interface WebviewMessage {
 		// Secret settings
 		codeIndexOpenAiKey?: string
 		codeIndexQdrantApiKey?: string
-		codebaseIndexOpenAiCompatibleApiKey?: string
-		codebaseIndexGeminiApiKey?: string
-		codebaseIndexMistralApiKey?: string
-		codebaseIndexVercelAiGatewayApiKey?: string
-		codebaseIndexOpenRouterApiKey?: string
+		codeIndexOpenAiCompatibleApiKey?: string
+		codeIndexGeminiApiKey?: string
+		codeIndexMistralApiKey?: string
+		codeIndexVercelAiGatewayApiKey?: string
+		codeIndexOpenRouterApiKey?: string
 	}
 	updatedSettings?: JabberwockSettings
 	/** Task configuration applied via `createTask()` when starting a cloud task. */
@@ -124,7 +140,7 @@ export interface WebviewMessage {
 	worktreeNewWindow?: boolean
 	worktreeIncludeContent?: string
 	locatorPayload?: { filePath: string; line: number; column: number }
-	/** Indicates if the message originated from MCP to prevent infinite loops */
+	/** Indicates if the message originated from "MCP" to prevent infinite loops */
 	fromMCP?: boolean
 	/** Response to getActivePage request — the active window type */
 	activePage?: string

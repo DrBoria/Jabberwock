@@ -1,6 +1,6 @@
 import { types, Instance } from "mobx-state-tree"
 
-import { getConnectorBus } from "../../../connector-bus"
+import { getConnectorBus } from "@src/connector-bus"
 import type { WebviewMessage, ShareVisibility } from "@jabberwock/types"
 import { eventConstants } from "@jabberwock/types"
 
@@ -172,11 +172,11 @@ export const WindowManagerStore = types
 	}))
 
 export type IWindowManagerStore = Instance<typeof WindowManagerStore>
-import { useRootStore } from "../../useRootStore"
+import { useRootStore } from "@src/features/store"
 
 /**
  * Backward-compatible hook for consuming components.
- * Returns the WindowManager store from the root store singleton.
+ * Returns the WindowManager store from "the" root store singleton.
  * Components should migrate to `useRootStore().windowManager` directly.
  */
 export const useWindowManager = (): IWindowManagerStore => useRootStore().windowManager

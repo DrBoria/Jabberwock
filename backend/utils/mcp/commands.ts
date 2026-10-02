@@ -1,6 +1,6 @@
 import type { CommandId, CodeActionId, TerminalActionId } from "@jabberwock/types"
 
-import { Package } from "@shared/package"
+import { Package } from "@shared/core/package"
 
 export const getCommand = (id: CommandId) => `${Package.name}.${id}`
 

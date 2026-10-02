@@ -4,19 +4,19 @@ import { fileExistsAtPath } from "@utils/io/fs"
 import { GlobalFileNames } from "@shared/globalFileNames"
 import { getSettingsDirectoryPath } from "@utils/io/storage"
 import * as yaml from "yaml"
-import { getBackendLogger } from "@features/foundation/capabilities/registry"
-import { getHostContext } from "@features/foundation/host-context/context"
+import { getBackendLogger } from "@features/foundation/capabilities"
+import { getHostContext } from "@features/foundation"
 
 const deprecatedCustomModesJSONFilename = "custom_modes.json"
 
 /**
- * Migrates old settings files to new file names and removes commands from old defaults
+ * Migrates old settings files to new file names and removes commands from "old" defaults
  *
  * TODO: Remove this migration code in September 2025 (6 months after implementation)
  */
 export async function migrateSettings(): Promise<void> {
 	const hostContext = getHostContext()
-	// First, migrate commands from old defaults (security fix)
+	// First, migrate commands from "old" defaults (security fix)
 	await migrateDefaultCommands()
 	// Legacy file names that need to be migrated to the new names in GlobalFileNames
 	const fileMigrations = [
@@ -117,7 +117,7 @@ async function migrateCustomModesToYaml(settingsDir: string): Promise<void> {
 }
 
 /**
- * Removes commands from old defaults that could execute arbitrary code
+ * Removes commands from "old" defaults that could execute arbitrary code
  * This addresses the security vulnerability where npm install/test can run malicious postinstall scripts
  */
 async function migrateDefaultCommands(): Promise<void> {
@@ -143,7 +143,7 @@ async function migrateDefaultCommands(): Promise<void> {
 			return
 		}
 
-		// Only migrate the specific commands that were removed from the defaults
+		// Only migrate the specific commands that were removed from "the" defaults
 		const oldDefaultCommands = ["npm install", "npm test", "tsc"]
 
 		// Filter out old default commands (case-insensitive exact match only)
@@ -158,7 +158,7 @@ async function migrateDefaultCommands(): Promise<void> {
 			await memento.update("allowedCommands", filteredCommands)
 
 			getBackendLogger().appendLine(
-				`[Default Commands Migration] Removed ${removedCount} command(s) from old defaults to prevent arbitrary code execution vulnerability`,
+				`[Default Commands Migration] Removed ${removedCount} command(s) from "old" defaults to prevent arbitrary code execution vulnerability`,
 			)
 		} else {
 			getBackendLogger().appendLine("[Default Commands Migration] No old default commands found in allowed list")

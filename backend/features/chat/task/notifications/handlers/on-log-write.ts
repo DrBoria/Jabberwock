@@ -1,6 +1,5 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
-
+import type { IntentBus } from "@features/intents"
 /**
  * Handles log.write intent — writes a log message to console and diagnostics.
  *

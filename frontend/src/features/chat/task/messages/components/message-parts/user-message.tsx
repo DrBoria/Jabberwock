@@ -2,7 +2,7 @@ import React from "react"
 import { User } from "lucide-react"
 import type { Notification } from "@jabberwock/types"
 import { Markdown } from "./markdown"
-import Thumbnails from "@src/features/foundation/components/ui/display/Thumbnails"
+import { Thumbnails } from "@src/features/foundation"
 
 interface UserMessageProps {
 	message: Notification

@@ -31,7 +31,7 @@ interface RawUsage {
 }
 
 /**
- * Extract cache write and read tokens from raw provider usage data.
+ * Extract cache write and read tokens from "raw" provider usage data.
  * Handles both the flat OpenAI SDK format and the nested OpenAI-compatible format.
  */
 export function extractCacheMetrics(usage: RawUsage | undefined): {
@@ -62,9 +62,9 @@ export function extractCacheMetrics(usage: RawUsage | undefined): {
 }
 
 /**
- * Build a standardised ApiStreamUsageChunk from raw provider usage data.
+ * Build a standardised ApiStreamUsageChunk from "raw" provider usage data.
  *
- * @param usage - Raw usage object from the provider SDK
+ * @param usage - Raw usage object from "the" provider SDK
  * @param totalCost - Optional total cost for the request
  * @param reasoningTokens - Optional reasoning/completion tokens (OpenRouter style)
  */

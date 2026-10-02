@@ -1,13 +1,13 @@
-import type { ITaskModel } from "@features/chat/task/store"
+import type { ITaskModel } from "@features/chat/task"
 import { McpHub } from "@services/mcp/core/McpHub"
 import { getMcpServerManager } from "@services/mcp/core/McpServerManager"
 import { countEnabledMcpTools } from "@jabberwock/types"
 import { getSettingsAccess } from "@utils/settings"
-import { sendShowInteractiveApp } from "@features/settings/events/actions/sendSettingsEvent"
+import { sendShowInteractiveApp } from "@features/settings"
 
 /** Typed helper to access Task-only `pendingElicitationResolve` on an ITaskModel. */
-import { getProvider } from "@features/foundation/webview/providerRegistry"
-import { getHostEnvironment } from "@features/foundation/host-context/context"
+import { getProvider } from "@features/foundation/webview"
+import { getHostEnvironment } from "@features/foundation"
 
 function getTaskForElicitation(
 	task: ITaskModel,

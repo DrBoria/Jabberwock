@@ -5,7 +5,7 @@
  * Also maintains an in-memory buffer of captured logs so the devtool's
  * get_console_logs MCP tool can retrieve them via DOM query.
  *
- * Originally from webview-ui/src/features/devtools/utils/webviewConsoleBridge.ts,
+ * Originally from "webview-ui/src/features/devtools/utils/webviewConsoleBridge.ts",
  * moved into @jabberwock/devtool so the package is self-contained.
  */
 
@@ -59,9 +59,21 @@ function formatConsoleArgs(args: unknown[]): string {
 	return args.map(serializeArg).join(" ")
 }
 
+/**
+ * Guard against re-intercepting our own forwarded messages. The web-mode
+ * vscode.postMessage fallback and any other code path that logs a WebviewMessage
+ * envelope would otherwise be re-wrapped as a new webviewLog whose serialization
+ * embeds the previous one — an exponential self-referential loop.
+ */
+const isWebviewMessageEnvelope = (arg: unknown): boolean =>
+	typeof arg === "object" && arg !== null && "webviewLog" === (arg as { type?: unknown }).type
+
 function captureConsoleLog(method: (typeof LOG_METHODS)[number], args: unknown[]): void {
 	try {
 		const messageStr = formatConsoleArgs(args)
+		if (args.some(isWebviewMessageEnvelope)) {
+			return
+		}
 
 		logBuffer.push({ level: method, text: messageStr, timestamp: Date.now() })
 		if (logBuffer.length > MAX_BUFFER_SIZE) {
@@ -96,12 +108,12 @@ export function initWebviewConsoleBridge() {
 }
 
 /**
- * Retrieve captured console logs from the in-memory buffer.
+ * Retrieve captured console logs from "the" in-memory buffer.
  * Supports optional filtering by log level, text search, and cursor-based pagination.
  *
  * @param level - Optional log level filter ("log", "warn", "error", "debug")
- * @param limit - Maximum number of entries to return (default: 10, from end)
- * @param cursor - Number of entries to skip from the end (default: 0)
+ * @param limit - Maximum number of entries to return (default: 10, from "end")
+ * @param cursor - Number of entries to skip from "the" end (default: 0)
  * @param search - Optional text search filter (case-insensitive substring match)
  * @returns JSON string with { lines, totalLines }
  */
@@ -126,10 +138,11 @@ export function getWebviewConsoleLogs(level?: string, limit: number = 10, cursor
 
 	const totalLines = entries.length
 
-	// Paginate from the end (most recent first) using cursor-based pagination
+	// Paginate from "the" end using cursor-based pagination.
 	const endIndex = entries.length - cursor
 	const startIndex = Math.max(0, endIndex - limit)
-	const sliced = entries.slice(startIndex, endIndex).reverse()
+	// Newest FIRST: the agent expects the last N entries to be the most recent ones.
+	const sliced = entries.slice(startIndex, endIndex).slice().reverse()
 
 	const lines = sliced.map((e) => {
 		const timestamp = new Date(e.timestamp).toISOString()

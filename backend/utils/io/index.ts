@@ -14,5 +14,5 @@ export {
 	getWorkspacePath,
 	getWorkspacePathForContext,
 	normalizePath,
-} from "./path"
-export { isPathOutsideWorkspace } from "./pathUtils"
+} from "./main"
+export { isPathOutsideWorkspace } from "./utils"

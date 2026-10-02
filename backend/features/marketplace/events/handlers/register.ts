@@ -1,8 +1,8 @@
-import type { IntentBus } from "@features/intents/bus"
-import { registerOnMarketplace } from "@features/marketplace/handlers/on-marketplace"
-import { onWebviewMessage } from "@features/foundation/webview/events/handlers/on-webview-message"
+import type { IntentBus } from "@features/intents"
+import { registerOnMarketplace } from "@features/marketplace"
+import { onWebviewMessage } from "@features/foundation"
 import { IntentStatus } from "@jabberwock/types"
-import { getBackendRootStore } from "@features/storeSingleton"
+import { getStore } from "@features/singleton"
 import {
 	MARKETPLACE_MARKETPLACE_BUTTON_CLICKED,
 	MARKETPLACE_FILTER_MARKETPLACE_ITEMS,
@@ -18,13 +18,11 @@ import {
 	MARKETPLACE_MOVE_SKILL,
 	MARKETPLACE_UPDATE_SKILL_MODES,
 	MARKETPLACE_OPEN_SKILL_FILE,
-} from "@features/marketplace/events/constants"
+} from "@features/marketplace/events"
 
-export function registerOnMarketplaceIntents(bus: IntentBus): void {
-	registerOnMarketplace(bus)
-
+function registerOnMarketplaceMARKETPLACEMARKETPLACEBUTTONCLICKED(): void {
 	onWebviewMessage(MARKETPLACE_MARKETPLACE_BUTTON_CLICKED, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -34,9 +32,11 @@ export function registerOnMarketplaceIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnMarketplaceMARKETPLACEFILTERMARKETPLACEITEMS(): void {
 	onWebviewMessage(MARKETPLACE_FILTER_MARKETPLACE_ITEMS, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -46,9 +46,11 @@ export function registerOnMarketplaceIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnMarketplaceMARKETPLACEINSTALLMARKETPLACEITEM(): void {
 	onWebviewMessage(MARKETPLACE_INSTALL_MARKETPLACE_ITEM, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -58,9 +60,11 @@ export function registerOnMarketplaceIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnMarketplaceMARKETPLACEINSTALLMARKETPLACEITEMWITHPARAMETERS(): void {
 	onWebviewMessage(MARKETPLACE_INSTALL_MARKETPLACE_ITEM_WITH_PARAMETERS, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -70,9 +74,11 @@ export function registerOnMarketplaceIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnMarketplaceMARKETPLACECANCELMARKETPLACEINSTALL(): void {
 	onWebviewMessage(MARKETPLACE_CANCEL_MARKETPLACE_INSTALL, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -82,9 +88,11 @@ export function registerOnMarketplaceIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnMarketplaceMARKETPLACEREMOVEINSTALLEDMARKETPLACEITEM(): void {
 	onWebviewMessage(MARKETPLACE_REMOVE_INSTALLED_MARKETPLACE_ITEM, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -94,9 +102,11 @@ export function registerOnMarketplaceIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnMarketplaceMARKETPLACEFETCHMARKETPLACEDATA(): void {
 	onWebviewMessage(MARKETPLACE_FETCH_MARKETPLACE_DATA, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -106,9 +116,11 @@ export function registerOnMarketplaceIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnMarketplaceMARKETPLACEREFRESHCUSTOMTOOLS(): void {
 	onWebviewMessage(MARKETPLACE_REFRESH_CUSTOM_TOOLS, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -118,9 +130,11 @@ export function registerOnMarketplaceIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnMarketplaceMARKETPLACEREQUESTSKILLS(): void {
 	onWebviewMessage(MARKETPLACE_REQUEST_SKILLS, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -130,9 +144,11 @@ export function registerOnMarketplaceIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnMarketplaceMARKETPLACECREATESKILL(): void {
 	onWebviewMessage(MARKETPLACE_CREATE_SKILL, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -142,9 +158,11 @@ export function registerOnMarketplaceIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnMarketplaceMARKETPLACEDELETESKILL(): void {
 	onWebviewMessage(MARKETPLACE_DELETE_SKILL, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -154,9 +172,11 @@ export function registerOnMarketplaceIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnMarketplaceMARKETPLACEMOVESKILL(): void {
 	onWebviewMessage(MARKETPLACE_MOVE_SKILL, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -166,9 +186,11 @@ export function registerOnMarketplaceIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnMarketplaceMARKETPLACEUPDATESKILLMODES(): void {
 	onWebviewMessage(MARKETPLACE_UPDATE_SKILL_MODES, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -178,9 +200,11 @@ export function registerOnMarketplaceIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnMarketplaceMARKETPLACEOPENSKILLFILE(): void {
 	onWebviewMessage(MARKETPLACE_OPEN_SKILL_FILE, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -190,4 +214,22 @@ export function registerOnMarketplaceIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
+
+export function registerOnMarketplaceIntents(bus: IntentBus): void {
+	registerOnMarketplace(bus)
+	registerOnMarketplaceMARKETPLACEMARKETPLACEBUTTONCLICKED()
+	registerOnMarketplaceMARKETPLACEFILTERMARKETPLACEITEMS()
+	registerOnMarketplaceMARKETPLACEINSTALLMARKETPLACEITEM()
+	registerOnMarketplaceMARKETPLACEINSTALLMARKETPLACEITEMWITHPARAMETERS()
+	registerOnMarketplaceMARKETPLACECANCELMARKETPLACEINSTALL()
+	registerOnMarketplaceMARKETPLACEREMOVEINSTALLEDMARKETPLACEITEM()
+	registerOnMarketplaceMARKETPLACEFETCHMARKETPLACEDATA()
+	registerOnMarketplaceMARKETPLACEREFRESHCUSTOMTOOLS()
+	registerOnMarketplaceMARKETPLACEREQUESTSKILLS()
+	registerOnMarketplaceMARKETPLACECREATESKILL()
+	registerOnMarketplaceMARKETPLACEDELETESKILL()
+	registerOnMarketplaceMARKETPLACEMOVESKILL()
+	registerOnMarketplaceMARKETPLACEUPDATESKILLMODES()
+	registerOnMarketplaceMARKETPLACEOPENSKILLFILE()
 }

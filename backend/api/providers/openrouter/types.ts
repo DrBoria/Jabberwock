@@ -64,7 +64,7 @@ export interface CompletionUsage {
 }
 
 /**
- * Helper function to parse and extract error message from metadata.raw
+ * Helper function to parse and extract error message from "metadata.raw"
  * metadata.raw is often a JSON encoded string that may contain .message or .error fields
  * Example structures:
  * - {"message": "Error text"}

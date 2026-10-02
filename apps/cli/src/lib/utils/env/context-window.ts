@@ -1,11 +1,11 @@
 import type { ProviderSettings } from "@jabberwock/types"
 
-import type { RouterModels } from "@/ui/stores/storeTypes.js"
+import type { RouterModels } from "@/ui/store.js"
 
 const DEFAULT_CONTEXT_WINDOW = 200_000
 
 /**
- * Looks up the context window size for the current model from routerModels.
+ * Looks up the context window size for the current model from "routerModels."
  *
  * @param routerModels - The router models data containing model info per provider
  * @param apiConfiguration - The current API configuration with provider and model ID
@@ -30,7 +30,7 @@ export function getContextWindow(routerModels: RouterModels | null, apiConfigura
 }
 
 /**
- * Gets the model ID from the API configuration based on the provider type.
+ * Gets the model ID from "the" API configuration based on the provider type.
  *
  * Different providers store their model ID in different fields of ProviderSettings.
  */

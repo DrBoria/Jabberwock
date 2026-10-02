@@ -13,33 +13,15 @@ export type IntentHandler = (
 	ctx: IntentHandlerContext,
 ) => Promise<void>
 
-class PriorityQueue<T extends { priority: number }> {
-	private items: T[] = []
-
-	enqueue(item: T): void {
-		const idx = this.items.findIndex((i) => i.priority > item.priority)
-		if (idx === -1) this.items.push(item)
-		else this.items.splice(idx, 0, item)
-	}
-
-	dequeue(): T | undefined {
-		return this.items.shift()
-	}
-
-	hasHigherPriorityThan(p: number): boolean {
-		return this.items.length > 0 && this.items[0].priority < p
-	}
-
-	get size(): number {
-		return this.items.length
-	}
-}
-
 interface FiberWork {
 	id: string
 	type: string
 	priority: number
 }
+
+const MAX_INTENTS_PER_BURST = 2000
+const MAX_BURST_MS = 250
+const WATCHDOG_LOG_INTERVAL_MS = 10_000
 
 /**
  * Runtime dispatcher for intents.
@@ -48,28 +30,91 @@ interface FiberWork {
  * dispatches them to registered handlers, and marks them Success/Failed.
  *
  * Features register handlers by calling `bus.register(intentType, handler)`
- * from their own handler files — one registration per file.
+ * from "their" own handler files — one registration per file.
  */
-export class IntentBus {
-	private handlers = new Map<string, IntentHandler>()
-	private disposer: (() => void) | null = null
-	private isProcessing = false
-	private queue = new PriorityQueue<FiberWork>()
-	private activeFiber: FiberWork | null = null
-	private intentStore!: IIntentStore
-	private ctx: IntentHandlerContext | null = null
-	private rootRunHandler: (<T>(fn: () => T) => T) | null = null
+export function IntentBus() {
+	const handlers = new Map<string, IntentHandler>()
+	let disposer: (() => void) | null = null
+	let isProcessing = false
+	let queue: {
+		enqueue(item: FiberWork): void
+		dequeue(): FiberWork | undefined
+		peek(): FiberWork | undefined
+		hasHigherPriorityThan(p: number): boolean
+		size(): number
+	} = {
+		enqueue: () => {},
+		dequeue: () => undefined,
+		peek: () => undefined,
+		hasHigherPriorityThan: () => false,
+		size: () => 0,
+	}
+	// Dedupe guard for the in-memory dispatch queue. The MobX reaction in
+	// `start()` re-evaluates the full queued-id set on every store change (each
+	// dispatchIntent/markSuccess flips a status and re-fires it). Without this
+	// guard every fire re-enqueues *all* still-queued ids, so the queue
+	// accumulates duplicate copies of the same few intents — an O(N²) blowup that
+	// starves the bus (queue balloons to tens of thousands of dupes) and causes
+	// each intent to be re-executed repeatedly. Tracking enqueued ids bounds the
+	// queue to one entry per distinct intent.
+	const enqueuedIds = new Set<string>()
+	let activeFiber: FiberWork | null = null
+	let intentStore!: IIntentStore
+	let ctx: IntentHandlerContext | null = null
+	let rootRunHandler: (<T>(fn: () => T) => T) | null = null
+	// Hot-loop watchdog state: a handler chain that re-queues work on every
+	// dispatch would otherwise spin the while-loop below inside the microtask
+	// queue and starve the event loop permanently (100% CPU, dead WS/CDP).
+	// The burst cap bounds one drain run, logs the offending intent types,
+	// yields to the event loop, and lets the reaction re-schedule the rest.
+	let lastWatchdogLogAt = 0
+	const burstTypeCounts = new Map<string, number>()
+
+	function makeQueue() {
+		const items: FiberWork[] = []
+		return {
+			enqueue(item: FiberWork): void {
+				const idx = items.findIndex((i) => i.priority > item.priority)
+				if (idx === -1) items.push(item)
+				else items.splice(idx, 0, item)
+			},
+			dequeue(): FiberWork | undefined {
+				return items.shift()
+			},
+			peek(): FiberWork | undefined {
+				return items[0]
+			},
+			hasHigherPriorityThan(p: number): boolean {
+				return items.length > 0 && items[0].priority < p
+			},
+			size(): number {
+				return items.length
+			},
+		}
+	}
+
+	function logWatchdog(burstCount: number, elapsedMs: number): void {
+		if (Date.now() - lastWatchdogLogAt < WATCHDOG_LOG_INTERVAL_MS) return
+		lastWatchdogLogAt = Date.now()
+		const top = [...burstTypeCounts.entries()]
+			.sort((a, b) => b[1] - a[1])
+			.slice(0, 6)
+			.map(([t, n]) => `${t}=${n}`)
+			.join(", ")
+		console.error(
+			`[IntentBus] WATCHDOG: burst cap hit after ${burstCount} intents / ${elapsedMs}ms — top types: ${top || "(none)"} — queue size ${queue.size()}. Yielding to event loop; re-scheduling remainder.`,
+		)
+	}
 
 	/**
 	 * Set the EventBridge provider on the shared context after bus initialization.
-	 * Called from extension.ts after the provider is created, so that intent
+	 * Called from "extension.ts" after the provider is created, so that intent
 	 * handlers can access the provider directly without casting rootStore.
 	 */
-	setProvider(provider: import("@features/foundation/webview/EventBridge").EventBridge): void {
-		if (this.ctx) {
-			;(this.ctx as { provider?: import("@features/foundation/webview/EventBridge").EventBridge }).provider =
-				provider
-			;(this.ctx as { scheduler?: { yield(): Promise<void> } }).scheduler = { yield: this.yield.bind(this) }
+	function setProvider(provider: import("@features/foundation").EventBridge): void {
+		if (ctx) {
+			;(ctx as { provider?: import("@features/foundation").EventBridge }).provider = provider
+			;(ctx as { scheduler?: { yield(): Promise<void> } }).scheduler = { yield: yieldFn }
 		}
 	}
 
@@ -79,17 +124,17 @@ export class IntentBus {
 	 * One `register()` call per handler file. Multiple handlers per type
 	 * are run in registration order sequentially.
 	 */
-	register(type: BackendIntentType, handler: IntentHandler): void {
-		const existing = this.handlers.get(type)
+	function register(type: BackendIntentType, handler: IntentHandler): void {
+		const existing = handlers.get(type)
 		if (existing) {
 			// Chain handlers for the same type: run in registration order
 			const prev = existing
-			this.handlers.set(type, async (intent, ctx) => {
-				await prev(intent, ctx)
-				await handler(intent, ctx)
+			handlers.set(type, async (intent, ctxArg) => {
+				await prev(intent, ctxArg)
+				await handler(intent, ctxArg)
 			})
 		} else {
-			this.handlers.set(type, handler)
+			handlers.set(type, handler)
 		}
 	}
 
@@ -98,29 +143,33 @@ export class IntentBus {
 	 *
 	 * Must be called after all handlers are registered and the store is ready.
 	 */
-	start(intentStore: IIntentStore, ctx: IntentHandlerContext, rootRunHandler?: <T>(fn: () => T) => T): void {
-		if (this.disposer) {
+	function start(store: IIntentStore, handlerCtx: IntentHandlerContext, rootRunFn?: <T>(fn: () => T) => T): void {
+		if (disposer) {
 			throw new Error("IntentBus already started — call stop() first")
 		}
 
-		this.ctx = ctx
-		this.intentStore = intentStore
-		this.rootRunHandler = rootRunHandler ?? null
+		ctx = handlerCtx
+		intentStore = store
+		rootRunHandler = rootRunFn ?? null
 
-		this.disposer = reaction(
+		disposer = reaction(
 			() => {
-				const queued = intentStore.intents.filter((i) => i.status === IntentStatus.Queued)
+				const queued = store.intents.filter((i) => i.status === IntentStatus.Queued)
 				return queued.map((i) => i.id)
 			},
 			(queuedIds) => {
 				for (const id of queuedIds) {
-					const intent = intentStore.getById(id)
+					// Skip intents already waiting in the dispatch queue so the
+					// reaction cannot accumulate duplicate copies on re-fires.
+					if (enqueuedIds.has(id)) continue
+					const intent = store.getById(id)
 					if (!intent) continue
 					const priority = INTENT_PRIORITY[intent.type] ?? IntentPriority.Normal
-					this.queue.enqueue({ id, type: intent.type, priority })
+					enqueuedIds.add(id)
+					queue.enqueue({ id, type: intent.type, priority })
 				}
-				if (!this.isProcessing) {
-					queueMicrotask(() => this.schedule())
+				if (!isProcessing) {
+					queueMicrotask(() => schedule())
 				}
 			},
 			{ name: "intent-bus-dispatch" },
@@ -130,66 +179,113 @@ export class IntentBus {
 	/**
 	 * Stop the reaction and clear all handlers.
 	 */
-	stop(): void {
-		if (this.disposer) {
-			this.disposer()
-			this.disposer = null
+	function stop(): void {
+		if (disposer) {
+			disposer()
+			disposer = null
 		}
-		this.handlers.clear()
-		this.queue = new PriorityQueue()
-		this.activeFiber = null
-		this.isProcessing = false
+		handlers.clear()
+		queue = makeQueue()
+		enqueuedIds.clear()
+		activeFiber = null
+		isProcessing = false
 	}
 
-	private async schedule(): Promise<void> {
-		if (this.isProcessing) return
-		this.isProcessing = true
+	async function schedule(): Promise<void> {
+		if (isProcessing) return
+		isProcessing = true
+		const burstStart = Date.now()
+		let burstCount = 0
+		burstTypeCounts.clear()
 		try {
-			while (this.queue.size > 0) {
-				const work = this.queue.dequeue()!
-				this.intentStore.dispatchIntent(work.id)
-				const handler = this.handlers.get(work.type)
-				if (!handler) {
-					this.intentStore.markSuccess(work.id)
-					continue
+			while (queue.size() > 0) {
+				if (burstCount >= MAX_INTENTS_PER_BURST || Date.now() - burstStart > MAX_BURST_MS) {
+					logWatchdog(burstCount, Date.now() - burstStart)
+					break
 				}
-				try {
-					this.activeFiber = work
-					await this.runFiber(handler, work, this.intentStore)
-					this.activeFiber = null
-					this.intentStore.markSuccess(work.id)
-				} catch (err) {
-					this.activeFiber = null
-					this.intentStore.failIntent(work.id)
-					console.error(`[IntentBus] Handler for "${work.type}" failed:`, err)
-					this.intentStore.createIntent({
-						id: crypto.randomUUID(),
-						type: "system.failure",
-						payload: { taskId: "", error: String(err) },
-						status: IntentStatus.Queued,
-						createdAt: Date.now(),
-					})
-				}
+				burstCount = await dispatchNext(burstCount)
+			}
+			// If we stopped at the burst cap (queue still non-empty), the MobX
+			// reaction will NOT re-fire — the store's queued set is unchanged —
+			// so re-schedule the remainder ourselves. setTimeout(0) (not
+			// queueMicrotask) guarantees a full event-loop turn first, so
+			// isProcessing is back to false in the finally block below and the
+			// guard in schedule() won't no-op the re-run. This keeps WS/CDP/UI
+			// responsive even if some handler re-queues on every dispatch.
+			if (queue.size() > 0) {
+				setTimeout(() => schedule(), 0)
+				return
 			}
 		} finally {
-			this.isProcessing = false
+			isProcessing = false
 		}
 	}
 
-	private async runFiber(handler: IntentHandler, work: FiberWork, store: IIntentStore): Promise<void> {
-		const runHandler = this.rootRunHandler ?? store.runHandler.bind(store)
+	/**
+	 * Dequeue and dispatch a single intent from "the" dispatch queue.
+	 * Returns the updated burst count for the caller's loop accounting.
+	 */
+	async function dispatchNext(burstCount: number): Promise<number> {
+		const next = queue.peek()!
+		burstTypeCounts.set(next.type, (burstTypeCounts.get(next.type) ?? 0) + 1)
+		burstCount++
+		const work = queue.dequeue()!
+		// Defense-in-depth: if a stale duplicate was enqueued and the intent
+		// has since been processed (no longer Queued), skip it so it cannot
+		// be re-executed.
+		const pending = intentStore.getById(work.id)
+		if (!pending || pending.status !== IntentStatus.Queued) {
+			enqueuedIds.delete(work.id)
+			return burstCount
+		}
+		intentStore.dispatchIntent(work.id)
+		const handler = handlers.get(work.type)
+		if (!handler) {
+			intentStore.markSuccess(work.id)
+			enqueuedIds.delete(work.id)
+			return burstCount
+		}
+		try {
+			activeFiber = work
+			await runFiber(handler, work, intentStore)
+			activeFiber = null
+			intentStore.markSuccess(work.id)
+		} catch (err) {
+			activeFiber = null
+			intentStore.failIntent(work.id)
+			console.error(`[IntentBus] Handler for "${work.type}" failed:`, err)
+			intentStore.createIntent({
+				id: crypto.randomUUID(),
+				type: "system.failure",
+				payload: { taskId: "", error: String(err) },
+				status: IntentStatus.Queued,
+				createdAt: Date.now(),
+			})
+		}
+		enqueuedIds.delete(work.id)
+		return burstCount
+	}
+
+	async function runFiber(handler: IntentHandler, work: FiberWork, store: IIntentStore): Promise<void> {
+		const runHandler = rootRunHandler ?? store.runHandler.bind(store)
 		await runHandler(() =>
-			handler({ id: work.id, type: work.type, payload: store.getById(work.id)?.payload ?? {} }, this.ctx!),
+			handler({ id: work.id, type: work.type, payload: store.getById(work.id)?.payload ?? {} }, ctx!),
 		)
 	}
 
-	async yield(): Promise<void> {
-		if (!this.activeFiber) return
-		if (this.queue.hasHigherPriorityThan(this.activeFiber.priority)) {
-			const fiber = this.activeFiber
-			this.intentStore.suspendIntent(fiber.id)
-			await this.schedule()
-			this.intentStore.resumeIntent(fiber.id)
+	async function yieldFn(): Promise<void> {
+		if (!activeFiber) return
+		if (queue.hasHigherPriorityThan(activeFiber.priority)) {
+			const fiber = activeFiber
+			intentStore.suspendIntent(fiber.id)
+			await schedule()
+			intentStore.resumeIntent(fiber.id)
 		}
 	}
+
+	queue = makeQueue()
+
+	return { setProvider, register, start, stop, yield: yieldFn }
 }
+
+export type IntentBus = ReturnType<typeof IntentBus>

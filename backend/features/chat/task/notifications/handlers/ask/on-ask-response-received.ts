@@ -1,5 +1,5 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
+import type { IntentBus } from "@features/intents"
 import type { AskResponseValue } from "@jabberwock/types"
 
 /**
@@ -7,7 +7,7 @@ import type { AskResponseValue } from "@jabberwock/types"
  * (approve/deny) and performs the actual work: resolving the ask promise,
  * creating checkpoints, marking asks as answered, and persisting state.
  */
-import { resolveAskResponse } from "@features/chat/task/notifications/actions/core/respondToAsk"
+import { resolveAskResponse } from "@features/chat"
 
 export function registerOnAskResponseReceived(bus: IntentBus): void {
 	bus.register(IntentType.AskResponseReceived, async (intent, ctx) => {

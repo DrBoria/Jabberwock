@@ -1,1 +1,1 @@
-export { registerOnSettingsAgents } from "./on-settings-agents"
+export { registerOnSettingsAgents } from "./main"

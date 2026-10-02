@@ -1,6 +1,7 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
+import type { IntentBus } from "@features/intents"
 import { playTts } from "@utils/token/tts"
+import { sendTtsStart, sendTtsStop } from "@features/chat"
 
 /**
  * Handles notification.tts.play intent — plays text-to-speech.
@@ -15,8 +16,8 @@ export function registerOnTtsPlay(bus: IntentBus): void {
 		}
 
 		playTts(text, {
-			onStart: () => provider.postMessageToWebview({ type: "ttsStart", text }),
-			onStop: () => provider.postMessageToWebview({ type: "ttsStop", text }),
+			onStart: () => sendTtsStart(provider, text),
+			onStop: () => sendTtsStop(provider, text),
 		})
 	})
 }

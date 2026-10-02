@@ -1,7 +1,7 @@
-import type { IntentBus } from "@features/intents/bus"
-import { onWebviewMessage } from "@features/foundation/webview/events/handlers/on-webview-message"
+import type { IntentBus } from "@features/intents"
+import { onWebviewMessage } from "@features/foundation"
 import { IntentStatus } from "@jabberwock/types"
-import { getBackendRootStore } from "@features/storeSingleton"
+import { getStore } from "@features/singleton"
 import {
 	AGENT_STATE_SAVE_API_CONFIGURATION,
 	AGENT_STATE_UPSERT_API_CONFIGURATION,
@@ -12,11 +12,11 @@ import {
 	AGENT_STATE_GET_LIST_API_CONFIGURATION,
 	AGENT_STATE_LOCK_API_CONFIG_ACROSS_MODES,
 	AGENT_STATE_ENHANCEMENT_API_CONFIG_ID,
-} from "@features/settings/events/constants"
+} from "@features/settings"
 
-export function registerApiConfigHandlers(_bus: IntentBus): void {
+function registerApiConfigHandlersAGENTSTATESAVEAPICONFIGURATION(): void {
 	onWebviewMessage(AGENT_STATE_SAVE_API_CONFIGURATION, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -26,9 +26,11 @@ export function registerApiConfigHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerApiConfigHandlersAGENTSTATEUPSERTAPICONFIGURATION(): void {
 	onWebviewMessage(AGENT_STATE_UPSERT_API_CONFIGURATION, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -38,9 +40,11 @@ export function registerApiConfigHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerApiConfigHandlersAGENTSTATERENAMEAPICONFIGURATION(): void {
 	onWebviewMessage(AGENT_STATE_RENAME_API_CONFIGURATION, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -50,9 +54,11 @@ export function registerApiConfigHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerApiConfigHandlersAGENTSTATEDELETEAPICONFIGURATION(): void {
 	onWebviewMessage(AGENT_STATE_DELETE_API_CONFIGURATION, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -62,9 +68,11 @@ export function registerApiConfigHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerApiConfigHandlersAGENTSTATELOADAPICONFIGURATION(): void {
 	onWebviewMessage(AGENT_STATE_LOAD_API_CONFIGURATION, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -74,9 +82,11 @@ export function registerApiConfigHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerApiConfigHandlersAGENTSTATELOADAPICONFIGURATIONBYID(): void {
 	onWebviewMessage(AGENT_STATE_LOAD_API_CONFIGURATION_BY_ID, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -86,9 +96,11 @@ export function registerApiConfigHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerApiConfigHandlersAGENTSTATEGETLISTAPICONFIGURATION(): void {
 	onWebviewMessage(AGENT_STATE_GET_LIST_API_CONFIGURATION, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -98,9 +110,11 @@ export function registerApiConfigHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerApiConfigHandlersAGENTSTATELOCKAPICONFIGACROSSMODES(): void {
 	onWebviewMessage(AGENT_STATE_LOCK_API_CONFIG_ACROSS_MODES, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -110,9 +124,11 @@ export function registerApiConfigHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerApiConfigHandlersAGENTSTATEENHANCEMENTAPICONFIGID(): void {
 	onWebviewMessage(AGENT_STATE_ENHANCEMENT_API_CONFIG_ID, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -122,4 +138,16 @@ export function registerApiConfigHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
+
+export function registerApiConfigHandlers(_bus: IntentBus): void {
+	registerApiConfigHandlersAGENTSTATESAVEAPICONFIGURATION()
+	registerApiConfigHandlersAGENTSTATEUPSERTAPICONFIGURATION()
+	registerApiConfigHandlersAGENTSTATERENAMEAPICONFIGURATION()
+	registerApiConfigHandlersAGENTSTATEDELETEAPICONFIGURATION()
+	registerApiConfigHandlersAGENTSTATELOADAPICONFIGURATION()
+	registerApiConfigHandlersAGENTSTATELOADAPICONFIGURATIONBYID()
+	registerApiConfigHandlersAGENTSTATEGETLISTAPICONFIGURATION()
+	registerApiConfigHandlersAGENTSTATELOCKAPICONFIGACROSSMODES()
+	registerApiConfigHandlersAGENTSTATEENHANCEMENTAPICONFIGID()
 }

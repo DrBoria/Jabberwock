@@ -5,23 +5,18 @@ import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js"
  * Minimal MCP Transport adapter for WebSocket clients.
  * Implements the MCP SDK Transport interface using the `ws` library.
  */
-export class WebSocketClientTransport implements Transport {
-	private ws: WebSocket | null = null
-	private url: string
-	private reconnectAttempts = 0
-	private maxReconnectAttempts = 5
-	private reconnectDelay = 1000 // 1 second initial delay
-	private reconnectTimer: ReturnType<typeof setTimeout> | null = null
-	private isReconnecting = false
-	private wasEverConnected = false // Track if we ever connected successfully
+export function WebSocketClientTransport(url: string): Transport {
+	let ws: WebSocket | null = null
+	let reconnectAttempts = 0
+	const maxReconnectAttempts = 5
+	const reconnectDelay = 1000 // 1 second initial delay
+	let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+	let isReconnecting = false
+	let wasEverConnected = false // Track if we ever connected successfully
 
-	onclose?: () => void
-	onerror?: (error: Error) => void
-	onmessage?: (message: unknown) => void
-
-	constructor(url: string) {
-		this.url = url
-	}
+	let onclose: (() => void) | undefined
+	let onerror: ((error: Error) => void) | undefined
+	let onmessage: ((message: unknown) => void) | undefined
 
 	/**
 	 * Start the WebSocket connection with retry logic.
@@ -29,42 +24,42 @@ export class WebSocketClientTransport implements Transport {
 	 * if the initial connection fails. This handles race conditions where
 	 * the target WebSocket server (e.g. Devtool) hasn't started listening yet.
 	 */
-	async start(): Promise<void> {
+	async function start(): Promise<void> {
 		let lastError: Error | null = null
 
-		for (let attempt = 0; attempt <= this.maxReconnectAttempts; attempt++) {
+		for (let attempt = 0; attempt <= maxReconnectAttempts; attempt++) {
 			if (attempt > 0) {
-				const delay = this.reconnectDelay * Math.pow(2, attempt - 1)
+				const delay = reconnectDelay * Math.pow(2, attempt - 1)
 				console.log(
-					`[WebSocketClientTransport] Retrying connection to ${this.url} in ${delay}ms (attempt ${attempt + 1}/${this.maxReconnectAttempts + 1})`,
+					`[WebSocketClientTransport] Retrying connection to ${url} in ${delay}ms (attempt ${attempt + 1}/${maxReconnectAttempts + 1})`,
 				)
 				await new Promise((r) => setTimeout(r, delay))
 			}
 
 			try {
-				await this.tryConnect()
-				this.wasEverConnected = true
-				this.reconnectAttempts = 0
+				await tryConnect()
+				wasEverConnected = true
+				reconnectAttempts = 0
 				return // Connected successfully
 			} catch (err) {
 				lastError = err as Error
 				console.log(
-					`[WebSocketClientTransport] Connection attempt ${attempt + 1}/${this.maxReconnectAttempts + 1} failed: ${(err as Error).message}`,
+					`[WebSocketClientTransport] Connection attempt ${attempt + 1}/${maxReconnectAttempts + 1} failed: ${(err as Error).message}`,
 				)
 			}
 		}
 
 		// All connection attempts exhausted
-		throw lastError ?? new Error(`Failed to connect to ${this.url} after ${this.maxReconnectAttempts + 1} attempts`)
+		throw lastError ?? new Error(`Failed to connect to ${url} after ${maxReconnectAttempts + 1} attempts`)
 	}
 
 	/**
 	 * Single WebSocket connection attempt with 10-second timeout.
 	 */
-	private tryConnect(): Promise<void> {
+	function tryConnect(): Promise<void> {
 		return new Promise((resolve, reject) => {
 			try {
-				this.ws = new WebSocket(this.url)
+				ws = new WebSocket(url)
 			} catch (err) {
 				reject(err)
 				return
@@ -74,86 +69,110 @@ export class WebSocketClientTransport implements Transport {
 			// This prevents hanging forever when the target server is not yet listening
 			// (e.g., Devtool WebSocket server still starting up).
 			const timeout = setTimeout(() => {
-				const err = new Error(`WebSocket connection timeout to ${this.url}`)
-				this.onerror?.(err)
+				const err = new Error(`WebSocket connection timeout to ${url}`)
+				onerror?.(err)
 				reject(err)
-				this.ws?.close()
+				ws?.close()
 			}, 10_000)
 
-			this.ws.on("open", () => {
+			ws.on("open", () => {
 				clearTimeout(timeout)
 				resolve()
 			})
 
-			this.ws.on("message", (data: Buffer) => {
+			ws.on("message", (data: Buffer) => {
 				try {
 					const message = JSON.parse(data.toString())
-					this.onmessage?.(message)
+					onmessage?.(message)
 				} catch (err) {
-					this.onerror?.(err as Error)
+					onerror?.(err as Error)
 				}
 			})
 
-			this.ws.on("close", () => {
+			ws.on("close", () => {
 				clearTimeout(timeout)
-				this.onclose?.()
+				onclose?.()
 				// Only auto-reconnect if we were ever connected successfully.
 				// This prevents reconnect loops when the initial connection fails
 				// (e.g., devtools server not yet listening).
-				if (this.wasEverConnected) {
-					this.scheduleReconnect()
+				if (wasEverConnected) {
+					scheduleReconnect()
 				}
 			})
 
-			this.ws.on("error", (err: Error) => {
+			ws.on("error", (err: Error) => {
 				clearTimeout(timeout)
-				this.onerror?.(err)
+				onerror?.(err)
 				reject(err) // CRITICAL: reject the start promise so connectToServer catch block runs
 			})
 		})
 	}
 
-	private scheduleReconnect(): void {
-		if (this.isReconnecting || this.reconnectAttempts >= this.maxReconnectAttempts) {
+	function scheduleReconnect(): void {
+		if (isReconnecting || reconnectAttempts >= maxReconnectAttempts) {
 			return
 		}
-		this.isReconnecting = true
-		const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts)
+		isReconnecting = true
+		const delay = reconnectDelay * Math.pow(2, reconnectAttempts)
 		console.log(
-			`[WebSocketClientTransport] Scheduling reconnect attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts} in ${delay}ms`,
+			`[WebSocketClientTransport] Scheduling reconnect attempt ${reconnectAttempts + 1}/${maxReconnectAttempts} in ${delay}ms`,
 		)
-		this.reconnectTimer = setTimeout(async () => {
-			this.reconnectAttempts++
-			this.isReconnecting = false
+		reconnectTimer = setTimeout(async () => {
+			reconnectAttempts++
+			isReconnecting = false
 			try {
-				await this.start()
-				console.log(
-					`[WebSocketClientTransport] Reconnected successfully after ${this.reconnectAttempts} attempt(s)`,
-				)
+				await start()
+				console.log(`[WebSocketClientTransport] Reconnected successfully after ${reconnectAttempts} attempt(s)`)
 			} catch (err) {
 				console.error(
-					`[jabberwock] [WebSocketClientTransport] Reconnect attempt ${this.reconnectAttempts} failed:`,
+					`[jabberwock] [WebSocketClientTransport] Reconnect attempt ${reconnectAttempts} failed:`,
 					err,
 				)
 			}
 		}, delay)
 	}
 
-	async send(message: unknown): Promise<void> {
-		if (!this.ws) {
+	async function send(message: unknown): Promise<void> {
+		if (!ws) {
 			throw new Error("WebSocket not connected")
 		}
-		this.ws.send(JSON.stringify(message))
+		ws.send(JSON.stringify(message))
 	}
 
-	async close(): Promise<void> {
-		if (this.reconnectTimer) {
-			clearTimeout(this.reconnectTimer)
-			this.reconnectTimer = null
+	async function close(): Promise<void> {
+		if (reconnectTimer) {
+			clearTimeout(reconnectTimer)
+			reconnectTimer = null
 		}
-		this.isReconnecting = false
-		this.reconnectAttempts = this.maxReconnectAttempts // Prevent reconnect after explicit close
-		this.ws?.close()
-		this.ws = null
+		isReconnecting = false
+		reconnectAttempts = maxReconnectAttempts // Prevent reconnect after explicit close
+		ws?.close()
+		ws = null
+	}
+
+	return {
+		get onclose() {
+			return onclose
+		},
+		set onclose(v: (() => void) | undefined) {
+			onclose = v
+		},
+		get onerror() {
+			return onerror
+		},
+		set onerror(v: ((error: Error) => void) | undefined) {
+			onerror = v
+		},
+		get onmessage() {
+			return onmessage
+		},
+		set onmessage(v: ((message: unknown) => void) | undefined) {
+			onmessage = v
+		},
+		start,
+		send,
+		close,
 	}
 }
+
+export type WebSocketClientTransport = ReturnType<typeof WebSocketClientTransport>

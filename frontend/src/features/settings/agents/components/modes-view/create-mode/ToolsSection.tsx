@@ -1,8 +1,8 @@
 import React from "react"
 import { VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react"
-import type { GroupEntry, ToolGroup } from "../types"
-import { availableGroups } from "../types"
-import { getGroupName } from "../utils"
+import type { GroupEntry, ToolGroup } from "@src/features/settings/agents/components/modes-view/types"
+import { availableGroups } from "@src/features/settings/agents/components/modes-view/types"
+import { getGroupName } from "@src/features/settings/agents/components/modes-view/utils"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 
 interface ToolsSectionProps {

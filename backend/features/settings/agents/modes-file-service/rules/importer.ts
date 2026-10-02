@@ -5,7 +5,7 @@ import * as yaml from "yaml"
 
 import { modeConfigSchema } from "@jabberwock/types"
 
-import { getWorkspacePath } from "@utils/io/path"
+import { getWorkspacePath } from "@utils/io/main"
 import { logger } from "@utils/logging"
 
 import {
@@ -13,9 +13,9 @@ import {
 	type ImportData,
 	type ImportResult,
 	type RuleFile,
-} from "@features/settings/agents/modes-file-service/types"
-import { createMockExtensionContext } from "@features/settings/agents/modes-file-service/mock"
-import { loadAndMergeModes } from "@features/settings/agents/modes-file-service/file-ops"
+} from "@features/settings/agents/modes-file-service"
+import { createMockExtensionContext } from "@features/settings/agents/modes-file-service"
+import { loadAndMergeModes } from "@features/settings/agents/modes-file-service"
 import {
 	getRulesBaseDir,
 	hasNoValidRules,
@@ -23,7 +23,7 @@ import {
 	isInvalidImportPath,
 	isPathTraversalSafe,
 } from "./utils"
-import { updateCustomModeInFile } from "@features/settings/agents/modes-file-service/crud"
+import { updateCustomModeInFile } from "@features/settings/agents/modes-file-service"
 
 function parseImportYamlContent(yamlContent: string): ImportData {
 	const parsed = yaml.parse(yamlContent)
@@ -113,7 +113,7 @@ export async function importRulesFiles(
 }
 
 /**
- * Import a mode from YAML content with its associated rules files
+ * Import a mode from "YAML" content with its associated rules files
  */
 export async function importModeWithRules(
 	yamlContent: string,

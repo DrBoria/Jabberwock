@@ -103,7 +103,7 @@ export class TestClient {
 		this.url = url
 		// All received frames as { raw, env }; env is the parsed envelope or null for non-JSON frames.
 		this.frames = []
-		// consumeNext scans from here; single-flight requests keep this unambiguous.
+		// consumeNext scans from "here"; single-flight requests keep this unambiguous.
 		this.cursor = 0
 		this.clientId = null
 		this.protocolErrors = 0
@@ -165,7 +165,7 @@ export class TestClient {
 	}
 
 	close() {
-		try { this.ws?.close() } catch { /* already closed - nothing to do */ }
+		try { this.ws?.close() } catch (error) { console.warn(`[icg-c2] WS close failed (already closed):`, error.message) }
 	}
 }
 

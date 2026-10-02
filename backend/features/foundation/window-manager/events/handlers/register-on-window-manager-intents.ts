@@ -1,8 +1,8 @@
-import type { IntentBus } from "@features/intents/bus"
-import { registerAllFoundationHandlers } from "@features/foundation/window-manager/handlers"
-import { onWebviewMessage } from "@features/foundation/webview/events/handlers/on-webview-message"
+import type { IntentBus } from "@features/intents"
+import { registerAllFoundationHandlers } from "@features/foundation"
+import { onWebviewMessage } from "@features/foundation"
 import { IntentStatus } from "@jabberwock/types"
-import { getBackendRootStore } from "@features/storeSingleton"
+import { getStore } from "@features/singleton"
 import { registerOnShowTask } from "./on-show-task"
 import {
 	WINDOW_MANAGER_FOCUS_PANEL_REQUEST,
@@ -14,14 +14,11 @@ import {
 	WINDOW_MANAGER_EXPORT_TASK_WITH_ID,
 	WINDOW_MANAGER_EXPORT_CURRENT_TASK,
 	WINDOW_MANAGER_DELETE_MULTIPLE_TASKS_WITH_IDS,
-} from "@features/foundation/window-manager/events/constants"
+} from "@features/foundation"
 
-export function registerOnWindowManagerIntents(bus: IntentBus): void {
-	registerAllFoundationHandlers(bus)
-	registerOnShowTask()
-
+function registerOnWindowManagerWINDOWMANAGERFOCUSPANELREQUEST(): void {
 	onWebviewMessage(WINDOW_MANAGER_FOCUS_PANEL_REQUEST, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -31,9 +28,11 @@ export function registerOnWindowManagerIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnWindowManagerWINDOWMANAGERSWITCHTAB(): void {
 	onWebviewMessage(WINDOW_MANAGER_SWITCH_TAB, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -43,9 +42,11 @@ export function registerOnWindowManagerIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnWindowManagerWINDOWMANAGERACTIVEPAGERESPONSE(): void {
 	onWebviewMessage(WINDOW_MANAGER_ACTIVE_PAGE_RESPONSE, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -55,9 +56,11 @@ export function registerOnWindowManagerIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnWindowManagerWINDOWMANAGERREQUESTSTATE(): void {
 	onWebviewMessage(WINDOW_MANAGER_REQUEST_STATE, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -67,9 +70,11 @@ export function registerOnWindowManagerIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnWindowManagerWINDOWMANAGERGETTASKWITHAGGREGATEDCOSTS(): void {
 	onWebviewMessage(WINDOW_MANAGER_GET_TASK_WITH_AGGREGATED_COSTS, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -79,9 +84,11 @@ export function registerOnWindowManagerIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnWindowManagerWINDOWMANAGERDELETETASKWITHID(): void {
 	onWebviewMessage(WINDOW_MANAGER_DELETE_TASK_WITH_ID, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -91,9 +98,11 @@ export function registerOnWindowManagerIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnWindowManagerWINDOWMANAGEREXPORTTASKWITHID(): void {
 	onWebviewMessage(WINDOW_MANAGER_EXPORT_TASK_WITH_ID, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -103,9 +112,11 @@ export function registerOnWindowManagerIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnWindowManagerWINDOWMANAGEREXPORTCURRENTTASK(): void {
 	onWebviewMessage(WINDOW_MANAGER_EXPORT_CURRENT_TASK, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -115,9 +126,11 @@ export function registerOnWindowManagerIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerOnWindowManagerWINDOWMANAGERDELETEMULTIPLETASKSWITHIDS(): void {
 	onWebviewMessage(WINDOW_MANAGER_DELETE_MULTIPLE_TASKS_WITH_IDS, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -127,4 +140,18 @@ export function registerOnWindowManagerIntents(bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
+
+export function registerOnWindowManagerIntents(bus: IntentBus): void {
+	registerAllFoundationHandlers(bus)
+	registerOnShowTask()
+	registerOnWindowManagerWINDOWMANAGERFOCUSPANELREQUEST()
+	registerOnWindowManagerWINDOWMANAGERSWITCHTAB()
+	registerOnWindowManagerWINDOWMANAGERACTIVEPAGERESPONSE()
+	registerOnWindowManagerWINDOWMANAGERREQUESTSTATE()
+	registerOnWindowManagerWINDOWMANAGERGETTASKWITHAGGREGATEDCOSTS()
+	registerOnWindowManagerWINDOWMANAGERDELETETASKWITHID()
+	registerOnWindowManagerWINDOWMANAGEREXPORTTASKWITHID()
+	registerOnWindowManagerWINDOWMANAGEREXPORTCURRENTTASK()
+	registerOnWindowManagerWINDOWMANAGERDELETEMULTIPLETASKSWITHIDS()
 }

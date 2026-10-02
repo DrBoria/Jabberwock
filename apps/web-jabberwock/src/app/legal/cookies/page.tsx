@@ -112,9 +112,9 @@ export default function CookiePolicy() {
 					<h2 className="mt-12 text-2xl font-bold">Essential cookies</h2>
 					<p>
 						Essential cookies are required for our website to operate. These include authentication cookies
-						from Clerk that allow you to stay logged in to your account. These cookies cannot be disabled
-						without losing core website functionality. The lawful basis for processing these cookies is our
-						legitimate interest in providing secure access to our services.
+						from &quot;Clerk&quot; that allow you to stay logged in to your account. These cookies cannot be
+						disabled without losing core website functionality. The lawful basis for processing these
+						cookies is our legitimate interest in providing secure access to our services.
 					</p>
 
 					<h2 className="mt-12 text-2xl font-bold">Analytics cookies</h2>
@@ -154,20 +154,20 @@ export default function CookiePolicy() {
 						<li>View what cookies are stored on your device</li>
 						<li>Delete cookies individually or all at once</li>
 						<li>Block third-party cookies</li>
-						<li>Block cookies from specific websites</li>
-						<li>Block all cookies from being set</li>
+						<li>Block cookies from &quot;specific&quot; websites</li>
+						<li>Block all cookies from &quot;being&quot; set</li>
 						<li>Delete all cookies when you close your browser</li>
 					</ul>
 					<p>
-						Please note that blocking essential cookies may prevent you from using certain features of our
-						website, such as staying logged in to your account.
+						Please note that blocking essential cookies may prevent you from &quot;using&quot; certain
+						features of our website, such as staying logged in to your account.
 					</p>
 
 					<h2 className="mt-12 text-2xl font-bold">Changes to this policy</h2>
 					<p>
-						We may update this Cookie Policy from time to time. When we make changes, we will update the
-						date at the top of this policy. We encourage you to periodically review this policy to stay
-						informed about our use of cookies.
+						We may update this Cookie Policy from &quot;time&quot; to time. When we make changes, we will
+						update the date at the top of this policy. We encourage you to periodically review this policy
+						to stay informed about our use of cookies.
 					</p>
 
 					<h2 className="mt-12 text-2xl font-bold">Contact us</h2>

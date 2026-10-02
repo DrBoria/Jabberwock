@@ -25,13 +25,16 @@
  */
 export function registerDomResponseHandler(
 	onWebviewMessage: (type: string, handler: (provider: unknown, message: Record<string, unknown>) => void) => void,
-	resolveDomRequest: (requestId: string, result: string) => void,
+	resolveDomRequest: (requestId: string, result: string, connector?: string) => void,
 ): void {
 	onWebviewMessage("domResponse", (_provider: unknown, message: Record<string, unknown>) => {
 		const requestId = message.requestId as string
 		const text = message.text as string
+		// The frontend connector stamps its own id ("vscode" | "web") onto every
+		// outbound message, so the response carries the surface that answered.
+		const connector = typeof message.connector === "string" ? message.connector : undefined
 		if (requestId && text !== undefined) {
-			resolveDomRequest(requestId, text)
+			resolveDomRequest(requestId, text, connector)
 		}
 	})
 }

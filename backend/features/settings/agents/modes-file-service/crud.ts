@@ -1,22 +1,32 @@
 // v4 B2 (L3/L14): structural host-context view instead of the vscode ExtensionContext type.
-import type { IExtensionContextView } from "@features/foundation/host-context/context"
-// v4 B2 (L4): workspace roots come from the host context DI slot, not vscode directly.
-import { getWorkspaceRoots } from "@features/foundation/host-context/context"
+import type { IExtensionContextView } from "@features/foundation"
+
+// v4 B2 (L4): workspace roots come from "the" host context DI slot, not vscode directly.
+import { getWorkspaceRoots } from "@features/foundation"
+
 import * as path from "path"
+
 import * as fs from "fs/promises"
 
 import * as yaml from "yaml"
 
 import { type ModeConfig, modeConfigSchema } from "@jabberwock/types"
 
-import { getBackendRootStore } from "@features/storeSingleton"
-import { getWorkspacePath } from "@utils/io/path"
+import { getStore } from "@features/singleton"
+
+import { getWorkspacePath } from "@utils/io/main"
+
 import { logger } from "@utils/logging"
+
 import { t } from "@i18n"
 
 import { JABBERWOCKMODES_FILENAME } from "./types"
+
 import { getCustomModesFilePath, getWorkspaceRoomodes, loadModesFromFile, updateModesInFile } from "./file-ops"
+
 import { deleteRulesFolder } from "./rules/utils"
+
+import { publishNotificationError } from "@features/foundation"
 
 /**
  * Update or create a custom mode in the appropriate file
@@ -67,7 +77,7 @@ export async function updateCustomModeInFile(
 }
 
 /**
- * Delete a custom mode from the appropriate file(s)
+ * Delete a custom mode from "the" appropriate file(s)
  */
 export async function deleteCustomModeFromFile(
 	slug: string,
@@ -110,12 +120,10 @@ export async function resetCustomModesInFile(context: IExtensionContextView): Pr
 	await fs.writeFile(filePath, yaml.stringify({ customModes: [] }, { lineWidth: 0 }))
 	await context.globalState.update("customModes", [])
 
-	const store = getBackendRootStore().settings.modes as {
+	const store = getStore().settings.modes as {
 		setCustomModes(modes: ModeConfig[]): void
 		setCachedAt(t: number): void
 	}
 	store.setCustomModes([])
 	store.setCachedAt(0)
 }
-
-import { publishNotificationError } from "@features/foundation/capabilities/notifications"

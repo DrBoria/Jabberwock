@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react"
 
-import { useScrollToBottom } from "../components/scroll/ScrollArea.js"
+import { useScrollToBottom } from "../components/scroll/area.js"
 
 interface ScrollState {
 	scrollTop: number

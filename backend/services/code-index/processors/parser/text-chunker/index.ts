@@ -1,2 +1,2 @@
-export { chunkTextByLines } from "./text-chunker"
-export type { ChunkingContext } from "./text-chunker"
+export { chunkTextByLines } from "./main"
+export type { ChunkingContext } from "./main"

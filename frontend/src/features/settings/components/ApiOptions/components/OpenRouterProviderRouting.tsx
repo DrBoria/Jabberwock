@@ -1,7 +1,7 @@
 import { ExternalLinkIcon } from "@radix-ui/react-icons"
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@src/shared/ui/selects/select"
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@src/shared/ui/selects/select-primitive"
 import { OPENROUTER_DEFAULT_PROVIDER_NAME } from "@jabberwock/types"
-import type { OpenRouterProviderRoutingProps } from "../types"
+import type { OpenRouterProviderRoutingProps } from "@src/features/settings/components/ApiOptions/types"
 
 export const OpenRouterProviderRouting = ({
 	selectedProvider,

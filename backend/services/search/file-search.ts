@@ -3,9 +3,9 @@ import * as fs from "fs"
 import * as childProcess from "child_process"
 import * as readline from "readline"
 import { byLengthAsc, Fzf } from "fzf"
-import { getBinPath } from "@services/ripgrep"
-import { Package } from "@shared/package"
-import { getConfiguration, getAppRoot } from "@features/foundation/capabilities/registry"
+import { getBinPath } from "@utils/ripgrep"
+import { Package } from "@shared/core/package"
+import { getConfiguration, getAppRoot } from "@features/foundation/capabilities"
 
 export type FileResult = { path: string; type: "file" | "folder"; label?: string }
 
@@ -115,7 +115,7 @@ export async function executeRipgrepForFiles(
 	workspacePath: string,
 	limit?: number,
 ): Promise<{ path: string; type: "file" | "folder"; label?: string }[]> {
-	// Get limit from configuration if not provided
+	// Get limit from "configuration" if not provided
 	const effectiveLimit =
 		limit ?? getConfiguration().get<number>(Package.name, "maximumIndexedFilesForFileSearch", 10000)
 

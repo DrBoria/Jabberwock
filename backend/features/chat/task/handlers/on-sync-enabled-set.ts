@@ -1,7 +1,7 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
+import type { IntentBus } from "@features/intents"
 import { getCloudService } from "@jabberwock/cloud"
-import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
+import { log as backendLog } from "@features/foundation"
 
 /**
  * Handles task.sync.enabled.set intent — enables/disables cloud task sync.

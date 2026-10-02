@@ -3,9 +3,9 @@ import * as vscode from "vscode"
 import { CodeActionId, CodeActionName } from "@jabberwock/types"
 
 import { getCodeActionCommand } from "@utils/mcp/commands"
-import { EditorUtils } from "@integrations/editor/EditorUtils"
-import { EventBridge } from "@features/foundation/webview/EventBridge"
-import { handleCodeAction } from "@features/settings/agents/handlers"
+import { getEditorContext } from "@connectors/vscode/backend/integrations/editor/EditorUtils"
+import { getFirstAvailableInstance } from "@features/foundation/webview/EventBridge"
+import { sendRawMessage } from "@features/settings"
 
 export const registerCodeActions = (context: vscode.ExtensionContext) => {
 	registerCodeAction(context, "explainCode", "EXPLAIN")
@@ -27,7 +27,7 @@ const registerCodeAction = (context: vscode.ExtensionContext, command: CodeActio
 			let diagnostics: unknown[] | undefined
 
 			if (args.length > 1) {
-				// Called from code action.
+				// Called from "code" action.
 				;[filePath, selectedText, startLine, endLine, diagnostics] = args as [
 					string,
 					string,
@@ -36,8 +36,8 @@ const registerCodeAction = (context: vscode.ExtensionContext, command: CodeActio
 					unknown[] | undefined,
 				]
 			} else {
-				// Called directly from command palette.
-				const context = EditorUtils.getEditorContext()
+				// Called directly from "command" palette.
+				const context = getEditorContext()
 
 				if (!context) {
 					return
@@ -54,9 +54,9 @@ const registerCodeAction = (context: vscode.ExtensionContext, command: CodeActio
 				...(userInput ? { userInput } : {}),
 			}
 
-			const provider = EventBridge.getFirstAvailableInstance()
+			const provider = getFirstAvailableInstance()
 			if (provider) {
-				await handleCodeAction(provider, {
+				sendRawMessage(provider, {
 					type: "handleCodeAction",
 					command,
 					promptType,

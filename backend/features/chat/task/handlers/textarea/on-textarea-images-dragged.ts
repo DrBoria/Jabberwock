@@ -1,5 +1,6 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
+import type { IntentBus } from "@features/intents"
+import { sendDraggedImages } from "@features/chat"
 
 /**
  * Handles textarea.images.dragged intent — forwards dragged images to the webview.
@@ -13,9 +14,6 @@ export function registerOnTextareaImagesDragged(bus: IntentBus): void {
 			return
 		}
 
-		await provider.postMessageToWebview({
-			type: "draggedImages" as const,
-			images,
-		})
+		await sendDraggedImages(provider, images)
 	})
 }

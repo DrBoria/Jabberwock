@@ -9,7 +9,7 @@ import type { DisposableLike, IFileWatcher } from "@jabberwock/types"
 
 import type { IExtensionContextView } from "@features/foundation/host-context/context"
 
-import { WebSocketClientTransport } from "@services/mcp/features/websocket-transport"
+import type { WebSocketClientTransport } from "@services/mcp/features/websocket-transport"
 
 // ─── Connection types ────────────────────────────────────────────────
 
@@ -67,7 +67,7 @@ export interface McpHubState {
 	sanitizedNameRegistry: Map<string, string>
 	isConnecting: boolean
 	isDisposed: boolean
-	providerRef: WeakRef<import("@features/foundation/webview/EventBridge").ProviderHandle>
+	providerRef: WeakRef<import("@features/foundation/webview").ProviderHandle>
 	/** v4 B2 (L14): structural context view — host contexts satisfy it structurally; no vscode types in serializable state. */
 	_context: IExtensionContextView
 	refCount: number
@@ -76,6 +76,8 @@ export interface McpHubState {
 	settingsWatcher?: IFileWatcher | undefined
 	projectMcpWatcher?: IFileWatcher | undefined
 	disposables: DisposableLike[]
+	/** Hub-local event emitter (replaces `extends EventEmitter`); fires "interactiveUiRequested". */
+	notify: (event: string, data: unknown) => void
 }
 
 export { McpErrorEntry, McpResource, McpResourceTemplate, McpServer, McpTool }

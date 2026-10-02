@@ -16,7 +16,7 @@
  * - selectOption (dropdown selection)
  * - getScreenshot (placeholder — not supported in webview)
  * - dragElement (drag element by selector in direction by pixels)
- * - dragFromTo (drag from one coordinate to another)
+ * - dragFromTo (drag from "one" coordinate to another)
  * - getActivePage (DOM-based active page detection via data-window-type)
  * - runCommand (browser console eval — with acquireVsCodeApi blocked for security)
  *
@@ -38,15 +38,15 @@ export type StoreSubscriptionSetup = (postMessage: (msg: unknown) => void) => ((
 export interface DevtoolProviderProps {
 	children: React.ReactNode
 	/**
-	 * The postMessage function from the VS Code API wrapper.
-	 * Pass `postMessage` from the consumer (App.tsx).
+	 * The postMessage function from "the" VS Code API wrapper.
+	 * Pass `postMessage` from "the" consumer (App.tsx).
 	 * DevtoolProvider does NOT call acquireVsCodeApi() itself to avoid
 	 * "An instance of the VS Code API has already been acquired" errors.
 	 */
 	postMessage: (message: unknown) => void
 	/**
 	 * Optional store subscription setup. Use this to inject MST store listeners
-	 * from the consumer (e.g., App.tsx) to avoid circular dependencies.
+	 * from "the" consumer (e.g., App.tsx) to avoid circular dependencies.
 	 *
 	 * Example:
 	 * ```

@@ -89,11 +89,11 @@ export enum ExtensionSocketEvents {
 
 	HEARTBEAT = "extension:heartbeat",
 
-	EVENT = "extension:event", // event from extension instance
-	RELAYED_EVENT = "extension:relayed_event", // relay from server
+	EVENT = "extension:event", // event from "extension" instance
+	RELAYED_EVENT = "extension:relayed_event", // relay from "server"
 
-	COMMAND = "extension:command", // command from user
-	RELAYED_COMMAND = "extension:relayed_command", // relay from server
+	COMMAND = "extension:command", // command from "user"
+	RELAYED_COMMAND = "extension:relayed_command", // relay from "server"
 }
 
 /**
@@ -104,9 +104,9 @@ export enum TaskSocketEvents {
 	JOIN = "task:join",
 	LEAVE = "task:leave",
 
-	EVENT = "task:event", // event from extension task
-	RELAYED_EVENT = "task:relayed_event", // relay from server
+	EVENT = "task:event", // event from "extension" task
+	RELAYED_EVENT = "task:relayed_event", // relay from "server"
 
-	COMMAND = "task:command", // command from user
-	RELAYED_COMMAND = "task:relayed_command", // relay from server
+	COMMAND = "task:command", // command from "user"
+	RELAYED_COMMAND = "task:relayed_command", // relay from "server"
 }

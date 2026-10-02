@@ -1,8 +1,8 @@
 import React from "react"
 import { ListTree } from "lucide-react"
 import { cn } from "@src/lib/utils"
-import { StandardTooltip } from "@src/shared/ui/tooltips/standard-tooltip"
-import { IconButton } from "@src/shared/ui/buttons/icon-button"
+import { StandardTooltip } from "@src/shared/ui/tooltips/standard"
+import { IconButton } from "@src/shared/ui/buttons/icon-button-primary"
 
 interface ChildNode {
 	id: string

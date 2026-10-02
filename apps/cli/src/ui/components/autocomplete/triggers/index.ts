@@ -1,19 +1,14 @@
-export { type FileResult, type FileTriggerConfig, createFileTrigger, toFileResult } from "./FileTrigger.js"
+export { type FileResult, type FileTriggerConfig, createFileTrigger, toFileResult } from "./file.js"
 
 export {
 	type SlashCommandResult,
 	type SlashCommandTriggerConfig,
 	createSlashCommandTrigger,
 	toSlashCommandResult,
-} from "./SlashCommandTrigger.js"
+} from "./slash-command.js"
 
-export { type ModeResult, type ModeTriggerConfig, createModeTrigger, toModeResult } from "./ModeTrigger.js"
+export { type ModeResult, type ModeTriggerConfig, createModeTrigger, toModeResult } from "./mode.js"
 
-export { type HelpShortcutResult, createHelpTrigger } from "./HelpTrigger.js"
+export { type HelpShortcutResult, createHelpTrigger } from "./help.js"
 
-export {
-	type HistoryResult,
-	type HistoryTriggerConfig,
-	createHistoryTrigger,
-	toHistoryResult,
-} from "./HistoryTrigger.js"
+export { type HistoryResult, type HistoryTriggerConfig, createHistoryTrigger, toHistoryResult } from "./history.js"

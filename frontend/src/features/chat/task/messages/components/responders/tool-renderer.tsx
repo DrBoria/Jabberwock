@@ -1,11 +1,28 @@
 import React from "react"
 import type { Notification, SayToolData } from "@jabberwock/types"
-import { FileEditRenderer, InsertContentRenderer } from "../tool/file-edit-tool"
-import { ReadFileRenderer } from "../tool/read-file-tool"
-import { SkillRenderer, SlashCommandRenderer } from "../tool/skill-command-tool"
-import { CodebaseSearchRenderer, ListFilesRenderer, SearchFilesRenderer } from "../tool/search-tool"
-import { SwitchModeRenderer, NewTaskRenderer, FinishTaskRenderer } from "../tool/mode-task-tool"
-import { UpdateTodoListRenderer, GenerateImageRenderer } from "../tool/misc-tool"
+import {
+	FileEditRenderer,
+	InsertContentRenderer,
+} from "@src/features/chat/task/messages/components/tool/file-edit-tool"
+import { ReadFileRenderer } from "@src/features/chat/task/messages/components/tool/read-file-tool"
+import {
+	SkillRenderer,
+	SlashCommandRenderer,
+} from "@src/features/chat/task/messages/components/tool/skill-command-tool"
+import {
+	CodebaseSearchRenderer,
+	ListFilesRenderer,
+	SearchFilesRenderer,
+} from "@src/features/chat/task/messages/components/tool/search-tool"
+import {
+	SwitchModeRenderer,
+	NewTaskRenderer,
+	FinishTaskRenderer,
+} from "@src/features/chat/task/messages/components/tool/mode-task-tool"
+import {
+	UpdateTodoListRenderer,
+	GenerateImageRenderer,
+} from "@src/features/chat/task/messages/components/tool/misc-tool"
 
 interface ToolRendererProps {
 	message: Notification

@@ -1,18 +1,19 @@
-
-
 import * as yaml from "yaml"
+
 import stripBom from "strip-bom"
 
 import { t } from "@i18n"
 
 import { JABBERWOCKMODES_FILENAME, PROBLEMATIC_CHARS_REGEX } from "./types"
 
+import { publishNotificationError } from "@features/foundation"
+
 /**
- * Regex pattern for problematic characters that need to be cleaned from YAML content
+ * Regex pattern for problematic characters that need to be cleaned from "YAML" content
  */
 
 /**
- * Clean invisible and problematic characters from YAML content
+ * Clean invisible and problematic characters from "YAML" content
  */
 export function cleanInvisibleCharacters(content: string): string {
 	return content.replace(PROBLEMATIC_CHARS_REGEX, (match) => {
@@ -66,5 +67,3 @@ export function parseYamlSafely(content: string, filePath: string): unknown {
 		return {}
 	}
 }
-
-import { publishNotificationError } from "@features/foundation/capabilities/notifications"

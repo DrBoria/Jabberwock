@@ -1,10 +1,16 @@
 import * as path from "path"
+
 import * as fs from "fs/promises"
+
 import * as fsWithConstants from "fs"
 
-import { Package } from "@shared/package"
+import { Package } from "@shared/core/package"
+
 import { t } from "@i18n"
-import { getConfiguration, getUiDialogs, hasBackendCapabilities } from "@features/foundation/capabilities/registry"
+
+import { getConfiguration, getUiDialogs, hasBackendCapabilities } from "@features/foundation/capabilities"
+
+import { publishNotificationError } from "@features/foundation/capabilities"
 
 /**
  * Gets the base storage path for conversations
@@ -157,5 +163,3 @@ export async function promptForCustomStoragePath(): Promise<void> {
 		}
 	}
 }
-
-import { publishNotificationError } from "@features/foundation/capabilities/notifications"

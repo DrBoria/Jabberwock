@@ -2,17 +2,16 @@ import { Box, Text } from "ink"
 import { Select } from "@inkjs/ui"
 
 import * as theme from "../../theme.js"
-import { uiStateStore } from "../../stores/uiStateStore.js"
+import { uiStateStore } from "../../store.js"
 import type {
 	AutocompleteItem,
 	AutocompleteInputHandle,
 	AutocompleteTrigger,
 	AutocompletePickerState,
 } from "../autocomplete/index.js"
-import { AutocompleteInput, PickerSelect } from "../autocomplete/index.js"
+import { AutocompleteInput } from "../autocomplete/index.js"
 import { HorizontalLine } from "../display/HorizontalLine.js"
-
-const PICKER_HEIGHT = 10
+import { PickerPanel, type PickerPanelState } from "./picker-panel.js"
 
 interface FollowupSuggestionsProps {
 	pendingAsk: { type: "followup"; content: string; suggestions: { answer: string }[] }
@@ -62,16 +61,7 @@ interface FollowupCustomInputProps {
 	setIsTransitioningToCustomInput: (val: boolean) => void
 	isInputAreaActive: boolean
 	statusBarMessage: React.ReactNode
-	pickerState: {
-		isOpen: boolean
-		results: AutocompleteItem[]
-		selectedIndex: number
-		activeTrigger: {
-			renderItem: (item: AutocompleteItem, isSelected: boolean) => React.ReactNode
-			emptyMessage?: string
-		} | null
-		isLoading: boolean
-	}
+	pickerState: PickerPanelState
 	handlePickerSelect: (item: AutocompleteItem) => void
 	handlePickerClose: () => void
 	handlePickerIndexChange: (index: number) => void
@@ -110,28 +100,13 @@ export function FollowupCustomInput({
 			/>
 			<HorizontalLine active={isInputAreaActive} />
 			{pickerState.isOpen ? (
-				<Box flexDirection="column" height={PICKER_HEIGHT}>
-					<PickerSelect
-						results={pickerState.results}
-						selectedIndex={pickerState.selectedIndex}
-						maxVisible={PICKER_HEIGHT - 1}
-						onSelect={handlePickerSelect}
-						onEscape={handlePickerClose}
-						onIndexChange={handlePickerIndexChange}
-						renderItem={
-							pickerState.activeTrigger
-								? pickerState.activeTrigger.renderItem
-								: (item: AutocompleteItem, isSelected: boolean) => (
-										<Box paddingLeft={2}>
-											<Text color={isSelected ? "cyan" : undefined}>{item.key}</Text>
-										</Box>
-									)
-						}
-						emptyMessage={pickerState.activeTrigger?.emptyMessage}
-						isActive={isInputAreaActive && pickerState.isOpen}
-						isLoading={pickerState.isLoading}
-					/>
-				</Box>
+				<PickerPanel
+					pickerState={pickerState}
+					handlePickerSelect={handlePickerSelect}
+					handlePickerClose={handlePickerClose}
+					handlePickerIndexChange={handlePickerIndexChange}
+					isInputAreaActive={isInputAreaActive}
+				/>
 			) : (
 				<Box height={1}>{statusBarMessage}</Box>
 			)}

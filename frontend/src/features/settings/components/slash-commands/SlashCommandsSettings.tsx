@@ -21,12 +21,12 @@ import {
 	AlertDialogFooter,
 	AlertDialogHeader,
 	AlertDialogTitle,
-} from "@src/shared/ui/overlays/alert-dialog"
-import { Button } from "@src/shared/ui/buttons/button"
+} from "@src/shared/ui/overlays/alert"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
 import { rootStore } from "@src/features/store"
 import { buildDocLink } from "@/utils/misc/docLinks"
 
-import { SectionHeader } from "../shared/SectionHeader"
+import { SectionHeader } from "@src/features/settings/components/shared/header"
 import { CreateSlashCommandDialog } from "./CreateSlashCommandDialog"
 import { SlashCommandItemRow } from "./SlashCommandItemRow"
 

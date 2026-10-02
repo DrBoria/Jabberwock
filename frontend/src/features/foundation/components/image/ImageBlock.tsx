@@ -1,5 +1,5 @@
 import React from "react"
-import { ImageViewer } from "./ImageViewer"
+import { ImageViewer } from "./main"
 
 /**
  * Props for the ImageBlock component

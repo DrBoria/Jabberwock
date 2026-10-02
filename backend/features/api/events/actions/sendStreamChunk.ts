@@ -13,8 +13,8 @@
  * See plans/architectural-restructure-v2.md §Streaming Architecture
  */
 
-import { getProvider } from "@features/foundation/webview/providerRegistry"
-import { postMessageToWebview } from "@features/foundation/window-manager/store"
+import { getProvider } from "@features/foundation/webview"
+import { postMessageToWebview } from "@features/foundation"
 
 /**
  * Send a raw stream chunk to the webview, bypassing EventConstants and IntentBus.

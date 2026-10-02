@@ -7,10 +7,10 @@ import { cn } from "@src/lib/utils"
 import { useChatTree } from "@src/features/chat/tree/store"
 import { rootStore } from "@src/features/store"
 import { useWindowManager } from "@src/features/foundation/window-manager/store"
-import ChatRow from "../row/view"
+import ChatRow from "@src/features/chat/task/messages/components/row/view"
 import { Notification } from "@jabberwock/types"
 import { Instance } from "mobx-state-tree"
-import { TaskNode } from "@src/features/chat/tree/store"
+import type { TaskNode } from "@src/features/chat/tree/store"
 
 type TaskNodeType = Instance<typeof TaskNode>
 

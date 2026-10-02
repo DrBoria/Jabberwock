@@ -1,0 +1,1 @@
+export const WARNING_THRESHOLD_MS = 5000

@@ -3,7 +3,7 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui"
 import { TableHead, TableHeader, TableRow } from "@/components/ui"
 
-import { getIconByName, getToolAbbreviation } from "../state/helpers"
+import { getIconByName, getToolAbbreviation } from "../state/table"
 import { SortIcon } from "./sort-icon"
 import type { ToolGroup, SortColumn, SortDirection } from "../state/types"
 

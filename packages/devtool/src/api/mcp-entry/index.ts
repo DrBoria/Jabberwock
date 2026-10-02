@@ -1,2 +1,2 @@
-export { proxyToolCall } from "./mcp-entry.js"
+export { proxyToolCall } from "./server.js"
 export { registerAllTools } from "./schemas.js"

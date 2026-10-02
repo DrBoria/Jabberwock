@@ -3,10 +3,10 @@ import * as path from "path"
 
 import { type SayToolData, DEFAULT_WRITE_DELAY_MS } from "@jabberwock/types"
 import { createDirectoriesForFile } from "@utils/io/fs"
-import { getReadablePath } from "@utils/io/path"
+import { getReadablePath } from "@utils/io/main"
 import type { ITaskModel } from "@features/chat/task/store"
-import { userBroadcast } from "@features/chat/task/messages/actions/say"
-import { getVirtualWorkspace } from "@features/foundation/time-machine/actions/getTimeMachine"
+import { emitBroadcast } from "@features/chat/task/messages/actions/say"
+import { getVirtualWorkspace } from "@features/foundation/time-machine"
 
 import { closeAllDiffViews } from "./diffViewEditorOps"
 import { stripAllBOMs, detectUserEdits, getNewDiagnosticsMessage } from "./diffViewHelpers"
@@ -68,7 +68,7 @@ export async function pushToolWriteResult(
 			path: getReadablePath(cwd, provider.relPath),
 			diff: provider.userEdits,
 		}
-		await userBroadcast(task.taskId, "user_feedback_diff", JSON.stringify(sayPayload))
+		await emitBroadcast("user", task.taskId, "user_feedback_diff", JSON.stringify(sayPayload))
 	}
 	const notices = [
 		"You do not need to re-read the file, as you have seen all changes",

@@ -23,8 +23,8 @@ export interface GlobalInputSequence {
 	description: string
 	/**
 	 * Matcher function - returns true if the input matches this sequence.
-	 * @param input - The raw input string from useInput
-	 * @param key - The parsed key object from useInput
+	 * @param input - The raw input string from "useInput"
+	 * @param key - The parsed key object from "useInput"
 	 */
 	matches: (input: string, key: Key) => boolean
 }
@@ -82,8 +82,8 @@ export const GLOBAL_INPUT_SEQUENCES: GlobalInputSequence[] = [
  * Use this in child components (like MultilineTextInput) to determine
  * if input should be ignored because it will be handled by a parent component.
  *
- * @param input - The raw input string from useInput
- * @param key - The parsed key object from useInput
+ * @param input - The raw input string from "useInput"
+ * @param key - The parsed key object from "useInput"
  * @returns The matching GlobalInputSequence, or undefined if no match
  *
  * @example
@@ -104,8 +104,8 @@ export function isGlobalInputSequence(input: string, key: Key): GlobalInputSeque
 /**
  * Check if an input matches a specific global input sequence by ID.
  *
- * @param input - The raw input string from useInput
- * @param key - The parsed key object from useInput
+ * @param input - The raw input string from "useInput"
+ * @param key - The parsed key object from "useInput"
  * @param id - The sequence ID to check for
  * @returns true if the input matches the specified sequence
  *

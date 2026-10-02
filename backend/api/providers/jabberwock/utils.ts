@@ -1,4 +1,4 @@
-import { Package } from "@shared/package"
+import { Package } from "@shared/core/package"
 import type { ApiHandlerCreateMessageMetadata } from "@api/index"
 import { getModels } from "@api/providers/fetchers/modelCache"
 

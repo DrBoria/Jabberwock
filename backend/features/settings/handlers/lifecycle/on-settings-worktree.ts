@@ -1,7 +1,6 @@
-import type { IntentBus } from "@features/intents/bus"
-
-import { registerCrudRegistrations } from "@features/settings/handlers/on-settings-worktree/crud-registrations"
-import { registerInfoRegistrations } from "@features/settings/handlers/on-settings-worktree/info-registrations"
+import type { IntentBus } from "@features/intents"
+import { registerCrudRegistrations } from "@features/settings"
+import { registerInfoRegistrations } from "@features/settings"
 
 /**
  * Register all worktree settings intent handlers.

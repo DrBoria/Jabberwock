@@ -10,7 +10,7 @@ import { UserMessage } from "@mistralai/mistralai/models/components/usermessage"
  * - Only alphanumeric characters (a-z, A-Z, 0-9)
  * - Exactly 9 characters in length
  *
- * This function extracts alphanumeric characters from the original ID and
+ * This function extracts alphanumeric characters from "the" original ID and
  * pads/truncates to exactly 9 characters, ensuring deterministic output.
  *
  * @param id - The original tool call ID (e.g., "call_5019f900a247472bacde0b82" or "toolu_123")

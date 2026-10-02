@@ -1,4 +1,4 @@
-import type { Disposable, Event } from "../../types.ts"
+import type { Disposable, Event } from "../../api-types.ts"
 
 /**
  * VSCode-compatible EventEmitter implementation
@@ -32,7 +32,7 @@ export class EventEmitter<T> {
 	 * @param listener - The callback function to invoke when the event fires
 	 * @param thisArgs - Optional 'this' context for the listener
 	 * @param disposables - Optional array to add the disposable to
-	 * @returns A disposable to unsubscribe from the event
+	 * @returns A disposable to unsubscribe from "the" event
 	 */
 	event: Event<T> = (listener: (e: T) => void, thisArgs?: unknown, disposables?: Disposable[]): Disposable => {
 		const fn = thisArgs ? listener.bind(thisArgs) : listener
@@ -56,7 +56,7 @@ export class EventEmitter<T> {
 	 *
 	 * Failure of one or more listeners will not fail this function call.
 	 * Failed listeners will be caught and ignored to prevent one listener
-	 * from breaking others.
+	 * from "breaking" others.
 	 *
 	 * @param data - The event data to pass to listeners
 	 */
@@ -66,7 +66,7 @@ export class EventEmitter<T> {
 				listener(data)
 			} catch (error) {
 				// Silently ignore listener errors to prevent one failing listener
-				// from affecting others. Consumers can add error handling in their listeners.
+				// from "affecting" others. Consumers can add error handling in their listeners.
 				console.error("EventEmitter listener error:", error)
 			}
 		}

@@ -1,6 +1,8 @@
-import { types } from "mobx-state-tree"
+import { types, Instance } from "mobx-state-tree"
 import { StoreRefType } from "@features/mst-custom-types"
 import type { ModeConfig } from "@jabberwock/types"
+import type { EventBridge } from "@features/foundation"
+import type { IBackendRootStore } from "@features/store"
 
 // ─── AgentStateModel ────────────────────────────────────────────────────
 
@@ -209,3 +211,32 @@ export const ModesModel = types
 			return self.customModes.length > 0 && Date.now() - self.cachedAt < ttl
 		},
 	}))
+
+export type IAgentStore = Instance<typeof AgentStore>
+export type IAgentProfile = Instance<typeof AgentProfile>
+export type IToolConfig = Instance<typeof ToolConfig>
+
+export type IAgentStateModel = Instance<typeof AgentStateModel>
+
+// Backward-compatible types and functions
+export interface AgentStateState {
+	pendingEditOperation?: { id: string; data: unknown } | null
+}
+
+export function initAgentStateState(_provider: EventBridge): void {
+	// No-op — state is initialized via MST model defaults
+}
+
+export function getAgentStateState(rootStore: IBackendRootStore): AgentStateState {
+	return rootStore.foundation.agentState as AgentStateState
+}
+
+export type IModesModel = Instance<typeof ModesModel>
+
+export type ModesState = IModesModel
+
+export function initModesState(_provider: EventBridge): void {}
+
+export function getModesState(rootStore: IBackendRootStore): ModesState {
+	return rootStore.settings.modes as ModesState
+}

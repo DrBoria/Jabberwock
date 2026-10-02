@@ -2,8 +2,8 @@ import React from "react"
 import { ChevronDown } from "lucide-react"
 import { observer } from "mobx-react-lite"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { Button } from "@src/shared/ui/buttons/button"
-import { StandardTooltip } from "@src/shared/ui/tooltips/standard-tooltip"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
+import { StandardTooltip } from "@src/shared/ui/tooltips/standard"
 import { useChatUI } from "@src/features/chat/store"
 
 export interface AskResponderProps {
@@ -27,7 +27,7 @@ const tooltipMap: Record<string, string> = {
  * Renders the primary/secondary action button bar below the chat.
  * Shows scroll-to-bottom button when user has scrolled up,
  * or approve/reject/continue buttons when the AI is asking.
- * Reads button state from ChatUIStore (synced by view.tsx).
+ * Reads button state from "ChatUIStore" (synced by view.tsx).
  */
 const AskButton = ({
 	text,

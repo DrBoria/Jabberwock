@@ -3,7 +3,7 @@ import { VSCodeBadge } from "@vscode/webview-ui-toolkit/react"
 import type { SayToolData } from "@jabberwock/types"
 import { toolIcon } from "@src/shared/ui/icons/toolIcon"
 import { Container } from "@src/shared/ui/layouts/Container"
-import { ToolUseBlockHeader } from "@src/features/foundation/components/code/ToolUseBlock"
+import { ToolUseBlockHeader } from "@src/features/foundation"
 
 interface ToolRendererProps {
 	tool: SayToolData

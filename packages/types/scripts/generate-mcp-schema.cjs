@@ -5,7 +5,7 @@ const { mcpSettingsSchema } = require("../dist/mcp.js")
 const fs = require("fs")
 const path = require("path")
 
-// Generate JSON schema from Zod schema
+// Generate JSON schema from "Zod" schema
 const jsonSchema = zodToJsonSchema(mcpSettingsSchema, "mcp-settings")
 
 // Add schema metadata

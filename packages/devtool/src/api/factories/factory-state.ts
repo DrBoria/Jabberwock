@@ -1,4 +1,4 @@
-import { getStoreState } from "../mst/snapshot/snapshot.js"
+import { getStoreState } from "../mst/snapshot/state.js"
 import { searchBackendState, searchFrontendState } from "../mst/search.js"
 import {
 	getStoreActions,
@@ -11,15 +11,16 @@ import {
 	searchFrontendActions,
 	countFrontendActions,
 	getFrontendStoreActionsLog,
-} from "../mst/actions.js"
+} from "../mst/actions-main.js"
 import { MessageInterceptor } from "../utils/interceptor.js"
 import type { BackendStore, FrontendBridge } from "../mst/types.js"
 import { diagnosticsManager } from "../../diagnostics/managers/DiagnosticsManager.js"
 import type { SnapshotFilters } from "../../diagnostics/types.js"
 import type { DevtoolBridgeProvider } from "./factory-helpers.js"
-import type { GetStoreStateParams } from "../mst/snapshot/snapshot.js"
+import { formatLogLine, tailReversed } from "./factory-helpers.js"
+import type { GetStoreStateParams } from "../mst/snapshot/state.js"
 import type { SearchParams } from "../mst/search.js"
-import type { ActionParams, FilterActionParams, SearchActionParams, ActionLogParams } from "../mst/actions.js"
+import type { ActionParams, FilterActionParams, SearchActionParams, ActionLogParams } from "../mst/actions-main.js"
 
 export function createStateMethods(
 	provider: DevtoolBridgeProvider,
@@ -30,15 +31,8 @@ export function createStateMethods(
 	return {
 		async getLogs(lines = 100) {
 			const allLogs = diagnosticsManager.getAllLogs()
-			const totalLines = allLogs.length
-			const endIndex = allLogs.length
-			const startIndex = Math.max(0, endIndex - lines)
-			const sliced = allLogs.slice(startIndex, endIndex).reverse()
-			const formattedLines = sliced.map((e) => {
-				const timestamp = new Date(e.timestamp).toISOString()
-				return `[${timestamp}][${e.level.toUpperCase()}] ${e.message}`
-			})
-			return JSON.stringify({ lines: formattedLines, totalLines })
+			const formattedLines = tailReversed(allLogs, lines).map(formatLogLine)
+			return JSON.stringify({ lines: formattedLines, totalLines: allLogs.length })
 		},
 
 		async getDiagnosticsSnapshot(params?: Record<string, unknown>) {
@@ -52,7 +46,7 @@ export function createStateMethods(
 		},
 
 		async getExtensionInfo() {
-			// D4g-2 (batch 1): extension version comes from the host adapter slot instead of a
+			// D4g-2 (batch 1): extension version comes from "the" host adapter slot instead of a
 			// direct "vscode" import (plan section 3.2 Strategy C).
 			const version = provider.getExtensionVersion?.() ?? "dev"
 			return JSON.stringify({

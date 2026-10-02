@@ -1,1 +1,1 @@
-export { CodeIndexServiceFactory } from "./service-factory"
+export { CodeIndexServiceFactory } from "./main"

@@ -1,8 +1,8 @@
 import { useAppTranslation } from "@/i18n/TranslationContext"
-import { Button } from "@src/shared/ui/buttons/button"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
 import { Slider } from "@src/shared/ui/inputs/slider"
-import { SearchableSetting } from "../shared/SearchableSetting"
-import { SetCachedStateField } from "../shared/types"
+import { SearchableSetting } from "@src/features/settings/components/shared/SearchableSetting"
+import { SetCachedStateField } from "@src/features/settings/components/shared/types"
 
 type DiagnosticSliderProps = {
 	maxDiagnosticMessages: number | undefined

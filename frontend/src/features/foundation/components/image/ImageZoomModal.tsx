@@ -1,8 +1,8 @@
-import { Modal } from "../ui/layout/Modal"
-import { TabButton } from "../ui/button/TabButton"
-import { IconButton } from "../ui/button/IconButton"
+import { Modal } from "@src/features/foundation/components/ui/layout/Modal"
+import { TabButton } from "@src/features/foundation/components/ui/button/TabButton"
+import { IconButton } from "@src/features/foundation/components/ui/button/IconButton"
 import { ZoomControls } from "./ZoomControls"
-import { StandardTooltip } from "@src/shared/ui/tooltips/standard-tooltip"
+import { StandardTooltip } from "@src/shared/ui/tooltips/standard"
 
 interface ImageZoomModalProps {
 	showModal: boolean

@@ -1,5 +1,5 @@
-export * from "./alert-dialog"
-export * from "./dialog"
+export * from "./alert"
+export * from "./base"
 export * from "./drawer"
 export * from "./popover"
 export * from "./tooltip"

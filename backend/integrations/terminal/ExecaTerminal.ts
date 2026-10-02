@@ -3,7 +3,7 @@ import type {
 	JabberwockTerminalProcess,
 	JabberwockTerminalProcessResultPromise,
 } from "@jabberwock/types"
-import { BaseTerminal } from "./terminal-core/BaseTerminal"
+import { BaseTerminal } from "./terminal-core/main"
 import { ExecaTerminalProcess } from "./ExecaTerminalProcess"
 import { mergePromise } from "./mergePromise"
 

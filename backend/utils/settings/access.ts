@@ -19,7 +19,7 @@ import {
 import { getTelemetryService } from "@jabberwock/telemetry"
 
 import { logger } from "@utils/logging"
-import { getHostEnvironment } from "@features/foundation/host-context/context"
+import { getHostEnvironment } from "@features/foundation"
 
 // ─── Type helpers ───────────────────────────────────────────────────────
 

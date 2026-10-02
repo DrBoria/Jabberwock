@@ -1,4 +1,4 @@
-import { SectionHeader } from "@src/features/settings/components/shared/SectionHeader"
+import { SectionHeader } from "@src/features/settings/components/shared/header"
 import type { ErrorStateProps } from "./types"
 
 export const ErrorState = ({ t, title, message, extra }: ErrorStateProps) => (

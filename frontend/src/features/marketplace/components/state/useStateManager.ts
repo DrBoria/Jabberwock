@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react"
-import { MarketplaceViewStateManager, ViewState } from "./MarketplaceViewStateManager"
+import { createMarketplaceViewStateManager, type MarketplaceViewStateManager, ViewState } from "./main"
 
 export function useStateManager(existingManager?: MarketplaceViewStateManager) {
-	const [manager] = useState(() => existingManager || new MarketplaceViewStateManager())
+	const [manager] = useState(() => existingManager || createMarketplaceViewStateManager())
 	const [state, setState] = useState(() => manager.getState())
 
 	useEffect(() => {

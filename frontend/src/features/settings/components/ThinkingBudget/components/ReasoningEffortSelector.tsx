@@ -1,7 +1,7 @@
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@src/shared/ui/selects/select"
-import type { ReasoningEffortSelectorProps } from "../types"
-import { getEffortLabel } from "../helpers"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@src/shared/ui/selects/select-primitive"
+import type { ReasoningEffortSelectorProps } from "@src/features/settings/components/ThinkingBudget/types"
+import { getEffortLabel } from "@src/features/settings/components/ThinkingBudget/helpers"
 
 export const ReasoningEffortSelector = ({
 	currentReasoningEffort,

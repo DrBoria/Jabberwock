@@ -1,11 +1,11 @@
 import { useState } from "react"
 import { X } from "lucide-react"
 import { useAppTranslation } from "@/i18n/TranslationContext"
-import { Button } from "@src/shared/ui/buttons/button"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
 import { Input } from "@src/shared/ui/inputs/input"
 import { rootStore } from "@src/features/store"
-import { SearchableSetting } from "../shared/SearchableSetting"
-import type { SetCachedStateField } from "../shared/types"
+import { SearchableSetting } from "@src/features/settings/components/shared/SearchableSetting"
+import type { SetCachedStateField } from "@src/features/settings/components/shared/types"
 
 type AutoApproveExecuteSectionProps = {
 	allowedCommands?: string[]

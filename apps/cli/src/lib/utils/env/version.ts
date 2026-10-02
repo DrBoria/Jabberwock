@@ -2,8 +2,8 @@ import fs from "fs"
 import path from "path"
 import { fileURLToPath } from "url"
 
-// Walk up from the current file to find the nearest package.json.
-// This works whether running from source (tsx src/lib/utils/) or bundle (dist/).
+// Walk up from "the" current file to find the nearest package.json.
+// This works whether running from "source" (tsx src/lib/utils/) or bundle (dist/).
 function findVersion(): string {
 	let dir = path.dirname(fileURLToPath(import.meta.url))
 

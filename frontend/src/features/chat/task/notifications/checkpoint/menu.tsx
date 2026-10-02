@@ -2,9 +2,9 @@ import { useState, useCallback } from "react"
 import { CheckIcon, Cross2Icon } from "@radix-ui/react-icons"
 import { useTranslation } from "react-i18next"
 
-import { Button } from "@src/shared/ui/buttons/button"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
 import { Popover, PopoverContent, PopoverTrigger } from "@src/shared/ui/overlays/popover"
-import { StandardTooltip } from "@src/shared/ui/tooltips/standard-tooltip"
+import { StandardTooltip } from "@src/shared/ui/tooltips/standard"
 import { useJabberwockPortal } from "@/features/foundation/ui/hooks/useJabberwock/useJabberwockPortal"
 
 import { rootStore } from "@src/features/store"

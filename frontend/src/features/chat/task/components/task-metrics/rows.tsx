@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next"
 import prettyBytes from "pretty-bytes"
 import { HardDriveDownload, HardDriveUpload } from "lucide-react"
 import { formatLargeNumber } from "@src/utils/format/formatNumber"
-import { StandardTooltip } from "@src/shared/ui/tooltips/standard-tooltip"
+import { StandardTooltip } from "@src/shared/ui/tooltips/standard"
 import { ContextWindowProgress } from "@src/features/chat/topic/progress/context-window-progress"
 import { CostTooltipContent } from "./costs"
 

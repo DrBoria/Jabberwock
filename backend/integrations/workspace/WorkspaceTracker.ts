@@ -1,12 +1,13 @@
 import { stat } from "fs/promises"
-import { VirtualWorkspace } from "@features/foundation/time-machine/VirtualWorkspace"
+import { VirtualWorkspace } from "@features/foundation/time-machine"
 import * as path from "path"
 
-import { listFiles } from "@services/glob/list-files"
-import { type ProviderHandle } from "@features/foundation/webview/EventBridge"
-import { toRelativePath, getWorkspacePath } from "@utils/io/path"
-import { getBackendRootStore } from "@features/storeSingleton"
-import { getFileWatchers, getTabGroups } from "@features/foundation/capabilities/registry"
+import { listFiles } from "@services/glob"
+import { type ProviderHandle } from "@features/foundation/webview"
+import { toRelativePath, getWorkspacePath } from "@utils/io/main"
+import { getStore } from "@features/singleton"
+import { getFileWatchers, getTabGroups } from "@features/foundation/capabilities"
+import { sendWorkspaceUpdated } from "@integrations/workspace/events/actions/sendWorkspaceEvent"
 
 const MAX_INITIAL_FILES = 1_000
 
@@ -18,7 +19,7 @@ class WorkspaceTracker {
 	private updateTimer: NodeJS.Timeout | null = null
 	private prevWorkSpacePath: string | undefined
 	private resetTimer: NodeJS.Timeout | null = null
-	private virtualWorkspace = new VirtualWorkspace()
+	private virtualWorkspace = VirtualWorkspace()
 	private disposed = false
 
 	get cwd() {
@@ -103,7 +104,7 @@ class WorkspaceTracker {
 	}
 
 	private getOpenedTabsInfo() {
-		// D4e (plan section 3.2 Strategy E): opened tabs come from the host-neutral tabGroups capability
+		// D4e (plan section 3.2 Strategy E): opened tabs come from "the" host-neutral tabGroups capability
 		// slot. Server mode does not provide the slot, so the list degrades to empty.
 		const tabGroups = getTabGroups()
 		if (!tabGroups) {
@@ -131,14 +132,15 @@ class WorkspaceTracker {
 		this.resetTimer = setTimeout(async () => {
 			if (this.prevWorkSpacePath !== this.cwd) {
 				const provider = this.providerRef.deref()
-				await provider?.postMessageToWebview({
-					type: "workspaceUpdated",
-					uri: this.cwd,
-					filePaths: [],
-					openedTabs: this.getOpenedTabsInfo(),
-				})
+				if (provider) {
+					await sendWorkspaceUpdated(provider, {
+						uri: this.cwd,
+						filePaths: [],
+						openedTabs: this.getOpenedTabsInfo(),
+					})
+				}
 				// Dual-write: MST store
-				getBackendRootStore().foundation.windowManager.setWorkspaceStore({
+				getStore().foundation.windowManager.setWorkspaceStore({
 					filePaths: [],
 					openedTabs: this.getOpenedTabsInfo(),
 				})
@@ -160,14 +162,15 @@ class WorkspaceTracker {
 
 			const relativeFilePaths = Array.from(this.filePaths).map((file) => toRelativePath(file, this.cwd))
 			const provider = this.providerRef.deref()
-			provider?.postMessageToWebview({
-				type: "workspaceUpdated",
-				uri: this.cwd,
-				filePaths: relativeFilePaths,
-				openedTabs: this.getOpenedTabsInfo(),
-			})
+			if (provider) {
+				sendWorkspaceUpdated(provider, {
+					uri: this.cwd,
+					filePaths: relativeFilePaths,
+					openedTabs: this.getOpenedTabsInfo(),
+				})
+			}
 			// Dual-write: MST store
-			getBackendRootStore().foundation.windowManager.setWorkspaceStore({
+			getStore().foundation.windowManager.setWorkspaceStore({
 				filePaths: relativeFilePaths,
 				openedTabs: this.getOpenedTabsInfo(),
 			})

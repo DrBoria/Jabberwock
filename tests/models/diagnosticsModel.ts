@@ -11,7 +11,7 @@ export class DiagnosticsModel {
 	constructor(public readonly client: DevtoolClient) {}
 
 	/**
-	 * Get console logs from the devtool.
+	 * Get console logs from "the" devtool.
 	 */
 	async getConsoleLogs(level?: string, limit?: number): Promise<string> {
 		return this.client.getConsoleLogs(level, limit)

@@ -1,9 +1,9 @@
 import type { HistoryItem } from "../../task/history.ts"
 import type { ProviderSettingsEntry } from "../../settings/provider/schemas.ts"
-import type { RouterModels, ModelRecord } from "../../models/model.ts"
+import type { RouterModels, ModelRecord } from "../../models/model-main.ts"
 import type { PromptComponent, ModeConfig } from "../../models/mode.ts"
 import type { WebviewMessage } from "../../webview/message.ts"
-import type { ProviderSettings } from "../../settings/provider/combined-schemas.ts"
+import type { ProviderSettings } from "../../settings/provider/settings.ts"
 
 export interface FoundationAgentStateBackendToWebview {
 	listApiConfig: { listApiConfig?: ProviderSettingsEntry[] }

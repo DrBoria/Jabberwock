@@ -1,7 +1,7 @@
-import type { IntentBus } from "@features/intents/bus"
-import { onWebviewMessage } from "@features/foundation/webview/events/handlers/on-webview-message"
+import type { IntentBus } from "@features/intents"
+import { onWebviewMessage } from "@features/foundation"
 import { IntentStatus } from "@jabberwock/types"
-import { getBackendRootStore } from "@features/storeSingleton"
+import { getStore } from "@features/singleton"
 import {
 	AGENT_STATE_SAVE_CODE_INDEX_SETTINGS_ATOMIC,
 	AGENT_STATE_REQUEST_INDEXING_STATUS,
@@ -11,11 +11,11 @@ import {
 	AGENT_STATE_TOGGLE_WORKSPACE_INDEXING,
 	AGENT_STATE_SET_AUTO_ENABLE_DEFAULT,
 	AGENT_STATE_CLEAR_INDEX_DATA,
-} from "@features/settings/events/constants"
+} from "@features/settings"
 
-export function registerCodeIndexHandlers(_bus: IntentBus): void {
+function registerCodeIndexHandlersAGENTSTATESAVECODEINDEXSETTINGSATOMIC(): void {
 	onWebviewMessage(AGENT_STATE_SAVE_CODE_INDEX_SETTINGS_ATOMIC, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -25,9 +25,11 @@ export function registerCodeIndexHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerCodeIndexHandlersAGENTSTATEREQUESTINDEXINGSTATUS(): void {
 	onWebviewMessage(AGENT_STATE_REQUEST_INDEXING_STATUS, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -37,9 +39,11 @@ export function registerCodeIndexHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerCodeIndexHandlersAGENTSTATEREQUESTCODEINDEXSECRETSTATUS(): void {
 	onWebviewMessage(AGENT_STATE_REQUEST_CODE_INDEX_SECRET_STATUS, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -49,9 +53,11 @@ export function registerCodeIndexHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerCodeIndexHandlersAGENTSTATESTARTINDEXING(): void {
 	onWebviewMessage(AGENT_STATE_START_INDEXING, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -61,9 +67,11 @@ export function registerCodeIndexHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerCodeIndexHandlersAGENTSTATESTOPINDEXING(): void {
 	onWebviewMessage(AGENT_STATE_STOP_INDEXING, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -73,9 +81,11 @@ export function registerCodeIndexHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerCodeIndexHandlersAGENTSTATETOGGLEWORKSPACEINDEXING(): void {
 	onWebviewMessage(AGENT_STATE_TOGGLE_WORKSPACE_INDEXING, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -85,9 +95,11 @@ export function registerCodeIndexHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerCodeIndexHandlersAGENTSTATESETAUTOENABLEDEFAULT(): void {
 	onWebviewMessage(AGENT_STATE_SET_AUTO_ENABLE_DEFAULT, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -97,9 +109,11 @@ export function registerCodeIndexHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
 
+function registerCodeIndexHandlersAGENTSTATECLEARINDEXDATA(): void {
 	onWebviewMessage(AGENT_STATE_CLEAR_INDEX_DATA, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),
@@ -109,4 +123,15 @@ export function registerCodeIndexHandlers(_bus: IntentBus): void {
 			createdAt: Date.now(),
 		})
 	})
+}
+
+export function registerCodeIndexHandlers(_bus: IntentBus): void {
+	registerCodeIndexHandlersAGENTSTATESAVECODEINDEXSETTINGSATOMIC()
+	registerCodeIndexHandlersAGENTSTATEREQUESTINDEXINGSTATUS()
+	registerCodeIndexHandlersAGENTSTATEREQUESTCODEINDEXSECRETSTATUS()
+	registerCodeIndexHandlersAGENTSTATESTARTINDEXING()
+	registerCodeIndexHandlersAGENTSTATESTOPINDEXING()
+	registerCodeIndexHandlersAGENTSTATETOGGLEWORKSPACEINDEXING()
+	registerCodeIndexHandlersAGENTSTATESETAUTOENABLEDEFAULT()
+	registerCodeIndexHandlersAGENTSTATECLEARINDEXDATA()
 }

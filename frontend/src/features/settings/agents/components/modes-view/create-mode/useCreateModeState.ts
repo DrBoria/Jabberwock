@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { modeConfigSchema } from "@jabberwock/types"
 import type { ModeConfig, GroupEntry, ToolGroup } from "@jabberwock/types"
-import { availableGroups, type ModeSource } from "../types"
+import { availableGroups, type ModeSource } from "@src/features/settings/agents/components/modes-view/types"
 import { generateSlug, isNameOrSlugTaken, validateModeErrors } from "./utils"
 
 export interface UseCreateModeStateResult {

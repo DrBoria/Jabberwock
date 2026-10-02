@@ -4,13 +4,13 @@ import { useTranslation } from "react-i18next"
 import type { HistoryItem } from "@jabberwock/types"
 
 import { rootStore } from "@src/features/store"
-import { useCopyToClipboard } from "@sections/dndTextArea/utils/clipboard/clipboard"
+import { useCopyToClipboard } from "@sections/dndTextArea/utils/clipboard/main"
 import { observer } from "mobx-react-lite"
 
-import { DeleteTaskDialog } from "@src/features/history/components/dialogs/DeleteTaskDialog"
+import { DeleteTaskDialog } from "@src/features/history"
 import { ShareButton } from "@sections/dndTextArea/share-button"
 import { CopyIcon, CheckIcon, DownloadIcon, Trash2Icon, FileJsonIcon, MessageSquareCodeIcon } from "lucide-react"
-import { IconButton } from "@src/shared/ui/buttons/icon-button"
+import { IconButton } from "@src/shared/ui/buttons/icon-button-primary"
 
 interface TaskActionsProps {
 	item?: HistoryItem

@@ -3,4 +3,4 @@
  */
 export { ChatMessagesEventKeys } from "./constants"
 export type { ChatMessagesListBackendToWebview, ChatMessagesListWebviewToBackend } from "@jabberwock/types"
-export { registerOnMessagesIntents } from "./handlers"
+export { registerOnMessagesIntents } from "./handlers/register-on-messages-intents"

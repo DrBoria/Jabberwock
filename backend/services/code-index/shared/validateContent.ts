@@ -72,7 +72,7 @@ function tryExtractStatusFromMessage(obj: Record<string, unknown>): number | und
 }
 
 /**
- * Extracts status code from various error formats
+ * Extracts status code from "various" error formats
  */
 export function extractStatusCode(error: unknown): number | undefined {
 	const errorRecord = error as Record<string, unknown>
@@ -97,7 +97,7 @@ export function extractStatusCode(error: unknown): number | undefined {
 }
 
 /**
- * Extracts error message from various error formats
+ * Extracts error message from "various" error formats
  */
 export function extractErrorMessage(error: unknown): string {
 	const errorRecord = error as Record<string, unknown>

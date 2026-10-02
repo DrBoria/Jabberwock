@@ -1,14 +1,12 @@
-import type { IntentBus } from "@features/intents/bus"
-import { registerOnFocusPanelRequested } from "./ui/on-focus-panel-requested"
+import type { IntentBus } from "@features/intents"
+import { registerOnFocusPanelRequested } from "./ui/focus-panel"
 import { registerOnTabSwitch } from "./ui/on-tab-switch"
 import { registerOnActivePageResponse } from "./ui/on-active-page-response"
 import { registerOnStateRequested } from "./ui/on-state-requested"
 import { registerOnTaskAggregatedCosts } from "./task/on-task-aggregated-costs"
 import { registerOnTaskShow } from "./task/on-task-show"
-import { registerOnTaskDelete } from "./task/on-task-delete"
-import { registerOnTaskExport } from "./task/on-task-export"
-import { registerOnTaskExportCurrent } from "./task/on-task-export-current"
-import { registerOnTaskDeleteMultiple } from "./task/on-task-delete-multiple"
+import { registerOnTaskDelete, registerOnTaskDeleteMultiple } from "./task/delete"
+import { registerOnTaskExport, registerOnTaskExportCurrent } from "./task/export"
 
 /**
  * Register all foundation-related intent handlers on the bus.

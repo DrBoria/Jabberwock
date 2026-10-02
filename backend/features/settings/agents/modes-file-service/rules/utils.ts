@@ -5,9 +5,9 @@ import * as os from "os"
 import { type ModeConfig } from "@jabberwock/types"
 
 import { fileExistsAtPath } from "@utils/io/fs"
-import { getWorkspacePath } from "@utils/io/path"
+import { getWorkspacePath } from "@utils/io/main"
 
-import { type RuleFile } from "@features/settings/agents/modes-file-service/types"
+import { type RuleFile } from "@features/settings"
 
 export function hasNoValidRules(rulesFiles: RuleFile[] | undefined): boolean {
 	return !rulesFiles || !Array.isArray(rulesFiles) || rulesFiles.length === 0
@@ -24,17 +24,10 @@ export function isInvalidImportPath(relativePath: string): boolean {
 
 /**
  * Resolve the rules folder path for a custom mode based on its source scope.
+ * Delegates to the canonical `getRulesBaseDir`.
  */
 function getCustomModeRulesFolderPath(slug: string, source?: string): string {
-	if (source === "project") {
-		const workspacePath = getWorkspacePath()
-		if (workspacePath) {
-			return path.join(workspacePath, ".jabberwock", `rules-${slug}`)
-		}
-		return path.join(".jabberwock", `rules-${slug}`)
-	}
-	const homeDir = os.homedir()
-	return path.join(homeDir, ".jabberwock", `rules-${slug}`)
+	return getRulesBaseDir(source === "project" ? "project" : "global", slug)
 }
 
 /**

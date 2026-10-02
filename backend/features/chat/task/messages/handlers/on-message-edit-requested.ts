@@ -1,6 +1,6 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
-import { handleEditOperation } from "./helpers/editOperations"
+import type { IntentBus } from "@features/intents"
+import { handleEditOperation } from "./ops/editOperations/index"
 
 /**
  * Handles message.edit.requested intent — shows an edit confirmation

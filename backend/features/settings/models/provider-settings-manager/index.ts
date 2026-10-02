@@ -1,6 +1,2 @@
-export {
-	ProviderSettingsManager,
-	getProviderSettingsManager,
-	setProviderSettingsManager,
-} from "./ProviderSettingsManager"
-export type { ProviderSettingsDeps } from "./ProviderSettingsManager-types"
+export { ProviderSettingsManager, getProviderSettingsManager, setProviderSettingsManager } from "./main"
+export type { ProviderSettingsDeps } from "./types"

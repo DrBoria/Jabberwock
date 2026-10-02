@@ -1,6 +1,5 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
-
+import type { IntentBus } from "@features/intents"
 /**
  * Handles script.finished intent — triggered when a terminal script completes.
  */

@@ -1,5 +1,5 @@
 import type { ExitCodeDetails } from "@jabberwock/types"
-import { BaseTerminalProcess } from "@integrations/terminal/terminal-core/BaseTerminalProcess"
+import { BaseTerminalProcess } from "@integrations/terminal/terminal-core/process"
 import { Terminal } from "./Terminal"
 import { executeShellCommandInTerminal } from "../execute-shell-command"
 import {

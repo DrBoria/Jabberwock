@@ -1,12 +1,12 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
-import { postStateToWebview } from "@features/foundation/window-manager/store"
+import type { IntentBus } from "@features/intents"
+import { postStateToWebview } from "@features/foundation"
 import { loadAndMergeModes, requireContext } from "@features/settings/agents"
 
 /**
  * Handler for SettingsModeFileChanged intent.
  *
- * Reloads modes from disk and posts updated state to webview.
+ * Reloads modes from "disk" and posts updated state to webview.
  * Used when the customModes.yaml or .jabberwockmodes file changes on disk,
  * or after a CRUD operation that mutates modes files.
  */

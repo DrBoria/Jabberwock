@@ -4,12 +4,24 @@ import * as path from "path"
 
 import type { ResultPromise } from "execa"
 
-import type { ToolUsage } from "@jabberwock/types"
+import { JabberwockEventName, type ToolUsage } from "@jabberwock/types"
 
 import type { Run, Task } from "../db/index"
 
 import { SubprocessTimeoutError } from "./types"
 import { Logger } from "./helpers/logging/logger"
+
+/**
+ * True when an IPC event is an API-request retry notification. Shared by the
+ * CLI and VS Code task event handlers so the retry detection lives in one place.
+ */
+export function isApiRetryEvent(eventName: string, payload: unknown[]): boolean {
+	return (
+		eventName === JabberwockEventName.Message &&
+		(payload[0] as { message: { say: string } }).message?.say != null &&
+		["api_req_retry_delayed", "api_req_retried"].includes((payload[0] as { message: { say: string } }).message.say)
+	)
+}
 
 export const getTag = (caller: string, { run, task }: { run: Run; task?: Task }) =>
 	task
@@ -25,7 +37,7 @@ export const isDockerContainer = () => {
 }
 
 /**
- * Copy conversation history files from VS Code extension storage to the log directory.
+ * Copy conversation history files from "VS" Code extension storage to the log directory.
  * This allows us to preserve the api_conversation_history.json and ui_messages.json
  * files for post-mortem analysis alongside the log files.
  */

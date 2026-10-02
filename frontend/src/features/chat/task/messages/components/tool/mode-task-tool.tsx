@@ -8,7 +8,7 @@ import { observer } from "mobx-react-lite"
 import { TextButton } from "@src/shared/ui/buttons/TextButton"
 import { toolIcon } from "@src/shared/ui/icons/toolIcon"
 import { Container } from "@src/shared/ui/layouts/Container"
-import MarkdownBlock from "@src/features/foundation/components/markdown/MarkdownBlock"
+import { MarkdownBlock } from "@src/features/foundation"
 
 interface ToolRendererProps {
 	message: Notification

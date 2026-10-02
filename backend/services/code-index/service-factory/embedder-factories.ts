@@ -1,4 +1,4 @@
-import { OpenAiEmbedder } from "@services/code-index/embedders/openai"
+import { OpenAiEmbedder } from "@services/code-index/embedders/openai-embedder"
 import { CodeIndexOllamaEmbedder } from "@services/code-index/embedders/ollama"
 import { OpenAICompatibleEmbedder } from "@services/code-index/embedders/openai-compatible"
 import { GeminiEmbedder } from "@services/code-index/embedders/gemini"
@@ -16,7 +16,7 @@ export const EMBEDDER_FACTORIES: Record<string, (config: CodeIndexConfig) => IEm
 		if (!apiKey) {
 			throw new Error(t("embeddings:serviceFactory.openAiConfigMissing"))
 		}
-		return new OpenAiEmbedder({
+		return OpenAiEmbedder({
 			...config.openAiOptions,
 			openAiEmbeddingModelId: config.modelId,
 		})
@@ -25,7 +25,7 @@ export const EMBEDDER_FACTORIES: Record<string, (config: CodeIndexConfig) => IEm
 		if (!config.ollamaOptions?.ollamaBaseUrl) {
 			throw new Error(t("embeddings:serviceFactory.ollamaConfigMissing"))
 		}
-		return new CodeIndexOllamaEmbedder({
+		return CodeIndexOllamaEmbedder({
 			...config.ollamaOptions,
 			ollamaModelId: config.modelId,
 		})
@@ -36,37 +36,37 @@ export const EMBEDDER_FACTORIES: Record<string, (config: CodeIndexConfig) => IEm
 		if (!baseUrl || !apiKey) {
 			throw new Error(t("embeddings:serviceFactory.openAiCompatibleConfigMissing"))
 		}
-		return new OpenAICompatibleEmbedder(baseUrl, apiKey, config.modelId)
+		return OpenAICompatibleEmbedder(baseUrl, apiKey, config.modelId)
 	},
 	gemini: (config) => {
 		if (!config.geminiOptions?.apiKey) {
 			throw new Error(t("embeddings:serviceFactory.geminiConfigMissing"))
 		}
-		return new GeminiEmbedder(config.geminiOptions.apiKey, config.modelId)
+		return GeminiEmbedder(config.geminiOptions.apiKey, config.modelId)
 	},
 	mistral: (config) => {
 		if (!config.mistralOptions?.apiKey) {
 			throw new Error(t("embeddings:serviceFactory.mistralConfigMissing"))
 		}
-		return new MistralEmbedder(config.mistralOptions.apiKey, config.modelId)
+		return MistralEmbedder(config.mistralOptions.apiKey, config.modelId)
 	},
 	"vercel-ai-gateway": (config) => {
 		if (!config.vercelAiGatewayOptions?.apiKey) {
 			throw new Error(t("embeddings:serviceFactory.vercelAiGatewayConfigMissing"))
 		}
-		return new VercelAiGatewayEmbedder(config.vercelAiGatewayOptions.apiKey, config.modelId)
+		return VercelAiGatewayEmbedder(config.vercelAiGatewayOptions.apiKey, config.modelId)
 	},
 	bedrock: (config) => {
 		if (!config.bedrockOptions?.region) {
 			throw new Error(t("embeddings:serviceFactory.bedrockConfigMissing"))
 		}
-		return new BedrockEmbedder(config.bedrockOptions.region, config.bedrockOptions.profile, config.modelId)
+		return BedrockEmbedder(config.bedrockOptions.region, config.bedrockOptions.profile, config.modelId)
 	},
 	openrouter: (config) => {
 		if (!config.openRouterOptions?.apiKey) {
 			throw new Error(t("embeddings:serviceFactory.openRouterConfigMissing"))
 		}
-		return new OpenRouterEmbedder(
+		return OpenRouterEmbedder(
 			config.openRouterOptions.apiKey,
 			config.modelId,
 			undefined,

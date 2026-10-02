@@ -1,4 +1,4 @@
-import * as vscode from "vscode"
+import type { DisposableLike, EventLike } from "@jabberwock/types"
 import { PointStruct } from "./vector-store"
 
 /**
@@ -50,7 +50,7 @@ export interface IDirectoryScanner {
 /**
  * Interface for file watcher
  */
-export interface IFileWatcher extends vscode.Disposable {
+export interface IFileWatcher extends DisposableLike {
 	/**
 	 * Initializes the file watcher
 	 */
@@ -60,12 +60,12 @@ export interface IFileWatcher extends vscode.Disposable {
 	 * Event emitted when a batch of files begins processing.
 	 * The event payload is an array of file paths included in the batch.
 	 */
-	readonly onDidStartBatchProcessing: vscode.Event<string[]>
+	readonly onDidStartBatchProcessing: EventLike<string[]>
 
 	/**
 	 * Event emitted to report progress during batch processing.
 	 */
-	readonly onBatchProgressUpdate: vscode.Event<{
+	readonly onBatchProgressUpdate: EventLike<{
 		processedInBatch: number
 		totalInBatch: number
 		currentFile?: string
@@ -75,7 +75,7 @@ export interface IFileWatcher extends vscode.Disposable {
 	 * Event emitted when a batch of files has finished processing.
 	 * The event payload contains a summary of the batch operation.
 	 */
-	readonly onDidFinishBatchProcessing: vscode.Event<BatchProcessingSummary>
+	readonly onDidFinishBatchProcessing: EventLike<BatchProcessingSummary>
 
 	/**
 	 * Processes a file

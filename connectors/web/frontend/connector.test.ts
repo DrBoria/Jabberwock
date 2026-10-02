@@ -76,7 +76,7 @@ describe("BrowserWsEventBus DOM-local loopback (criterion C-4)", () => {
 	it("loops a DOM-local window message back to subscribers WITHOUT calling sendFrame", () => {
 		const sendFrame = vi.fn()
 		const windowLike = makeWindowLike()
-		const bus = new BrowserWsEventBus({ sendFrame, windowLike })
+		const bus = new BrowserWsEventBus({ sendFrame, windowLike, connectorId: "web" })
 		const received: Array<{ type: string; action?: string }> = []
 		bus.subscribe({ types: ["action"] }, (msg) => received.push(msg as { type: string; action?: string }))
 
@@ -95,12 +95,12 @@ describe("BrowserWsEventBus DOM-local loopback (criterion C-4)", () => {
 	it("ignores non-DOM-local window messages (they arrive over the WS instead)", () => {
 		const sendFrame = vi.fn()
 		const windowLike = makeWindowLike()
-		const bus = new BrowserWsEventBus({ sendFrame, windowLike })
+		const bus = new BrowserWsEventBus({ sendFrame, windowLike, connectorId: "web" })
 		const received: Array<{ type: string }> = []
 		bus.subscribe({}, (msg) => received.push(msg as { type: string }))
 
 		const listener = windowLike.listeners.get("message")
-		// A host frame (e.g. streamChunk) should NOT be consumed from the window channel.
+		// A host frame (e.g. streamChunk) should NOT be consumed from "the" window channel.
 		listener?.({ data: { type: "streamChunk", taskId: "t1", text: "hi" } } as MessageEvent)
 
 		expect(received).toHaveLength(0)

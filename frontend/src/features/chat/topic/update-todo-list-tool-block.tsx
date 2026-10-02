@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react"
-import { ToolUseBlock, ToolUseBlockHeader } from "@src/features/foundation/components/code/ToolUseBlock"
-import MarkdownBlock from "@src/features/foundation/components/markdown/MarkdownBlock"
+import { ToolUseBlock, ToolUseBlockHeader } from "@src/features/foundation"
+import { MarkdownBlock } from "@src/features/foundation"
 import { genId } from "./todo/utils"
 import type { TodoItem } from "./todo/utils"
 import { DeleteConfirmDialog, EditToggleButton } from "./todo/actions"

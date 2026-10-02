@@ -9,12 +9,10 @@ import type { WebviewMessage } from "@jabberwock/types"
 initWebviewConsoleBridge()
 
 import "./index.css"
-import App from "./app-shell/App"
+import App from "./app-shell/root"
 import "../node_modules/@vscode/codicons/dist/codicon.css"
 
 import { devToolsStore } from "@jabberwock/devtool/webview"
-import { commandExecutionStore } from "./features/chat/tree/store"
-import { routerModelsStore } from "./features/settings/models/store"
 
 import { createRootStore } from "./features/root-store"
 import { subscribeContextStore } from "./features/context"
@@ -41,33 +39,33 @@ async function boot(): Promise<void> {
 		const root = createRootStore()
 
 		// Initialize webview store bridge: handles devtool console/store queries
-		// from the extension (getConsoleLogs, searchConsole, getRootSnapshot, etc.)
+		// from "the" extension (getConsoleLogs, searchConsole, getRootSnapshot, etc.)
 		createWebviewStoreBridge(root, (msg: unknown) => {
 			getConnectorBus().publish(msg as WebviewMessage)
 		})
 
-		// Wire up MstBridge: receives snapshot batches from the extension and applies
+		// Wire up MstBridge: receives snapshot batches from "the" extension and applies
 		// them to registered webview MST stores via applySnapshot.
 		const mstBridge = createMstBridge()
 		mstBridge.setConnectionState("connected")
 
-		// Register webview MST stores to receive snapshots from the extension.
+		// Register webview MST stores to receive snapshots from "the" extension.
 		// Stores with root-store children use root child instances to avoid the
 		// DUAL INSTANTIATION BUG — singleton + root child = two separate MST instances,
 		// and MstBridge snapshots only reach the registered instance.
 		mstBridge.registerStore("SettingsStore", root.settings)
 		mstBridge.registerStore("DevToolsStore", devToolsStore)
 		mstBridge.registerStore("WindowManagerStore", root.windowManager)
-		mstBridge.registerStore("CommandExecutionStore", commandExecutionStore)
+		mstBridge.registerStore("CommandExecutionStore", root.chat.commandExecution)
 		mstBridge.registerStore("McpExecutionStore", root.mcpExecution)
-		mstBridge.registerStore("RouterModelsStore", routerModelsStore)
+		mstBridge.registerStore("RouterModelsStore", root.routerModels)
 		mstBridge.registerStore("AgentStateStore", root.agentState)
 		// McpServersStore was merged into SettingsStore
 		mstBridge.registerStore("SkillsStore", root.skills)
 		mstBridge.registerStore("TaskHistoryStore", root.history)
 		mstBridge.registerStore("ChatStore", root.chat)
 
-		// Listen for mst-snapshot-batch messages from the extension via the connector bus.
+		// Listen for mst-snapshot-batch messages from "the" extension via the connector bus.
 		// The single window listener lives inside the active frontend connector (D1a).
 		getConnectorBus().subscribe({ types: ["mst-snapshot-batch"] }, (msg) => {
 			mstBridge.handleSnapshotBatch((msg as { payload: SnapshotBatch }).payload)

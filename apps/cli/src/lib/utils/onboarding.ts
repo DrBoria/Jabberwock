@@ -4,7 +4,7 @@ import { render } from "ink"
 import { type OnboardingResult, OnboardingProviderChoice } from "@/types/index.js"
 import { login } from "@/commands/index.js"
 import { saveSettings } from "@/lib/storage/index.js"
-import { OnboardingScreen } from "../../ui/components/onboarding/index.js"
+import { OnboardingScreen } from "../../ui/components/onboarding/OnboardingScreen.js"
 
 export async function runOnboarding(): Promise<OnboardingResult> {
 	return new Promise<OnboardingResult>((resolve) => {

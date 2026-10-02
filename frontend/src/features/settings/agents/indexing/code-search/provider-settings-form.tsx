@@ -1,15 +1,15 @@
 import type { EmbedderProvider } from "@jabberwock/types"
 
-import { OpenaiSettingsForm } from "./code-index-provider-forms/openai/OpenaiSettingsForm"
+import { OpenaiSettingsForm } from "./code-index-provider-forms/openai/main"
 import { OllamaSettingsForm } from "./code-index-provider-forms/providers/OllamaSettingsForm"
-import { OpenaiCompatibleSettingsForm } from "./code-index-provider-forms/openai/OpenaiCompatibleSettingsForm"
+import { OpenaiCompatibleSettingsForm } from "./code-index-provider-forms/openai/compatible"
 import { GeminiSettingsForm } from "./code-index-provider-forms/providers/GeminiSettingsForm"
 import { MistralSettingsForm } from "./code-index-provider-forms/providers/MistralSettingsForm"
 import { VercelAiGatewaySettingsForm } from "./code-index-provider-forms/providers/VercelAiGatewaySettingsForm"
 import { BedrockSettingsForm } from "./code-index-provider-forms/providers/BedrockSettingsForm"
 import { OpenrouterSettingsForm } from "./code-index-provider-forms/providers/OpenrouterSettingsForm"
 
-import type { CodeIndexFormProps } from "./code-index-popover-logic/code-index-popover-types"
+import type { CodeIndexFormProps } from "./popover-logic/types"
 
 interface ProviderSettingsFormProps extends CodeIndexFormProps {
 	openRouterEmbeddingProviders?: Record<string, { label: string }>

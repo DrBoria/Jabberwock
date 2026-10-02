@@ -9,7 +9,7 @@ import type {
 	IConnectorEventBus,
 	DisposableLike,
 } from "@jabberwock/types"
-import { getConnectorBus } from "../../connector-bus"
+import { getConnectorBus } from "@src/connector-bus"
 import { eventConstants, DEFAULT_MODES } from "@jabberwock/types"
 
 import { extStateDefaults } from "./defaults"
@@ -18,20 +18,23 @@ import {
 	shouldProtectStaleMessages,
 	handleDomAction,
 	handleStreamChunk,
+	handlePrefillProgress,
 	handleExtensionMessageDispatchMap,
 } from "./helpers"
-import { createExtensionSetters } from "./setters"
+import { createExtensionSetters } from "./extension-setters"
 import type { WindowWithDevtool } from "./types"
-import { ChatStore } from "../chat/store"
-import { SettingsStore } from "../settings/settings-store"
-import { MarketplaceStore } from "../marketplace/store"
-import { CloudStore } from "../cloud/store"
-import { TaskHistoryStore } from "../history/store"
-import { WindowManagerStore } from "../foundation/window-manager/store"
-import { IntentStoreModel } from "../intents"
-import { McpExecutionStore } from "../chat/mcp/store"
-import { SkillsStore } from "../settings/skills/store"
-import { AgentStateStore } from "../settings/agents/store"
+import { ChatStore } from "@src/features/chat/store"
+import { SettingsStore } from "@src/features/settings/store"
+import { MarketplaceStore } from "@src/features/marketplace/store"
+import { CloudStore } from "@src/features/cloud/store"
+import { TaskHistoryStore } from "@src/features/history/store"
+import { WindowManagerStore } from "@src/features/foundation/window-manager/store"
+import { IntentStoreModel } from "@src/features/intents"
+import { McpExecutionStore } from "@src/features/chat/mcp/store"
+import { SkillsStore } from "@src/features/settings/skills/store"
+import { AgentStateStore } from "@src/features/settings/agents/store"
+import { RouterModelsStore } from "@src/features/settings/models/store"
+import { ContextViewportStore } from "@src/features/context/store"
 
 const postMsg = (msg: WebviewMessage) => getConnectorBus().publish(msg)
 
@@ -156,6 +159,25 @@ export const RootStore = types
 		skills: types.optional(SkillsStore, () => SkillsStore.create({})),
 		agentState: types.optional(AgentStateStore, () => AgentStateStore.create({})),
 		intentStore: types.optional(IntentStoreModel, () => IntentStoreModel.create({})),
+		routerModels: types.optional(RouterModelsStore, () =>
+			RouterModelsStore.create({
+				routerModels: {
+					openrouter: {},
+					"vercel-ai-gateway": {},
+					litellm: {},
+					requesty: {},
+					jabberwock: {},
+					unbound: {},
+					ollama: {},
+					lmstudio: {},
+				},
+				ollamaModels: {},
+				lmStudioModels: {},
+				openAiModels: [],
+				vsCodeLmModels: [],
+			}),
+		),
+		contextViewport: types.optional(ContextViewportStore, () => ContextViewportStore.create()),
 	})
 	.actions((self) => ({
 		mergeExtensionState(newState: Partial<ExtensionState>) {
@@ -179,6 +201,16 @@ export const RootStore = types
 			}
 
 			rest.messages = finalizePartialOnCancel(newState, prev, rest.messages)
+
+			// Implicit-completion path: a clean task finish emits a final `say`
+			// message with no blocking ask, so currentAsk stays "" and the send
+			// button's sendingDisabled (set true on send) is never reset — the
+			// input stays locked. When isRunning goes true→false with no active
+			// ask, unlock the input. (Blocking asks like api_req_failed keep
+			// sendingDisabled true because currentAsk is non-empty.)
+			if (newState.isRunning === false && prev.isRunning === true && self.chat.currentAsk === "") {
+				self.chat.textArea.setSendingDisabled(false)
+			}
 
 			self.extensionState = {
 				...rest,
@@ -216,6 +248,7 @@ export const RootStore = types
 			const extMessage = message as ExtensionMessage
 			if (handleDomAction(extMessage, self.chat)) return
 			if (handleStreamChunk(extMessage, self.chat)) return
+			if (handlePrefillProgress(extMessage, self.chat)) return
 			const intentType = handleExtensionMessageDispatchMap[extMessage.type]
 			if (intentType)
 				self.intentStore.createIntent({

@@ -1,6 +1,6 @@
 import * as vscode from "vscode"
-import { Package } from "@shared/package"
-import { EventBridge } from "@features/foundation/webview/EventBridge"
+import { Package } from "@shared/core/package"
+import { EventBridge, sideBarId } from "@features/foundation/webview/EventBridge"
 
 /**
  * Focus the active panel (either tab or sidebar)
@@ -22,6 +22,6 @@ export async function focusPanel(
 		panel.reveal(vscode.ViewColumn.Active, false)
 	} else if (panel === sidebarPanel) {
 		// For sidebar panels, focus the sidebar
-		await vscode.commands.executeCommand(`${EventBridge.sideBarId}.focus`)
+		await vscode.commands.executeCommand(`${sideBarId}.focus`)
 	}
 }

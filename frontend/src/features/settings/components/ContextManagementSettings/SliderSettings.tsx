@@ -1,6 +1,6 @@
 import { useAppTranslation } from "@/i18n/TranslationContext"
 import { Slider } from "@src/shared/ui/inputs/slider"
-import { SearchableSetting } from "../shared/SearchableSetting"
+import { SearchableSetting } from "@src/features/settings/components/shared/SearchableSetting"
 
 interface SliderSettingConfig {
 	settingId: string

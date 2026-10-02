@@ -1,14 +1,14 @@
-import { onWebviewMessage } from "@features/foundation/webview/events/handlers/on-webview-message"
+import { onWebviewMessage } from "@features/foundation"
 import { IntentStatus } from "@jabberwock/types"
-import { getBackendRootStore } from "@features/storeSingleton"
-import { WINDOW_MANAGER_SHOW_TASK_WITH_ID } from "@features/foundation/window-manager/events/constants"
+import { getStore } from "@features/singleton"
+import { WINDOW_MANAGER_SHOW_TASK_WITH_ID } from "@features/foundation"
 
 /**
  * Handles SHOW_TASK_WITH_ID event — creates an intent to show a task by ID.
  */
 export function registerOnShowTask(): void {
 	onWebviewMessage(WINDOW_MANAGER_SHOW_TASK_WITH_ID, (_provider, message) => {
-		const store = getBackendRootStore()
+		const store = getStore()
 		if (!store) return
 		store.intentStore.createIntent({
 			id: crypto.randomUUID(),

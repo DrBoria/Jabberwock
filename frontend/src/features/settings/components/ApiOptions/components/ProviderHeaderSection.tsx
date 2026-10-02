@@ -2,8 +2,8 @@ import type { ProviderName } from "@jabberwock/types"
 import { VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 import { BookOpenText } from "lucide-react"
 import { SearchableSelect } from "@src/shared/ui/selects/searchable-select"
-import { JabberwockBalanceDisplay } from "../../providers/balance-displays/JabberwockBalanceDisplay"
-import type { ProviderHeaderSectionProps } from "../types"
+import { JabberwockBalanceDisplay } from "@src/features/settings/components/providers/balance-displays/JabberwockBalanceDisplay"
+import type { ProviderHeaderSectionProps } from "@src/features/settings/components/ApiOptions/types"
 
 export const ProviderHeaderSection = ({
 	t,

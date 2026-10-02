@@ -1,7 +1,7 @@
 import type { ResultPromise } from "execa"
 
 import { Logger } from "./logger"
-import type { MutableRef } from "../taskEventHandlerTypes"
+import type { MutableRef } from "../task-event-handler/types"
 
 export function setupStdioLogging(
 	subprocess: ResultPromise,

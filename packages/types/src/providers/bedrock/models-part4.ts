@@ -1,4 +1,4 @@
-import type { ModelInfo } from "../../models/model.ts"
+import type { ModelInfo } from "../../models/model-main.ts"
 
 export const bedrockModelsPart4 = {
 	"meta.llama3-70b-instruct-v1:0": {

@@ -1,5 +1,5 @@
 import crypto from "crypto"
-import type { IIntentStore, IIntentPayload } from "@features/intents/store"
+import type { IIntentStore, IIntentPayload } from "@features/intents"
 import { IntentConstants } from "@intentConstants"
 import { IntentStatus } from "@jabberwock/types"
 

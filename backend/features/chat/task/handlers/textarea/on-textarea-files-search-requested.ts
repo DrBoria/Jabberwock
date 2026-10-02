@@ -1,7 +1,8 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
+import type { IntentBus } from "@features/intents"
 import { searchWorkspaceFiles } from "@services/search/file-search"
 import { filterPaths, readIgnoreFile } from "@utils/ignore"
+import { sendFileSearchResults } from "@features/chat"
 
 /**
  * Handles textarea.files.search.requested intent — searches workspace files.
@@ -19,12 +20,7 @@ export function registerOnTextareaFilesSearchRequested(bus: IntentBus): void {
 		const workspacePath = currentCline?.cwd
 
 		if (!workspacePath) {
-			await provider.postMessageToWebview({
-				type: "fileSearchResults",
-				results: [],
-				requestId,
-				error: "No workspace path available",
-			})
+			await sendFileSearchResults(provider, { results: [], requestId, error: "No workspace path available" })
 			return
 		}
 
@@ -50,20 +46,11 @@ export function registerOnTextareaFilesSearchRequested(bus: IntentBus): void {
 				filteredResults = results.filter((r) => allowedPaths.includes(r.path))
 			}
 
-			await provider.postMessageToWebview({
-				type: "fileSearchResults",
-				results: filteredResults,
-				requestId,
-			})
+			await sendFileSearchResults(provider, { results: filteredResults, requestId })
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
 
-			await provider.postMessageToWebview({
-				type: "fileSearchResults",
-				results: [],
-				error: errorMessage,
-				requestId,
-			})
+			await sendFileSearchResults(provider, { results: [], error: errorMessage, requestId })
 		}
 	})
 }

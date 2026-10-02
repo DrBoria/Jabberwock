@@ -7,11 +7,11 @@ import { rootStore } from "@src/features/store"
 import { cn } from "@src/lib/utils"
 import { useAppTranslation } from "@/i18n/TranslationContext"
 
-import { Button } from "@src/shared/ui/buttons/button"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
 import { PopoverTrigger } from "@src/shared/ui/overlays/popover"
-import { StandardTooltip } from "@src/shared/ui/tooltips/standard-tooltip"
+import { StandardTooltip } from "@src/shared/ui/tooltips/standard"
 
-import { CodeIndexPopover } from "./code-search/code-index-popover-components/code-index-popover"
+import { CodeIndexPopover } from "./code-search/popover-ui/main"
 
 interface IndexingStatusBadgeProps {
 	className?: string

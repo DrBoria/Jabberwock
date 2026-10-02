@@ -1,6 +1,6 @@
 import type { HTMLAttributes } from "react"
 import type { TerminalOutputPreviewSize } from "@jabberwock/types"
-import type { SetCachedStateField } from "../shared/types"
+import type { SetCachedStateField } from "@src/features/settings/components/shared/types"
 
 export type TerminalSettingsProps = HTMLAttributes<HTMLDivElement> & {
 	terminalOutputPreviewSize?: TerminalOutputPreviewSize

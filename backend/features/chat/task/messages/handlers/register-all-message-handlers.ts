@@ -1,4 +1,4 @@
-import type { IntentBus } from "@features/intents/bus"
+import type { IntentBus } from "@features/intents"
 import { registerAllUserMessageHandlers } from "./user"
 import { registerAllAgentMessageHandlers } from "./agent"
 import { registerAllMcpMessageHandlers } from "./mcp"

@@ -1,8 +1,8 @@
 import { Anthropic } from "@anthropic-ai/sdk"
 import * as fs from "fs/promises"
 import type { IUri } from "@jabberwock/types"
-import { getUiDialogs } from "@features/foundation/capabilities/registry"
-import { getHostContext } from "@features/foundation/host-context/context"
+import { getUiDialogs } from "@features/foundation/capabilities"
+import { getHostContext } from "@features/foundation"
 
 // Extended content block types to support new Anthropic API features
 interface ReasoningBlock {

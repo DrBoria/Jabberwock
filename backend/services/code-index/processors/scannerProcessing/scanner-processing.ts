@@ -6,7 +6,7 @@ import {
 	buildBatchPoints,
 	handleBatchProcessingError,
 	reportBatchFailure,
-} from "@services/code-index/processors/scannerHelpers"
+} from "@services/code-index/processors/errors"
 
 import { deleteExistingPoints } from "./scanner-file-utils"
 

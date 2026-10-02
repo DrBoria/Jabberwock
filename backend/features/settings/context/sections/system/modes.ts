@@ -1,4 +1,4 @@
-import type { IExtensionContextView } from "@features/foundation/host-context/context"
+import type { IExtensionContextView } from "@features/foundation"
 
 import type { ModeConfig } from "@jabberwock/types"
 
@@ -10,7 +10,7 @@ export async function getModesSection(context: IExtensionContextView): Promise<s
 	// Make sure path gets created
 	await ensureSettingsDirectoryExists(context)
 
-	// Get all modes with their overrides from extension state
+	// Get all modes with their overrides from "extension" state
 	const allModes = await getAllModesWithPrompts(context)
 
 	const modesContent = `====

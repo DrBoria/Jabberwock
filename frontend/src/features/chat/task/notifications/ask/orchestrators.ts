@@ -1,5 +1,5 @@
 import type { Notification, AudioType } from "@jabberwock/types"
-import type { IChatUIStore } from "../../../store"
+import type { IChatUIStore } from "@src/features/chat/store"
 import { getApiMetrics } from "@shared/api/getApiMetrics"
 import { combineApiRequests } from "@shared/api/combineApiRequests"
 import { combineCommandSequences } from "@shared/combineCommandSequences"

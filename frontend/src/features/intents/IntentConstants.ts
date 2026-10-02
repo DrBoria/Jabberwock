@@ -95,7 +95,7 @@ export const IntentConstants = {
 		LOG_WRITE: "log.write",
 	},
 
-	// Context graph intents (ICG-C2 section 8.1): values mirror contextEventNames from @jabberwock/types so both sides register identical strings and priority buckets.
+	// Context graph intents (ICG-C2 section 8.1): values mirror contextEventNames from "@jabberwock/types" so both sides register identical strings and priority buckets.
 	context: {
 		COMPRESS_REQUESTED: contextEventNames.compressRequested,
 		COMPRESS_COMPLETED: contextEventNames.compressCompleted,
@@ -122,7 +122,7 @@ export type IntentConstantsValue =
 
 /**
  * All intent type constants available on the frontend.
- * Spreads the shared IntentType from @jabberwock/types and adds
+ * Spreads the shared IntentType from "@jabberwock/types" and adds
  * frontend-specific types.
  *
  * Note: FrontendIntentType includes ALL string constants — both shared

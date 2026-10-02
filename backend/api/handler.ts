@@ -1,9 +1,22 @@
 import { Anthropic } from "@anthropic-ai/sdk"
 import OpenAI from "openai"
 
-import { isRetiredProvider, type ProviderSettings, type ModelInfo } from "@jabberwock/types"
+import {
+	isRetiredProvider,
+	type ProviderSettings,
+	type ModelInfo,
+	sambaNovaDefaultModelId,
+	sambaNovaModels,
+	fireworksDefaultModelId,
+	fireworksModels,
+	basetenDefaultModelId,
+	basetenModels,
+} from "@jabberwock/types"
+
+import type { ApiHandlerOptions } from "@shared/api"
 
 import { ApiStream } from "./transform/stream"
+import { createOpenAiCompatibleHandler } from "./providers/openai-base/compat-handler-factory"
 
 import {
 	AnthropicHandler,
@@ -25,13 +38,10 @@ import {
 	XAIHandler,
 	LiteLLMHandler,
 	QwenCodeHandler,
-	SambaNovaHandler,
 	ZAiHandler,
-	FireworksHandler,
 	RooHandler,
 	VercelAiGatewayHandler,
 	MiniMaxHandler,
-	BasetenHandler,
 } from "./providers"
 import { NativeOllamaHandler } from "./providers/native-ollama"
 import { getProvider } from "./providers/registry"
@@ -81,7 +91,7 @@ export interface ApiHandlerCreateMessageMetadata {
 	 * Optional array of tool names that the model is allowed to call.
 	 * When provided, all tool definitions are passed to the model (so it can reference
 	 * historical tool calls), but only the specified tools can actually be invoked.
-	 * This is used when switching modes to prevent model errors from missing tool
+	 * This is used when switching modes to prevent model errors from "missing" tool
 	 * definitions while still restricting callable tools to the current mode's permissions.
 	 * Only applies to providers that support function calling restrictions (e.g., Gemini).
 	 */
@@ -121,7 +131,7 @@ const providerHandlerMap: Record<string, ProviderConstructor | ((options: Record
 	bedrock: AwsBedrockHandler,
 	vertex: (options) => {
 		const opts = options as ProviderSettings
-		return opts.apiModelId?.startsWith("claude") ? new AnthropicVertexHandler(options) : new VertexHandler(options)
+		return opts.apiModelId?.startsWith("claude") ? AnthropicVertexHandler(options) : VertexHandler(options)
 	},
 	openai: OpenAiHandler,
 	ollama: NativeOllamaHandler,
@@ -138,13 +148,37 @@ const providerHandlerMap: Record<string, ProviderConstructor | ((options: Record
 	"fake-ai": FakeAIHandler,
 	xai: XAIHandler,
 	litellm: LiteLLMHandler,
-	sambanova: SambaNovaHandler,
+	sambanova: (options) =>
+		createOpenAiCompatibleHandler(options as ApiHandlerOptions, {
+			providerName: "SambaNova",
+			baseURL: "https://api.sambanova.ai/v1",
+			apiKey: (options as ApiHandlerOptions).sambaNovaApiKey,
+			defaultProviderModelId: sambaNovaDefaultModelId,
+			providerModels: sambaNovaModels,
+			defaultTemperature: 0.7,
+		}),
 	zai: ZAiHandler,
-	fireworks: FireworksHandler,
+	fireworks: (options) =>
+		createOpenAiCompatibleHandler(options as ApiHandlerOptions, {
+			providerName: "Fireworks",
+			baseURL: "https://api.fireworks.ai/inference/v1",
+			apiKey: (options as ApiHandlerOptions).fireworksApiKey,
+			defaultProviderModelId: fireworksDefaultModelId,
+			providerModels: fireworksModels,
+			defaultTemperature: 0.5,
+		}),
 	jabberwock: RooHandler,
 	"vercel-ai-gateway": VercelAiGatewayHandler,
 	minimax: MiniMaxHandler,
-	baseten: BasetenHandler,
+	baseten: (options) =>
+		createOpenAiCompatibleHandler(options as ApiHandlerOptions, {
+			providerName: "Baseten",
+			baseURL: "https://inference.baseten.co/v1",
+			apiKey: (options as ApiHandlerOptions).basetenApiKey,
+			defaultProviderModelId: basetenDefaultModelId,
+			providerModels: basetenModels,
+			defaultTemperature: 0.5,
+		}),
 }
 
 export function buildApiHandler(configuration: ProviderSettings): ApiHandler {
@@ -165,5 +199,5 @@ export function buildApiHandler(configuration: ProviderSettings): ApiHandler {
 		return (handlerFactory as (options: Record<string, unknown>) => ApiHandler)(options)
 	}
 
-	return new AnthropicHandler(options)
+	return AnthropicHandler(options)
 }

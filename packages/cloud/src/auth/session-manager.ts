@@ -2,11 +2,11 @@ import type { ExtensionContext } from "vscode"
 
 import type { AuthState, CloudUserInfo } from "@jabberwock/types"
 
-import { clerkCreateSessionToken as clerkCreateSessionTokenHelper, clerkMe as clerkMeHelper } from "./clerk-api.ts"
+import { clerkCreateSessionToken as clerkCreateSessionTokenHelper, clerkMe as clerkMeHelper } from "./clerk-api/main.ts"
 import { InvalidClientTokenError } from "../errors.ts"
 import { RefreshTimer } from "../RefreshTimer.ts"
-import type { AuthCredentials } from "./web-auth-schemas.ts"
-import { clearCredentials, loadCredentials } from "./web-auth-helpers.ts"
+import type { AuthCredentials } from "./web-auth/schemas.ts"
+import { clearCredentials, loadCredentials } from "./web-auth/helpers.ts"
 
 export interface AuthSessionManagerDeps {
 	context: ExtensionContext

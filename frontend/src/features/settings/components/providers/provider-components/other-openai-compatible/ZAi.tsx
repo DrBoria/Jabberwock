@@ -1,12 +1,11 @@
-import { useCallback } from "react"
+import { useHandleInputChange } from "@src/features/settings/components/providers/provider-components/use-handle-input-change"
 import { VSCodeTextField, VSCodeDropdown, VSCodeOption } from "@vscode/webview-ui-toolkit/react"
 
 import { type ProviderSettings, zaiApiLineConfigs, zaiApiLineSchema } from "@jabberwock/types"
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { VSCodeButtonLink } from "@src/features/foundation/components/ui/button/VSCodeButtonLink"
+import { VSCodeButtonLink } from "@src/features/foundation"
 
-import { inputEventTransform } from "../../../shared/transforms"
 import { cn } from "@/lib/utils"
 
 type ZAiProps = {
@@ -17,18 +16,7 @@ type ZAiProps = {
 export const ZAi = ({ apiConfiguration, setApiConfigurationField }: ZAiProps) => {
 	const { t } = useAppTranslation()
 
-	const handleInputChange = useCallback(
-		<K extends keyof ProviderSettings, E>(field: K, transform?: (event: E) => ProviderSettings[K]) =>
-			(event: E | Event) => {
-				setApiConfigurationField(
-					field,
-					transform
-						? transform(event as E)
-						: (inputEventTransform(event as { target: HTMLInputElement }) as ProviderSettings[K]),
-				)
-			},
-		[setApiConfigurationField],
-	)
+	const handleInputChange = useHandleInputChange(setApiConfigurationField)
 
 	return (
 		<>

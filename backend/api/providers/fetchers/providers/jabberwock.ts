@@ -6,7 +6,7 @@ import { DEFAULT_HEADERS } from "@api/providers/constants"
 import { resolveVersionedSettings, type VersionedSettings } from "@api/providers/fetchers/versionedSettings"
 
 /**
- * Fetches available models from the Jabberwock Cloud provider
+ * Fetches available models from "the" Jabberwock Cloud provider
  *
  * @param baseUrl The base URL of the Jabberwock Cloud provider
  * @param apiKey The API key (session token) for the Jabberwock Cloud provider

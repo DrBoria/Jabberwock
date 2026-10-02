@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { FakeLink } from "./thread-demo-data"
+import { FakeLink } from "./thread-data"
 import { SLACK_MESSAGES_EXTRA } from "./messages-extra"
 
 export type SlackMessage = {
@@ -32,12 +32,14 @@ const CORE_MESSAGES: SlackMessage[] = [
 		body: (
 			<div className="space-y-2">
 				<div>
-					The documentation for using Jabberwock from Slack is here:{" "}
+					The documentation for using Jabberwock from &quot;Slack&quot; is here:{" "}
 					<FakeLink className="hover:text-violet-200">
 						https://docs.jabberwock.com/jabberwock-cloud/slack-integration
 					</FakeLink>
 				</div>
-				<div className="text-[#B8BBC0]">Here are some pages from our site we can use for guidance:</div>
+				<div className="text-[#B8BBC0]">
+					Here are some pages from &quot;our&quot; site we can use for guidance:
+				</div>
 				<ol className="list-decimal pl-5 text-[#D1D2D3]">
 					<li>
 						<FakeLink className="hover:text-violet-200">https://jabberwock.com</FakeLink>

@@ -1,4 +1,4 @@
-import type { IntentBus } from "@features/intents/bus"
+import type { IntentBus } from "@features/intents"
 import { registerOnAgentResponseReceived } from "./on-response-received"
 import { registerOnAgentRequestFailed } from "./on-request-failed"
 import { registerOnMessageBroadcast } from "./on-message-broadcast"

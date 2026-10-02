@@ -1,5 +1,5 @@
 import { buildDocLink } from "@/utils/misc/docLinks"
-import { PROVIDERS } from "../../shared/constants"
+import { PROVIDERS } from "@src/features/settings/components/shared/constants"
 
 export function getDocLinkForProvider(selectedProvider: string | undefined): { url: string; name: string } | undefined {
 	const provider = PROVIDERS.find(({ value }) => value === selectedProvider)

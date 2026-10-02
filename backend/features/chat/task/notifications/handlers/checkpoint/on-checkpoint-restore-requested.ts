@@ -1,10 +1,16 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
+import type { IntentBus } from "@features/intents"
 import { checkoutRestorePayloadSchema } from "@jabberwock/types"
+
 import { when } from "mobx"
+
 import { t } from "@i18n"
-import { checkpointRestore } from "@features/foundation/time-machine/actions/checkpoints"
-import type { ITaskModel } from "@features/chat/task/store"
+
+import { checkpointRestore } from "@features/foundation"
+
+import type { ITaskModel } from "@features/chat/task"
+
+import { publishNotificationError } from "@features/foundation"
 
 /**
  * Handles notification.checkpoint.restore.requested intent — restores a checkpoint.
@@ -35,5 +41,3 @@ export function registerOnCheckpointRestoreRequested(bus: IntentBus): void {
 		}
 	})
 }
-
-import { publishNotificationError } from "@features/foundation/capabilities/notifications"

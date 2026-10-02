@@ -18,10 +18,6 @@ export interface CommandFileInfo {
 	resolvedPath: string
 }
 
-function isMarkdownFile(filename: string): boolean {
-	return filename.toLowerCase().endsWith(".md")
-}
-
 /**
  * Recursively resolve a symbolic link and collect command file info
  */
@@ -44,7 +40,7 @@ export async function resolveCommandSymLink(
 		const stats = await fs.lstat(resolvedTarget)
 		if (stats.isFile()) {
 			// Only include markdown files
-			if (isMarkdownFile(resolvedTarget)) {
+			if (resolvedTarget.toLowerCase().endsWith(".md")) {
 				// For symlinks to files, store the symlink path as original and target as resolved
 				fileInfo.push({ originalPath: symlinkPath, resolvedPath: resolvedTarget })
 			}
@@ -82,7 +78,7 @@ export async function resolveCommandDirectoryEntry(
 	const fullPath = path.resolve(entry.parentPath || dirPath, entry.name)
 	if (entry.isFile()) {
 		// Only include markdown files
-		if (isMarkdownFile(entry.name)) {
+		if (entry.name.toLowerCase().endsWith(".md")) {
 			// Regular file - both original and resolved paths are the same
 			fileInfo.push({ originalPath: fullPath, resolvedPath: fullPath })
 		}
@@ -117,7 +113,7 @@ export async function tryResolveSymlinkedCommand(filePath: string): Promise<stri
 }
 
 /**
- * Try to load a specific command from a directory (supports symlinks)
+ * Try to load a specific command from "a" directory (supports symlinks)
  */
 export async function tryLoadCommand(
 	dirPath: string,

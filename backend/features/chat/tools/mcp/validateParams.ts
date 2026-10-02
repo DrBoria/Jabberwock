@@ -1,10 +1,10 @@
-import type { ITaskModel } from "@features/chat/task/store"
-import { formatResponse } from "@features/settings/context/responses"
+import type { ITaskModel } from "@features/chat/task"
+import { formatResponse } from "@features/settings"
 import { getMcpServerManager } from "@services/mcp/core/McpServerManager"
 import { t } from "@i18n"
 import { toolNamesMatch } from "@utils/mcp"
-import { systemBroadcast } from "@features/chat/task/messages/actions/say"
-import { sayAndCreateMissingParamError } from "@features/chat/task/messages/actions/command/sayAndCreateMissingParamError"
+import { emitBroadcast } from "@features/chat/task/messages/actions/say"
+import { sayAndCreateMissingParamError } from "@features/chat/task/messages/actions/command"
 
 export interface UseMcpToolParams {
 	server_name: string
@@ -49,7 +49,8 @@ export async function validateParams(
 		if (typeof params.arguments !== "object" || params.arguments === null || Array.isArray(params.arguments)) {
 			task._state.setConsecutiveMistakeCount(task._state.consecutiveMistakeCount + 1)
 			task.recordToolError("use_mcp_tool")
-			await systemBroadcast(
+			await emitBroadcast(
+				"system",
 				task.taskId,
 				"error",
 				t("mcp:errors.invalidJsonArgument", { toolName: params.tool_name }),
@@ -104,7 +105,8 @@ export async function validateToolExists(
 
 			task._state.setConsecutiveMistakeCount(task._state.consecutiveMistakeCount + 1)
 			task.recordToolError("use_mcp_tool")
-			await systemBroadcast(
+			await emitBroadcast(
+				"system",
 				task.taskId,
 				"error",
 				t("mcp:errors.serverNotFound", { serverName, availableServers }),
@@ -120,7 +122,8 @@ export async function validateToolExists(
 			// No tools available on this server
 			task._state.setConsecutiveMistakeCount(task._state.consecutiveMistakeCount + 1)
 			task.recordToolError("use_mcp_tool")
-			await systemBroadcast(
+			await emitBroadcast(
+				"system",
 				task.taskId,
 				"error",
 				t("mcp:errors.toolNotFound", {
@@ -144,7 +147,8 @@ export async function validateToolExists(
 
 			task._state.setConsecutiveMistakeCount(task._state.consecutiveMistakeCount + 1)
 			task.recordToolError("use_mcp_tool")
-			await systemBroadcast(
+			await emitBroadcast(
+				"system",
 				task.taskId,
 				"error",
 				t("mcp:errors.toolNotFound", {
@@ -167,7 +171,8 @@ export async function validateToolExists(
 
 			task._state.setConsecutiveMistakeCount(task._state.consecutiveMistakeCount + 1)
 			task.recordToolError("use_mcp_tool")
-			await systemBroadcast(
+			await emitBroadcast(
+				"system",
 				task.taskId,
 				"error",
 				t("mcp:errors.toolDisabled", {

@@ -1,1 +1,1 @@
-export { MultiPointStrategy } from "./multi-point-strategy"
+export { MultiPointStrategy } from "./main"

@@ -36,45 +36,48 @@ function generateToastId(): string {
  * MobX store for toast queue management.
  * Manages a queue of toasts with auto-expiry support.
  */
-class ToastStore {
-	/** Queue of active toasts (FIFO - first one is displayed) */
-	toasts: Toast[] = []
+export function createToastStore() {
+	const store = makeAutoObservable({
+		/** Queue of active toasts (FIFO - first one is displayed) */
+		toasts: [] as Toast[],
 
-	constructor() {
-		makeAutoObservable(this)
-	}
+		/**
+		 * Add a toast to the queue.
+		 * Replaces any existing toasts so the most recent message shows immediately.
+		 */
+		addToast(message: string, type: ToastType = "info", duration: number = DEFAULT_DURATION): string {
+			const id = generateToastId()
+			const toast: Toast = {
+				id,
+				message,
+				type,
+				duration,
+				createdAt: Date.now(),
+			}
 
-	/**
-	 * Add a toast to the queue.
-	 * Replaces any existing toasts so the most recent message shows immediately.
-	 */
-	addToast(message: string, type: ToastType = "info", duration: number = DEFAULT_DURATION): string {
-		const id = generateToastId()
-		const toast: Toast = {
-			id,
-			message,
-			type,
-			duration,
-			createdAt: Date.now(),
-		}
+			store.toasts = [toast]
 
-		this.toasts = [toast]
+			return id
+		},
 
-		return id
-	}
+		/** Remove a specific toast by ID */
+		removeToast(id: string): void {
+			store.toasts = store.toasts.filter((t) => t.id !== id)
+		},
 
-	/** Remove a specific toast by ID */
-	removeToast(id: string): void {
-		this.toasts = this.toasts.filter((t) => t.id !== id)
-	}
+		/** Clear all toasts */
+		clearToasts(): void {
+			store.toasts = []
+		},
+	})
 
-	/** Clear all toasts */
-	clearToasts(): void {
-		this.toasts = []
-	}
+	return store
 }
 
-const toastStore = new ToastStore()
+/** ToastStore instance type */
+export type ToastStore = ReturnType<typeof createToastStore>
+
+const toastStore = createToastStore()
 
 /**
  * Hook for displaying and managing toasts with auto-expiry.

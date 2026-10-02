@@ -1,4 +1,4 @@
-import type { IntentBus } from "@features/intents/bus"
+import type { IntentBus } from "@features/intents"
 import { registerOnAskResponseReceived } from "./ask/on-ask-response-received"
 import { registerOnNotificationPersist } from "./notification/on-notification-persist"
 import { registerOnNotificationAdd } from "./notification/on-notification-add"

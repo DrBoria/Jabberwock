@@ -2,7 +2,7 @@ import path, { resolve } from "path"
 import fs from "fs"
 import { execSync } from "child_process"
 
-import { defineConfig, type PluginOption, type Plugin } from "vite"
+import { defineConfig, type PluginOption, type Plugin } from "vitest/config"
 import react from "@vitejs/plugin-react"
 import tailwindcss from "@tailwindcss/vite"
 
@@ -122,6 +122,11 @@ export default defineConfig(({ mode }) => {
 
 	return {
 		plugins,
+		test: {
+			environment: "jsdom",
+			globals: true,
+			include: ["src/**/*.test.{ts,tsx}"],
+		},
 		resolve: {
 			alias: {
 				"@": resolve(__dirname, "./src"),

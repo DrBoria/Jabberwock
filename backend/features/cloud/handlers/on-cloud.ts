@@ -1,29 +1,41 @@
-import { EventBridge } from "@features/foundation/webview/EventBridge"
-import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
-import { getBackendCapabilities } from "@features/foundation/capabilities/registry"
-import type { ProviderHandle } from "@features/foundation/webview/EventBridge"
+import { EventBridge } from "@features/foundation"
+import type { IntentBus } from "@features/intents"
+import { log as backendLog, getBackendCapabilities, getUiDialogs } from "@features/foundation"
+
+import type { ProviderHandle } from "@features/foundation"
+
 import { getTelemetryService } from "@jabberwock/telemetry"
+
 import { IntentType, TelemetryEventName } from "@jabberwock/types"
+
 import { getCloudService } from "@jabberwock/cloud"
-import { getUiDialogs } from "@features/foundation/capabilities/registry"
-import { getHostContext } from "@features/foundation/host-context/context"
+
+import { getHostContext } from "@features/foundation"
+
 import { t } from "@i18n"
 
-import type { IntentBus } from "@features/intents/bus"
-import { postStateToWebview } from "@features/foundation/window-manager/store"
-import { openAiCodexOAuthManager } from "@integrations/openai-codex/oauth"
+import { postStateToWebview } from "@features/foundation"
+
+import { openAiCodexOAuthManager } from "@integrations/openai-codex"
+
+import { sendAuthenticatedUser, sendCloudButtonClicked, sendOrganizationSwitchResult } from "@features/settings"
+
+import { publishNotificationError } from "@features/foundation"
 
 /**
  * Register all cloud-related intent handlers on the bus.
  */
-export function registerOnCloud(bus: IntentBus): void {
+
+function registerOnCloudCloudButtonClicked(bus: IntentBus): void {
 	bus.register(IntentType.CloudButtonClicked, async (_intent, ctx) => {
 		const provider = ctx.provider
 		if (!provider) return
 
-		provider.postMessageToWebview({ type: "action", action: "cloudButtonClicked" })
+		sendCloudButtonClicked(provider)
 	})
+}
 
+function registerOnCloudCloudSignIn(bus: IntentBus): void {
 	bus.register(IntentType.CloudSignIn, async (intent, _ctx) => {
 		try {
 			const payload = intent.payload as { useProviderSignup?: boolean }
@@ -34,7 +46,9 @@ export function registerOnCloud(bus: IntentBus): void {
 			publishNotificationError("Sign in failed.")
 		}
 	})
+}
 
+function registerOnCloudCloudLandingPageSignIn(bus: IntentBus): void {
 	bus.register(IntentType.CloudLandingPageSignIn, async (intent, _ctx) => {
 		try {
 			const payload = intent.payload as { text?: string }
@@ -46,7 +60,9 @@ export function registerOnCloud(bus: IntentBus): void {
 			publishNotificationError("Sign in failed.")
 		}
 	})
+}
 
+function registerOnCloudCloudSignOut(bus: IntentBus): void {
 	bus.register(IntentType.CloudSignOut, async (_intent, ctx) => {
 		const provider = ctx.provider
 		if (!provider) return
@@ -54,15 +70,19 @@ export function registerOnCloud(bus: IntentBus): void {
 		try {
 			await getCloudService().logout()
 			await postStateToWebview(provider)
-			provider.postMessageToWebview({ type: "authenticatedUser", userInfo: undefined })
+			sendAuthenticatedUser(provider, undefined)
 		} catch (error) {
 			backendLog.info(`AuthService#logout failed: ${error}`)
 			publishNotificationError("Sign out failed.")
 		}
 	})
+}
 
+function registerOnCloudCloudManualUrl(bus: IntentBus): void {
 	bus.register(IntentType.CloudManualUrl, handleCloudManualUrl)
+}
 
+function registerOnCloudCloudOpenaiCodexSignIn(bus: IntentBus): void {
 	bus.register(IntentType.CloudOpenaiCodexSignIn, async (_intent, ctx) => {
 		const provider = ctx.provider
 		if (!provider) return
@@ -94,7 +114,9 @@ export function registerOnCloud(bus: IntentBus): void {
 			publishNotificationError("OpenAI Codex sign in failed.")
 		}
 	})
+}
 
+function registerOnCloudCloudOpenaiCodexSignOut(bus: IntentBus): void {
 	bus.register(IntentType.CloudOpenaiCodexSignOut, async (_intent, ctx) => {
 		const provider = ctx.provider
 		if (!provider) return
@@ -109,7 +131,9 @@ export function registerOnCloud(bus: IntentBus): void {
 			publishNotificationError("OpenAI Codex sign out failed.")
 		}
 	})
+}
 
+function registerOnCloudCloudSwitchOrganization(bus: IntentBus): void {
 	bus.register(IntentType.CloudSwitchOrganization, async (intent, ctx) => {
 		const provider = ctx.provider
 		if (!provider) return
@@ -122,18 +146,13 @@ export function registerOnCloud(bus: IntentBus): void {
 
 			await postStateToWebview(provider)
 
-			await provider.postMessageToWebview({
-				type: "organizationSwitchResult",
-				success: true,
-				organizationId,
-			})
+			await sendOrganizationSwitchResult(provider, { success: true, organizationId })
 		} catch (error) {
 			backendLog.info(`Organization switch failed: ${error}`)
 			const errorMessage = error instanceof Error ? error.message : String(error)
 			const payload = intent.payload as { organizationId?: string | null }
 
-			await provider.postMessageToWebview({
-				type: "organizationSwitchResult",
+			await sendOrganizationSwitchResult(provider, {
 				success: false,
 				error: errorMessage,
 				organizationId: payload.organizationId ?? null,
@@ -142,7 +161,9 @@ export function registerOnCloud(bus: IntentBus): void {
 			publishNotificationError(`Failed to switch organization: ${errorMessage}`)
 		}
 	})
+}
 
+function registerOnCloudCloudClearAuthSkipModel(bus: IntentBus): void {
 	bus.register(IntentType.CloudClearAuthSkipModel, async (_intent, ctx) => {
 		const provider = ctx.provider
 		if (!provider) return
@@ -151,6 +172,18 @@ export function registerOnCloud(bus: IntentBus): void {
 		await getBackendCapabilities().hashmapMemory.delete("jabberwock-auth-skip-model")
 		await postStateToWebview(provider)
 	})
+}
+
+export function registerOnCloud(_bus: IntentBus): void {
+	registerOnCloudCloudButtonClicked(_bus)
+	registerOnCloudCloudSignIn(_bus)
+	registerOnCloudCloudLandingPageSignIn(_bus)
+	registerOnCloudCloudSignOut(_bus)
+	registerOnCloudCloudManualUrl(_bus)
+	registerOnCloudCloudOpenaiCodexSignIn(_bus)
+	registerOnCloudCloudOpenaiCodexSignOut(_bus)
+	registerOnCloudCloudSwitchOrganization(_bus)
+	registerOnCloudCloudClearAuthSkipModel(_bus)
 }
 
 async function handleCloudManualUrl(
@@ -200,5 +233,3 @@ async function processCloudManualUrl(intent: { payload: { text?: string } }, pro
 
 	await postStateToWebview(provider)
 }
-
-import { publishNotificationError } from "@features/foundation/capabilities/notifications"

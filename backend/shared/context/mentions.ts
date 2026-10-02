@@ -4,7 +4,7 @@ Mention regex:
   - To identify and highlight specific mentions in text that start with '@'.
   - These mentions can be file paths, URLs, or the exact word 'problems'.
   - Ensures that trailing punctuation marks (like commas, periods, etc.) are not included in the match, allowing punctuation to follow the mention without being part of it.
-  - Restricts @ parsing to line-start or after whitespace to avoid accidental loading from pasted logs.
+  - Restricts @ parsing to line-start or after whitespace to avoid accidental loading from "pasted" logs.
 
 - **Regex Breakdown**:
   - `(?:^|\s)`:

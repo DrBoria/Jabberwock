@@ -4,7 +4,7 @@ export interface QueuedRequest {
 	options: RequestInit
 	timestamp: number
 	retryCount: number
-	type: "api-call" | "telemetry" | "settings" | "other"
+	type: "toolExecutor.api-call" | "telemetry" | "settings" | "other"
 	operation?: string
 	lastError?: string
 }

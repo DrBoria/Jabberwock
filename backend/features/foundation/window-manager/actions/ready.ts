@@ -1,9 +1,9 @@
-import { getBackendRootStore } from "@features/storeSingleton"
+import { getStore } from "@features/singleton"
 
 /**
  * Returns whether the webview is launched and ready.
  */
 export function healthcheck(): boolean {
-	const state = getBackendRootStore()
+	const state = getStore()
 	return state.foundation.windowManager.viewLaunched
 }

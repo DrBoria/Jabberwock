@@ -1,6 +1,5 @@
 import { BackendIntentType } from "@intentConstants"
-import type { IntentBus } from "@features/intents/bus"
-
+import type { IntentBus } from "@features/intents"
 /**
  * Handles settings.changed intent — persists settings changes.
  */

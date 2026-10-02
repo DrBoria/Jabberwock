@@ -3,3 +3,4 @@
  */
 export { frontendHistoryEventConstants } from "./constants"
 export type { FrontendHistoryEventKey } from "./constants"
+export { registerOnFrontendHistoryIntents } from "./handlers/history-received"

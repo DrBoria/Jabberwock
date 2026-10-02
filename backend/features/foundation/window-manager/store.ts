@@ -11,6 +11,10 @@ import {
 	type HostWebViewRef,
 } from "@features/mst-custom-types"
 
+// window-manager store model + shared state types.
+// Leaf module (no back-imports to the store hub) so leaves (messaging/state-utils)
+// can pull IWindowManagerModel / WebviewStatePayload / PUSH_DEBOUNCE_MS without a cycle.
+
 export const WindowManagerModel = types
 	.model("Window", {
 		view: WebviewViewType,
@@ -56,21 +60,21 @@ export const WindowManagerModel = types
 				meta: { requestId, type, params, timestamp: Date.now(), status: "pending" as const },
 			})
 		},
-		resolveDomRequest(requestId: string, result: string) {
+		resolveDomRequest(requestId: string, result: string, connector?: string) {
 			const entry = self.pendingDomRequests.get(requestId)
 			if (entry) {
 				entry.meta.status = "resolved"
-				entry.callback(result)
+				entry.callback(result, connector)
 				self.pendingDomRequests.delete(requestId)
 			}
 		},
-		setActivePageRequestCallback(requestId: string, callback: (activePage: string) => void) {
+		setActivePageRequestCallback(requestId: string, callback: (activePage: string, connector?: string) => void) {
 			self.pendingActivePageRequests.set(requestId, callback)
 		},
-		resolveActivePageRequest(requestId: string, activePage: string) {
+		resolveActivePageRequest(requestId: string, activePage: string, connector?: string) {
 			const cb = self.pendingActivePageRequests.get(requestId)
 			if (cb) {
-				cb(activePage)
+				cb(activePage, connector)
 				self.pendingActivePageRequests.delete(requestId)
 			}
 		},
@@ -108,37 +112,3 @@ export interface WindowManagerState {
 	pendingDomRequests: Map<string, (result: string) => void>
 	pendingActivePageRequests: Map<string, (activePage: string) => void>
 }
-
-export const PUSH_DEBOUNCE_MS = 50
-
-// ─── Re-exports from store/ sub-modules ──────────────────────────────
-import {
-	initWindowManagerState as _initWindowManagerState,
-	getWindowManagerState as _getWindowManagerState,
-	getWorkspaceTracker as _getWorkspaceTracker,
-	resolveActivePageRequest as _resolveActivePageRequest,
-} from "./store/state-utils"
-export const initWindowManagerState = _initWindowManagerState
-export const getWindowManagerState = _getWindowManagerState
-export const getWorkspaceTracker = _getWorkspaceTracker
-export const resolveActivePageRequest = _resolveActivePageRequest
-
-import {
-	scheduleStatePush as _scheduleStatePush,
-	postMessageToWebview as _postMessageToWebview,
-	postStateToWebview as _postStateToWebview,
-	postStateToWebviewWithoutMessages as _postStateToWebviewWithoutMessages,
-	postStateToWebviewWithoutTaskHistory as _postStateToWebviewWithoutTaskHistory,
-	refreshWorkspace as _refreshWorkspace,
-} from "./store/messaging"
-import type { WebviewOutboundMessage as _WebviewOutboundMessage } from "./store/messaging"
-export const scheduleStatePush = _scheduleStatePush
-export const postMessageToWebview = _postMessageToWebview
-export const postStateToWebview = _postStateToWebview
-export const postStateToWebviewWithoutMessages = _postStateToWebviewWithoutMessages
-export const postStateToWebviewWithoutTaskHistory = _postStateToWebviewWithoutTaskHistory
-export const refreshWorkspace = _refreshWorkspace
-export type { _WebviewOutboundMessage as WebviewOutboundMessage }
-
-import { handleModeSwitch as _handleModeSwitch } from "./store/mode-utils"
-export const handleModeSwitch = _handleModeSwitch

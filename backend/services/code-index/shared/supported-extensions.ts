@@ -16,7 +16,7 @@ export const scannerExtensions = allExtensions
  * 2. Add the extension to the fallbackExtensions array below
  * 3. The file will automatically use length-based chunking for indexing
  *
- * Note: Do NOT remove parser cases from languageParser.ts as they may be used elsewhere
+ * Note: Do NOT remove parser cases from "languageParser.ts" as they may be used elsewhere
  */
 export const fallbackExtensions = [
 	".vb", // Visual Basic .NET - no dedicated WASM parser

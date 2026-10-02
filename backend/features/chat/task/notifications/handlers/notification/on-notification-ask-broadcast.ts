@@ -1,17 +1,9 @@
 import { IntentConstants } from "@intentConstants"
-import type { IntentBus } from "@features/intents/bus"
-import type { IntentHandlerContext } from "@features/intents/context"
-import type { Notification } from "@jabberwock/types"
-import { saveMessages } from "@features/chat/task/messages/actions/saveMessages"
+import type { IntentBus, IntentHandlerContext } from "@features/intents"
 
-/**
- * The 3 notification ask intent types handled by this broadcast handler.
- */
-const NOTIFICATION_TYPES = [
-	IntentConstants.notifications.ASK_TOOL_APPROVAL,
-	IntentConstants.notifications.ASK_FOLLOW_UP,
-	IntentConstants.notifications.ASK_SUB_TASK,
-] as const
+import type { Notification } from "@jabberwock/types"
+
+import { saveMessages } from "@features/chat/task/messages/actions/save"
 
 /**
  * Register a handler for all 3 notification ask broadcast intent types
@@ -27,8 +19,18 @@ const NOTIFICATION_TYPES = [
  * - "update" → calls `saveMessages()` + `updateNotification()` to persist
  *   the already-mutated store and notify the webview
  */
-import { addNotification } from "@features/chat/task/notifications/actions/core/addNotification"
-import { updateNotification } from "@features/chat/task/notifications/actions/core/updateNotification"
+import { addNotification } from "@features/chat"
+
+import { updateNotification } from "@features/chat"
+
+/**
+ * The 3 notification ask intent types handled by this broadcast handler.
+ */
+const NOTIFICATION_TYPES = [
+	IntentConstants.notifications.ASK_TOOL_APPROVAL,
+	IntentConstants.notifications.ASK_FOLLOW_UP,
+	IntentConstants.notifications.ASK_SUB_TASK,
+] as const
 
 export function registerOnNotificationAskBroadcast(bus: IntentBus): void {
 	for (const type of NOTIFICATION_TYPES) {

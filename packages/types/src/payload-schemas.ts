@@ -44,8 +44,8 @@ export type WebViewMessagePayload =
 	| IndexingStatusPayload
 	| IndexClearedPayload
 	| InstallMarketplaceItemWithParametersPayload
-	| import("./webview/message-types.ts").UpdateTodoListPayload
-	| import("./webview/message-types.ts").EditQueuedMessagePayload
+	| import("./webview/message.ts").UpdateTodoListPayload
+	| import("./webview/message.ts").EditQueuedMessagePayload
 
 export interface IndexingStatus {
 	systemStatus: string

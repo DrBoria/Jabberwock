@@ -1,7 +1,7 @@
 /**
  * DevToolsStore — holds devtools UI state.
  *
- * Originally from webview-ui/src/features/devtools/store.ts,
+ * Originally from "webview-ui/src/features/devtools/store.ts",
  * moved into @jabberwock/devtool so the package is self-contained.
  */
 

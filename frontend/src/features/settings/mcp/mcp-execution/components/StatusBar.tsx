@@ -1,8 +1,8 @@
 import { Server } from "lucide-react"
 import { Container } from "@src/shared/ui/layouts/Container"
-import type { StatusBarProps } from "../types"
+import type { StatusBarProps } from "@src/features/settings/mcp/mcp-execution/types"
 import { StatusIndicator } from "./StatusIndicator"
-import { ExpandChevron } from "../ExpandChevron"
+import { ExpandChevron } from "@src/features/settings/mcp/mcp-execution/ExpandChevron"
 
 export const StatusBar = ({
 	status,

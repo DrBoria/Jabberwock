@@ -1,11 +1,10 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
-
+import type { IntentBus } from "@features/intents"
 /**
  * Handles task.created intent — creates a new task and syncs to webview.
  */
 import { createTask } from "@features/chat/task/actions/startTask"
-import { postStateToWebview } from "@features/foundation/window-manager/store"
+import { postStateToWebview } from "@features/foundation"
 
 export function registerOnTaskCreated(bus: IntentBus): void {
 	bus.register(IntentType.TaskCreated, async (intent, ctx) => {

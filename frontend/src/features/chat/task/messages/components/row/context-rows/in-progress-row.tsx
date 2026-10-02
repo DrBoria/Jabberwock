@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next"
 
-import { ProgressIndicator } from "../../message-parts/progress-indicator"
+import { ProgressIndicator } from "@src/features/chat/task/messages/components/message-parts/progress-indicator"
 
 interface InProgressRowProps {
 	eventType: "condense_context" | "sliding_window_truncation"

@@ -6,7 +6,7 @@ import {
 } from "@services/mcp/features/tool-toggles"
 import { findConnection } from "./connection/manager"
 import { resolveConfigPath } from "@services/mcp"
-import { fetchToolsList } from "@services/mcp/features/tools"
+import { fetchToolsList } from "@services/mcp/features/registry"
 import { getProjectMcpPath } from "./init"
 
 export async function toggleToolAlwaysAllow(

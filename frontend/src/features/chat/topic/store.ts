@@ -1,4 +1,4 @@
-import { getConnectorBus } from "../../../connector-bus"
+import { getConnectorBus } from "@src/connector-bus"
 import type { WebviewMessage } from "@jabberwock/types"
 import { eventConstants } from "@jabberwock/types"
 

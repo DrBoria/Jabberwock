@@ -1,7 +1,7 @@
-import type { IntentBus } from "../../../intents/bus"
+import type { IntentBus } from "@src/features/intents/bus"
 import { IntentConstants } from "@intentConstants"
-import type { IntentHandlerContext } from "../../../intents/context"
-import { getRootStore } from "../../../root-store"
+import type { IntentHandlerContext } from "@src/features/intents/context"
+import { getRootStore } from "@src/features/root-store"
 import type { MarketplaceItem, MarketplaceInstalledMetadata } from "@jabberwock/types"
 
 /**

@@ -1,4 +1,4 @@
-export { getGitRepositoryInfo, getWorkspaceGitInfo, getWorkingState, getGitStatus } from "./git"
+export { getGitRepositoryInfo, getWorkspaceGitInfo, getWorkingState, getGitStatus } from "./main"
 export {
 	execAsync,
 	GIT_OUTPUT_LINE_LIMIT,
@@ -6,6 +6,6 @@ export {
 	readGitHead,
 	checkGitRepo,
 	checkGitInstalled,
-} from "./git.helpers"
+} from "./helpers"
 export { searchCommits, getCommitInfo } from "./commits"
 export { convertGitUrlToHttps, sanitizeGitUrl, extractRepositoryName } from "./url"

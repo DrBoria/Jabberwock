@@ -18,32 +18,35 @@ import type { ProviderHandle } from "./EventBridge"
  * 3. This registry is ONLY for non-postMessage access to ProviderHandle.
  */
 
-let _provider: ProviderHandle | undefined
+const _providerState: { provider: ProviderHandle | undefined; connector: IBackendConnector | undefined } = {
+	provider: undefined,
+	connector: undefined,
+}
 
 /** Set the active provider (called once during extension activation). */
 export function setProvider(provider: ProviderHandle): void {
-	if (_provider) {
+	if (_providerState.provider) {
 		console.warn("[providerRegistry] Provider already set — overwriting")
 	}
-	_provider = provider
+	_providerState.provider = provider
 }
 
 /** Get the active provider. Throws if not set (extension not fully activated). */
 export function getProvider(): ProviderHandle {
-	if (!_provider) {
+	if (!_providerState.provider) {
 		throw new Error("[providerRegistry] Provider not set — extension activation may not have completed")
 	}
-	return _provider
+	return _providerState.provider
 }
 
 /** Check whether a provider has been registered. */
 export function hasProvider(): boolean {
-	return _provider !== undefined
+	return _providerState.provider !== undefined
 }
 
 /** Clear the provider reference (called during deactivation). */
 export function clearProvider(): void {
-	_provider = undefined
+	_providerState.provider = undefined
 }
 
 // ─── v4 B2: active backend connector slot (§10.2 / §4.2) ──────────────
@@ -52,30 +55,28 @@ export function clearProvider(): void {
 // can send outbound messages without importing host modules. Legacy ProviderHandle
 // accessors above stay until Phase E cleanup (§4.2: deprecated wrappers).
 
-let _connector: IBackendConnector | undefined
-
 /** Set the active backend connector (called once during bootstrap/activation). */
 export function setConnector(connector: IBackendConnector): void {
-	if (_connector) {
+	if (_providerState.connector) {
 		console.warn("[providerRegistry] Connector already set — overwriting")
 	}
-	_connector = connector
+	_providerState.connector = connector
 }
 
 /** Get the active backend connector. Throws if not installed (bootstrap incomplete). */
 export function getConnector(): IBackendConnector {
-	if (!_connector) {
+	if (!_providerState.connector) {
 		throw new Error("[providerRegistry] Backend connector not installed — bootstrap may not have completed")
 	}
-	return _connector
+	return _providerState.connector
 }
 
 /** Check whether a backend connector has been registered. */
 export function hasConnector(): boolean {
-	return _connector !== undefined
+	return _providerState.connector !== undefined
 }
 
 /** Clear the connector reference (called during deactivation). */
 export function clearConnector(): void {
-	_connector = undefined
+	_providerState.connector = undefined
 }

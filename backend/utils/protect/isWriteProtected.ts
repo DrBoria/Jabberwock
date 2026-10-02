@@ -2,11 +2,11 @@
  * Check if a file path matches any of the protected patterns.
  *
  * Pure function — no side effects, no module-level state.
- * Builds the Ignore instance inline from the patterns constant.
+ * Builds the Ignore instance inline from "the" patterns constant.
  */
 import path from "path"
 import ignore from "ignore"
-import { PROTECTED_PATTERNS } from "@features/settings/constants"
+import { PROTECTED_PATTERNS } from "@features/settings"
 
 /**
  * Check if a file is write-protected based on predefined patterns.
@@ -26,7 +26,7 @@ export function isWriteProtected(cwd: string, filePath: string): boolean {
 			return false
 		}
 
-		// Build Ignore instance inline from the patterns constant
+		// Build Ignore instance inline from "the" patterns constant
 		// This is cheap — the patterns are small and static
 		const protectedIgnoreInstance = ignore().add([...PROTECTED_PATTERNS])
 

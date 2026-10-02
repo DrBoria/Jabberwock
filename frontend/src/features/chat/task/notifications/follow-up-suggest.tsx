@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react"
 import { ClipboardCopy, Timer } from "lucide-react"
 
-import { Button } from "@src/shared/ui/buttons/button"
-import { StandardTooltip } from "@src/shared/ui/tooltips/standard-tooltip"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
+import { StandardTooltip } from "@src/shared/ui/tooltips/standard"
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { observer } from "mobx-react-lite"

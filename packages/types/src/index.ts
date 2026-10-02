@@ -1,4 +1,4 @@
-export * from "./api/api.ts"
+export * from "./api/server.ts"
 export * from "./features/cli.ts"
 export * from "./cloud/index.ts"
 export * from "./execution/codebase-index.ts"
@@ -16,17 +16,15 @@ export * from "./task/history.ts"
 export * from "./utils/image-generation.ts"
 export * from "./api/ipc.ts"
 export * from "./features/marketplace.ts"
-export * from "./mcp/mcp.ts"
+export * from "./mcp/server-config.ts"
 export * from "./messages/types.ts"
 export * from "./messages/notification.ts"
-export * from "./messages/notification-ask.ts"
-export * from "./messages/notification-say.ts"
 export * from "./models/mode.ts"
-export * from "./models/model.ts"
+export * from "./models/model-main.ts"
 export * from "./settings/provider/index.ts"
 export * from "./models/by-provider.ts"
 export * from "./models/model-id-keys.ts"
-export * from "./task/task.ts"
+export * from "./task/provider.ts"
 export * from "./features/skills.ts"
 export * from "./todo.ts"
 export * from "./payload-schemas.ts"
@@ -42,16 +40,15 @@ export {
 	extractConsecutiveMistakeErrorProperties,
 	isApiProviderError,
 	isConsecutiveMistakeError,
-} from "./telemetry/errors.ts"
-export type { ConsecutiveMistakeReason } from "./telemetry/errors.ts"
+} from "./telemetry/errors-main.ts"
+export type { ConsecutiveMistakeReason } from "./telemetry/errors-main.ts"
 export * from "./execution/terminal.ts"
-export * from "./tool/tool.ts"
+export * from "./tool/definitions.ts"
 export * from "./tool/params.ts"
 export * from "./utils/type-fu.ts"
-export * from "./extension/message-types.ts"
 export * from "./extension/message.ts"
 export * from "./extension/state.ts"
-export * from "./webview/message-types.ts"
+export * from "./webview/events.ts"
 export * from "./webview/message.ts"
 export * from "./tool/say-tool-data.ts"
 export * from "./protocol/envelope.ts"
@@ -67,7 +64,7 @@ export * from "./providers/index.ts"
 export * from "./utils/diagnostics.ts"
 export * from "./events/constants.ts"
 
-// Re-exports from cloud sub-modules
+// Re-exports from "cloud" sub-modules
 export type {
 	JWTPayload,
 	CloudUserInfo,
@@ -113,7 +110,7 @@ export {
 } from "./cloud/socket.ts"
 export type { TaskBridgeEvent, TaskBridgeCommand } from "./cloud/socket.ts"
 
-// Re-exports from event-registry sub-modules
+// Re-exports from "event-registry" sub-modules
 export type { AskResponseValue } from "./events/chat/registry.ts"
 export type {
 	ChatMessagesListBackendToWebview,
@@ -159,4 +156,4 @@ export type { BackendToWebview, WebviewToBackend } from "./events/registry.ts"
 
 export * from "./events/flat/constants.ts"
 
-export type { WebviewProvider, IntentContext, RootStore } from "./extension/types.ts"
+export type { WebviewProvider, IntentContext, RootStore } from "./extension/intent-context.ts"

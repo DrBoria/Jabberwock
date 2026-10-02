@@ -1,126 +1,138 @@
-import { EventEmitter } from "@features/foundation/events/event-emitter"
+import { EventEmitter } from "@features/foundation/events"
 
 export type IndexingState = "Standby" | "Indexing" | "Indexed" | "Error" | "Stopping"
 
-export class CodeIndexStateManager {
-	private _systemStatus: IndexingState = "Standby"
-	private _statusMessage: string = ""
-	private _processedItems: number = 0
-	private _totalItems: number = 0
-	private _currentItemUnit: string = "blocks"
+type CurrentStatus = {
+	systemStatus: IndexingState
+	message: string
+	processedItems: number
+	totalItems: number
+	currentItemUnit: string
+}
+
+export function CodeIndexStateManager() {
+	let systemStatus: IndexingState = "Standby"
+	let statusMessage: string = ""
+	let processedItems: number = 0
+	let totalItems: number = 0
+	let currentItemUnit: string = "blocks"
 	// D4g-2 (batch 3): host-neutral event emitter (replaces vscode.EventEmitter) so the code-index
 	// state manager stays free of host imports.
-	private _progressEmitter = new EventEmitter<ReturnType<typeof this.getCurrentStatus>>()
+	const progressEmitter = new EventEmitter<CurrentStatus>()
 
-	// --- Public API ---
+	const handler = {
+		// --- Public API ---
 
-	public readonly onProgressUpdate = this._progressEmitter.event
+		onProgressUpdate: progressEmitter.event,
 
-	public get state(): IndexingState {
-		return this._systemStatus
-	}
+		get state(): IndexingState {
+			return systemStatus
+		},
 
-	public getCurrentStatus() {
-		return {
-			systemStatus: this._systemStatus,
-			message: this._statusMessage,
-			processedItems: this._processedItems,
-			totalItems: this._totalItems,
-			currentItemUnit: this._currentItemUnit,
-		}
-	}
-
-	// --- State Management ---
-
-	public setSystemState(newState: IndexingState, message?: string): void {
-		if (!this._isStateChanged(newState, message)) {
-			return
-		}
-
-		this._systemStatus = newState
-		if (message !== undefined) {
-			this._statusMessage = message
-		}
-
-		if (newState !== "Indexing") {
-			this._processedItems = 0
-			this._totalItems = 0
-			this._currentItemUnit = "blocks"
-			this._setDefaultMessageForState(newState, message)
-		}
-
-		this._progressEmitter.fire(this.getCurrentStatus())
-	}
-
-	private _isStateChanged(newState: IndexingState, message: string | undefined): boolean {
-		return newState !== this._systemStatus || (message !== undefined && message !== this._statusMessage)
-	}
-
-	private _setDefaultMessageForState(newState: IndexingState, message: string | undefined): void {
-		if (newState === "Standby" && message === undefined) this._statusMessage = "Ready."
-		if (newState === "Indexed" && message === undefined) this._statusMessage = "Index up-to-date."
-		if (newState === "Error" && message === undefined) this._statusMessage = "An error occurred."
-	}
-
-	public reportBlockIndexingProgress(processedItems: number, totalItems: number): void {
-		const progressChanged = processedItems !== this._processedItems || totalItems !== this._totalItems
-
-		// Don't override Stopping state with progress updates
-		if (this._systemStatus === "Stopping") return
-		// Update if progress changes OR if the system wasn't already in 'Indexing' state
-		if (progressChanged || this._systemStatus !== "Indexing") {
-			this._processedItems = processedItems
-			this._totalItems = totalItems
-			this._currentItemUnit = "blocks"
-
-			const message = `Indexed ${this._processedItems} / ${this._totalItems} ${this._currentItemUnit} found`
-			const oldStatus = this._systemStatus
-			const oldMessage = this._statusMessage
-
-			this._systemStatus = "Indexing" // Ensure state is Indexing
-			this._statusMessage = message
-
-			// Only fire update if status, message or progress actually changed
-			if (oldStatus !== this._systemStatus || oldMessage !== this._statusMessage || progressChanged) {
-				this._progressEmitter.fire(this.getCurrentStatus())
+		getCurrentStatus(): CurrentStatus {
+			return {
+				systemStatus: systemStatus,
+				message: statusMessage,
+				processedItems: processedItems,
+				totalItems: totalItems,
+				currentItemUnit: currentItemUnit,
 			}
-		}
-	}
+		},
 
-	public reportFileQueueProgress(processedFiles: number, totalFiles: number, currentFileBasename?: string): void {
-		const progressChanged = processedFiles !== this._processedItems || totalFiles !== this._totalItems
+		// --- State Management ---
 
-		if (this._systemStatus === "Stopping") return
-		if (progressChanged || this._systemStatus !== "Indexing") {
-			this._processedItems = processedFiles
-			this._totalItems = totalFiles
-			this._currentItemUnit = "files"
-			this._systemStatus = "Indexing"
-
-			const oldMessage = this._statusMessage
-			this._statusMessage = this._buildFileQueueMessage(processedFiles, totalFiles, currentFileBasename)
-
-			if (this._shouldEmitProgressUpdate(oldMessage, progressChanged)) {
-				this._progressEmitter.fire(this.getCurrentStatus())
+		setSystemState(newState: IndexingState, message?: string): void {
+			if (!handler._isStateChanged(newState, message)) {
+				return
 			}
-		}
-	}
 
-	private _buildFileQueueMessage(processedFiles: number, totalFiles: number, currentFileBasename?: string): string {
-		if (totalFiles > 0 && processedFiles < totalFiles) {
-			return `Processing ${processedFiles} / ${totalFiles} files. Current: ${currentFileBasename || "..."}`
-		}
-		if (totalFiles > 0 && processedFiles === totalFiles) {
-			return `Finished processing ${totalFiles} files from queue.`
-		}
-		return "File queue processed."
-	}
+			systemStatus = newState
+			if (message !== undefined) {
+				statusMessage = message
+			}
 
-	private _shouldEmitProgressUpdate(oldMessage: string, progressChanged: boolean): boolean {
-		return oldMessage !== this._statusMessage || progressChanged
-	}
+			if (newState !== "Indexing") {
+				processedItems = 0
+				totalItems = 0
+				currentItemUnit = "blocks"
+				handler._setDefaultMessageForState(newState, message)
+			}
 
-	public dispose(): void {
-		this._progressEmitter.dispose()
+			progressEmitter.fire(handler.getCurrentStatus())
+		},
+
+		_isStateChanged(newState: IndexingState, message: string | undefined): boolean {
+			return newState !== systemStatus || (message !== undefined && message !== statusMessage)
+		},
+
+		_setDefaultMessageForState(newState: IndexingState, message: string | undefined): void {
+			if (newState === "Standby" && message === undefined) statusMessage = "Ready."
+			if (newState === "Indexed" && message === undefined) statusMessage = "Index up-to-date."
+			if (newState === "Error" && message === undefined) statusMessage = "An error occurred."
+		},
+
+		reportBlockIndexingProgress(processed: number, total: number): void {
+			const progressChanged = processed !== processedItems || total !== totalItems
+
+			// Don't override Stopping state with progress updates
+			if (systemStatus === "Stopping") return
+			// Update if progress changes OR if the system wasn't already in 'Indexing' state
+			if (progressChanged || systemStatus !== "Indexing") {
+				processedItems = processed
+				totalItems = total
+				currentItemUnit = "blocks"
+
+				const message = `Indexed ${processedItems} / ${totalItems} ${currentItemUnit} found`
+				const oldStatus = systemStatus
+				const oldMessage = statusMessage
+
+				systemStatus = "Indexing" // Ensure state is Indexing
+				statusMessage = message
+
+				// Only fire update if status, message or progress actually changed
+				if (oldStatus !== systemStatus || oldMessage !== statusMessage || progressChanged) {
+					progressEmitter.fire(handler.getCurrentStatus())
+				}
+			}
+		},
+
+		reportFileQueueProgress(processedFiles: number, totalFiles: number, currentFileBasename?: string): void {
+			const progressChanged = processedFiles !== processedItems || totalFiles !== totalItems
+
+			if (systemStatus === "Stopping") return
+			if (progressChanged || systemStatus !== "Indexing") {
+				processedItems = processedFiles
+				totalItems = totalFiles
+				currentItemUnit = "files"
+				systemStatus = "Indexing"
+
+				const oldMessage = statusMessage
+				statusMessage = handler._buildFileQueueMessage(processedFiles, totalFiles, currentFileBasename)
+
+				if (handler._shouldEmitProgressUpdate(oldMessage, progressChanged)) {
+					progressEmitter.fire(handler.getCurrentStatus())
+				}
+			}
+		},
+
+		_buildFileQueueMessage(processedFiles: number, totalFiles: number, currentFileBasename?: string): string {
+			if (totalFiles > 0 && processedFiles < totalFiles) {
+				return `Processing ${processedFiles} / ${totalFiles} files. Current: ${currentFileBasename || "..."}`
+			}
+			if (totalFiles > 0 && processedFiles === totalFiles) {
+				return `Finished processing ${totalFiles} files from queue.`
+			}
+			return "File queue processed."
+		},
+
+		_shouldEmitProgressUpdate(oldMessage: string, progressChanged: boolean): boolean {
+			return oldMessage !== statusMessage || progressChanged
+		},
+
+		dispose(): void {
+			progressEmitter.dispose()
+		},
 	}
+	return handler
 }
+export type CodeIndexStateManager = ReturnType<typeof CodeIndexStateManager>

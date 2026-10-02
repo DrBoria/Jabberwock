@@ -149,6 +149,8 @@
 		"title": "Requisição API",
 		"failed": "Requisição API falhou",
 		"streaming": "Requisição API...",
+		"loadingContext": "Carregando contexto...",
+		"loadingContextPercent": "Carregando contexto... {{percent}}%",
 		"cancelled": "Requisição API cancelada",
 		"streamingFailed": "Streaming API falhou",
 		"rateLimitWait": "Limitação de taxa",

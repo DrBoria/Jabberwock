@@ -1,8 +1,8 @@
 import React from "react"
 import { Image, WandSparkles, SendHorizontal, X, ListEnd, Square } from "lucide-react"
 import { cn } from "@src/lib/utils"
-import { StandardTooltip } from "@src/shared/ui/tooltips/standard-tooltip"
-import { Button } from "@src/shared/ui/buttons/button"
+import { StandardTooltip } from "@src/shared/ui/tooltips/standard"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
 import { Container } from "@src/shared/ui/layouts/Container"
 import type { ActionButtonsProps } from "../types"
 

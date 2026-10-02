@@ -1,10 +1,9 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
-
+import type { IntentBus } from "@features/intents"
 /**
  * Handles task.cancelled intent — aborts the running task.
  */
-import { abortTask } from "@features/chat/task/actions/abortTask"
+import { abortTask } from "@features/chat"
 
 export function registerOnTaskCancelled(bus: IntentBus): void {
 	bus.register(IntentType.TaskCancelled, async (intent, _ctx) => {

@@ -1,9 +1,9 @@
 import { onAction } from "mobx-state-tree"
 
-import { setupIntents } from "../../intents"
-import type { FrontendActionLogEntry } from "../types"
-import { RootStore } from "../store"
-import type { IRootStore } from "../store"
+import { setupIntents } from "@src/features/intents"
+import type { FrontendActionLogEntry } from "@src/features/root-store/types"
+import { RootStore } from "@src/features/root-store/store"
+import type { IRootStore } from "@src/features/root-store/store"
 
 // ─── Singleton state ────────────────────────────────────────────────
 let _rootStore: IRootStore | null = null
@@ -48,5 +48,10 @@ export function disposeIntentBus() {
 	}
 }
 
-// Backward-compatible singleton reference (initialized lazily)
-export const rootStore = createRootStore()
+// Backward-compatible singleton reference (lazy — avoids TDZ from circular imports).
+// The store is created on first property access, not at module load time.
+export const rootStore: IRootStore = new Proxy({} as IRootStore, {
+	get(_target, prop: string | symbol) {
+		return (createRootStore() as unknown as Record<string | symbol, unknown>)[prop]
+	},
+})

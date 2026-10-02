@@ -19,22 +19,22 @@ import type {
  * this registry or the connector surface.
  */
 
-let _capabilities: BackendCapabilities | undefined
+const _capabilitiesState = { value: undefined as BackendCapabilities | undefined }
 
 /** Install capabilities once at startup. Throws on double-install to catch bootstrap ordering bugs. */
 export function setBackendCapabilities(capabilities: BackendCapabilities): void {
-	if (_capabilities) {
+	if (_capabilitiesState.value) {
 		throw new Error("[capabilities] setBackendCapabilities called twice — capabilities are installed exactly once")
 	}
-	_capabilities = capabilities
+	_capabilitiesState.value = capabilities
 }
 
 /** Get the process-wide capabilities. Throws if bootstrap has not run yet (fail fast, like getHostEnvironment). */
 export function getBackendCapabilities(): BackendCapabilities {
-	if (!_capabilities) {
+	if (!_capabilitiesState.value) {
 		throw new Error("[capabilities] Not initialized — setBackendCapabilities() must be called during activation")
 	}
-	return _capabilities
+	return _capabilitiesState.value
 }
 
 /**
@@ -120,7 +120,7 @@ export function getTabGroups(): ITabGroups | undefined {
 
 /** Check whether capabilities have been installed (for optional-slot degradation paths, e.g. fileWatchers). */
 export function hasBackendCapabilities(): boolean {
-	return _capabilities !== undefined
+	return _capabilitiesState.value !== undefined
 }
 
 /**

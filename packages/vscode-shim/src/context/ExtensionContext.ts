@@ -12,7 +12,7 @@ import type {
 	SecretStorage,
 	ExtensionMode,
 	ExtensionKind,
-} from "../types.ts"
+} from "../api-types.ts"
 
 /**
  * Options for creating an ExtensionContext
@@ -86,7 +86,7 @@ export class ExtensionContextImpl implements ExtensionContext {
 		this.globalStoragePath = path.join(baseStorageDir, "global-storage")
 		this.globalStorageUri = Uri.file(this.globalStoragePath)
 
-		const workspaceStoragePath = path.join(baseStorageDir, "workspace-storage", workspaceHash)
+		const workspaceStoragePath = path.join(baseStorageDir, "manager.workspace-storage", workspaceHash)
 		this.storagePath = workspaceStoragePath
 		this.storageUri = Uri.file(workspaceStoragePath)
 
@@ -115,11 +115,11 @@ export class ExtensionContextImpl implements ExtensionContext {
 	}
 
 	/**
-	 * Load extension metadata from package.json
+	 * Load extension metadata from "package.json"
 	 */
 	private loadExtensionMetadata(): Extension<unknown> | undefined {
 		try {
-			// Try to load package.json from extension path
+			// Try to load package.json from "extension" path
 			const packageJsonPath = path.join(this.extensionPath, "package.json")
 			if (fs.existsSync(packageJsonPath)) {
 				const packageJSON = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"))

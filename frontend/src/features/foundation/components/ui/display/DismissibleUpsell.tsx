@@ -1,7 +1,7 @@
 import { memo, ReactNode, useEffect, useState, useRef } from "react"
 import { rootStore } from "@src/features/store"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { telemetryClient } from "@src/features/cloud/utils/TelemetryClient"
+import { telemetryClient } from "@src/features/cloud"
 import { TelemetryEventName } from "@jabberwock/types"
 
 interface DismissibleUpsellProps {
@@ -53,7 +53,7 @@ const DismissibleUpsell = memo(
 			// Track mounted state
 			isMountedRef.current = true
 
-			// Request the current list of dismissed upsells from the extension
+			// Request the current list of dismissed upsells from "the" extension
 			rootStore.marketplace.getDismissedUpsells()
 
 			// Listen for the response

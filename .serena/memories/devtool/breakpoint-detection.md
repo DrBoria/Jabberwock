@@ -4,21 +4,21 @@
 
 ### Tier 1: HTTP Polling (pollExtensionStatus)
 
-- File: `packages/devtool/src/api/mcp-entry/mcp-entry.ts:90`
+- File: `packages/devtool/src/api/mcp-entry/server.ts:90`
 - Two-phase: Fast poll (8×200ms) + Long retry (3×1s) if port was open but HTTP timeout
 - TCP socket check (isPortOpen) definitively distinguishes "not running" from "breakpoint"
 - Only used when WebSocket is NOT connected (fast-path in ensureConnection)
 
 ### Tier 2: Guard Timer (proxyToolCall)
 
-- File: `packages/devtool/src/api/mcp-entry/mcp-entry.ts:210`
+- File: `packages/devtool/src/api/mcp-entry/server.ts:210`
 - 10s timer covering ONLY the ensureConnection phase
 - Explicitly NOT covering client.callTool() — removed to fix false positives during generation
 - During generation, webview-bound tools (find_element, etc.) can take >10s without being at breakpoint
 
 ### Tier 3: Timeout-forced poll (this fix)
 
-- File: `packages/devtool/src/api/mcp-entry/mcp-entry.ts:248-256`
+- File: `packages/devtool/src/api/mcp-entry/server.ts:248-256`
 - When client.callTool() times out (30s) while WebSocket is still connected:
     1. Force-disconnect client
     2. ensureConnection() does full HTTP poll → detects breakpoint

@@ -1,19 +1,12 @@
-import { useState, useEffect } from "react"
-import { Building2, User, Plus } from "lucide-react"
+import { useEffect } from "react"
+import { Building2, User } from "lucide-react"
 
 import { type CloudUserInfo, type CloudOrganizationMembership, type ExtensionMessage } from "@jabberwock/types"
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { rootStore } from "@src/features/store"
 
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-	SelectSeparator,
-} from "@src/shared/ui/selects/select"
+import { Select, SelectContent, SelectTrigger, SelectValue } from "@src/shared/ui/selects/select-primitive"
+import { PersonalSelectItem, OrganizationList, findOrganizationById, useOrgSwitch } from "./org-switch-shared"
 
 type OrganizationSwitcherProps = {
 	userInfo: CloudUserInfo
@@ -29,13 +22,18 @@ export const OrganizationSwitcher = ({
 	cloudApiUrl,
 }: OrganizationSwitcherProps) => {
 	const { t } = useAppTranslation()
-	const [selectedOrgId, setSelectedOrgId] = useState<string | null>(userInfo.organizationId || null)
-	const [isLoading, setIsLoading] = useState(false)
-
-	// Update selected org when userInfo changes
-	useEffect(() => {
-		setSelectedOrgId(userInfo.organizationId || null)
-	}, [userInfo.organizationId])
+	const {
+		selectedOrgId,
+		setSelectedOrgId,
+		isLoading,
+		setIsLoading,
+		currentValue,
+		handleChange: handleOrganizationChange,
+	} = useOrgSwitch({
+		initialOrgId: userInfo.organizationId || null,
+		cloudApiUrl,
+		afterSwitch: onOrganizationChange,
+	})
 
 	// Listen for organization switch results
 	useEffect(() => {
@@ -57,42 +55,9 @@ export const OrganizationSwitcher = ({
 
 		window.addEventListener("message", handleMessage)
 		return () => window.removeEventListener("message", handleMessage)
-	}, [userInfo.organizationId])
+	}, [userInfo.organizationId, setIsLoading, setSelectedOrgId])
 
-	const handleOrganizationChange = async (value: string) => {
-		// Handle "Create Team Account" option
-		if (value === "create-team") {
-			if (cloudApiUrl) {
-				const billingUrl = `${cloudApiUrl}/billing`
-				rootStore.settings.openExternal(billingUrl)
-			}
-			return
-		}
-
-		const newOrgId = value === "personal" ? null : value
-
-		// Don't do anything if selecting the same organization
-		if (newOrgId === selectedOrgId) {
-			return
-		}
-
-		setIsLoading(true)
-
-		// Send message to switch organization
-		rootStore.cloud.switchOrganization(newOrgId)
-
-		// Update local state optimistically
-		setSelectedOrgId(newOrgId)
-
-		// Call the callback if provided
-		if (onOrganizationChange) {
-			onOrganizationChange(newOrgId)
-		}
-	}
-
-	// Always show the switcher when user is authenticated
-
-	const currentValue = selectedOrgId || "personal"
+	const currentOrg = findOrganizationById(organizations, selectedOrgId)
 
 	return (
 		<div className="w-full">
@@ -102,25 +67,16 @@ export const OrganizationSwitcher = ({
 						<div className="flex items-center gap-2">
 							{selectedOrgId ? (
 								<>
-									{organizations.find((org) => org.organization.id === selectedOrgId)?.organization
-										.image_url ? (
+									{currentOrg?.organization.image_url ? (
 										<img
-											src={
-												organizations.find((org) => org.organization.id === selectedOrgId)
-													?.organization.image_url
-											}
+											src={currentOrg.organization.image_url}
 											alt=""
 											className="w-4.5 h-4.5 rounded-full object-cover overflow-clip"
 										/>
 									) : (
 										<Building2 className="w-4.5 h-4.5" />
 									)}
-									<span className="truncate">
-										{
-											organizations.find((org) => org.organization.id === selectedOrgId)
-												?.organization.name
-										}
-									</span>
+									<span className="truncate">{currentOrg?.organization.name}</span>
 								</>
 							) : (
 								<>
@@ -134,42 +90,10 @@ export const OrganizationSwitcher = ({
 					</SelectValue>
 				</SelectTrigger>
 				<SelectContent>
-					<SelectItem value="personal">
-						<div className="flex items-center gap-2">
-							<User className="w-4.5 h-4.5" />
-							<span>{t("cloud:personalAccount")}</span>
-						</div>
-					</SelectItem>
-					{organizations.length > 0 && <SelectSeparator />}
-					{organizations.map((org) => (
-						<SelectItem key={org.organization.id} value={org.organization.id}>
-							<div className="flex items-center gap-2">
-								{org.organization.image_url ? (
-									<img
-										src={org.organization.image_url}
-										alt=""
-										className="w-4.5 h-4.5 rounded-full object-cover overflow-clip"
-									/>
-								) : (
-									<Building2 className="w-4.5 h-4.5" />
-								)}
-								<span className="truncate">{org.organization.name}</span>
-							</div>
-						</SelectItem>
-					))}
-
-					{/* Only show Create Team Account if user has no organizations */}
-					{organizations.length === 0 && (
-						<>
-							<SelectSeparator />
-							<SelectItem value="create-team">
-								<div className="flex items-center gap-2">
-									<Plus className="w-4.5 h-4.5" />
-									<span>{t("cloud:createTeamAccount")}</span>
-								</div>
-							</SelectItem>
-						</>
-					)}
+					<PersonalSelectItem>
+						<User className="w-4.5 h-4.5" />
+					</PersonalSelectItem>
+					<OrganizationList organizations={organizations} />
 				</SelectContent>
 			</Select>
 		</div>

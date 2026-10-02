@@ -149,6 +149,8 @@
 		"title": "API İsteği",
 		"failed": "API İsteği Başarısız",
 		"streaming": "API İsteği...",
+		"loadingContext": "Bağlam yükleniyor...",
+		"loadingContextPercent": "Bağlam yükleniyor... {{percent}}%",
 		"cancelled": "API İsteği İptal Edildi",
 		"streamingFailed": "API Akışı Başarısız",
 		"rateLimitWait": "Hız sınırlaması",

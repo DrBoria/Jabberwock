@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { useQuery } from "@tanstack/react-query"
-import { useFuzzyModelSearch } from "./use-fuzzy-model-search"
+import { useFuzzyModelSearch, fetchModelList } from "./use-fuzzy-model-search"
 
 export const jabberwockCloudModelSchema = z.object({
 	object: z.literal("model"),
@@ -33,25 +33,16 @@ export const jabberwockCloudModelSchema = z.object({
 export type JabberwockCloudModel = z.infer<typeof jabberwockCloudModelSchema>
 
 export const getJabberwockCloudModels = async (): Promise<JabberwockCloudModel[]> => {
-	const response = await fetch("https://api.jabberwock.com/proxy/v1/models")
-
-	if (!response.ok) {
-		return []
-	}
-
-	const result = z
-		.object({
+	const models = await fetchModelList(
+		"https://api.jabberwock.com/proxy/v1/models",
+		jabberwockCloudModelSchema,
+		z.object({
 			object: z.literal("list"),
 			data: z.array(jabberwockCloudModelSchema),
-		})
-		.safeParse(await response.json())
+		}),
+	)
 
-	if (!result.success) {
-		console.error(result.error)
-		return []
-	}
-
-	return result.data.data.filter((model) => !model.deprecated).sort((a, b) => a.name.localeCompare(b.name))
+	return models.filter((model) => !model.deprecated)
 }
 
 export const useJabberwockCloudModels = () => {

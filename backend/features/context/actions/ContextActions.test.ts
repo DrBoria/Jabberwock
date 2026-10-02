@@ -3,13 +3,9 @@ import { describe, expect, it } from "vitest"
 
 import contextRecallToolDef from "@features/settings/context/tools/native-tools/context/context_recall"
 import contextSearchToolDef from "@features/settings/context/tools/native-tools/context/context_search"
-import { filterNativeToolsForMode } from "@features/settings/context/tools/filter-tools-for-mode"
-import { INTENT_PRIORITY } from "@features/context/intents/IntentConstants"
-import {
-	buildFtsMatchExpression,
-	clampSearchLimit,
-	resolveRecallBudget,
-} from "@features/context/services/ContextSearchService"
+import { filterNativeToolsForMode } from "@features/settings"
+import { INTENT_PRIORITY } from "@features/context/intents/intent-priority"
+import { buildFtsMatchExpression, clampSearchLimit, resolveRecallBudget } from "@features/context"
 
 // G4 gating fixture - both native context tool definitions exactly as buildToolDefinitions would receive them.
 const CONTEXT_TOOL_DEFS = [contextSearchToolDef, contextRecallToolDef]

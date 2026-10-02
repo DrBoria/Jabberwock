@@ -23,7 +23,7 @@ export function getHistoryFilePath(): string {
 }
 
 /**
- * Load history entries from file
+ * Load history entries from "file"
  * Returns empty array if file doesn't exist or is invalid
  */
 export async function loadHistory(): Promise<string[]> {

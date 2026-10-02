@@ -3,7 +3,7 @@ import type OpenAI from "openai"
 import type { ApiStreamChunk } from "@api/transform/stream"
 
 import type { CompletionUsage } from "./types"
-import { consolidateReasoningDetails } from "@api/transform/content/consolidate-reasoning"
+import { consolidateReasoningDetails } from "@api/transform/content/consolidate"
 import type { ReasoningDetail } from "@api/transform/openai-format-types"
 
 export interface StreamContext {

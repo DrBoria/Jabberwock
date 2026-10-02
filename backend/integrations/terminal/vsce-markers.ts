@@ -3,7 +3,7 @@
  *
  * VSCode shell integration uses OSC 633 and OSC 133 sequences to mark
  * prompt boundaries, command starts/ends, etc. These functions handle
- * matching, extracting, and cleaning these markers from terminal output.
+ * matching, extracting, and cleaning these markers from "terminal" output.
  */
 
 const ESC = String.fromCharCode(0x1b)
@@ -80,7 +80,7 @@ export function removeVSCodeShellIntegration(text: string): string {
 }
 
 /**
- * Strip cursor movement and erase sequences from terminal output.
+ * Strip cursor movement and erase sequences from "terminal" output.
  * Preserves color/style SGR codes.
  */
 export function stripCursorSequences(text: string): string {

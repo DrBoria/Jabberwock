@@ -49,7 +49,7 @@ export const ChatEventKeys = {
 /**
  * Flat IPC message type constants matching packages/types/src/event-constants.ts.
  * These are the actual string values used in vscode.postMessage({ type: ... }).
- * Values sourced from the single source of truth in @jabberwock/types.
+ * Values sourced from "the" single source of truth in @jabberwock/types.
  */
 
 // ── Chat / Text Area ────────────────────────────────────────

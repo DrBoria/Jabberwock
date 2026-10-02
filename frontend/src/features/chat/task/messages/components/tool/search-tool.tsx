@@ -4,7 +4,7 @@ import { Trans } from "react-i18next"
 import type { Notification, SayToolData } from "@jabberwock/types"
 import { toolIcon } from "@src/shared/ui/icons/toolIcon"
 import { Container } from "@src/shared/ui/layouts/Container"
-import CodeAccordion from "@src/features/foundation/components/code/CodeAccordion"
+import { CodeAccordion } from "@src/features/foundation"
 
 interface ToolRendererProps {
 	message: Notification

@@ -1,6 +1,6 @@
 import { type Notification, TelemetryEventName } from "@jabberwock/types"
 import { getCloudService, isCloudEnabled } from "@jabberwock/cloud"
-import { getTask } from "@features/chat/task/actions/taskRegistry"
+import { getTask } from "@features/chat/task/actions"
 import { sendMessageUpdated } from "@features/chat/task/messages/events/actions/sendMessageEvent"
 
 /**

@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next"
 import { observer } from "mobx-react-lite"
 import { rootStore } from "@src/features/store"
 
-import MarkdownBlock from "@src/features/foundation/components/markdown/MarkdownBlock"
+import { MarkdownBlock } from "@src/features/foundation"
 import { Lightbulb, ChevronUp } from "lucide-react"
 import { cn } from "@/lib/utils"
 

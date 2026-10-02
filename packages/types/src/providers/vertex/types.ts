@@ -1,5 +1,5 @@
 // https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/use-claude
-import { vertexModels } from "./models.ts"
+import { vertexModels } from "./models-main.ts"
 
 export type VertexModelId = keyof typeof vertexModels
 

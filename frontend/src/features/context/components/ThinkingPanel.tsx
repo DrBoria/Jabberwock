@@ -2,7 +2,7 @@ import { memo, useState } from "react"
 import { ChevronRight, Brain } from "lucide-react"
 
 /**
- * A single parsed content part from a `partsJson` payload (spec §6.4 — verbatim
+ * A single parsed content part from "a" `partsJson` payload (spec §6.4 — verbatim
  * structured parts including thinking blocks). The backend stores the byte-for-byte
  * API payload; we parse it defensively because part shapes vary by provider.
  */

@@ -2,15 +2,15 @@ import { HTMLAttributes } from "react"
 
 import type { Experiments, ImageGenerationProvider } from "@jabberwock/types"
 
-import { EXPERIMENT_IDS, experimentConfigsMap } from "@shared/experiments"
+import { EXPERIMENT_IDS, experimentConfigsMap } from "@shared/core/experiments"
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { cn } from "@src/lib/utils"
 
-import { SetExperimentEnabled } from "../shared/types"
-import { SectionHeader } from "../shared/SectionHeader"
-import { Section } from "../shared/Section"
-import { SearchableSetting } from "../shared/SearchableSetting"
+import { SetExperimentEnabled } from "@src/features/settings/components/shared/types"
+import { SectionHeader } from "@src/features/settings/components/shared/header"
+import { Section } from "@src/features/settings/components/shared/section"
+import { SearchableSetting } from "@src/features/settings/components/shared/SearchableSetting"
 import { ExperimentalFeature } from "./ExperimentalFeature"
 import { ImageGenerationSettings } from "./ImageGenerationSettings"
 import { CustomToolsSettings } from "./CustomToolsSettings"

@@ -2,7 +2,7 @@ import { ArrowRight } from "lucide-react"
 import type { Metadata } from "next"
 
 import { AnimatedBackground } from "@/components/homepage"
-import { LinearIssueDemo } from "@/components/linear/issue-demo"
+import { LinearIssueDemo } from "@/components/linear/main"
 import { LinearIcon } from "@/components/linear/icon"
 import { Button } from "@/components/ui"
 import { EXTERNAL_LINKS } from "@/lib/constants"

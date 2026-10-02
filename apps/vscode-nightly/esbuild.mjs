@@ -32,8 +32,8 @@ async function main() {
 		format: "cjs",
 		sourcesContent: false,
 		platform: "node",
-		// v4 B4: resolve backend aliases from backend/tsconfig.json — esbuild discovers the connector
-		// skeleton tsconfig (no paths) from the connector entry otherwise.
+		// v4 B4: resolve backend aliases from "backend/tsconfig.json" — esbuild discovers the connector
+		// skeleton tsconfig (no paths) from "the" connector entry otherwise.
 		tsconfig: path.join(srcDir, "tsconfig.json"),
 		define: {
 			"process.env.PKG_NAME": '"jabberwock-nightly"',

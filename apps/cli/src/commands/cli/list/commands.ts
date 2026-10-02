@@ -6,8 +6,8 @@ import pWaitFor from "p-wait-for"
 
 import { getProviderDefaultModelId } from "@jabberwock/types"
 
-import { ExtensionHost } from "@/agent/index.js"
-import { readWorkspaceTaskSessions } from "@/lib/task-history/index.js"
+import { createExtensionHost, ExtensionHost } from "@/agent/index.js"
+import { readWorkspaceTaskSessions } from "@/lib/task-history.js"
 import { loadToken } from "@/lib/storage/index.js"
 import { getDefaultExtensionPath } from "@/lib/utils/env/extension.js"
 import { getApiKeyFromEnv } from "@/lib/utils/validation/provider.js"
@@ -52,7 +52,7 @@ async function createListHost(options: BaseListOptions, hostOptions: ListHostOpt
 	const extensionPath = resolveExtensionPath(options.extension)
 	const apiKey = options.apiKey || (await loadToken()) || getApiKeyFromEnv("jabberwock")
 
-	const host = new ExtensionHost({
+	const host = createExtensionHost({
 		mode: "code",
 		reasoningEffort: undefined,
 		user: null,

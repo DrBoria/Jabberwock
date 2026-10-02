@@ -1,6 +1,6 @@
 import { VSCodeTextField, VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react"
 import { litellmDefaultModelId } from "@jabberwock/types"
-import { Button } from "@src/shared/ui/buttons/button"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
 import { safeValue, handleInputChange } from "./helpers"
 import type {
 	LiteLLMFieldProps,

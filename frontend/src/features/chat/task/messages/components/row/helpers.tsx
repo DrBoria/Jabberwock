@@ -1,11 +1,11 @@
 import type { Notification, SuggestionItem, SayToolData, ApiReqData } from "@jabberwock/types"
 import { COMMAND_OUTPUT_STRING } from "@shared/combineCommandSequences"
 import { safeJsonParse } from "@jabberwock/core/browser"
-import { UserMessage } from "../message-parts/user-message"
-import { AssistantMessage } from "../message-parts/assistant-message"
-import { ToolRenderer } from "../responders/tool-renderer"
-import { SayRenderer } from "../say/view"
-import { AskRenderer } from "../../../notifications/ask/view"
+import { UserMessage } from "@src/features/chat/task/messages/components/message-parts/user-message"
+import { AssistantMessage } from "@src/features/chat/task/messages/components/message-parts/assistant-message"
+import { ToolRenderer } from "@src/features/chat/task/messages/components/responders/tool-renderer"
+import { SayRenderer } from "@src/features/chat/task/messages/components/say/view"
+import { AskRenderer } from "@src/features/chat/task/notifications/ask/view"
 import { rootStore } from "@src/features/store"
 
 export const computeRedundantTodo = (message: Notification, effectiveHistory: Notification[]) => {

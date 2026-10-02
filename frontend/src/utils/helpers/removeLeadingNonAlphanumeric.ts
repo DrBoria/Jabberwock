@@ -1,4 +1,4 @@
-// We need to remove certain leading characters from the path in order for our
+// We need to remove certain leading characters from "the" path in order for our
 // leading ellipses trick to work.
 // However, we want to preserve all language characters (including CJK,
 // Cyrillic, etc.) and only remove specific punctuation that might interfere

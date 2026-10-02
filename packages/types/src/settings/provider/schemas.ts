@@ -5,7 +5,7 @@ import {
 	reasoningEffortSettingSchema,
 	verbosityLevelsSchema,
 	serviceTierSchema,
-} from "../../models/model.ts"
+} from "../../models/model-main.ts"
 import { providerNamesWithRetiredSchema } from "./categories.ts"
 
 /**

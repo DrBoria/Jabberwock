@@ -4,7 +4,7 @@ import { useRef, useMemo } from "react"
 import type { ExtensionHostInterface, ExtensionHostOptions } from "@/agent/index.js"
 import { getContextWindow } from "@/lib/utils/env/context-window.js"
 import { useCLIStore } from "./store.js"
-import { useUIStateStore, uiStateStore } from "./stores/uiStateStore.js"
+import { useUIStateStore, uiStateStore } from "./store.js"
 import {
 	TerminalSizeProvider,
 	useTerminalSize,
@@ -20,9 +20,9 @@ import {
 import { useScrollState } from "./hooks/useScrollState.js"
 import { getView } from "./utils/index.js"
 import Header from "./components/display/Header.js"
-import ChatHistoryItem from "./components/chat/ChatHistoryItem.js"
-import InputArea from "./components/sections/InputArea.js"
-import { ScrollArea } from "./components/scroll/ScrollArea.js"
+import ChatHistoryItem from "./components/chat/history-item.js"
+import InputArea from "./components/sections/main.js"
+import { ScrollArea } from "./components/scroll/area.js"
 
 export interface TUIAppProps extends ExtensionHostOptions {
 	initialPrompt?: string

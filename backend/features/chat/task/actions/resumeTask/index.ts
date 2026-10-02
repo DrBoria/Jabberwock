@@ -1,2 +1,3 @@
-export { resumeTaskFromHistory } from "./resumeTask"
-export { resumeTaskFromHistory as resumeTask } from "./resumeTask"
+export { resumeTaskFromHistory, restoreTaskMessages } from "./from-history"
+export { resumeTaskFromHistory as resumeTask } from "./from-history"
+export { resumeActiveTask } from "./active-task"

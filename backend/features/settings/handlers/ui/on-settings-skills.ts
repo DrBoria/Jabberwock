@@ -1,11 +1,18 @@
 import { IntentType, type SkillMetadata } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
+import type { IntentBus } from "@features/intents"
 import { openFile } from "@integrations/misc/open-file"
+
 import { t } from "@i18n"
-import { getSkillsManager } from "@features/settings/skills/store"
-import { getMstState } from "@features/foundation/mst/store"
+
+import { getSkillsManager } from "@features/settings/skills"
+
+import { sendSkills } from "@features/settings"
+
 import type { IBackendRootStore } from "@features/store"
-import { log as backendLog } from "@features/foundation/capabilities/backend-logger"
+
+import { log as backendLog } from "@features/foundation"
+
+import { publishNotificationError } from "@features/foundation"
 
 type SkillSource = SkillMetadata["source"]
 
@@ -23,13 +30,18 @@ function requireSkillFields(skillName: string, source: string, description?: str
 	}
 }
 
-/** Get the skills manager or throw if unavailable */
-function requireSkillsManager(rootStore: IBackendRootStore): import("@features/settings/skills/store").SkillsManager {
+/** Get the skills store or throw if unavailable */
+function requireSkillsManager(rootStore: IBackendRootStore): import("@features/settings/skills").ISkillsModel {
 	const manager = getSkillsManager(rootStore)
 	if (!manager) {
 		throw new Error(t("skills:errors.manager_unavailable"))
 	}
 	return manager
+}
+
+/** Resolve the active task cwd (the project root skills are loaded from) */
+function activeCwd(rootStore: IBackendRootStore): string {
+	return rootStore.chat?.activeTask?.cwd ?? ""
 }
 
 /** Send updated skills list to webview and MST store */
@@ -38,12 +50,10 @@ async function postSkillsUpdate(
 	rootStore: IBackendRootStore,
 	skills: import("@jabberwock/types").SkillMetadata[],
 ): Promise<void> {
-	await provider.postMessageToWebview({ type: "skills", skills })
-	getMstState(rootStore).skillsStore?.setSkills(skills)
+	await sendSkills(provider, skills)
 }
 
-export function registerOnSettingsSkills(bus: IntentBus): void {
-	// ── requestSkills ─────────────────────────────────────────────────
+function registerOnSettingsSkillsSettingsSkillsRequest(bus: IntentBus): void {
 	bus.register(IntentType.SettingsSkillsRequest, async (_intent, ctx) => {
 		const provider = ctx.provider
 		if (!provider) {
@@ -65,8 +75,9 @@ export function registerOnSettingsSkills(bus: IntentBus): void {
 			await postSkillsUpdate(provider, ctx.rootStore, [])
 		}
 	})
+}
 
-	// ── createSkill ───────────────────────────────────────────────────
+function registerOnSettingsSkillsSettingsSkillCreate(bus: IntentBus): void {
 	bus.register(IntentType.SettingsSkillCreate, async (intent, ctx) => {
 		const provider = ctx.provider
 		if (!provider) {
@@ -90,7 +101,8 @@ export function registerOnSettingsSkills(bus: IntentBus): void {
 			requireSkillFields(skillName, source, skillDescription)
 
 			const skillsManager = requireSkillsManager(ctx.rootStore)
-			const createdPath = await skillsManager.createSkill(skillName, source, skillDescription, modeSlugs)
+			const cwd = activeCwd(ctx.rootStore)
+			const createdPath = await skillsManager.createSkill(cwd, skillName, source, skillDescription, modeSlugs)
 
 			openFile(createdPath)
 
@@ -102,8 +114,9 @@ export function registerOnSettingsSkills(bus: IntentBus): void {
 			publishNotificationError(`Failed to create skill: ${errorMessage}`)
 		}
 	})
+}
 
-	// ── deleteSkill ───────────────────────────────────────────────────
+function registerOnSettingsSkillsSettingsSkillDelete(bus: IntentBus): void {
 	bus.register(IntentType.SettingsSkillDelete, async (intent, ctx) => {
 		const provider = ctx.provider
 		if (!provider) {
@@ -120,12 +133,10 @@ export function registerOnSettingsSkills(bus: IntentBus): void {
 		try {
 			const skillName = payload.skillName
 			const source = payload.source as SkillSource
-			const skillMode = payload.skillModeSlugs?.[0] ?? payload.skillMode
-
 			requireSkillFields(skillName, source)
 
 			const skillsManager = requireSkillsManager(ctx.rootStore)
-			await skillsManager.deleteSkill(skillName, source, skillMode)
+			await skillsManager.deleteSkill(activeCwd(ctx.rootStore), skillName, source)
 
 			const skills = skillsManager.getSkillsMetadata()
 			await postSkillsUpdate(provider, ctx.rootStore, skills)
@@ -135,8 +146,9 @@ export function registerOnSettingsSkills(bus: IntentBus): void {
 			publishNotificationError(`Failed to delete skill: ${errorMessage}`)
 		}
 	})
+}
 
-	// ── moveSkill ─────────────────────────────────────────────────────
+function registerOnSettingsSkillsSettingsSkillMove(bus: IntentBus): void {
 	bus.register(IntentType.SettingsSkillMove, async (intent, ctx) => {
 		const provider = ctx.provider
 		if (!provider) {
@@ -159,7 +171,7 @@ export function registerOnSettingsSkills(bus: IntentBus): void {
 			requireSkillFields(skillName, source)
 
 			const skillsManager = requireSkillsManager(ctx.rootStore)
-			await skillsManager.moveSkill(skillName, source, currentMode, newMode)
+			await skillsManager.moveSkill(activeCwd(ctx.rootStore), skillName, source, currentMode, newMode)
 
 			const skills = skillsManager.getSkillsMetadata()
 			await postSkillsUpdate(provider, ctx.rootStore, skills)
@@ -169,8 +181,9 @@ export function registerOnSettingsSkills(bus: IntentBus): void {
 			publishNotificationError(`Failed to move skill: ${errorMessage}`)
 		}
 	})
+}
 
-	// ── updateSkillModes ──────────────────────────────────────────────
+function registerOnSettingsSkillsSettingsSkillModesUpdate(bus: IntentBus): void {
 	bus.register(IntentType.SettingsSkillModesUpdate, async (intent, ctx) => {
 		const provider = ctx.provider
 		if (!provider) {
@@ -191,7 +204,7 @@ export function registerOnSettingsSkills(bus: IntentBus): void {
 			requireSkillFields(skillName, source)
 
 			const skillsManager = requireSkillsManager(ctx.rootStore)
-			await skillsManager.updateSkillModes(skillName, source, newModeSlugs)
+			await skillsManager.updateSkillModes(activeCwd(ctx.rootStore), skillName, source, newModeSlugs)
 
 			const skills = skillsManager.getSkillsMetadata()
 			await postSkillsUpdate(provider, ctx.rootStore, skills)
@@ -201,8 +214,9 @@ export function registerOnSettingsSkills(bus: IntentBus): void {
 			publishNotificationError(`Failed to update skill modes: ${errorMessage}`)
 		}
 	})
+}
 
-	// ── openSkillFile ─────────────────────────────────────────────────
+function registerOnSettingsSkillsSettingsSkillFileOpen(bus: IntentBus): void {
 	bus.register(IntentType.SettingsSkillFileOpen, async (intent, ctx) => {
 		const provider = ctx.provider
 		if (!provider) {
@@ -235,4 +249,11 @@ export function registerOnSettingsSkills(bus: IntentBus): void {
 	})
 }
 
-import { publishNotificationError } from "@features/foundation/capabilities/notifications"
+export function registerOnSettingsSkills(_bus: IntentBus): void {
+	registerOnSettingsSkillsSettingsSkillsRequest(_bus)
+	registerOnSettingsSkillsSettingsSkillCreate(_bus)
+	registerOnSettingsSkillsSettingsSkillDelete(_bus)
+	registerOnSettingsSkillsSettingsSkillMove(_bus)
+	registerOnSettingsSkillsSettingsSkillModesUpdate(_bus)
+	registerOnSettingsSkillsSettingsSkillFileOpen(_bus)
+}

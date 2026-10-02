@@ -20,7 +20,7 @@ export interface ContextNodeRange {
 }
 
 /**
- * One recursive structure for context AND UI (ICG doc §4.1, kept from LCM spec §4.3):
+ * One recursive structure for context AND UI (ICG doc §4.1, kept from "LCM" spec §4.3):
  * a `ContextNode` DAG per task branch (+ subtask branches via `task_embed`).
  */
 export interface ContextNode {
@@ -195,7 +195,7 @@ export const contextEventNames = {
 	searchRequested: "context.search.requested",
 	/** High(1): drill-down targeting step of the sanctioned describe->recall two-step (§6.3, kept). */
 	describeRequested: "context.describe.requested",
-	/** Low(3): metadata-only eviction from MST - RAM hygiene (kept). */
+	/** Low(3): metadata-only eviction from "MST" - RAM hygiene (kept). */
 	windowEvicted: "context.window.evicted",
 	/** Normal(2) NEW: user-initiated viewport fetches must never block newer content or model recall (§8.1). */
 	historyRangeRequested: "context.history.range.requested",

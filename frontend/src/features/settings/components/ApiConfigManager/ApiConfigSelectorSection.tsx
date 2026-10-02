@@ -1,9 +1,9 @@
 import { AlertTriangle } from "lucide-react"
 import type { ProviderSettingsEntry } from "@jabberwock/types"
 import type { SearchableSelectOption } from "@src/shared/ui/selects/searchable-select"
-import { Button } from "@src/shared/ui/buttons/button"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
 import { SearchableSelect } from "@src/shared/ui/selects/searchable-select"
-import { StandardTooltip } from "@src/shared/ui/tooltips/standard-tooltip"
+import { StandardTooltip } from "@src/shared/ui/tooltips/standard"
 
 interface ApiConfigSelectorSectionProps {
 	currentApiConfigName: string

@@ -1,4 +1,4 @@
-import { getBackendLogger } from "@features/foundation/capabilities/registry"
+import { getBackendLogger } from "@features/foundation/capabilities"
 
 export type LogFunction = (...args: unknown[]) => void
 

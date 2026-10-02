@@ -1,14 +1,14 @@
-import type { IntentBus } from "@features/intents/bus"
+import type { IntentBus } from "@features/intents"
 import { registerOnSettingsOpened } from "./lifecycle/on-settings-opened"
 import { registerOnSettingsChanged } from "./lifecycle/on-settings-changed"
-import { registerOnSettingsCore } from "./on-settings-core"
-import { registerOnSettingsApiConfig } from "./on-settings-api-config"
-import { registerOnSettingsCodeIndex } from "./code-index/on-settings-code-index"
-import { registerOnSettingsFiles } from "./settings/on-settings-files"
-import { registerOnSettingsMcp } from "./settings/on-settings-mcp"
-import { registerOnSettingsAgents } from "./agents/on-settings-agents"
-import { registerOnSettingsModels } from "./settings/on-settings-models"
-import { registerOnSettingsContext } from "./settings/on-settings-context"
+import { registerCommands, registerDebug, registerUpdates } from "./settings-core/index"
+import { registerOnSettingsApiConfig } from "./api-config/index"
+import { registerOnSettingsCodeIndex } from "./code-index/main"
+import { registerOnSettingsFiles } from "./settings/files"
+import { registerOnSettingsMcp } from "./settings/mcp"
+import { registerOnSettingsAgents } from "./agents/main"
+import { registerOnSettingsModels } from "./settings/models"
+import { registerOnSettingsContext } from "./settings/context"
 import { registerOnSettingsVscode } from "./ui/on-settings-vscode"
 import { registerOnSettingsWebview } from "./ui/on-settings-webview"
 import { registerOnSettingsWorktree } from "./lifecycle/on-settings-worktree"
@@ -23,7 +23,9 @@ import { registerAllSettingsAgentsHandlers } from "@features/settings/agents/han
 export function registerAllSettingsHandlers(bus: IntentBus): void {
 	registerOnSettingsOpened(bus)
 	registerOnSettingsChanged(bus)
-	registerOnSettingsCore(bus)
+	registerCommands(bus)
+	registerDebug(bus)
+	registerUpdates(bus)
 	registerOnSettingsApiConfig(bus)
 	registerOnSettingsCodeIndex(bus)
 	registerOnSettingsFiles(bus)

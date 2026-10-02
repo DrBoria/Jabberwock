@@ -1,6 +1,6 @@
 import { IntentType } from "@jabberwock/types"
-import type { IntentBus } from "@features/intents/bus"
-import { condenseContext } from "@features/chat/task/condense/actions/condenseContext"
+import type { IntentBus } from "@features/intents"
+import { condenseContext } from "@features/chat"
 
 /**
  * Handles task.condense.context.requested intent — triggers context condensation.

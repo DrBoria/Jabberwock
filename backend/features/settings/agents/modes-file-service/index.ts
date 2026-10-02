@@ -1,7 +1,7 @@
-export { JABBERWOCKMODES_FILENAME, CACHE_TTL } from "./types"
 export type { RuleFile, ExportedModeConfig, ImportData, ExportResult, ImportResult } from "./types"
+export { JABBERWOCKMODES_FILENAME, CACHE_TTL } from "./types"
 
-export { initModesFileService, requireContext } from "./mock"
+export { initModesFileService, requireContext, createMockExtensionContext } from "./mock"
 
 export { cleanInvisibleCharacters, parseYamlSafely } from "./yaml"
 

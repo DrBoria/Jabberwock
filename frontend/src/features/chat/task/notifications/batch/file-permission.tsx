@@ -1,9 +1,9 @@
 import { memo } from "react"
 
-import { ToolUseBlock, ToolUseBlockHeader } from "@src/features/foundation/components/code/ToolUseBlock"
+import { ToolUseBlock, ToolUseBlockHeader } from "@src/features/foundation"
 import { rootStore } from "@src/features/store"
 import { formatPathTooltip } from "@src/utils/format/formatPathTooltip"
-import { PathTooltip } from "@src/shared/ui/tooltips/PathTooltip"
+import { PathTooltip } from "@src/shared/ui/tooltips/path"
 
 interface FilePermissionItem {
 	path: string

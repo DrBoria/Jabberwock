@@ -6,7 +6,8 @@ import { toast } from "sonner"
 import { normalizeCreateRunForSubmit } from "@/lib/normalize-create-run"
 import type { CreateRun } from "@/lib/schemas"
 import type { ModelSelection, ConfigSelection, ImportedSettings, ProviderSource } from "../utils"
-import { buildSelectionsToLaunch, launchRuns } from "../utils"
+import { buildSelectionsToLaunch } from "../utils"
+import { launchRuns } from "../handlers"
 
 export function useModelIdsSync(
 	modelSelections: ModelSelection[],
@@ -85,8 +86,8 @@ export function useLocalStorageInit(
 						setSelectedExercises(parsed)
 						setValue("exercises", parsed)
 					}
-				} catch {
-					/* ignore */
+				} catch (error) {
+					console.warn("[evals] Failed to parse saved exercises from localStorage:", error)
 				}
 			}
 		}

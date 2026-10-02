@@ -10,7 +10,7 @@ export function checkExistKey(config: ProviderSettings | undefined) {
 		return true
 	}
 
-	// Check all secret keys from the centralized SECRET_STATE_KEYS array.
+	// Check all secret keys from "the" centralized SECRET_STATE_KEYS array.
 	// Filter out keys that are not part of ProviderSettings (global secrets are stored separately)
 	const globalSecretKeys = GLOBAL_SECRET_KEYS as readonly string[]
 	const providerSecretKeys = SECRET_STATE_KEYS.filter((key) => !globalSecretKeys.includes(key))

@@ -149,6 +149,8 @@
 		"title": "Zapytanie API",
 		"failed": "Zapytanie API nie powiodło się",
 		"streaming": "Zapytanie API...",
+		"loadingContext": "Ładowanie kontekstu...",
+		"loadingContextPercent": "Ładowanie kontekstu... {{percent}}%",
 		"cancelled": "Zapytanie API anulowane",
 		"streamingFailed": "Strumieniowanie API nie powiodło się",
 		"rateLimitWait": "Ograniczenie szybkości",

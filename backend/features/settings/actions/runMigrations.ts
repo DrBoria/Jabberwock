@@ -1,4 +1,4 @@
-import * as vscode from "vscode"
+import type { IMementoLike } from "@jabberwock/types"
 
 import { isProviderName, isRetiredProvider } from "@jabberwock/types"
 
@@ -6,10 +6,21 @@ import { logger } from "@utils/logging"
 import { supportPrompt } from "@shared/support-prompt"
 
 /**
+ * Structural host context the migrations actually touch (G6/G7 purity):
+ * only the global memento and the secret store. `vscode.ExtensionContext`
+ * satisfies it structurally, so the call site can keep passing the host
+ * context without this file importing `vscode`.
+ */
+interface IMigrationContext {
+	readonly globalState: IMementoLike
+	readonly secrets: { store(key: string, value: string): PromiseLike<void> }
+}
+
+/**
  * Run all settings migrations in order.
  * Called once during extension activation after installBackendState().
  */
-export async function runSettingsMigrations(context: vscode.ExtensionContext): Promise<void> {
+export async function runSettingsMigrations(context: IMigrationContext): Promise<void> {
 	await migrateImageGenerationSettings(context)
 	await migrateInvalidApiProvider(context)
 	await migrateLegacyCondensingPrompt(context)
@@ -19,7 +30,7 @@ export async function runSettingsMigrations(context: vscode.ExtensionContext): P
 
 // ─── Migration: Legacy condensing prompt ────────────────────────────────
 
-async function migrateLegacyCondensingPrompt(context: vscode.ExtensionContext) {
+async function migrateLegacyCondensingPrompt(context: IMigrationContext) {
 	try {
 		const legacyPrompt = context.globalState.get<string>("customCondensingPrompt")
 		if (legacyPrompt) {
@@ -45,7 +56,7 @@ async function migrateLegacyCondensingPrompt(context: vscode.ExtensionContext) {
 
 // ─── Migration: Old default condensing prompt ───────────────────────────
 
-async function migrateOldDefaultCondensingPrompt(context: vscode.ExtensionContext) {
+async function migrateOldDefaultCondensingPrompt(context: IMigrationContext) {
 	try {
 		const currentSupportPrompts = context.globalState.get<Record<string, string>>("customSupportPrompts") || {}
 
@@ -91,7 +102,7 @@ function isOldV1DefaultCondensePrompt(prompt: string): boolean {
 
 // ─── Migration: Invalid API provider ────────────────────────────────────
 
-async function migrateInvalidApiProvider(context: vscode.ExtensionContext) {
+async function migrateInvalidApiProvider(context: IMigrationContext) {
 	try {
 		const apiProvider = context.globalState.get<string | undefined>("apiProvider")
 		const isKnownProvider =
@@ -110,7 +121,7 @@ async function migrateInvalidApiProvider(context: vscode.ExtensionContext) {
 
 // ─── Migration: Image generation settings ───────────────────────────────
 
-async function migrateImageGenerationSettings(context: vscode.ExtensionContext) {
+async function migrateImageGenerationSettings(context: IMigrationContext) {
 	try {
 		const oldNestedSettings = context.globalState.get<unknown>("openRouterImageGenerationSettings")
 
@@ -148,7 +159,7 @@ async function migrateImageGenerationSettings(context: vscode.ExtensionContext) 
 // to the file system (context.globalStorageUri / ".backend-snapshot.json").
 const OLD_SNAPSHOT_KEY = "jabberwock.backendRootStore.snapshot"
 
-async function migrateOldGlobalStateSnapshot(context: vscode.ExtensionContext) {
+async function migrateOldGlobalStateSnapshot(context: IMigrationContext) {
 	try {
 		const oldSnapshot = context.globalState.get(OLD_SNAPSHOT_KEY)
 		if (oldSnapshot !== undefined) {

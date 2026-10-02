@@ -1,6 +1,6 @@
 // https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference.html
 
-import { bedrockModels } from "./models.ts"
+import { bedrockModels } from "./models-main.ts"
 
 export type BedrockModelId = keyof typeof bedrockModels
 
@@ -116,6 +116,6 @@ export const BEDROCK_SERVICE_TIER_MODEL_IDS = [
 // Service tier pricing multipliers
 export const BEDROCK_SERVICE_TIER_PRICING = {
 	STANDARD: 1.0, // Base price
-	FLEX: 0.5, // 50% discount from standard
+	FLEX: 0.5, // 50% discount from "standard"
 	PRIORITY: 1.75, // 75% premium over standard
 } as const

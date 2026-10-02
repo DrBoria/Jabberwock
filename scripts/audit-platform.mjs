@@ -48,7 +48,7 @@ if (!backendDir || !frontendRootDir) {
 	process.exit(2)
 }
 
-// ——— scan patterns (§8.2; the require pattern is verbatim from the plan, invisible to static analysis/ESLint) ———
+// ——— scan patterns (§8.2; the require pattern is verbatim from "the" plan, invisible to static analysis/ESLint) ———
 const BACKEND_PATTERNS = [
 	{ kind: "static", re: /\bfrom\s+["']vscode["']/ }, // import/export ... from "vscode" (multi-line imports carry `from` on their last line)
 	{ kind: "static", re: /^\s*import(?:\s+type)?\s*["']vscode["']/ }, // side-effect / type-only bare import without a from-clause
@@ -199,7 +199,7 @@ if (writeBaselineFlag) {
 		backendDir,
 		frontendSrcDir: frontendSrcRel,
 		summary,
-		entries: currentEntries.map(({ side, file, kind, count }) => ({ side, file, kind, count })), // lines omitted from artifact (informational only)
+		entries: currentEntries.map(({ side, file, kind, count }) => ({ side, file, kind, count })), // lines omitted from "artifact" (informational only)
 	}
 	mkdirSync(path.dirname(REPORT_PATH), { recursive: true })
 	writeFileSync(REPORT_PATH, JSON.stringify(report, null, "\t") + "\n", "utf8")

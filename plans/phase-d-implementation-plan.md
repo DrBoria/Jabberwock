@@ -52,7 +52,7 @@ The v4 plan §11 Phase D table (lines 928-936) defines three rows:
 - `.serena/memories/phase-a-staging-state.md`
 - `DebugMCP/`
 - `loseless-context/`
-- `packages/devtool/src/api/debug-mcp-bridge.mjs`
+- `packages/devtool/src/api/debug-mcp-proxy.mjs`
 
 ---
 
@@ -446,7 +446,7 @@ The askResponse handler (`register-on-messages-intents.ts:24`) currently calls `
     - `plans/phase-d-implementation-plan.md` (this file)
     - `plans/phase-d-class-b-allowlist.md` (D0)
 4. **Exclude drift ×3:** `.rpg/graph.json`, `.serena/memories/debug/debug-workflow-protocol.md`, `md-todo-mcp`
-5. **Exclude untracked ×6:** `.jabberwock-data/`, `.roo/skills/run-extension/`, `.serena/memories/phase-a-staging-state.md`, `DebugMCP/`, `loseless-context/`, `packages/devtool/src/api/debug-mcp-bridge.mjs`
+5. **Exclude untracked ×6:** `.jabberwock-data/`, `.roo/skills/run-extension/`, `.serena/memories/phase-a-staging-state.md`, `DebugMCP/`, `loseless-context/`, `packages/devtool/src/api/debug-mcp-proxy.mjs`
 6. `git commit -m "phase D"` — husky hooks run natively (NO `--no-verify`)
 7. `git push`
 
@@ -853,7 +853,7 @@ git add reports/audit-platform.json
 # .serena/memories/phase-a-staging-state.md
 # DebugMCP/
 # loseless-context/
-# packages/devtool/src/api/debug-mcp-bridge.mjs
+# packages/devtool/src/api/debug-mcp-proxy.mjs
 ```
 
 ### 6.2 Commit + Push

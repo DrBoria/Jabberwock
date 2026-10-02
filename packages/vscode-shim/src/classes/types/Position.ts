@@ -1,4 +1,4 @@
-import type { IPosition } from "../../types.ts"
+import type { IPosition } from "../../api-types.ts"
 
 /**
  * Represents a position in a text document

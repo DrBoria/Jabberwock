@@ -56,3 +56,8 @@ qdrant_storage/
 
 roo-cli-*.tar.gz*
 .roo/skills/sudo-run/.sudo-password
+
+# Jabberwock runtime state (regenerated on start)
+.jabberwock-data/
+.rpg/
+.serena/

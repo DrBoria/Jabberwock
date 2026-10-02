@@ -3,7 +3,7 @@ import React from "react"
 import { ChevronDown, X, Upload } from "lucide-react"
 import type { ModeConfig } from "./types"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { Button } from "@src/shared/ui/buttons/button"
+import { Button } from "@src/shared/ui/buttons/button-primitive"
 import {
 	Command,
 	CommandInput,
@@ -13,7 +13,7 @@ import {
 	CommandGroup,
 } from "@src/shared/ui/overlays/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@src/shared/ui/overlays/popover"
-import { StandardTooltip } from "@src/shared/ui/tooltips/standard-tooltip"
+import { StandardTooltip } from "@src/shared/ui/tooltips/standard"
 
 export interface ModeToolbarProps {
 	displayModes: ModeConfig[]

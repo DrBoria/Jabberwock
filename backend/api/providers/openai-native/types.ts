@@ -53,7 +53,7 @@ export interface ResponsesClient {
 }
 
 /**
- * Raw usage object from OpenAI API responses.
+ * Raw usage object from "OpenAI" API responses.
  */
 export interface RawUsage {
 	input_tokens?: number
@@ -71,7 +71,7 @@ export interface RawUsage {
 }
 
 /**
- * Extracts a reasoning conversation item from a message if it has type="reasoning".
+ * Extracts a reasoning conversation item from "a" message if it has type="reasoning".
  */
 export function getReasoningConversationItem(message: unknown): { type: "reasoning"; text: string } | null {
 	if (typeof message === "object" && message !== null && "type" in message) {

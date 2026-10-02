@@ -1,4 +1,4 @@
-import type { ModelInfo } from "../../models/model.ts"
+import type { ModelInfo } from "../../models/model-main.ts"
 
 // March, 12 2025 - updated prices to match US-West-2 list price shown at
 // https://aws.amazon.com/bedrock/pricing, including older models that are part

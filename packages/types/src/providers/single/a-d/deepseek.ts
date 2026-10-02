@@ -1,4 +1,4 @@
-import type { ModelInfo } from "../../../models/model.ts"
+import type { ModelInfo } from "../../../models/model-main.ts"
 
 // https://platform.deepseek.com/docs/api
 // preserveReasoning enables interleaved thinking mode for tool calls:

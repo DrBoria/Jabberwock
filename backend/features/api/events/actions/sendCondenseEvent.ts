@@ -6,8 +6,8 @@
  * postMessageToWebview directly.
  */
 
-import { getProvider } from "@features/foundation/webview/providerRegistry"
-import { postMessageToWebview } from "@features/foundation/window-manager/store"
+import { getProvider } from "@features/foundation/webview"
+import { postMessageToWebview } from "@features/foundation"
 
 /**
  * Notify the webview that condense context has started.

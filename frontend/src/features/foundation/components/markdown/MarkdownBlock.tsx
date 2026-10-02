@@ -6,8 +6,8 @@ import rehypeKatex from "rehype-katex"
 import remarkMath from "remark-math"
 import remarkGfm from "remark-gfm"
 import { rootStore } from "@src/features/store"
-import CodeBlock from "../code/CodeBlock"
-import MermaidBlock from "../mermaid/MermaidBlock"
+import CodeBlock from "@src/features/foundation/components/code/CodeBlock-main"
+import MermaidBlock from "@src/features/foundation/components/mermaid/MermaidBlock"
 import { StyledMarkdown } from "./styles"
 
 const MarkdownBlock = memo(({ markdown }: { markdown?: string }) => {

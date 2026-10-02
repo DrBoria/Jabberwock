@@ -2,10 +2,10 @@ import { useMemo } from "react"
 import { getSnapshot } from "mobx-state-tree"
 import type { Goal } from "@jabberwock/types"
 import { rootStore } from "@src/features/store"
-import { ContextMenuOptionType } from "../../utils/context-mentions/context-mentions"
+import { ContextMenuOptionType } from "../../utils/context-mentions/main"
 import type { IDynamicTextAreaStore } from "../../store"
 
-import type { ContextMenuQueryItem } from "../../utils/context-mentions/context-mentions"
+import type { ContextMenuQueryItem } from "../../utils/context-mentions/main"
 
 export function useQueryItems(
 	filePaths: string[] | undefined,

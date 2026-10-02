@@ -49,8 +49,8 @@ export class ServerConfiguration implements IConfiguration {
 					}
 				}
 			}
-		} catch {
-			// No config file yet (first run) or unreadable — start empty; callers fall back to defaults.
+		} catch (error) {
+			console.warn("[config] No config file yet (first run) or unreadable, starting empty:", error)
 		}
 	}
 
@@ -65,8 +65,8 @@ export class ServerConfiguration implements IConfiguration {
 		try {
 			fs.mkdirSync(path.dirname(this.filePath), { recursive: true })
 			fs.writeFileSync(this.filePath, `${JSON.stringify(nested, null, 2)}\n`, "utf-8")
-		} catch {
-			// Persistence is best-effort in server mode; the in-memory map stays authoritative for reads.
+		} catch (error) {
+			console.warn("[config] Failed to persist config file:", error)
 		}
 	}
 }

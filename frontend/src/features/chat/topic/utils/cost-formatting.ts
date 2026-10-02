@@ -4,7 +4,7 @@
  *
  * @param ownCost - The task's own cost
  * @param childrenCost - The sum of subtask costs
- * @param labels - Labels for "Own" and "Subtasks" (from i18n)
+ * @param labels - Labels for "Own" and "Subtasks" (from "i18n")
  * @returns Formatted breakdown string like "Own: $1.00 + Subtasks: $0.50"
  */
 export function formatCostBreakdown(
@@ -19,7 +19,7 @@ export function formatCostBreakdown(
  * Get cost breakdown string if the task has children with costs.
  *
  * @param costs - Object containing ownCost and childrenCost
- * @param labels - Labels for "Own" and "Subtasks" (from i18n)
+ * @param labels - Labels for "Own" and "Subtasks" (from "i18n")
  * @returns Formatted breakdown string or undefined if no children costs
  */
 export function getCostBreakdownIfNeeded(

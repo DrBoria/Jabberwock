@@ -1,14 +1,15 @@
 import { useCallback, useState } from "react"
+import { useHandleInputChange } from "@src/features/settings/components/providers/provider-components/use-handle-input-change"
 import { Checkbox } from "vscrui"
 import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
 
 import type { ProviderSettings } from "@jabberwock/types"
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { VSCodeButtonLink } from "@src/features/foundation/components/ui/button/VSCodeButtonLink"
-import { useSelectedModel } from "@src/features/foundation/ui/hooks/useSelectedModel/useSelectedModel"
+import { VSCodeButtonLink } from "@src/features/foundation"
+import { useSelectedModel } from "@src/features/foundation"
 
-import { inputEventTransform, noTransform } from "../../../shared/transforms"
+import { noTransform } from "@src/features/settings/components/shared/transforms"
 
 type AnthropicProps = {
 	apiConfiguration: ProviderSettings
@@ -114,18 +115,7 @@ export const Anthropic = ({ apiConfiguration, setApiConfigurationField }: Anthro
 
 	const supports1MContextBeta = is1MContextBetaModel(selectedModel?.id)
 
-	const handleInputChange = useCallback(
-		<K extends keyof ProviderSettings, E>(field: K, transform?: (event: E) => ProviderSettings[K]) =>
-			(event: E | Event) => {
-				setApiConfigurationField(
-					field,
-					transform
-						? transform(event as E)
-						: (inputEventTransform(event as { target: HTMLInputElement }) as ProviderSettings[K]),
-				)
-			},
-		[setApiConfigurationField],
-	)
+	const handleInputChange = useHandleInputChange(setApiConfigurationField)
 
 	const handleToggleBaseUrl = useCallback(
 		(checked: boolean) => {

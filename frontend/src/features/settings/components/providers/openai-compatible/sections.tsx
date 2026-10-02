@@ -4,10 +4,10 @@ import { VSCodeButton, VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
 import type { ProviderSettings, ReasoningEffort } from "@jabberwock/types"
 import { azureOpenAiDefaultApiVersion, openAiModelInfoSaneDefaults } from "@jabberwock/types"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { StandardTooltip } from "@src/shared/ui/tooltips/standard-tooltip"
+import { StandardTooltip } from "@src/shared/ui/tooltips/standard"
 import type { OpenAICompatibleProps, CustomHeaderEntry } from "./types"
 import { getEventValue } from "./types"
-import { ThinkingBudget } from "../../ThinkingBudget/components/ThinkingBudgetComponent"
+import { ThinkingBudget } from "@src/features/settings/components/ThinkingBudget/components/main"
 
 export const AzureApiVersionSection = ({
 	apiConfiguration,

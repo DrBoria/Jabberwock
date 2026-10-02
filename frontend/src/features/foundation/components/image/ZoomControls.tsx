@@ -1,6 +1,6 @@
-import { IconButton } from "../ui/button/IconButton"
+import { IconButton } from "@src/features/foundation/components/ui/button/IconButton"
 import { useRef, useEffect } from "react"
-import { StandardTooltip } from "@src/shared/ui/tooltips/standard-tooltip"
+import { StandardTooltip } from "@src/shared/ui/tooltips/standard"
 
 interface ZoomControlsProps {
 	zoomLevel: number

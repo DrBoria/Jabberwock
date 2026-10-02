@@ -4,7 +4,7 @@ import { safeJsonParse } from "@jabberwock/core/browser"
 import { observer } from "mobx-react-lite"
 import { getAllModes } from "@shared/modes"
 import { rootStore } from "@src/features/store"
-import { McpIframeRenderer } from "@src/features/settings/mcp/McpIframeRenderer"
+import { McpIframeRenderer } from "@src/features/settings"
 import { Container } from "@src/shared/ui/layouts/Container"
 
 interface InteractiveAppAskProps {

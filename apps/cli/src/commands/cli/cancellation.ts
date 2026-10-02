@@ -1,6 +1,6 @@
 const CANCELLATION_ERROR_PATTERNS = ["aborted", "aborterror", "cancelled", "canceled"]
-const CANCELLATION_ERROR_NAMES = new Set(["aborterror"])
-const CANCELLATION_ERROR_CODES = new Set(["ABORT_ERR", "ERR_CANCELED", "ERR_CANCELLED"])
+const CANCELLATION_ERROR_NAMES = ["aborterror"]
+const CANCELLATION_ERROR_CODES = ["ABORT_ERR", "ERR_CANCELED", "ERR_CANCELLED"]
 const NO_ACTIVE_TASK_PATTERNS = [
 	"no active task",
 	"no task to cancel",
@@ -10,7 +10,7 @@ const NO_ACTIVE_TASK_PATTERNS = [
 	"already cancelled",
 	"already canceled",
 ]
-const STREAM_TEARDOWN_CODES = new Set(["EPIPE", "ECONNRESET", "ERR_STREAM_DESTROYED", "ERR_STREAM_PREMATURE_CLOSE"])
+const STREAM_TEARDOWN_CODES = ["EPIPE", "ECONNRESET", "ERR_STREAM_DESTROYED", "ERR_STREAM_PREMATURE_CLOSE"]
 const STREAM_TEARDOWN_PATTERNS = [
 	"write after end",
 	"stream destroyed",
@@ -74,11 +74,11 @@ function getErrorMetadata(error: unknown): ErrorMetadata {
 export function isCancellationLikeError(error: unknown): boolean {
 	const details = getErrorMetadata(error)
 
-	if (details.code && CANCELLATION_ERROR_CODES.has(details.code)) {
+	if (details.code && CANCELLATION_ERROR_CODES.includes(details.code)) {
 		return true
 	}
 
-	if (details.normalizedName && CANCELLATION_ERROR_NAMES.has(details.normalizedName)) {
+	if (details.normalizedName && CANCELLATION_ERROR_NAMES.includes(details.normalizedName)) {
 		return true
 	}
 
@@ -92,7 +92,7 @@ export function isNoActiveTaskLikeError(error: unknown): boolean {
 
 export function isStreamTeardownLikeError(error: unknown): boolean {
 	const details = getErrorMetadata(error)
-	if (details.code && STREAM_TEARDOWN_CODES.has(details.code)) {
+	if (details.code && STREAM_TEARDOWN_CODES.includes(details.code)) {
 		return true
 	}
 

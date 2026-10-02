@@ -1,5 +1,5 @@
 import { HTMLAttributes } from "react"
-import { SetCachedStateField } from "../shared/types"
+import { SetCachedStateField } from "@src/features/settings/components/shared/types"
 
 export type AutoApproveSettingsProps = HTMLAttributes<HTMLDivElement> & {
 	alwaysAllowReadOnly?: boolean

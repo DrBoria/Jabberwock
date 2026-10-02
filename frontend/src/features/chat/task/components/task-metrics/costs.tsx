@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next"
-import { StandardTooltip } from "@src/shared/ui/tooltips/standard-tooltip"
+import { StandardTooltip } from "@src/shared/ui/tooltips/standard"
 
 interface CostTooltipProps {
 	hasSubtasks: boolean

@@ -1,8 +1,8 @@
-import { execAsync } from "./git.helpers"
-import { checkGitRepo } from "./git.helpers"
-import { checkGitInstalled } from "./git.helpers"
+import { execAsync } from "./helpers"
+import { checkGitRepo } from "./helpers"
+import { checkGitInstalled } from "./helpers"
 import { truncateOutput } from "@integrations/misc/extract-text/helpers"
-import { GIT_OUTPUT_LINE_LIMIT } from "./git.helpers"
+import { GIT_OUTPUT_LINE_LIMIT } from "./helpers"
 import type { GitCommit } from "@jabberwock/types"
 
 export async function searchCommits(query: string, cwd: string): Promise<GitCommit[]> {
@@ -27,7 +27,7 @@ export async function searchCommits(query: string, cwd: string): Promise<GitComm
 
 		let output = stdout
 		if (!output.trim() && /^[a-f0-9]+$/i.test(query)) {
-			// If no results from grep search and query looks like a hash, try searching by hash
+			// If no results from "grep" search and query looks like a hash, try searching by hash
 			const { stdout: hashStdout } = await execAsync(
 				`git log -n 10 --format="%H%n%h%n%s%n%an%n%ad" --date=short ` + `--author-date-order ${query}`,
 				{ cwd },

@@ -1,12 +1,9 @@
 import { type Notification, TelemetryEventName } from "@jabberwock/types"
 import { getCloudService, isCloudEnabled } from "@jabberwock/cloud"
-import { getTask } from "@features/chat/task/actions/taskRegistry"
-import { getBackendRootStore } from "@features/storeSingleton"
-import { saveMessages } from "./saveMessages"
-import {
-	sendMessageUpdated,
-	sendStateWithoutTaskHistory,
-} from "@features/chat/task/messages/events/actions/sendMessageEvent"
+import { getTask } from "@features/chat"
+import { getStore } from "@features/singleton"
+import { saveMessages } from "./save"
+import { sendMessageUpdated, sendStateWithoutTaskHistory } from "@features/chat"
 
 /**
  * Add a message to the per-task notifications, notify the webview, and save to disk.
@@ -14,7 +11,7 @@ import {
 export async function addMessage(taskId: string, message: Notification) {
 	const task = getTask(taskId)
 	// Push to per-task MST store
-	getBackendRootStore().chat.tasks.get(taskId)!.notifications.addNotification(message)
+	getStore().chat.tasks.get(taskId)!.notifications.addNotification(message)
 
 	// Notify the webview via event actions (only code path allowed for postMessage)
 	sendStateWithoutTaskHistory()

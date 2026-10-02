@@ -1,10 +1,29 @@
-import * as vscode from "vscode"
-
 import type { MarketplaceItem } from "@jabberwock/types"
+
 import { getTelemetryService } from "@jabberwock/telemetry"
+
 import { t } from "@i18n"
 
 import { SimpleInstaller } from "./SimpleInstaller"
+
+import { getBackendCapabilities, getUiDialogs, publishNotificationError } from "@features/foundation/capabilities"
+
+/**
+ * Show an informational toast through the UI-dialogs capability slot (G6/G7 purity:
+ * no direct `vscode.window` import). Server mode degrades to a no-op.
+ */
+function notifyInfo(message: string): void {
+	void getUiDialogs().showInformationMessage(message)
+}
+
+/**
+ * Open a file in the host editor through the host-context command slot (G6/G7 purity).
+ * `line` is 1-based; the connector slot converts to a 0-based selection. Server mode no-ops.
+ */
+function openInEditor(filePath: string, line?: number): void {
+	const selection = line !== undefined ? { line } : undefined
+	getBackendCapabilities().hostContext.hostCommands?.openFileInEditor?.(filePath, selection)
+}
 
 function buildTelemetryProperties(
 	parameters: { [key: string]: unknown } | undefined,
@@ -30,11 +49,11 @@ export async function installMarketplaceItem(
 ): Promise<string> {
 	const { target = "project", parameters } = options || {}
 
-	vscode.window.showInformationMessage(t("marketplace:installation.installing", { itemName: item.name }))
+	notifyInfo(t("marketplace:installation.installing", { itemName: item.name }))
 
 	try {
 		const result = await installer.installItem(item, { target, parameters })
-		vscode.window.showInformationMessage(t("marketplace:installation.installSuccess", { itemName: item.name }))
+		notifyInfo(t("marketplace:installation.installSuccess", { itemName: item.name }))
 
 		const telemetryProperties = buildTelemetryProperties(parameters, item)
 
@@ -46,21 +65,12 @@ export async function installMarketplaceItem(
 			telemetryProperties,
 		)
 
-		const document = await vscode.workspace.openTextDocument(result.filePath)
-		const options: vscode.TextDocumentShowOptions = {}
-
-		if (result.line !== undefined) {
-			options.selection = new vscode.Range(result.line - 1, 0, result.line - 1, 0)
-		}
-
-		await vscode.window.showTextDocument(document, options)
+		openInEditor(result.filePath, result.line)
 
 		return result.filePath
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error)
-		publishNotificationError(
-			t("marketplace:installation.installError", { itemName: item.name, errorMessage }),
-		)
+		publishNotificationError(t("marketplace:installation.installError", { itemName: item.name, errorMessage }))
 		throw error
 	}
 }
@@ -72,11 +82,11 @@ export async function removeInstalledMarketplaceItem(
 ): Promise<void> {
 	const { target = "project" } = options || {}
 
-	vscode.window.showInformationMessage(t("marketplace:installation.removing", { itemName: item.name }))
+	notifyInfo(t("marketplace:installation.removing", { itemName: item.name }))
 
 	try {
 		await installer.removeItem(item, { target })
-		vscode.window.showInformationMessage(t("marketplace:installation.removeSuccess", { itemName: item.name }))
+		notifyInfo(t("marketplace:installation.removeSuccess", { itemName: item.name }))
 
 		getTelemetryService().captureMarketplaceItemRemoved(item.id, item.type, item.name, target)
 	} catch (error) {
@@ -85,5 +95,3 @@ export async function removeInstalledMarketplaceItem(
 		throw error
 	}
 }
-
-import { publishNotificationError } from "@features/foundation/capabilities/notifications"
