@@ -33,6 +33,28 @@ function declarationIsTrivial(decl) {
 	return false
 }
 
+/**
+ * Match a basename against a simple glob (`*` = any run of chars, `?` = one char).
+ *
+ * `allow` entries are PATTERNS on purpose: a rule may encode a naming CONVENTION ("ambient
+ * declaration files are types-only by construction"), never a single reviewed file — a
+ * one-file entry stops applying the moment that file is renamed or a second one appears.
+ *
+ * @param {string} name
+ * @param {string} pattern
+ * @returns {boolean}
+ */
+function matchesGlob(name, pattern) {
+	if (!pattern.includes("*") && !pattern.includes("?")) return name === pattern
+	const rx = new RegExp(
+		`^${pattern
+			.replace(/[.+^${}()|[\]\\]/g, "\\$&")
+			.replace(/\*/g, ".*")
+			.replace(/\?/g, ".")}$`,
+	)
+	return rx.test(name)
+}
+
 /** @type {import("eslint").Rule.RuleModule} */
 const noEmptyFilesRule = {
 	meta: {
@@ -54,7 +76,7 @@ const noEmptyFilesRule = {
 					allow: {
 						type: "array",
 						items: { type: "string" },
-						description: "Basenames that are allowed to be empty (e.g. stub mocks).",
+						description: "Basename GLOB PATTERNS allowed to be empty (e.g. '*.d.ts', stub mocks).",
 						default: [],
 					},
 				},
@@ -83,8 +105,9 @@ const noEmptyFilesRule = {
 		return {
 			Program(node) {
 				const filename = context.filename ?? context.getFilename()
-				const basename = filename.split("/").pop() ?? ""
-				if (allow.includes(basename)) return
+				let basename = filename.split("/").pop() ?? ""
+				basename = filename.split("/").pop() ?? ""
+				if (allow.some((pattern) => matchesGlob(basename, pattern))) return
 				const body = node.body
 				if (body.length === 0) {
 					context.report({ node, messageId: "emptyFile", data: { file: basename } })

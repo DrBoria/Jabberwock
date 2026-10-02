@@ -146,6 +146,8 @@ function findStateAccess(program) {
 	return [...hits]
 }
 
+import { applyDebt } from "../debt/debt.js"
+
 /** @type {import("eslint").Rule.RuleModule} */
 const noImpureUtilsRule = {
 	meta: {
@@ -172,13 +174,11 @@ const noImpureUtilsRule = {
 						description: "Substrings of file paths excluded from the check.",
 					},
 					debt: {
-						type: "array",
-						items: { type: "string" },
+						type: "object",
+						additionalProperties: { type: "number" },
 						description:
-							"DEBT LEDGER — file paths (relative, or substrings) that are grandfathered. " +
-							"The rule stays fully generic; this list only records PRE-EXISTING violations so " +
-							"the build stays green while they are migrated. It must shrink over time and end " +
-							"empty. New files are NEVER added here.",
+							"MACHINE-GENERATED ledger (reports/lint-debt.json): '<file>::<messageId>' → allowed " +
+							"count. Never hand-edited, never disables the rule for a whole file, only shrinks.",
 					},
 				},
 				additionalProperties: false,
@@ -196,14 +196,12 @@ const noImpureUtilsRule = {
 	create(context) {
 		const filename = (context.filename ?? context.getFilename()).replace(/\\/g, "/")
 		const options = context.options[0] ?? {}
+		context = applyDebt(context, options.debt)
 		const includes = options.includes ?? ["backend/", "frontend/src/", "apps/"]
 		const excludePaths = options.excludePaths ?? [".test.", ".spec.", "__mocks__", "dist/"]
-		const debt = options.debt ?? []
 
 		if (!includes.some((p) => filename.includes(p))) return {}
 		if (excludePaths.some((ex) => filename.includes(ex))) return {}
-		// Debt ledger: pre-existing violations, grandfathered. Shrinks to [].
-		if (debt.some((d) => filename.includes(d))) return {}
 
 		const basename = filename.split("/").pop() ?? ""
 		if (!isUtilsFile(basename)) return {}

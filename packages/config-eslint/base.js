@@ -24,10 +24,7 @@ import noFeatureStore from "./rules/no-feature-store.js"
 import noDirectStoreImport from "./rules/no-direct-store-import.js"
 import noImpureUtils from "./rules/no-impure-utils.js"
 import noEmptyHandlers from "./rules/no-empty-handlers.js"
-import { impureUtilsDebt } from "./debt/impure-utils-debt.js"
-import { emptyHandlersDebt } from "./debt/empty-handlers-debt.js"
-import { shadowStoreDebt } from "./debt/shadow-store-debt.js"
-import { passthroughDebt } from "./debt/passthrough-debt.js"
+import { debtFor } from "./debt/generated.js"
 
 /**
  * A shared ESLint configuration for the repository.
@@ -72,7 +69,7 @@ export const config = [
 			"turbo/no-undeclared-env-vars": "off",
 			// Fully generic; `debt` grandfatheres pre-existing violations
 			// (see debt/passthrough-debt.js). The ledger must shrink to [].
-			"local/no-passthrough": ["error", { debt: passthroughDebt }],
+			"local/no-passthrough": ["error", { debt: debtFor("local/no-passthrough") }],
 			"local/no-reexport": "error",
 			"local/no-logic-in-index": "error",
 			"local/no-store-outside-store": "error",
@@ -80,7 +77,9 @@ export const config = [
 			"local/no-empty-files": [
 				"error",
 				{
-					allow: ["vite-env.d.ts"],
+					// PATTERNS, never individual file names: a rule may encode a naming CONVENTION
+					// ("ambient declaration files are types-only by construction"), not a single file.
+					allow: ["*.d.ts"],
 				},
 			],
 			"local/feature-naming": "error",
@@ -112,12 +111,12 @@ export const config = [
 			// The rule is fully generic; `debt` grandfatheres pre-existing
 			// violations (see debt/impure-utils-debt.js) so the build stays
 			// green while they are migrated. The ledger must shrink to [].
-			"local/no-impure-utils": ["error", { debt: impureUtilsDebt }],
+			"local/no-impure-utils": ["error", { debt: debtFor("local/no-impure-utils") }],
 			// Empty catch blocks and no-op exported functions are dead code /
 			// swallowed errors. Either handle the failure or don't catch.
 			// Fully generic; `debt` grandfatheres pre-existing violations
 			// (see debt/empty-handlers-debt.js). The ledger must shrink to [].
-			"local/no-empty-handlers": ["error", { debt: emptyHandlersDebt }],
+			"local/no-empty-handlers": ["error", { debt: debtFor("local/no-empty-handlers") }],
 			// P10: one handler file registers ONE intent — the filename IS the event.
 			// Test files are exempt: `registry.register(...)` in a test body is not an
 			// intent registration (it is fixture setup), so the monolith heuristic does
@@ -135,7 +134,9 @@ export const config = [
 			"local/no-deep-feature-import": [
 				"error",
 				{
-					allowedPaths: ["@features/intents/bus"],
+					// A ROLE namespace, not a file: the intent bus is the fiber communication core
+					// (v4 ch.5), a cross-cutting seam — never a feature's internal.
+					allowedPaths: ["@features/intents/"],
 				},
 			],
 			// P4: ALL state in MST — no module-level shadow stores (let/var, EventEmitter, pubsub bypass).
@@ -151,145 +152,68 @@ export const config = [
 					// The v2 doctrine (state in MST) does not apply to transport plumbing, so these
 					// are exempted by path — they are NOT feature stores.
 					excludePaths: [
+						// non-shipping code + the composition root: role patterns, universally true
 						".test.",
 						".spec.",
 						"__mocks__",
 						"dist/",
 						"connectors/",
-						// pub/sub capability (plan §4.3): the backend event-transport seam
-						"capabilities/pubsub.ts",
-						"capabilities/notifications.ts",
-						// code-index host-neutral file watchers / state-manager emitters
-						"services/code-index/processors/file-watcher/main.ts",
-						"services/code-index/state-manager.ts",
-						// terminal stream helper (vsce shell-integration emitter)
-						"integrations/terminal/stream-helpers.ts",
-						// Host-neutral event emitter (D4g-2): a transport primitive mirroring
-						// vscode.EventEmitter (event/fire/dispose) used by code-index + file
-						// watchers. Its `listeners` Set is transport state, not feature state —
-						// the same category as capabilities/pubsub.ts above. (reviewed 2026)
-						"features/foundation/events/event-emitter.ts",
-						// Terminal integration: EventEmitter-subclassed child-process / shell
-						// wrappers. Per-instance state (process handle, hot timer, output
-						// buffer) is bound to a live OS process, not feature state. The
-						// no-classes config comment already names "terminal process wrappers"
-						// as reviewed survivors. (reviewed 2026)
-						"integrations/terminal/",
-						// WorkspaceTracker: per-provider integration (WeakRef<ProviderHandle>,
-						// file-watch disposables, debounce timers). State is bound to a live
-						// provider lifecycle, not feature state. (reviewed 2026)
-						"integrations/workspace/WorkspaceTracker.ts",
-						// Checkpoint services: EventEmitter-subclassed git wrappers. Per-task
-						// state (checkpoints list, base hash, simple-git handle) is bound to a
-						// live git repo, not feature state. (reviewed 2026)
+						// role - DI capability slot (v4 §4.3): the host transport seam itself
+						"capabilities/",
+						// role - host-integration adapters (v4 §2.3 L9): per-instance state is
+						// bound to a live OS process / editor handle, not to feature state
+						"integrations/",
+						// role - the host-neutral EventEmitter primitive itself
+						"event-emitter.ts",
+						// role - checkpoint services wrap a live git repo per task
 						"services/checkpoints/",
 					],
 					exemptions: [
-						// MST root holder — backend
-						"backend/features/singleton.ts",
-						// MST root holder — frontend (live root singleton)
-						"frontend/src/features/root-store/bootstrap/singleton.ts",
-						// MobX root holders — CLI (no MST runtime in the CLI)
-						"apps/cli/src/ui/store.ts",
-						"apps/cli/src/ui/hooks/ui/useToast.ts",
-						// Connector bus singleton (plan §4.5): the sanctioned
-						// IConnectorEventBus holder — lazy-init + singleton by design,
-						// NOT feature state. The bus itself is a sanctioned channel.
-						// (reviewed 2026)
-						"frontend/src/connector-bus.ts",
-						// Shiki highlighter instance cache: one expensive async
-						// singleton (instance + loadedLanguages + pendingLoads) bound
-						// to the webview lifecycle, not feature state. (reviewed 2026)
-						"frontend/src/utils/text/highlighter.ts",
-						// Nerd Font detection cache: memoized one-shot DOM probe for
-						// icon rendering, not feature state. (reviewed 2026)
-						"apps/cli/src/ui/components/display/Icon.tsx",
+						// role - the MST root holder: the root of the tree cannot live inside the tree
+						"singleton.ts",
+						// role - the sanctioned connector-bus holder (v4 §4.5)
+						"connector-bus.ts",
 					],
-					// "emit" is the MST task model’s own event surface (the store reaction fans out
-					// to the sanctioned bus) — not a shadow store, so it is a sanctioned channel.
-					sanctionedBusNames: [
-						"bus",
-						"getConnectorBus",
-						"connectorBus",
-						"ConnectorBus",
-						"intentBus",
-						"IntentBus",
-						"emit",
-						"extensionHostBus",
-					],
-					// Grandfathered pre-existing shadow stores (see debt/shadow-store-debt.js).
-					// The rule stays 100% generic; the ledger must shrink to [].
-					debt: shadowStoreDebt,
+					// ROLE: the transport seam itself is named by convention (any bus/emitter identifier
+					// reads as one) — there is no list of current spellings to keep in sync.
+					sanctionedBusPattern: "^(get)?[A-Za-z_$]*([Bb]us|[Ee]mit|[Ee]mitters?)$",
+					// Grandfathered pre-existing shadow stores — machine-generated ledger
+					// (reports/lint-debt.json), keyed by (file, messageId). Only shrinks.
+					debt: debtFor("local/no-shadow-store"),
 				},
 			],
 			// Doctrine (user mandate): no classes — a class is a shadow store wearing
 			// a costume. Instance fields are module state that belong in the feature's
 			// single MST store; the class is the hidden accessor surface. Flatten to
 			// plain module functions + an MST model, or fold into the feature store.
-			// Survivors are added to an EXPLICIT allowlist (exemptClassNames /
-			// exemptPaths), never silently allowed.
+			// Framework-mandated shapes are recognised SEMANTICALLY inside the rule
+			// (`extends Error`, a React error boundary) — never by naming classes.
 			"local/no-classes": [
 				"error",
 				{
 					includes: ["backend/", "frontend/src/", "apps/cli/"],
-					// Composition root + transport seams: host APIs genuinely require
-					// classes (EventEmitter subclasses, terminal process wrappers,
-					// provider handler hierarchies). These are reviewed survivors —
-					// each is a deliberate decision, not a shape match.
+					// ROLE patterns only — never individual files. An entry here says "this KIND of
+					// file cannot carry feature state by construction"; anything instance-specific
+					// belongs in the auto-generated debt ledger, not in a rule option.
 					exemptPaths: [
+						// non-shipping code by universal convention
 						".test.",
 						".spec.",
 						"__mocks__",
 						"dist/",
+						// the composition root: host adapters are exempt by definition (v4 §3.1)
 						"connectors/",
-						// Host-neutral event emitter (D4g-2): a transport primitive
-						// mirroring vscode.EventEmitter — the `listeners` Set is
-						// transport state, not feature state. (reviewed 2026)
-						"features/foundation/events/event-emitter.ts",
-						// Terminal integration: EventEmitter-subclassed child-process /
-						// shell wrappers whose per-instance state is bound to a live OS
-						// process. The config comment above already names "terminal
-						// process wrappers" as reviewed survivors. (reviewed 2026)
-						"integrations/terminal/",
-						// WorkspaceTracker: per-provider integration (WeakRef, file-watch
-						// disposables, debounce timers) bound to a live provider lifecycle.
-						// (reviewed 2026)
-						"integrations/workspace/WorkspaceTracker.ts",
-						// Checkpoint services: EventEmitter-subclassed git wrappers whose
-						// per-task state is bound to a live git repo. (reviewed 2026)
+						// host-integration adapters: per-instance state is bound to a live OS
+						// process / editor handle, not to feature state (v4 §2.3 L9)
+						"integrations/",
+						// role - the host-neutral EventEmitter primitive itself
+						"event-emitter.ts",
+						// role - checkpoint services wrap a live git repo per task
 						"services/checkpoints/",
 					],
-					// Framework-mandated / host-API classes that cannot be flattened.
-					// Keep this list SHORT and deliberate — every entry is debt that
-					// someone decided to keep.
-					//
-					// Error subclasses — the rule's own doc names these as the canonical
-					// "genuinely unavoidable" case: a `class X extends Error` is idiomatic
-					// TS error typing (the `instanceof` / `name` / stack contract), not a
-					// shadow store. All 10 verified `extends Error` (2026-09-15).
-					exemptClassNames: [
-						"AskIgnoredError",
-						"ToolResultIdMismatchError",
-						"MissingToolResultError",
-						"ShellIntegrationError",
-						"ApplyPatchError",
-						"ParseError",
-						"OpenFileSkipError",
-						"OpenAiCodexOAuthTokenError",
-						"FileRestrictionError",
-						"OrganizationAllowListViolationError",
-						// React error boundary: `getDerivedStateFromError` +
-						// `componentDidCatch` are class-component-only lifecycle
-						// hooks — React has no function-component equivalent for
-						// capturing render errors. Framework-mandated. (reviewed 2026)
-						"ErrorBoundary",
-						// Browser stub for the Node-only `json-stream-stringify`
-						// module (aliased in vite.config.ts). Must stay a
-						// `new`-able constructor to mirror the real module's
-						// `new JsonStreamStringify(...)` API used by safeWriteJson.
-						// (reviewed 2026)
-						"JsonStreamStringify",
-					],
+					// the auto-generated debt filter is applied inside the rule, so the rule
+					// itself stays total and the ledger only names (file, messageId) pairs.
+					debt: debtFor("local/no-classes"),
 				},
 			],
 			// Doctrine (user mandate): a feature folder must have a store.ts. A feature
@@ -301,29 +225,10 @@ export const config = [
 				"error",
 				{
 					roots: ["backend/features/", "backend/services/", "frontend/src/features/"],
-					// Genuinely stateless features (pure utilities / parsers / I/O
-					// wrappers), reviewed and decided. Each entry is a deliberate
-					// decision — never a shape match.
-					statelessFeatures: [
-						// backend/services/* — pure I/O / parser / registry utilities,
-						// 0 classes, no module-level mutable state (reviewed 2026-09-14):
-						"search", // file-search I/O wrapper (single file-search.ts)
-						"glob", // list-files I/O + ignore filtering (const patterns only)
-						"jabberwock-config", // config file read/parse (single config.ts)
-						"command", // built-in command registry (no runtime state)
-						// frontend/src/features/* — namespace aggregator barrels whose
-						// state lives in SUB-features (each sub-feature has its own store):
-						"api", // barrel only; state in features/api/streaming store
-						"diagnostics", // 1-line events barrel
-						"foundation", // barrel; state in window-manager store
-						"settings", // aggregator; state in features/settings/settings-store/store.ts
-						// backend/services/* — stateless by review (2026-09-14, no-feature-store slice):
-						"tree-sitter", // pure parsers + query tables, 0 classes, no module state
-						"checkpoints", // per-task service factory; live state held in features/chat/task store
-						"code-index", // factory-based services; state is closure-local per instance (StateManager), no module state
-						"marketplace", // factory-based (MarketplaceManager/RemoteConfigLoader); cache is per-instance, no module state
-						"mcp", // config schemas + validation + file I/O; no runtime state
-					],
+					// Whether a folder is a "feature" is DERIVED inside the rule from its own contents
+					// (does it carry an MST model / module-level state anywhere?) — there is no list of
+					// stateless feature names to keep in sync with reality.
+					debt: debtFor("local/no-feature-store"),
 				},
 			],
 			"local/no-complex-folder-structure": [
@@ -356,10 +261,28 @@ export const config = [
 					excludedFiles: ["useRootStore\\.ts$", "TerminalSizeContext\\.tsx$", "form\\.tsx$", "context\\.ts$"],
 				},
 			],
+			// ── Escape-hatch ban (doctrine: no suppression; fix the code, don't silence it) ──
+			// A bare `/* eslint-disable */` turns off EVERYTHING for the file — including
+			// all local architecture rules. That made the whole rule set optional.
+			"eslint-comments/no-unlimited-disable": "error",
+			// A disable comment that no longer suppresses anything is dead weight that
+			// hides whether the underlying violation was fixed.
+			"eslint-comments/no-unused-disable": "error",
+			// `/* eslint-enable */` re-enabling everything after a rule-scoped disable
+			// silently switches rules back on — reject the aggregate form.
+			"eslint-comments/no-aggregating-enable": "error",
 			"eslint-comments/no-restricted-disable": [
 				"error",
+				// generic gates
 				"max-lines",
 				"@typescript-eslint/no-explicit-any",
+				"@typescript-eslint/ban-ts-comment",
+				// NOTE: `complexity` / `max-len` are deliberately NOT restricted yet —
+				// backend/features/api/handlers/request/recover/contextWindow.ts:74 carries
+				// one documented `eslint-disable-next-line complexity`. Add them here once
+				// that function is split.
+				// local architecture gates — every rule registered above MUST be listed
+				// here, otherwise it is silently disable-able per file.
 				"local/no-passthrough",
 				"local/no-reexport",
 				"local/no-logic-in-index",
@@ -378,6 +301,9 @@ export const config = [
 				"local/no-duplicated-logic",
 				"local/no-classes",
 				"local/no-feature-store",
+				"local/no-direct-store-import",
+				"local/no-impure-utils",
+				"local/no-empty-handlers",
 			],
 		},
 	},

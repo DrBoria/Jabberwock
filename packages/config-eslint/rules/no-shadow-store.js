@@ -165,6 +165,8 @@ function matchesExemption(pattern, filename) {
 	}
 }
 
+import { applyDebt } from "../debt/debt.js"
+
 /** @type {import("eslint").Rule.RuleModule} */
 const noShadowStoreRule = {
 	meta: {
@@ -198,17 +200,19 @@ const noShadowStoreRule = {
 							"Doctrine: the root of the MST tree cannot live inside the tree — the only legitimate " +
 							"module-level store at runtime is the root holder. Everything else is debt.",
 					},
-					sanctionedBusNames: {
-						type: "array",
-						items: { type: "string" },
+					sanctionedBusPattern: {
+						type: "string",
 						description:
-							"Base identifiers whose .publish/.emit is a SANCTIONED channel (IntentBus, connector bus) and must NOT be reported.",
+							"Regex matching identifiers that ARE the transport seam (a bus / emitter / event channel) " +
+							"rather than a shadow store. A PATTERN, not a list: a new bus must not require a config " +
+							"edit to be recognised.",
 					},
 					debt: {
-						type: "array",
-						items: { type: "string" },
+						type: "object",
+						additionalProperties: { type: "number" },
 						description:
-							"Grandfathered file paths / substrings. The rule stays 100% generic; this ledger must shrink to [] and new files must never be added.",
+							"MACHINE-GENERATED ledger (reports/lint-debt.json): '<file>::<messageId>' → allowed " +
+							"count. Never hand-edited, never disables the rule for a whole file, only shrinks.",
 					},
 				},
 				additionalProperties: false,
@@ -233,7 +237,7 @@ const noShadowStoreRule = {
 				"Route this through the MST store (a model + an MST action that updates it) or the sanctioned IntentBus/connector bus. Do not keep a raw EventEmitter as the source of truth.",
 			pubsubBypass:
 				"Shadow store bypass: '{{target}}.{{method}}(...)' publishes state through a pub-sub / capability bus, bypassing the MST store. v2 rule #4 — state changes flow through the store; the sanctioned channels are the IntentBus and the connector bus only. " +
-				"Replace this with an MST action that updates the store (the store reaction fans out to the sanctioned bus), or, if it truly is the transport seam, name it in sanctionedBusNames.",
+				"Replace this with an MST action that updates the store (the store reaction fans out to the sanctioned bus), or, if it truly is the transport seam, give it a name that reads as one (bus/emit) — matching `sanctionedBusPattern`.",
 			classInstanceState:
 				"Shadow store: class '{{name}}' carries instance state (fields {{fields}}). v2 rule #4 — a class with instance fields is a store in a costume: the fields are module state that belong in the feature's single MST store, and the class is the hidden accessor surface around them. " +
 				"Replace it: move the state into an MST model on the feature's store.ts (mutate through an MST action, read from the store) and flatten the class to plain module functions or delete it. A class that holds state is a shadow store by definition.",
@@ -247,23 +251,21 @@ const noShadowStoreRule = {
 		const includes = options.includes ?? ["backend/", "frontend/src/", "apps/cli/"]
 		const excludePaths = options.excludePaths ?? [".test.", ".spec.", "__mocks__", "dist/", "connectors/"]
 		const exemptions = options.exemptions ?? []
-		const sanctionedBusNames = new Set(
-			options.sanctionedBusNames ?? [
-				"bus",
-				"getConnectorBus",
-				"connectorBus",
-				"ConnectorBus",
-				"intentBus",
-				"IntentBus",
-			],
+		// Generic debt filter: the rule itself stays total (it evaluates every file and every
+		// violation kind); the machine-generated ledger only silences the exact
+		// (file, messageId) findings that predate the rule.
+		context = applyDebt(context, options.debt)
+		// A sanctioned "bus" is recognised by what its NAME MEANS, never by a frozen list of spellings:
+		// any identifier that reads as a bus / emitter / event channel is the transport seam (v4 §4.5),
+		// not a shadow store. There is deliberately NO list of current names — a new bus must not need
+		// a config edit to become legitimate.
+		const sanctionedBusPattern = new RegExp(
+			options.sanctionedBusPattern ?? "^(get)?[A-Za-z_$]*([Bb]us|[Ee]mit|[Ee]mitters?)$",
 		)
 
 		if (!includes.some((p) => filename.includes(p))) return {}
 		if (excludePaths.some((ex) => filename.includes(ex))) return {}
-		// Grandfathered debt ledger: the rule stays 100% generic; these files are
-		// pre-existing violations that must be migrated and then removed from the ledger.
-		const debt = options.debt ?? []
-		if (debt.some((d) => filename.includes(d))) return {}
+
 		// Sanctioned root-store holders: the root of the MST tree cannot live
 		// inside the tree — the ONLY legitimate module-level store at runtime is
 		// the root holder itself. This is an explicit allowlist, not a shape match.
@@ -434,7 +436,7 @@ const noShadowStoreRule = {
 							rootName = rc.property.name
 						}
 					}
-					if (rootName && !sanctionedBusNames.has(rootName)) {
+					if (rootName && !sanctionedBusPattern.test(rootName)) {
 						context.report({
 							node: n,
 							messageId: "pubsubBypass",

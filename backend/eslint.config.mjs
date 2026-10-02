@@ -1,4 +1,5 @@
 import { config } from "@jabberwock/config-eslint/base"
+import { providerSdkDebt } from "@jabberwock/config-eslint/debt/import-debt"
 import { existsSync, readFileSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
@@ -57,31 +58,10 @@ const PROVIDER_SDK_RESTRICTION = [
 	{ name: "@anthropic-ai/vertex", message: "Provider-SDK purity: actions/handlers/events must be provider-agnostic. Do not import the Anthropic Vertex SDK in the app layer." },
 ]
 
-// Debt allowlist: files still importing a provider SDK in the app layer. Only shrinks — remove an entry once its SDK
-// import is moved to the api boundary. (The mentions/ files are being fixed now, so they are NOT listed.)
-const PROVIDER_SDK_DEBT_ALLOWLIST = [
-	"features/api/handlers/request/prepare/attemptApiRequest.ts",
-	"features/api/handlers/request/prepare/helpers.ts",
-	"features/api/handlers/request/prepare/main.ts",
-	"features/api/handlers/request/prepare/mergeConsecutiveApiMessages.ts",
-	"features/api/handlers/request/process/streaming.ts",
-	"features/chat/task/messages/actions/presentAssistantMessage/helpers.ts",
-	"features/chat/task/messages/actions/save/blocks.ts",
-	"features/chat/task/messages/actions/save/io.ts",
-	"features/chat/task/messages/actions/save/transform.ts",
-	"features/chat/task/messages/actions/save/types.ts",
-	"features/chat/task/messages/handlers/user/on-message-received.ts",
-	"features/chat/task/actions/resumeTask/from-history.ts",
-	"features/chat/task/actions/resumeTask/helpers.ts",
-	"features/chat/task/actions/resumeTask/rebuild.ts",
-	"features/chat/tools/actions/buildToolDefinitions.ts",
-	"features/chat/tools/actions/executeTools.ts",
-	"features/chat/tools/actions/flushPendingToolResults.ts",
-	"features/chat/tools/actions/toolExecutor/api.ts",
-	"features/chat/tools/actions/toolExecutor/execution.ts",
-	"features/chat/tools/actions/toolExecutor/history.ts",
-	"features/chat/tools/actions/validateToolResultIds.ts",
-]
+// Debt allowlist: files still importing a provider SDK in the app layer. MACHINE-GENERATED from the
+// source tree by scripts/gen-import-debt.mjs — a hand-maintained list of paths in a config is exactly
+// what we are removing: it stops matching as soon as the code moves on. Only shrinks.
+const PROVIDER_SDK_DEBT_ALLOWLIST = providerSdkDebt
 
 // Scoped ban: applies to the app layer only. Placed BEFORE VSCODE_ALLOWLIST_OVERRIDES so that a file in the
 // intersection (vscode debt AND app layer) keeps its vscode allowance — flat config: later block wins.
@@ -117,7 +97,20 @@ export default [
 				},
 			],
 			"@typescript-eslint/no-require-imports": "off",
-			"@typescript-eslint/ban-ts-comment": "off",
+			// AGENTS.md doctrine: `@ts-ignore` and `@ts-nocheck` are forbidden — they
+			// switch TypeScript off instead of fixing the type. The sanctioned escape
+			// is `@ts-expect-error` WITH a description (it fails loudly once the error
+			// disappears, so the suppression cannot rot).
+			"@typescript-eslint/ban-ts-comment": [
+				"error",
+				{
+					"ts-ignore": true,
+					"ts-nocheck": true,
+					"ts-check": false,
+					"ts-expect-error": "allow-with-description",
+					minimumDescriptionLength: 10,
+				},
+			],
 
 			// ——— Strict type hygiene — forcing specific, meaningful types ———
 			"@typescript-eslint/no-explicit-any": "error",

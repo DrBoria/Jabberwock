@@ -2,28 +2,48 @@
 	"$schema": "https://unpkg.com/knip@latest/schema.json",
 	"ignore": [
 		"**/__tests__/**",
-		"backend/extension/api.ts",
-		"connectors/vscode/backend/activation/**",
+		"**/dist/**",
+		"**/build/**",
 		"backend/workers/countTokens.ts",
-		"backend/extension.ts",
-		"scripts/**",
 		"apps/cli/scripts/**",
-		"apps/web-roo-code/next-sitemap.config.cjs"
+		"apps/web-roo-code/next-sitemap.config.cjs",
+		"DebugMCP/**",
+		"loseless-context/**",
+		"md-todo-mcp/**",
+		"reports/**"
 	],
+	"ignoreWorkspaces": ["DebugMCP", "loseless-context", "md-todo-mcp"],
 	"workspaces": {
+		".": {
+			"entry": ["scripts/*.mjs", "tests/*.ts"],
+			"project": ["scripts/**/*.mjs", "tests/**/*.ts"]
+		},
 		"backend": {
-			"entry": ["extension.ts"],
+			"entry": ["index.ts", "**/index.ts"],
 			"project": ["**/*.ts"]
 		},
 		"frontend": {
-			"entry": ["src/index.tsx"],
-			"project": ["src/**/*.{ts,tsx}", "../backend/shared/*.ts"]
+			"entry": ["src/index.tsx", "src/**/index.ts", "src/**/index.tsx"],
+			"project": ["src/**/*.{ts,tsx}"]
 		},
 		"connectors/*": {
-			"entry": ["backend/main.ts"],
+			"entry": ["backend/main.ts", "frontend/connector.ts"],
 			"project": ["**/*.ts"]
 		},
-		"packages/{build,cloud,evals,ipc,telemetry,types}": {
+		"apps/cli": {
+			"entry": ["src/index.ts", "src/cli.ts"],
+			"project": ["src/**/*.ts"]
+		},
+		"apps/web-evals": {
+			"entry": ["src/app/**/*.{ts,tsx}", "next.config.ts"],
+			"project": ["src/**/*.{ts,tsx}"]
+		},
+		"apps/web-jabberwock": {
+			"entry": ["src/app/**/*.{ts,tsx}", "next.config.ts", "next-sitemap.config.cjs"],
+			"project": ["src/**/*.{ts,tsx}"]
+		},
+		"packages/{build,cloud,core,devtool,evals,ipc,telemetry,types,vscode-shim,ws-protocol}": {
+			"entry": ["src/index.ts", "src/**/index.ts"],
 			"project": ["src/**/*.ts"]
 		}
 	}

@@ -19,8 +19,9 @@
  *                                 shadow store with an MST `store.ts`;
  *                             (b) it has no state at all → it is not a feature;
  *                                 break it into actions/events/handlers/utilities
- *                                 (or delete it), then add it to
- *                                 `statelessFeatures` with a reason;
+ *                                 (or delete it). The rule DERIVES this from the
+ *                                 folder's contents, so there is nothing to
+ *                                 allowlist;
  *                             (c) its state belongs to ANOTHER feature → move it
  *                                 there.
  *   - featureStoreEmpty : a feature-root folder whose `store.ts` / `store.tsx`
@@ -38,11 +39,12 @@
  * alphabetically-first `.ts` file when there is no index), so each store-less
  * feature is exactly one finding — a review prompt, not N.
  *
- * Sanctioned exceptions (NOT reported) — an EXPLICIT allowlist, never a shape
- * match (same doctrine as no-shadow-store / no-classes):
- *   - `statelessFeatures` : feature names that are genuinely stateless (pure
- *                          utilities, parsers, I/O wrappers) and have been
- *                          reviewed as such. Each entry is a deliberate decision.
+ * Sanctioned exceptions (NOT reported): a feature root whose own files carry NO
+ * state anywhere (no MST model/composition, no `.volatile()`, no module-level
+ * `let`/`var`) is DERIVED as not-a-feature — stateless utilities, parsers, I/O
+ * wrappers and aggregator barrels are therefore never reported. This is computed
+ * from the folder's contents, not from a hand-maintained list of names, so it can
+ * never go stale.
  */
 
 import fs from "node:fs"
@@ -88,6 +90,36 @@ function hasAnyExport(content) {
 	return /(^|\n)\s*export\s+(const|let|var|function|class|type|interface|enum|default|\{|\*)/.test(content)
 }
 
+import { applyDebt } from "../debt/debt.js"
+
+/**
+ * Does this feature root carry state ANYWHERE? Derived from the folder's own contents — an MST
+ * model / composition, a `.volatile()` surface, or module-level mutable state. A folder with none
+ * of those is not a feature (a stateless utility, parser, I/O wrapper or aggregator barrel), so
+ * demanding a `store.ts` from it would be wrong.
+ *
+ * This DERIVES what used to be a hand-maintained `statelessFeatures` name list: the list had to be
+ * extended by hand for every new stateless folder, and it silently mis-classified the day a folder
+ * started carrying state.
+ *
+ * @param {string} dirPath
+ * @param {string[]} files
+ * @returns {boolean}
+ */
+function carriesState(dirPath, files) {
+	for (const f of files) {
+		if (!/\.tsx?$/.test(f)) continue
+		const src = readStoreContent(path.join(dirPath, f))
+		if (src === null) continue
+		if (/\btypes\s*\.\s*(model|compose)\s*\(/.test(src)) return true
+		if (/\.volatile\s*\(/.test(src)) return true
+		// Module-level MUTABLE state only — the declaration must start at column 0. A `let` inside a
+		// function body (or an indented block) is local state, not feature state.
+		if (/(^|\n)(export\s+)?(let|var)\s+[A-Za-z_$]/.test(src)) return true
+	}
+	return false
+}
+
 /** @type {import("eslint").Rule.RuleModule} */
 const noFeatureStoreRule = {
 	meta: {
@@ -95,8 +127,9 @@ const noFeatureStoreRule = {
 		docs: {
 			description:
 				"A feature-root folder must contain a single store.ts (one MST root store). A feature " +
-				"either carries state (→ exactly one store.ts) or it is not a feature (→ break it into " +
-				"actions/events/handlers/utilities or delete it, then allowlist it as stateless). An " +
+				"either carries state (→ exactly one store.ts) or it carries no state and is therefore " +
+				"not a feature (→ break it into actions/events/handlers/utilities, or delete it) — the " +
+				"rule derives which, it is not a list. An " +
 				"empty store.ts is never the answer, and a shadow store (class/module singleton) must be " +
 				"replaced by a real MST store.ts. Reports once per feature root.",
 		},
@@ -111,13 +144,11 @@ const noFeatureStoreRule = {
 							"Feature-root path prefixes. A direct child of one of these is a feature root. " +
 							"Default: ['backend/features/', 'backend/services/', 'frontend/src/features/'].",
 					},
-					statelessFeatures: {
-						type: "array",
-						items: { type: "string" },
+					debt: {
+						type: "object",
 						description:
-							"EXPLICIT allowlist of feature names that are genuinely stateless (pure " +
-							"utilities / parsers / I/O wrappers), reviewed and decided. Each entry is a " +
-							"deliberate decision — never a shape match.",
+							"Machine-generated grandfather ledger: { '<file>::<messageId>': count }. The rule is total; " +
+							"only findings recorded in the ledger are silenced (see the repo lint-debt generator).",
 					},
 				},
 				additionalProperties: false,
@@ -129,8 +160,9 @@ const noFeatureStoreRule = {
 				"store.ts, a single MST root store) or it is not a feature. Review: (a) state hidden in a " +
 				"shadow store (class with instance fields / module singleton) → replace it with an MST " +
 				"store.ts; (b) no state at all → it is not a feature — break it into actions/events/" +
-				"handlers/utilities or delete it, then add it to the rule's statelessFeatures with a " +
-				"reason; (c) the state belongs to another feature → move it there. An empty store.ts is " +
+				"handlers/utilities, or delete it — a folder carrying no state anywhere is DERIVED as " +
+				"not-a-feature and is never reported (no list to update); (c) the state belongs to " +
+				"another feature → move it there. An empty store.ts is " +
 				"never the answer — a store without data is a lie.",
 			featureStoreEmpty:
 				"Feature root '{{root}}' has a store.ts with NO exports — a store without data is a lie. " +
@@ -145,7 +177,9 @@ const noFeatureStoreRule = {
 		const options = context.options[0] ?? {}
 		// NOTE: ESLint does NOT apply schema `default` values — always fall back here.
 		const roots = options.roots ?? ["backend/features/", "backend/services/", "frontend/src/features/"]
-		const statelessFeatures = new Set(options.statelessFeatures ?? [])
+		// Generic debt filter: the rule itself stays total; the machine-generated ledger only
+		// silences the exact (file, messageId) findings that predate the rule.
+		context = applyDebt(context, options.debt)
 
 		/**
 		 * If the given directory IS a feature root (a direct child of a
@@ -190,7 +224,6 @@ const noFeatureStoreRule = {
 
 				const rootName = featureRootName(dirname)
 				if (!rootName) return
-				if (statelessFeatures.has(rootName)) return
 
 				const files = listFiles(dirname)
 				// Already has a store file? Then it must not be EMPTY (no exports
@@ -215,6 +248,9 @@ const noFeatureStoreRule = {
 					}
 					return
 				}
+				// No store.ts. Whether that is a violation depends on what the folder actually
+				// CONTAINS: a folder carrying no state at all is not a feature — not a finding.
+				if (!carriesState(dirname, files)) return
 				// Report exactly ONCE per feature root: anchor on the index.ts
 				// (the public API entry point) when present, else the
 				// alphabetically-first .ts file.

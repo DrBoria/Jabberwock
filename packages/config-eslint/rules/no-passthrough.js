@@ -1,3 +1,5 @@
+import { applyDebt } from "../debt/debt.js"
+
 /** @type {import("eslint").Rule.RuleModule} */
 const noPassthroughRule = {
 	meta: {
@@ -12,10 +14,11 @@ const noPassthroughRule = {
 				type: "object",
 				properties: {
 					debt: {
-						type: "array",
-						items: { type: "string" },
+						type: "object",
+						additionalProperties: { type: "number" },
 						description:
-							"Grandfathered file paths / substrings. The rule stays 100% generic; this ledger must shrink to [] and new files must never be added.",
+							"MACHINE-GENERATED ledger (reports/lint-debt.json): '<file>::<messageId>' → allowed " +
+							"count. Never hand-edited, never disables the rule for a whole file, only shrinks.",
 					},
 				},
 				additionalProperties: false,
@@ -28,9 +31,10 @@ const noPassthroughRule = {
 	},
 	create(context) {
 		const options = context.options?.[0] ?? {}
-		const debt = options.debt ?? []
+		// Generic debt filter: the rule itself stays total; the machine-generated ledger only
+		// silences the exact (file, messageId) findings that predate the rule.
+		context = applyDebt(context, options.debt)
 		const filename = context.filename ?? context.getFilename()
-		if (debt.some((d) => filename.includes(d))) return {}
 
 		/** @type {Array<{node: import("estree").Function, name: string | null}>} */
 		const candidates = []
