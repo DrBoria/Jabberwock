@@ -19,7 +19,7 @@
 import { createContext, useContext } from "react"
 
 import type { IConnectorEventBus, IFrontendConnector } from "@jabberwock/types"
-import { vscode } from "@jabberwock/devtool/webview"
+import { vscode } from "vscode-extension-devtool-mcp/webview"
 
 import { VscodeWebviewFrontendConnector } from "../../connectors/vscode/frontend/connector"
 import { BrowserWsFrontendConnector } from "../../connectors/web/frontend/connector"

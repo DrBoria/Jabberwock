@@ -12,7 +12,7 @@ import { getTaskDirectoryPath } from "@utils/io"
 
 import { fileExistsAtPath } from "@utils/io/fs"
 
-import { diagnosticsManager } from "@jabberwock/devtool"
+import { diagnosticsManager } from "vscode-extension-devtool-mcp"
 
 import { postStateToWebview } from "@features/foundation"
 import type { IntentBus } from "@features/intents"

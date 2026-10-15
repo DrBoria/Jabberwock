@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { createDomMessageHandler } from "@jabberwock/devtool/webview"
+import { createDomMessageHandler } from "vscode-extension-devtool-mcp/webview"
 import type { WebviewMessage } from "@jabberwock/types"
 import { getConnectorBus } from "../connector-bus"
 import { createRootStore, getFrontendActionBuffer } from "@src/features/root-store"

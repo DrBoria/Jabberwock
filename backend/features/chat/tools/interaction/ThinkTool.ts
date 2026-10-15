@@ -1,7 +1,7 @@
 import { createTool, ToolCallbacks } from "@features/chat/tools/tool"
 import type { ITaskModel } from "@features/chat/task/store"
 import { getStore } from "@features/singleton"
-import { DevToolsLogger } from "@jabberwock/devtool"
+import { DevToolsLogger } from "vscode-extension-devtool-mcp"
 
 /**
  * ThinkTool provides specialized reasoning capabilities.

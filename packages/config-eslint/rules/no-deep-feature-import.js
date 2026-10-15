@@ -44,7 +44,7 @@
  */
 
 import { readFileSync } from "node:fs"
-import { dirname, join, resolve } from "node:path"
+import { basename, dirname, join, resolve } from "node:path"
 
 const FEATURES_PREFIX = "@features/"
 const DEFAULT_EXCLUDE_PATHS = [".test.", ".spec.", "__mocks__", "dist/"]
@@ -107,7 +107,8 @@ function classifyTargetUncached(spec, root) {
 	if (!p) return "other"
 	try {
 		const src = readFileSync(resolve(p), "utf8")
-		const base = p.slice(p.lastIndexOf("/") + 1)
+		// basename, not lastIndexOf("/"): on Windows `join` yields backslashes.
+		const base = basename(p)
 		// The feature's single MST store file.
 		if (base === "store.ts" || base === "store.tsx") return "store"
 		// A file that DEFINES an MST model with actions.
@@ -151,7 +152,8 @@ function isFeatureBarrel(spec, root) {
 	const cached = barrelCache.get(spec)
 	if (cached !== undefined) return cached
 	const resolved = resolveFeatureModule(spec, root)
-	const result = resolved !== null && /\/index\.tsx?$/.test(resolved)
+	// basename, not a `/index.tsx?` regex: on Windows `join` yields backslashes.
+	const result = resolved !== null && /^index\.tsx?$/.test(basename(resolved))
 	barrelCache.set(spec, result)
 	return result
 }
@@ -167,7 +169,7 @@ function getProjectRoot(context) {
 	for (let i = 0; i < 16; i++) {
 		try {
 			readFileSync(join(dir, "pnpm-workspace.yaml"))
-			return dir
+			return dir.replace(/\\/g, "/")
 		} catch {
 			const parent = dirname(dir)
 			if (parent === dir) break
@@ -202,7 +204,7 @@ function featureOfPath(filePath, root) {
  * @returns {boolean}
  */
 function isStoreModule(filePath) {
-	const base = filePath.slice(filePath.lastIndexOf("/") + 1)
+	const base = basename(filePath)
 	return base === "store.ts" || base === "store.tsx"
 }
 

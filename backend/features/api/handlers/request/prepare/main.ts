@@ -6,7 +6,7 @@ import { getTelemetryService } from "@jabberwock/telemetry"
 import { findLastIndex } from "@shared/core/array"
 import type { ITaskModel } from "@features/chat/task"
 import type { IBackendRootStore } from "@features/store"
-import { diagnosticsManager } from "@jabberwock/devtool"
+import { diagnosticsManager } from "vscode-extension-devtool-mcp"
 
 import { type TaskDelegate } from "@features/chat/task/condense"
 import { maybeWaitForProviderRateLimit } from "./rateLimit.ts"

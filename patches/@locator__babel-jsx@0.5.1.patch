@@ -1,0 +1,31 @@
+diff --git a/dist/index.js b/dist/index.js
+index f15d3020de288a98c49a1c65565f916b0c6972a3..2e6f75f3f96d28e706ab69f6be4905bb35fad6c0 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -210,10 +210,13 @@ function transformLocatorJsComponents(babel) {
+                     const dataAst = (0, parser_1.parseExpression)(dataCode, {
+                         sourceType: "script",
+                     });
++                    // Windows-safe: the full path may contain backslashes (state.cwd),
++                    // which are invalid JS string escapes. Embed the key as a
++                    // JSON.stringify'd string literal instead of a raw template.
+                     const insertCode = `(() => {
+             if (typeof window !== "undefined") {
+               window.__LOCATOR_DATA__ = window.__LOCATOR_DATA__ || {};
+-              window.__LOCATOR_DATA__["${createFullPath(fileStorage)}"] = ${dataCode};
++              window.__LOCATOR_DATA__[${JSON.stringify(createFullPath(fileStorage))}] = ${dataCode};
+             }
+           })()`;
+                     // `function __bindLocatorExpression(id) {
+@@ -234,8 +237,9 @@ function createDataId(fileStorage, id) {
+     return createFullPath(fileStorage) + "::" + String(id);
+ }
+ function createFullPath(fileStorage) {
+-    return fileStorage.projectPath + fileStorage.filePath;
++    // Normalize Windows backslashes so locator keys are consistent across platforms.
++    return (fileStorage.projectPath + fileStorage.filePath).replace(/\\/g, "/");
+ }
+ function createFullPathWithLocation(fileStorage, loc) {
+-    return `${fileStorage.projectPath}${fileStorage.filePath}:${loc.start.line}:${loc.start.column}`;
++    return `${createFullPath(fileStorage)}:${loc.start.line}:${loc.start.column}`;
+ }

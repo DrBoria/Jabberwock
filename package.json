@@ -10,8 +10,8 @@
 		"postinstall": "node scripts/patch-sse-sdk.js",
 		"install": "node scripts/bootstrap.mjs",
 		"install:all": "node scripts/bootstrap.mjs",
-		"lint": "CI=true turbo lint --continue --ui stream --output-logs new-only",
-		"check-types": "CI=true turbo check-types --continue --ui stream --output-logs new-only",
+		"lint": "turbo lint --continue --ui stream --output-logs new-only",
+		"check-types": "turbo check-types --continue --ui stream --output-logs new-only",
 		"test": "CI=true turbo test --continue --ui stream --output-logs new-only",
 		"test:smoke": "JABBERWOCK_E2E=true tsx tests/smoke_test.ts",
 		"test:hard": "JABBERWOCK_E2E=true tsx tests/hard_tests_examples.ts",
@@ -102,6 +102,9 @@
 			"@types/react": "^18.3.23",
 			"@types/react-dom": "^18.3.5",
 			"zod": "3.25.76"
+		},
+		"patchedDependencies": {
+			"@locator/babel-jsx@0.5.1": "patches/@locator__babel-jsx@0.5.1.patch"
 		}
 	},
 	"dependencies": {

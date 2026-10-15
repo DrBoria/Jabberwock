@@ -3,12 +3,12 @@
 		"jabberwock-devtools": {
 			"type": "stdio",
 			"command": "node",
-			"args": ["--experimental-websocket", "--import", "tsx", "packages/devtool/src/api/mcp-entry/index.ts"]
-		},
-		"debug-mcp": {
-			"type": "stdio",
-			"command": "node",
-			"args": ["packages/devtool/src/api/debug-mcp-proxy.mjs"]
+			"args": [
+				"--experimental-websocket",
+				"--import",
+				"tsx",
+				"packages/vscode-extension-devtool-mcp/src/mcp/transport/stdio.ts"
+			]
 		},
 		"serena": {
 			"type": "stdio",

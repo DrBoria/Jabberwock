@@ -25,7 +25,7 @@ function escapeHtml(text: string): string {
  * readable through the devtool diagnostics tools.
  *
  * It also acquires the vscode webview api ONCE and exposes it on
- * `window.__JABBERWOCK_EARLY_API__`. `acquireVsCodeApi()` may only be called
+ * `window.__DEVTOOL_EARLY_API__`. `acquireVsCodeApi()` may only be called
  * once per webview, so the app's VSCodeAPIWrapper (packages/devtool vscode.ts)
  * reuses this instance instead of calling it again.
  *
@@ -37,11 +37,11 @@ export function getEarlyErrorCaptureScript(nonce: string): string {
 	return `<script${nonceAttr}>
 (function(){
   try {
-    window.__JABBERWOCK_EARLY_API__ = (typeof acquireVsCodeApi === 'function') ? acquireVsCodeApi() : null;
-  } catch (e) { window.__JABBERWOCK_EARLY_API__ = null; }
+    window.__DEVTOOL_EARLY_API__ = (typeof acquireVsCodeApi === 'function') ? acquireVsCodeApi() : null;
+  } catch (e) { window.__DEVTOOL_EARLY_API__ = null; }
   window.__JABBERWOCK_EARLY_ERRORS__ = window.__JABBERWOCK_EARLY_ERRORS__ || [];
   function post(text){
-    try { if (window.__JABBERWOCK_EARLY_API__) { window.__JABBERWOCK_EARLY_API__.postMessage({ type: 'webviewLog', text: text }); } } catch (e) {}
+    try { if (window.__DEVTOOL_EARLY_API__) { window.__DEVTOOL_EARLY_API__.postMessage({ type: 'webviewLog', text: text }); } } catch (e) {}
     try { console.log(text); } catch (e) {}
   }
   function record(level, msg){
@@ -49,7 +49,7 @@ export function getEarlyErrorCaptureScript(nonce: string): string {
     post('[EARLY][' + level + '] ' + msg);
   }
   try {
-    post('[EARLY][INFO] early-capture installed, readyState=' + document.readyState + ', acquireVsCodeApi=' + (typeof acquireVsCodeApi) + ', api=' + (window.__JABBERWOCK_EARLY_API__ ? 'ok' : 'null'));
+    post('[EARLY][INFO] early-capture installed, readyState=' + document.readyState + ', acquireVsCodeApi=' + (typeof acquireVsCodeApi) + ', api=' + (window.__DEVTOOL_EARLY_API__ ? 'ok' : 'null'));
   } catch (e) {}
   window.addEventListener('error', function(ev){
     var t = ev.target;
@@ -117,9 +117,9 @@ export function getHtmlContent(provider: ProviderHandle, webview: vscode.Webview
     var b = document.createElement('base');
     b.href = ${JSON.stringify(baseUri)};
     document.head.insertBefore(b, document.head.firstChild);
-    window.__JABBERWOCK_EARLY_API__ && window.__JABBERWOCK_EARLY_API__.postMessage({ type: 'webviewLog', text: '[EARLY][INFO] base injected, baseURI=' + document.baseURI });
+    window.__DEVTOOL_EARLY_API__ && window.__DEVTOOL_EARLY_API__.postMessage({ type: 'webviewLog', text: '[EARLY][INFO] base injected, baseURI=' + document.baseURI });
   } catch (e) {
-    try { window.__JABBERWOCK_EARLY_API__ && window.__JABBERWOCK_EARLY_API__.postMessage({ type: 'webviewLog', text: '[EARLY][ERROR] base inject failed: ' + e }); } catch (e2) {}
+    try { window.__DEVTOOL_EARLY_API__ && window.__DEVTOOL_EARLY_API__.postMessage({ type: 'webviewLog', text: '[EARLY][ERROR] base inject failed: ' + e }); } catch (e2) {}
   }
 })();
 </script>`

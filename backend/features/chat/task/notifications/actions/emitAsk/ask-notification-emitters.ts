@@ -1,6 +1,6 @@
 import type { Notification } from "@jabberwock/types"
 import { IntentStatus } from "@jabberwock/types"
-import { diagnosticsManager } from "@jabberwock/devtool"
+import { diagnosticsManager } from "vscode-extension-devtool-mcp"
 import { getStore } from "@features/singleton"
 import { addNotification } from "@features/chat"
 import { updateNotification } from "@features/chat"

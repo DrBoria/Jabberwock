@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { observer } from "mobx-react-lite"
-import { LocatorBridge, initializeSourceMaps, exposeSourceMapsForDebugging } from "@jabberwock/devtool/webview"
+import { LocatorBridge, initializeSourceMaps, exposeSourceMapsForDebugging } from "vscode-extension-devtool-mcp/webview"
 import { TelemetryEventName } from "@jabberwock/types"
 import { telemetryClient } from "@src/features/cloud"
 import { rootStore } from "@src/features/store"

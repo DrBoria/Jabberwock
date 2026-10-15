@@ -1,7 +1,7 @@
 import { type ModelInfo } from "@jabberwock/types"
 import { t } from "@i18n"
 import { getDiffViewProvider } from "@features/foundation/time-machine"
-import { diagnosticsManager } from "@jabberwock/devtool"
+import { diagnosticsManager } from "vscode-extension-devtool-mcp"
 import { RawChunkTracker } from "@features/api"
 import { resetStreamingState, drainStreamInBackground } from "@features/api"
 import { saveMessages } from "@features/chat/task/messages"

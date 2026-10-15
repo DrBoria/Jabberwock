@@ -9,7 +9,7 @@
 		"@dotenvx/dotenvx": "^1.34.0",
 		"@jabberwock/cloud": "workspace:^",
 		"@jabberwock/core": "workspace:^",
-		"@jabberwock/devtool": "workspace:^",
+		"vscode-extension-devtool-mcp": "workspace:^",
 		"@jabberwock/ipc": "workspace:^",
 		"@jabberwock/telemetry": "workspace:^",
 		"@jabberwock/types": "workspace:^",

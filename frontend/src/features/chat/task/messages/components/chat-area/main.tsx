@@ -9,7 +9,6 @@ import { AskResponder } from "@src/features/chat"
 import { NavigationTriggers } from "@src/features/chat"
 import { TaskHeader } from "@src/features/chat"
 import { FileChangesPanel } from "@src/features/chat"
-import { DiagnosticDashboard } from "@jabberwock/devtool/webview"
 import { rootStore } from "@src/features/store"
 import { CheckpointWarningBanner, StreamingFooter } from "./components"
 import { useChatArea } from "./hooks"
@@ -53,11 +52,6 @@ const ChatAreaComponent: React.FC<ChatAreaProps> = ({ isHidden }) => {
 	)
 	return (
 		<>
-			<DiagnosticDashboard
-				diagnostics={hook.diagnostics}
-				isStreaming={hook.isStreaming}
-				devtoolEnabled={hook.devtoolEnabled}
-			/>
 			<TaskHeader />
 			<ParentContextPanel parentNode={hook.parentNode} />
 			<CheckpointWarningBanner warning={hook.checkpointWarning} />

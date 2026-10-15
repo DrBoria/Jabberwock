@@ -4,7 +4,7 @@ import type { McpHubState } from "@services/mcp/core/types"
 import { findConnection, appendErrorMessage } from "./connection/manager"
 import { notifyWebviewOfServerChanges } from "./notifications"
 import { getProjectMcpPath } from "./init"
-import { diagnosticsManager } from "@jabberwock/devtool"
+import { diagnosticsManager } from "vscode-extension-devtool-mcp"
 import { getMcpSettingsFilePath as getMcpSettingsFilePathFromConfig } from "@services/mcp"
 
 // ─── Setup Stdio stderr handler ──────────────────────────────────────

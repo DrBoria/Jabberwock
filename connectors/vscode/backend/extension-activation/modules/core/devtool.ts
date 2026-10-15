@@ -2,16 +2,18 @@ import * as vscode from "vscode"
 
 import { getSnapshot } from "mobx-state-tree"
 import {
-	Devtool,
-	createDevtoolBridge,
+	DevtoolServer,
 	registerDomResponseHandler,
 	createFrontendBridge,
+	createFrontendInterceptor,
 	diagnosticsManager,
-} from "@jabberwock/devtool"
+} from "vscode-extension-devtool-mcp"
+import { MessageInterceptor } from "vscode-extension-devtool-mcp"
 import { Package } from "@shared/core/package"
 import { EventBridge } from "@features/foundation/webview/EventBridge"
 import { getStore } from "@features/singleton"
 import { onWebviewMessage } from "@features/foundation/webview/events/handlers/on-webview-message"
+import type { WebviewOutboundMessage } from "@features/foundation/window-manager"
 
 export async function setupDevtool(provider: EventBridge, outputChannel: vscode.OutputChannel): Promise<void> {
 	try {
@@ -46,44 +48,62 @@ export async function setupDevtool(provider: EventBridge, outputChannel: vscode.
 					devtoolProvider.setDomRequestCallback(requestId, callback),
 			})
 
-			const bridge = createDevtoolBridge(
-				devtoolProvider,
-				{
-					getMstStore: () => {
-						const snapshot = getSnapshot(backendStore) as Record<string, unknown>
-						return snapshot as {
-							foundation: { windowManager: Record<string, unknown> }
-							chat: Record<string, unknown>
-							settings: Record<string, unknown>
-						}
-					},
+			// The DevtoolServer builds its methods internally from the host
+			// provider + backend store snapshot + frontend bridge.
+			const backendStoreSnapshot = {
+				getMstStore: () => {
+					const snapshot = getSnapshot(backendStore) as Record<string, unknown>
+					return snapshot as {
+						foundation: { windowManager: Record<string, unknown> }
+						chat: Record<string, unknown>
+						settings: Record<string, unknown>
+					}
 				},
-				frontendBridge,
-			)
+			}
+			// Message interceptors: the backend one sits on the extension-host side
+			// of the webview channel (send = postMessageToWebview, receive = the
+			// onInbound tap), the frontend one mirrors it for the webview→host
+			// direction. Both are registered as MCP tools by the DevtoolServer.
+			const backendInterceptor = new MessageInterceptor()
+			provider.connector.onInbound((_clientId, body) => {
+				backendInterceptor.receiveMessage(body)
+			})
+			const frontendInterceptor = createFrontendInterceptor((message) => {
+				void provider.postMessageToWebview(message as WebviewOutboundMessage)
+			})
+
 			// Inject the window identity so the MCP proxy can tell the agent WHICH
 			// window/surface it is talking to. This file has `vscode` access, but the
 			// shared devtool package must stay vscode-free (reachable from the web
 			// server bundle), so we pass the values in from here.
-			const devtool = new Devtool(bridge, undefined, devtoolPort, undefined, undefined, {
-				workspaceFolder:
-					vscode.workspace.workspaceFolders?.[0]?.name ??
-					vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ??
-					null,
-				getWorkspaceFolder: () => {
-					try {
-						return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null
-					} catch {
-						return null
-					}
+			const devtool = new DevtoolServer(
+				{ provider: devtoolProvider, backendStore: backendStoreSnapshot, frontendBridge },
+				undefined,
+				devtoolPort,
+				backendInterceptor,
+				undefined,
+				{
+					workspaceFolder:
+						vscode.workspace.workspaceFolders?.[0]?.name ??
+						vscode.workspace.workspaceFolders?.[0]?.uri.fsPath,
+					getWorkspaceFolder: () => {
+						try {
+							return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+						} catch {
+							return undefined
+						}
+					},
+					getFocused: () => {
+						try {
+							return vscode.window.state.focused
+						} catch {
+							return false
+						}
+					},
 				},
-				getFocused: () => {
-					try {
-						return vscode.window.state.focused
-					} catch {
-						return null
-					}
-				},
-			})
+				undefined,
+				frontendInterceptor,
+			)
 			await devtool.start()
 			diagnosticsManager.registerConsoleInterceptor()
 			console.log(`[extension] DevTool WebSocket server started on port ${devtoolPort}`)

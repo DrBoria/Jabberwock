@@ -11,7 +11,7 @@
  * the subscribers whose `MessageFilter` matches.
  *
  * Outbound `publish()` delegates to an injected postMessage function. During the
- * D1a transition the app still uses the `@jabberwock/devtool/webview` `vscode`
+ * D1a transition the app still uses the `vscode-extension-devtool-mcp/webview` `vscode`
  * wrapper (which owns the single `acquireVsCodeApi()` call) for the not-yet
  * migrated class A call sites, so the connector reuses that same wrapper rather
  * than calling `acquireVsCodeApi()` a second time (VS Code throws if it is
@@ -115,7 +115,7 @@ class VscodeWebviewEventBus implements IConnectorEventBus {
  * `connect()` is effectively a no-op for the vscode webview transport.
  *
  * @param postMessage Outbound host transport function. Injected by the
- *   connector-bus from "the" shared `@jabberwock/devtool/webview` `vscode` wrapper
+ *   connector-bus from "the" shared `vscode-extension-devtool-mcp/webview` `vscode` wrapper
  *   so `acquireVsCodeApi()` is only ever called once per webview.
  */
 export class VscodeWebviewFrontendConnector implements IFrontendConnector {

@@ -1,5 +1,0 @@
-export * from "./clickElement.js"
-export * from "./drag.js"
-export * from "./scrollElement.js"
-export * from "./selectOption.js"
-export * from "./typeText.js"

@@ -460,10 +460,14 @@ const noComplexFolderStructureRule = {
 				// A package root is not a domain folder — skip its domain checks.
 				const isPkgRoot = isPackageRoot(dirname)
 
-				// Check A: maxFilesPerFolder — only report at the file's directory
+				// Check A: maxFilesPerFolder — only report at the file's directory.
+				// Test files are exempt (consistent with Checks I and J): colocated
+				// *.test.* files do not describe the folder's domain.
 				if (maxFilesPerFolder > 0 && !isPkgRoot) {
 					const filesInDir = collectFiles(dirname, ignoredFolders)
-					const nonIgnoredFiles = filesInDir.filter((f) => !isIgnoredFile(f) && isIncluded(f))
+					const nonIgnoredFiles = filesInDir.filter(
+						(f) => !isTestFile(f) && !isIgnoredFile(f) && isIncluded(f),
+					)
 					if (nonIgnoredFiles.length > maxFilesPerFolder) {
 						context.report({
 							node: context.sourceCode.ast,

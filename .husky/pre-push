@@ -5,15 +5,13 @@ if [ "$branch" = "main" ]; then
   exit 1
 fi
 
-# Detect if running on Windows and use pnpm.cmd, otherwise use pnpm.
-if [ "$OS" = "Windows_NT" ]; then
+# Prefer pnpm on PATH (covers mise shims and corepack); fall back to pnpm.cmd on Windows.
+if command -v pnpm >/dev/null 2>&1; then
+  pnpm_cmd="pnpm"
+elif [ "$OS" = "Windows_NT" ] && command -v pnpm.cmd >/dev/null 2>&1; then
   pnpm_cmd="pnpm.cmd"
 else
-  if command -v pnpm >/dev/null 2>&1; then
-    pnpm_cmd="pnpm"
-  else
-    pnpm_cmd="npx pnpm"
-  fi
+  pnpm_cmd="npx pnpm"
 fi
 
 $pnpm_cmd run check-types

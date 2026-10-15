@@ -2,7 +2,7 @@
  * ExtensionModel — Page Model for Jabberwock E2E testing.
  *
  * Architecture (like Playwright):
- *   @jabberwock/devtool  = Playwright (transport, connection, primitives)
+ *   vscode-extension-devtool-mcp  = Playwright (transport, connection, primitives)
  *   ExtensionModel       = Page (declarative methods composing primitives)
  *   models/*             = Sub-page models (navigation, chat, state, etc.)
  *

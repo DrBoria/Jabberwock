@@ -26,7 +26,9 @@
 			"@src/*": ["./src/*"],
 			"@shared/*": ["../backend/shared/*"],
 			"@jabberwock/types": ["../../packages/types/src/index.ts"],
-			"@jabberwock/devtool/webview": ["../../packages/devtool/src/webview-entry.ts"],
+			"vscode-extension-devtool-mcp/webview": [
+				"../../packages/vscode-extension-devtool-mcp/src/frontend/index.ts"
+			],
 			"@eventConstants": ["../../packages/types/src/event-constants"],
 			"@intentConstants": ["./src/features/intents/IntentConstants"],
 			"@packageJson": ["../backend/package.json"],

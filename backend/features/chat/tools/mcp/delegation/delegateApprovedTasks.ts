@@ -1,7 +1,7 @@
 import type { ITaskModel } from "@features/chat/task"
 import { startBackgroundTask } from "@features/chat/task/actions/startTask"
 import { delegateParentAndOpenChild } from "@features/chat"
-import { diagnosticsManager } from "@jabberwock/devtool"
+import { diagnosticsManager } from "vscode-extension-devtool-mcp"
 import { jabberwockLog } from "@utils/logger"
 
 function todoLog(msg: string, data?: { [key: string]: unknown }) {

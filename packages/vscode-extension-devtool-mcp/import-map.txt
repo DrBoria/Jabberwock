@@ -1,0 +1,421 @@
+== backend\api\index.ts
+../bridge.js
+../factory.js
+../http-server.js
+== backend\diagnostics\managers\DiagnosticsManager.ts
+../../../shared/diagnostics-types.js
+../trackers/ResourceMonitor.js
+../trackers/SnapshotBuilder.js
+../trackers/TimelineTracker.js
+../trackers/Tracer.js
+../types.js
+./LifecycleManager.js
+./LogFileManager.js
+== backend\diagnostics\managers\index.ts
+./DiagnosticsManager.js
+./LifecycleManager.js
+./LogFileManager.js
+== backend\diagnostics\managers\LifecycleManager.ts
+../trackers/TimelineTracker.js
+../trackers/Tracer.js
+== backend\diagnostics\managers\LogFileManager.ts
+../../../shared/diagnostics-types.js
+== backend\diagnostics\trackers\index.ts
+./ResourceMonitor.js
+./SnapshotBuilder.js
+./TimelineTracker.js
+./Tracer.js
+== backend\diagnostics\trackers\ResourceMonitor.ts
+../../../shared/diagnostics-types.js
+== backend\diagnostics\trackers\SnapshotBuilder.ts
+../../../shared/diagnostics-types.js
+../types.js
+./ResourceMonitor.js
+./Tracer.js
+== backend\diagnostics\trackers\TimelineTracker.ts
+../types.js
+./ResourceMonitor.js
+== backend\diagnostics\trackers\Tracer.ts
+../types.js
+== backend\diagnostics\DevToolsLogger.ts
+./managers/DiagnosticsManager.js
+== backend\diagnostics\index.ts
+./DevToolsLogger.js
+./managers/DiagnosticsManager.js
+./managers/LifecycleManager.js
+./managers/LogFileManager.js
+./trackers/ResourceMonitor.js
+./trackers/TimelineTracker.js
+./trackers/Tracer.js
+./types.js
+== backend\diagnostics\types.ts
+../../shared/diagnostics-types.js
+== backend\factories\factory-console.ts
+../../framework/mobx/types.js
+../diagnostics/managers/DiagnosticsManager.js
+./factory-helpers.js
+== backend\factories\factory-dom.ts
+./factory-helpers.js
+== backend\factories\factory-helpers.ts
+../../shared/diagnostics-types.js
+== backend\factories\factory-mock.ts
+../../utils/interceptor.js
+../bridge.js
+== backend\factories\factory-state.ts
+../../config.js
+../../framework/mobx/actions-main.js
+../../framework/mobx/search.js
+../../framework/mobx/snapshot/state.js
+../../framework/mobx/types.js
+../../utils/interceptor.js
+../diagnostics/managers/DiagnosticsManager.js
+../diagnostics/types.js
+./factory-helpers.js
+== backend\factories\index.ts
+./factory-console.js
+./factory-dom.js
+./factory-helpers.js
+./factory-mock.js
+./factory-state.js
+== backend\hosts\express.ts
+../../config.js
+../../framework/mobx/types.js
+../../utils/interceptor.js
+../devtool.js
+../factories/factory-helpers.js
+../factory.js
+../http-server.js
+== backend\hosts\hosts.test.ts
+../../framework/mobx/adapter.js
+../devtool.js
+../factories/factory-helpers.js
+./express.js
+./nest.js
+== backend\hosts\index.ts
+./express.js
+./nest.js
+== backend\hosts\nest.ts
+../../config.js
+../../framework/mobx/types.js
+../../utils/interceptor.js
+../devtool.js
+../factories/factory-helpers.js
+../factory.js
+../http-server.js
+== backend\mcp-entry\index.ts
+./schemas.js
+./server.js
+== backend\mcp-entry\renderer-console.ts
+./cdp-console-buffer.js
+== backend\mcp-entry\server.ts
+../http-server.js
+../main.js
+./renderer-console.js
+./schemas.js
+./target-identity.js
+== backend\tools\commands.ts
+../bridge.js
+== backend\tools\console.ts
+../bridge.js
+== backend\tools\diagnostics.ts
+../bridge.js
+== backend\tools\dom.ts
+../bridge.js
+./tool-registry.js
+== backend\tools\eventBus.ts
+../../utils/interceptor.js
+== backend\tools\index.ts
+./commands.js
+./console.js
+./diagnostics.js
+./dom.js
+./eventBus.js
+./state.js
+./tool-registry.js
+== backend\tools\state.test.ts
+../../framework/types.js
+../bridge.js
+./state.js
+== backend\tools\state.ts
+../../framework/types.js
+../bridge.js
+./tool-registry.js
+== backend\devtool.ts
+../framework/mobx/types.js
+../framework/types.js
+../server/ws-mcp-server.js
+../utils/interceptor.js
+./bridge.js
+./http-server.js
+./tools/commands.js
+./tools/console.js
+./tools/diagnostics.js
+./tools/dom.js
+./tools/eventBus.js
+./tools/state.js
+== backend\factory.ts
+../config.js
+../framework/mobx/types.js
+../utils/interceptor.js
+./bridge.js
+./factories/factory-console.js
+./factories/factory-dom.js
+./factories/factory-helpers.js
+./factories/factory-state.js
+== backend\index.ts
+./bridge.js
+./devtool.js
+./factory.js
+./http-server.js
+./main.js
+./methods.js
+== backend\main.ts
+../utils/rpc.js
+../utils/transport.js
+== framework\apollo\adapter.ts
+../plain-adapter.js
+../types.js
+== framework\mobx\snapshot\index.ts
+./state.js
+./store.js
+./tree.js
+./truncate.js
+== framework\mobx\snapshot\state.ts
+../types.js
+./store.js
+== framework\mobx\snapshot\store.ts
+../types.js
+./tree.js
+./truncate.js
+== framework\mobx\snapshot\tree.ts
+./truncate.js
+== framework\mobx\actions-main.ts
+./actions-buffer.js
+./types.js
+== framework\mobx\adapter.ts
+../history.js
+../types.js
+./actions-buffer.js
+== framework\mobx\index.ts
+./actions-buffer.js
+./actions-main.js
+./search.js
+./types.js
+== framework\mobx\search.ts
+./types.js
+== framework\redux\adapter.ts
+../plain-adapter.js
+../types.js
+== framework\zustand\adapter.ts
+../plain-adapter.js
+../types.js
+== framework\adapters.test.ts
+./apollo/adapter.js
+./labels.js
+./mobx/adapter.js
+./plain-adapter.js
+./redux/adapter.js
+./zustand/adapter.js
+== framework\history.test.ts
+./history.js
+./types.js
+== framework\history.ts
+./types.js
+== framework\index.ts
+../config.js
+./apollo/adapter.js
+./history.js
+./labels.js
+./mobx/adapter.js
+./plain-adapter.js
+./redux/adapter.js
+./types.js
+./zustand/adapter.js
+== framework\plain-adapter.ts
+./history.js
+./types.js
+== frontend\dom\bridge\create-frontend-bridge.ts
+../../../framework/mobx/types.js
+== frontend\dom\bridge\index.ts
+./create-frontend-bridge.js
+./register-dom-response-handler.js
+./webview-store-bridge.js
+== frontend\dom\bridge\webview-store-bridge.ts
+../../webview/console.js
+./features/root-store
+== frontend\dom\consumer\actions.ts
+./utils.js
+== frontend\dom\consumer\dom-consumer-setup.ts
+./actions.js
+./utils.js
+== frontend\dom\consumer\index.ts
+./actions.js
+./dom-consumer-setup.js
+./utils.js
+== frontend\dom\handlers\finding\iframe.ts
+../../serialization/dom-tree.js
+../../types.js
+== frontend\dom\handlers\finding\index.ts
+./iframe.js
+./main.js
+== frontend\dom\handlers\finding\main.ts
+../../lookup.js
+../../serialization/dom-tree.js
+../../types.js
+./iframe.js
+== frontend\dom\handlers\interaction\clickElement.ts
+../../lookup.js
+../../types.js
+== frontend\dom\handlers\interaction\drag.ts
+../../lookup.js
+../../types.js
+== frontend\dom\handlers\interaction\index.ts
+./clickElement.js
+./drag.js
+./scrollElement.js
+./selectOption.js
+./typeText.js
+== frontend\dom\handlers\interaction\scrollElement.ts
+../../lookup.js
+../../types.js
+== frontend\dom\handlers\interaction\selectOption.ts
+../../lookup.js
+../../types.js
+== frontend\dom\handlers\interaction\typeText.ts
+../../lookup.js
+../../types.js
+== frontend\dom\handlers\getActivePage.ts
+../types.js
+== frontend\dom\handlers\getScreenshot.ts
+../types.js
+== frontend\dom\handlers\index.ts
+./getActivePage.js
+./getScreenshot.js
+./runCommand.js
+== frontend\dom\handlers\runCommand.ts
+../types.js
+== frontend\dom\serialization\dom-tree.ts
+./helpers.js
+== frontend\dom\serialization\index.ts
+./dom-tree.js
+./helpers.js
+== frontend\dom\action-handlers.ts
+./handlers/finding/main.js
+./handlers/getScreenshot.js
+./handlers/interaction/clickElement.js
+./handlers/interaction/drag.js
+./handlers/interaction/scrollElement.js
+./handlers/interaction/selectOption.js
+./handlers/interaction/typeText.js
+./handlers/runCommand.js
+./types.js
+== frontend\dom\create-message-handler.ts
+./action-handlers.js
+./handlers/getActivePage.js
+./iframe.js
+./store-query-handlers.js
+./types.js
+== frontend\dom\iframe.ts
+./lookup.js
+./types.js
+== frontend\dom\index.ts
+./bridge/create-frontend-bridge.js
+./bridge/register-dom-response-handler.js
+./bridge/webview-store-bridge.js
+./create-message-handler.js
+./index.js
+./store-query-handlers.js
+== frontend\dom\store-query-handlers.ts
+../../framework/mobx/snapshot/tree.js
+../webview/console.js
+./types.js
+== frontend\webview\diagnostic-dashboard\header.tsx
+../../../shared/diagnostics-types.js
+../vscode.js
+./format-bytes.js
+./icons.js
+== frontend\webview\diagnostic-dashboard\index.ts
+./header.jsx
+./icons.jsx
+./main.jsx
+./tab-content.jsx
+./use-diagnostic-data.js
+== frontend\webview\diagnostic-dashboard\main.tsx
+../../../shared/diagnostics-types.js
+./header.js
+./tab-content.js
+./use-diagnostic-data.js
+== frontend\webview\diagnostic-dashboard\tab-content.tsx
+../../../shared/diagnostics-types.js
+./format-bytes.js
+./icons.js
+== frontend\webview\diagnostic-dashboard\use-diagnostic-data.ts
+../../../shared/diagnostics-types.js
+== frontend\webview\console.ts
+./vscode.js
+== frontend\webview\DevtoolProvider.tsx
+../dom/index.js
+== frontend\webview\index.ts
+../dom/index.js
+./console.js
+./DevtoolProvider.js
+./DevToolsStore/store.js
+./diagnostic-dashboard/main.js
+./LocatorBridge.js
+./main.js
+./utils.js
+./vscode.js
+== frontend\webview\LocatorBridge.tsx
+./vscode.js
+== frontend\webview\main.ts
+./utils.js
+== frontend\Devtool.test.tsx
+../config.js
+../framework/plain-adapter.js
+./Devtool.js
+== frontend\Devtool.tsx
+../config.js
+./webview/DevtoolProvider.js
+== frontend\index.ts
+./Devtool.js
+./metrics.js
+== frontend\metrics.test.ts
+./metrics.js
+== server\index.ts
+./transport.js
+./ws-mcp-server.js
+== server\ws-mcp-server.ts
+./transport.js
+== utils\index.ts
+./command-registry.js
+./interceptor.js
+./rpc.js
+./transport.js
+== utils\interceptor.ts
+../backend/bridge.js
+== config.test.ts
+./config.js
+./framework/mobx/adapter.js
+./framework/plain-adapter.js
+== config.ts
+./framework/types.js
+== index.ts
+./backend/bridge.js
+./backend/devtool.js
+./backend/diagnostics/index.js
+./backend/diagnostics/types.js
+./backend/factories/factory-helpers.js
+./backend/factory.js
+./backend/hosts/index.js
+./backend/http-server.js
+./backend/main.js
+./config.js
+./framework/index.js
+./framework/mobx/types.js
+./frontend/dom/index.js
+./frontend/metrics.js
+./frontend/webview/utils.js
+./server/transport.js
+./server/ws-mcp-server.js
+./utils/command-registry.js
+./utils/interceptor.js

@@ -1,6 +1,6 @@
 import React, { Component } from "react"
 import { telemetryClient } from "@src/features/cloud"
-import { enhanceErrorWithSourceMaps } from "@jabberwock/devtool/webview"
+import { enhanceErrorWithSourceMaps } from "vscode-extension-devtool-mcp/webview"
 import { rootStore } from "@src/features/store"
 
 type ErrorProps = {

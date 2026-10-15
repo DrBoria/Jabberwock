@@ -6,7 +6,7 @@ import type { IntentBus } from "@features/intents"
  * Action creators like ask() emit this intent to decouple logging from
  * notification creation.
  */
-import { diagnosticsManager } from "@jabberwock/devtool"
+import { diagnosticsManager } from "vscode-extension-devtool-mcp"
 
 export function registerOnLogWrite(bus: IntentBus): void {
 	bus.register(IntentType.LogWrite, async (intent) => {

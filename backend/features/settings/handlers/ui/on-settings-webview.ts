@@ -6,7 +6,7 @@ import { Package } from "@shared/core/package"
 
 import { getSettingsAccess } from "@utils/settings"
 
-import { diagnosticsManager } from "@jabberwock/devtool"
+import { diagnosticsManager } from "vscode-extension-devtool-mcp"
 
 import { getConfiguration } from "@features/foundation"
 

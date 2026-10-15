@@ -1,0 +1,81 @@
+{
+	"name": "vscode-extension-devtool-mcp",
+	"description": "WebSocket-based MCP devtool server for VS Code extension debugging and automation. Config-driven store-framework MCP tools (MobX / Redux / Zustand / Apollo), DOM + console + diagnostics, message interceptors, and express/nest host adapters.",
+	"version": "0.0.1",
+	"type": "module",
+	"sideEffects": false,
+	"license": "Apache-2.0",
+	"author": {
+		"name": "DrBoria",
+		"email": "dr.boria@gmail.com"
+	},
+	"keywords": [
+		"vscode",
+		"vscode-extension",
+		"devtools",
+		"mcp",
+		"model-context-protocol",
+		"webview",
+		"debugger",
+		"redux",
+		"zustand",
+		"mobx",
+		"apollo"
+	],
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/DrBoria/vscode-extension-devtool-mcp.git"
+	},
+	"homepage": "https://github.com/DrBoria/vscode-extension-devtool-mcp#readme",
+	"bugs": {
+		"url": "https://github.com/DrBoria/vscode-extension-devtool-mcp/issues"
+	},
+	"files": [
+		"src",
+		"README.md",
+		"LICENSE"
+	],
+	"publishConfig": {
+		"access": "public"
+	},
+	"engines": {
+		"node": ">=18.0.0"
+	},
+	"exports": {
+		".": "./src/index.ts",
+		"./webview": "./src/frontend/index.ts",
+		"./backend": "./src/backend/index.ts",
+		"./mcp-entry": "./src/mcp/transport/stdio.ts",
+		"./express": "./src/backend/hosts/express.ts",
+		"./nest": "./src/backend/hosts/nest.ts"
+	},
+	"scripts": {
+		"lint": "eslint src --ext=ts,tsx --max-warnings=0",
+		"check-types": "tsc --noEmit",
+		"test": "vitest run --config vitest.config.ts",
+		"clean": "rimraf .turbo"
+	},
+	"dependencies": {
+		"@modelcontextprotocol/sdk": "1.12.0",
+		"mobx-state-tree": "^5.4.2",
+		"react": "^18.3.1",
+		"react-use": "^17.5.1",
+		"stacktrace-js": "^2.0.2",
+		"@types/vscode-webview": "^1.57.5",
+		"ws": "^8.18.0",
+		"zod": "3.25.76"
+	},
+	"devDependencies": {
+		"@jabberwock/config-eslint": "workspace:^",
+		"@jabberwock/config-typescript": "workspace:^",
+		"@types/node": "20.x",
+		"@types/react": "^18.3.23",
+		"@types/react-dom": "^18.3.7",
+		"@types/stacktrace-js": "^0.0.33",
+		"@types/vscode": "^1.84.0",
+		"@types/ws": "^8.5.10",
+		"jsdom": "^24.1.0",
+		"react-dom": "18.3.1",
+		"vitest": "^3.2.3"
+	}
+}

@@ -1,7 +1,7 @@
 import { createRoot } from "react-dom/client"
 import { StrictMode } from "react"
 
-import { createWebviewStoreBridge, initWebviewConsoleBridge } from "@jabberwock/devtool/webview"
+import { createWebviewStoreBridge, initWebviewConsoleBridge } from "vscode-extension-devtool-mcp/webview"
 import { initConnectorBus, getConnectorBus } from "./connector-bus"
 import type { WebviewMessage } from "@jabberwock/types"
 
@@ -11,8 +11,6 @@ initWebviewConsoleBridge()
 import "./index.css"
 import App from "./app-shell/root"
 import "../node_modules/@vscode/codicons/dist/codicon.css"
-
-import { devToolsStore } from "@jabberwock/devtool/webview"
 
 import { createRootStore } from "./features/root-store"
 import { subscribeContextStore } from "./features/context"
@@ -54,7 +52,6 @@ async function boot(): Promise<void> {
 		// DUAL INSTANTIATION BUG — singleton + root child = two separate MST instances,
 		// and MstBridge snapshots only reach the registered instance.
 		mstBridge.registerStore("SettingsStore", root.settings)
-		mstBridge.registerStore("DevToolsStore", devToolsStore)
 		mstBridge.registerStore("WindowManagerStore", root.windowManager)
 		mstBridge.registerStore("CommandExecutionStore", root.chat.commandExecution)
 		mstBridge.registerStore("McpExecutionStore", root.mcpExecution)

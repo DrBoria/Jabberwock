@@ -8,7 +8,7 @@ import { summarizeConversation } from "@features/chat"
 import type { SummarizeResponse } from "@features/chat/task/condense"
 import type { ApiMessage } from "@features/chat"
 
-import { diagnosticsManager } from "@jabberwock/devtool"
+import { diagnosticsManager } from "vscode-extension-devtool-mcp"
 import { t } from "@i18n"
 
 import { type ContextManagementResult, type TruncationResult } from "./utils/context-management-types"

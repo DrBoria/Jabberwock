@@ -1,7 +1,7 @@
 import { serializeError } from "serialize-error"
 import { type CancelReason, IntentType, IntentStatus } from "@jabberwock/types"
 import { t } from "@i18n"
-import { diagnosticsManager } from "@jabberwock/devtool"
+import { diagnosticsManager } from "vscode-extension-devtool-mcp"
 import { abortStream } from "@features/api/handlers/request/index"
 import { saveMessages } from "@features/chat/task/messages"
 import type { StreamHandle } from "@features/chat/task/condense"

@@ -1,6 +1,6 @@
 import type { ToolUse, ToolResponse } from "@shared/tools"
 import type { ITaskModel } from "@features/chat/task"
-import { diagnosticsManager } from "@jabberwock/devtool"
+import { diagnosticsManager } from "vscode-extension-devtool-mcp"
 import { getStore } from "@features/singleton"
 import { t } from "@i18n"
 import {
